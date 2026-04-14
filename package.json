@@ -1,0 +1,24 @@
+{
+  "name": "iflow-settings-editor",
+  "version": "1.0.0",
+  "description": "iFlow Settings Editor - Vue 3 + Electron",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "electron .",
+    "electron:dev": "concurrently \"vite\" \"electron . --dev\"",
+    "electron:start": "vite build && electron ."
+  },
+  "author": "iFlow",
+  "license": "MIT",
+  "devDependencies": {
+    "@icon-park/vue-next": "^1.4.2",
+    "@vitejs/plugin-vue": "^6.0.6",
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "vite": "^8.0.8",
+    "vue": "^3.4.0"
+  },
+  "dependencies": {}
+}
