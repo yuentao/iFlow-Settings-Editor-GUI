@@ -121,6 +121,30 @@
           </div>
           <div class="card">
             <div class="card-title">
+              <Exchange size="16" />
+              配置文件管理
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">当前配置文件</label>
+                <select class="form-select" v-model="currentConfigFilePath" @change="switchConfig">
+                  <option v-for="cfg in configList" :key="cfg.filePath" :value="cfg.filePath">{{ cfg.name }}</option>
+                </select>
+              </div>
+              <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
+                <button class="btn btn-secondary" @click="createNewConfig" style="height: 40px;">
+                  <Add size="14" />
+                  新建
+                </button>
+                <button class="btn btn-danger" @click="deleteConfig" style="height: 40px;" :disabled="configList.length <= 1">
+                  <Delete size="14" />
+                  删除
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">
               <Robot size="16" />
               AI 模型
             </div>
@@ -129,6 +153,7 @@
               <select class="form-select" v-model="settings.selectedAuthType">
                 <option value="iflow">iFlow</option>
                 <option value="api">API Key</option>
+                <option value="openai-compatible">OpenAI 兼容</option>
               </select>
             </div>
             <div class="form-group">
@@ -238,16 +263,37 @@
     <footer class="footer">
       <div class="footer-status">
         <div class="footer-status-dot"></div>
-        <span>C:\Users\MSI\.iflow\settings.json</span>
+        <span>{{ currentConfigFilePath }}</span>
       </div>
       <span :class="{ 'footer-modified': modified }">{{ modified ? '● 已修改' : '✓ 未修改' }}</span>
     </footer>
+
+    <!-- Input Dialog -->
+    <div v-if="showInputDialog.show" class="dialog-overlay" @click.self="closeInputDialog(false)">
+      <div class="dialog">
+        <div class="dialog-title">{{ showInputDialog.title }}</div>
+        <div v-if="showInputDialog.isConfirm" class="dialog-confirm-text">{{ showInputDialog.placeholder }}</div>
+        <input
+          v-else
+          type="text"
+          class="form-input"
+          v-model="inputDialogValue"
+          :placeholder="showInputDialog.placeholder"
+          @keyup.enter="closeInputDialog(true)"
+          autofocus
+        />
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" @click="closeInputDialog(false)">取消</button>
+          <button class="btn btn-primary" @click="closeInputDialog(true)">确定</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { Refresh, Save, Config, Key, Server, Globe, Setting, Robot, Search, Add, Edit, Delete } from '@icon-park/vue-next';
+import { Refresh, Save, Config, Key, Server, Globe, Setting, Robot, Search, Add, Edit, Delete, Exchange } from '@icon-park/vue-next';
 
 const settings = ref({
   language: 'zh-CN',
@@ -268,11 +314,82 @@ const modified = ref(false);
 const currentSection = ref('general');
 const currentServerName = ref(null);
 const isLoading = ref(true);
+const configList = ref([]);
+const currentConfigFilePath = ref('');
+const showInputDialog = ref({ show: false, title: '', placeholder: '', callback: null });
+const inputDialogValue = ref('');
+
+// Load config list
+const loadConfigList = async () => {
+  const result = await window.electronAPI.listConfigs();
+  if (result.success) {
+    configList.value = result.configs;
+  }
+};
+
+// Switch config
+const switchConfig = async () => {
+  if (modified.value) {
+    const confirmed = await new Promise((resolve) => {
+      showInputDialog.value = { show: true, title: '切换配置', placeholder: '当前有未保存的更改，切换配置将丢失这些更改，确定要切换吗？', callback: resolve, isConfirm: true };
+    });
+    if (!confirmed) return;
+  }
+  if (currentConfigFilePath.value) {
+    const result = await window.electronAPI.switchConfig(currentConfigFilePath.value);
+    if (result.success) {
+      await loadSettings();
+    }
+  }
+};
+
+// Create new config
+const createNewConfig = async () => {
+  const name = await new Promise((resolve) => {
+    showInputDialog.value = { show: true, title: '新建配置文件', placeholder: '请输入配置名称', callback: resolve };
+  });
+  if (!name) return;
+  const result = await window.electronAPI.createConfig(name);
+  if (result.success) {
+    await loadConfigList();
+    currentConfigFilePath.value = result.filePath;
+    await loadSettings();
+    await window.electronAPI.showMessage({ type: 'info', title: '创建成功', message: `配置文件 "${name}" 已创建` });
+  } else {
+    await window.electronAPI.showMessage({ type: 'error', title: '创建失败', message: result.error });
+  }
+};
+
+// Delete config
+const deleteConfig = async () => {
+  if (configList.value.length <= 1) {
+    await window.electronAPI.showMessage({ type: 'warning', title: '无法删除', message: '至少需要保留一个配置文件' });
+    return;
+  }
+  const cfg = configList.value.find(c => c.filePath === currentConfigFilePath.value);
+  if (!cfg) return;
+  const confirmed = await new Promise((resolve) => {
+    showInputDialog.value = { show: true, title: '删除配置文件', placeholder: `确定要删除配置文件 "${cfg.name}" 吗？`, callback: resolve, isConfirm: true };
+  });
+  if (!confirmed) return;
+  const result = await window.electronAPI.deleteConfig(currentConfigFilePath.value);
+  if (result.success) {
+    await loadConfigList();
+    if (configList.value.length > 0) {
+      currentConfigFilePath.value = configList.value[0].filePath;
+      await window.electronAPI.switchConfig(currentConfigFilePath.value);
+      await loadSettings();
+    }
+    await window.electronAPI.showMessage({ type: 'info', title: '删除成功', message: `配置文件 "${cfg.name}" 已删除` });
+  } else {
+    await window.electronAPI.showMessage({ type: 'error', title: '删除失败', message: result.error });
+  }
+};
 
 const loadSettings = async () => {
   const result = await window.electronAPI.loadSettings();
   if (result.success) {
-    const data = result.data;
+    const data = JSON.parse(JSON.stringify(result.data));
     if (!data.checkpointing) data.checkpointing = { enabled: true };
     if (!data.mcpServers) data.mcpServers = {};
     settings.value = data;
@@ -284,7 +401,8 @@ const loadSettings = async () => {
 
 const saveSettings = async () => {
   collectServerData();
-  const result = await window.electronAPI.saveSettings(settings.value);
+  const dataToSave = JSON.parse(JSON.stringify(settings.value));
+  const result = await window.electronAPI.saveSettings(dataToSave);
   if (result.success) {
     originalSettings.value = JSON.parse(JSON.stringify(settings.value));
     modified.value = false;
@@ -295,7 +413,12 @@ const saveSettings = async () => {
 };
 
 const reloadSettings = async () => {
-  if (modified.value && !confirm('当前有未保存的更改，确定要重新加载吗？')) return;
+  if (modified.value) {
+    const confirmed = await new Promise((resolve) => {
+      showInputDialog.value = { show: true, title: '重新加载', placeholder: '当前有未保存的更改，确定要重新加载吗？', callback: resolve, isConfirm: true };
+    });
+    if (!confirmed) return;
+  }
   currentServerName.value = null;
   await loadSettings();
 };
@@ -308,21 +431,26 @@ const serverCount = computed(() => settings.value.mcpServers ? Object.keys(setti
 
 const selectServer = (name) => { currentServerName.value = name; };
 
-const addServer = () => {
-  const name = prompt('请输入服务器名称:');
+const addServer = async () => {
+  const name = await new Promise((resolve) => {
+    showInputDialog.value = { show: true, title: '添加服务器', placeholder: '请输入服务器名称', callback: resolve };
+  });
   if (!name) return;
   if (!settings.value.mcpServers) settings.value.mcpServers = {};
   if (settings.value.mcpServers[name]) {
-    alert('服务器已存在');
+    await window.electronAPI.showMessage({ type: 'warning', title: '错误', message: '服务器已存在' });
     return;
   }
   settings.value.mcpServers[name] = { command: 'npx', args: ['-y', 'package-name'] };
   currentServerName.value = name;
 };
 
-const deleteServer = () => {
+const deleteServer = async () => {
   if (!currentServerName.value) return;
-  if (!confirm(`确定要删除服务器 "${currentServerName.value}" 吗？`)) return;
+  const confirmed = await new Promise((resolve) => {
+    showInputDialog.value = { show: true, title: '删除服务器', placeholder: `确定要删除服务器 "${currentServerName.value}" 吗？`, callback: resolve, isConfirm: true };
+  });
+  if (!confirmed) return;
   delete settings.value.mcpServers[currentServerName.value];
   currentServerName.value = null;
 };
@@ -369,7 +497,23 @@ const minimize = () => window.electronAPI.minimize();
 const maximize = () => window.electronAPI.maximize();
 const close = () => window.electronAPI.close();
 
-onMounted(() => { loadSettings(); });
+const closeInputDialog = (result) => {
+  if (showInputDialog.value.callback) {
+    showInputDialog.value.callback(showInputDialog.value.isConfirm ? result : inputDialogValue.value);
+  }
+  showInputDialog.value.show = false;
+  showInputDialog.value.isConfirm = false;
+  inputDialogValue.value = '';
+};
+
+onMounted(async () => {
+  await loadConfigList();
+  const current = await window.electronAPI.getCurrentConfig();
+  if (current.filePath) {
+    currentConfigFilePath.value = current.filePath;
+  }
+  await loadSettings();
+});
 </script>
 
 <style>
@@ -509,6 +653,42 @@ body {
 .footer-status { display: flex; align-items: center; gap: 6px; }
 .footer-status-dot { width: 6px; height: 6px; border-radius: 50%; background: #6ccb5f; }
 .footer-modified { color: var(--accent); }
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.dialog {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  min-width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+.dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.dialog-confirm-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
 
 .iconpark-icon { display: inline-block; vertical-align: middle; }
 </style>
