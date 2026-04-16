@@ -126,17 +126,17 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">当前配置文件</label>
-                <select class="form-select" v-model="currentConfigFilePath" @change="switchConfig">
-                  <option v-for="cfg in configList" :key="cfg.filePath" :value="cfg.filePath">{{ cfg.name }}</option>
+                <label class="form-label">当前配置</label>
+                <select class="form-select" v-model="currentApiProfile" @change="switchApiProfile">
+                  <option v-for="profile in apiProfiles" :key="profile.name" :value="profile.name">{{ profile.name }}</option>
                 </select>
               </div>
               <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
-                <button class="btn btn-secondary" @click="createNewConfig" style="height: 40px;">
+                <button class="btn btn-secondary" @click="createNewApiProfile" style="height: 40px;">
                   <Add size="14" />
                   新建
                 </button>
-                <button class="btn btn-danger" @click="deleteConfig" style="height: 40px;" :disabled="configList.length <= 1">
+                <button class="btn btn-danger" @click="deleteApiProfile" style="height: 40px;" :disabled="currentApiProfile === 'default'">
                   <Delete size="14" />
                   删除
                 </button>
@@ -263,7 +263,7 @@
     <footer class="footer">
       <div class="footer-status">
         <div class="footer-status-dot"></div>
-        <span>{{ currentConfigFilePath }}</span>
+        <span>配置: {{ currentApiProfile || 'default' }}</span>
       </div>
       <span :class="{ 'footer-modified': modified }">{{ modified ? '● 已修改' : '✓ 未修改' }}</span>
     </footer>
@@ -306,7 +306,9 @@ const settings = ref({
   baseUrl: '',
   modelName: '',
   searchApiKey: '',
-  cna: ''
+  cna: '',
+  currentApiProfile: 'default',
+  apiProfiles: { default: {} }
 });
 
 const originalSettings = ref({});
@@ -314,73 +316,83 @@ const modified = ref(false);
 const currentSection = ref('general');
 const currentServerName = ref(null);
 const isLoading = ref(true);
-const configList = ref([]);
-const currentConfigFilePath = ref('');
+const apiProfiles = ref([]);
+const currentApiProfile = ref('default');
 const showInputDialog = ref({ show: false, title: '', placeholder: '', callback: null });
 const inputDialogValue = ref('');
 
-// Load config list
-const loadConfigList = async () => {
-  const result = await window.electronAPI.listConfigs();
+// Load API profiles list
+const loadApiProfiles = async () => {
+  const result = await window.electronAPI.listApiProfiles();
   if (result.success) {
-    configList.value = result.configs;
+    apiProfiles.value = result.profiles;
+    currentApiProfile.value = result.currentProfile;
   }
 };
 
-// Switch config
-const switchConfig = async () => {
+// Switch API profile
+const switchApiProfile = async () => {
   if (modified.value) {
     const confirmed = await new Promise((resolve) => {
       showInputDialog.value = { show: true, title: '切换配置', placeholder: '当前有未保存的更改，切换配置将丢失这些更改，确定要切换吗？', callback: resolve, isConfirm: true };
     });
-    if (!confirmed) return;
-  }
-  if (currentConfigFilePath.value) {
-    const result = await window.electronAPI.switchConfig(currentConfigFilePath.value);
-    if (result.success) {
-      await loadSettings();
+    if (!confirmed) {
+      // 恢复到之前的值
+      const result = await window.electronAPI.listApiProfiles();
+      if (result.success) {
+        currentApiProfile.value = result.currentProfile;
+      }
+      return;
     }
+  }
+  const result = await window.electronAPI.switchApiProfile(currentApiProfile.value);
+  if (result.success) {
+    const data = JSON.parse(JSON.stringify(result.data));
+    if (!data.checkpointing) data.checkpointing = { enabled: true };
+    if (!data.mcpServers) data.mcpServers = {};
+    settings.value = data;
+    originalSettings.value = JSON.parse(JSON.stringify(data));
+    modified.value = false;
+  } else {
+    await window.electronAPI.showMessage({ type: 'error', title: '切换失败', message: result.error });
   }
 };
 
-// Create new config
-const createNewConfig = async () => {
+// Create new API profile
+const createNewApiProfile = async () => {
   const name = await new Promise((resolve) => {
-    showInputDialog.value = { show: true, title: '新建配置文件', placeholder: '请输入配置名称', callback: resolve };
+    showInputDialog.value = { show: true, title: '新建配置', placeholder: '请输入配置名称', callback: resolve };
   });
   if (!name) return;
-  const result = await window.electronAPI.createConfig(name);
+  const result = await window.electronAPI.createApiProfile(name);
   if (result.success) {
-    await loadConfigList();
-    currentConfigFilePath.value = result.filePath;
-    await loadSettings();
-    await window.electronAPI.showMessage({ type: 'info', title: '创建成功', message: `配置文件 "${name}" 已创建` });
+    await loadApiProfiles();
+    await window.electronAPI.showMessage({ type: 'info', title: '创建成功', message: `配置 "${name}" 已创建` });
   } else {
     await window.electronAPI.showMessage({ type: 'error', title: '创建失败', message: result.error });
   }
 };
 
-// Delete config
-const deleteConfig = async () => {
-  if (configList.value.length <= 1) {
-    await window.electronAPI.showMessage({ type: 'warning', title: '无法删除', message: '至少需要保留一个配置文件' });
+// Delete API profile
+const deleteApiProfile = async () => {
+  if (currentApiProfile.value === 'default') {
+    await window.electronAPI.showMessage({ type: 'warning', title: '无法删除', message: '不能删除默认配置' });
     return;
   }
-  const cfg = configList.value.find(c => c.filePath === currentConfigFilePath.value);
-  if (!cfg) return;
   const confirmed = await new Promise((resolve) => {
-    showInputDialog.value = { show: true, title: '删除配置文件', placeholder: `确定要删除配置文件 "${cfg.name}" 吗？`, callback: resolve, isConfirm: true };
+    showInputDialog.value = { show: true, title: '删除配置', placeholder: `确定要删除配置 "${currentApiProfile.value}" 吗？`, callback: resolve, isConfirm: true };
   });
   if (!confirmed) return;
-  const result = await window.electronAPI.deleteConfig(currentConfigFilePath.value);
+  const result = await window.electronAPI.deleteApiProfile(currentApiProfile.value);
   if (result.success) {
-    await loadConfigList();
-    if (configList.value.length > 0) {
-      currentConfigFilePath.value = configList.value[0].filePath;
-      await window.electronAPI.switchConfig(currentConfigFilePath.value);
-      await loadSettings();
-    }
-    await window.electronAPI.showMessage({ type: 'info', title: '删除成功', message: `配置文件 "${cfg.name}" 已删除` });
+    const data = JSON.parse(JSON.stringify(result.data));
+    if (!data.checkpointing) data.checkpointing = { enabled: true };
+    if (!data.mcpServers) data.mcpServers = {};
+    settings.value = data;
+    originalSettings.value = JSON.parse(JSON.stringify(data));
+    modified.value = false;
+    await loadApiProfiles();
+    await window.electronAPI.showMessage({ type: 'info', title: '删除成功', message: `配置已删除` });
   } else {
     await window.electronAPI.showMessage({ type: 'error', title: '删除失败', message: result.error });
   }
@@ -507,11 +519,7 @@ const closeInputDialog = (result) => {
 };
 
 onMounted(async () => {
-  await loadConfigList();
-  const current = await window.electronAPI.getCurrentConfig();
-  if (current.filePath) {
-    currentConfigFilePath.value = current.filePath;
-  }
+  await loadApiProfiles();
   await loadSettings();
 });
 </script>

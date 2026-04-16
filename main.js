@@ -3,14 +3,11 @@ const path = require('path')
 const fs = require('fs')
 
 console.log('main.js loaded')
-console.log('app.getPath(\"home\"):', app.getPath('home'))
+console.log('app.getPath("home"):', app.getPath('home'))
 
-const DEFAULT_SETTINGS_FILE = path.join(app.getPath('home'), '.iflow', 'settings.json')
-const CONFIG_DIR = path.join(app.getPath('home'), '.iflow', 'configs')
-console.log('DEFAULT_SETTINGS_FILE:', DEFAULT_SETTINGS_FILE)
-console.log('CONFIG_DIR:', CONFIG_DIR)
+const SETTINGS_FILE = path.join(app.getPath('home'), '.iflow', 'settings.json')
+console.log('SETTINGS_FILE:', SETTINGS_FILE)
 
-let currentSettingsFile = DEFAULT_SETTINGS_FILE
 let mainWindow
 
 const isDev = process.argv.includes('--dev')
@@ -88,91 +85,206 @@ ipcMain.on('window-close', () => mainWindow.close())
 
 ipcMain.handle('is-maximized', () => mainWindow.isMaximized())
 
-// Get current config file path
-ipcMain.handle('get-current-config', () => {
-  return { filePath: currentSettingsFile, fileName: path.basename(currentSettingsFile) }
-})
+// API 配置相关的字段
+const API_FIELDS = ['selectedAuthType', 'apiKey', 'baseUrl', 'modelName', 'searchApiKey', 'cna']
 
-// List all config files
-ipcMain.handle('list-configs', async () => {
+// 读取设置文件
+function readSettings() {
+  if (!fs.existsSync(SETTINGS_FILE)) {
+    return null
+  }
+  const data = fs.readFileSync(SETTINGS_FILE, 'utf-8')
+  return JSON.parse(data)
+}
+
+// 写入设置文件
+function writeSettings(data) {
+  if (fs.existsSync(SETTINGS_FILE)) {
+    const backupPath = SETTINGS_FILE + '.bak'
+    fs.copyFileSync(SETTINGS_FILE, backupPath)
+  }
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2), 'utf-8')
+}
+
+// 获取 API 配置列表
+ipcMain.handle('list-api-profiles', async () => {
   try {
-    const configs = []
-    // Always include default settings
-    if (fs.existsSync(DEFAULT_SETTINGS_FILE)) {
-      const stats = fs.statSync(DEFAULT_SETTINGS_FILE)
-      configs.push({
-        name: '默认配置',
-        filePath: DEFAULT_SETTINGS_FILE,
-        modified: stats.mtime
-      })
+    const settings = readSettings()
+    if (!settings) {
+      return { success: false, error: '配置文件不存在', profiles: [], currentProfile: '' }
     }
-    // Add configs from CONFIG_DIR
-    if (fs.existsSync(CONFIG_DIR)) {
-      const files = fs.readdirSync(CONFIG_DIR).filter(f => f.endsWith('.json'))
-      for (const file of files) {
-        const filePath = path.join(CONFIG_DIR, file)
-        const stats = fs.statSync(filePath)
-        configs.push({
-          name: file.replace('.json', ''),
-          filePath: filePath,
-          modified: stats.mtime
-        })
-      }
-    } else {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true })
+    
+    const profiles = settings.apiProfiles || {}
+    const profileList = Object.keys(profiles).map(name => ({
+      name,
+      isDefault: name === 'default'
+    }))
+    
+    return { 
+      success: true, 
+      profiles: profileList, 
+      currentProfile: settings.currentApiProfile || 'default'
     }
-    return { success: true, configs: configs }
   } catch (error) {
-    return { success: false, error: error.message, configs: [] }
+    return { success: false, error: error.message, profiles: [], currentProfile: '' }
   }
 })
 
-// Create new config
-ipcMain.handle('create-config', async (event, name) => {
+// 切换 API 配置
+ipcMain.handle('switch-api-profile', async (event, profileName) => {
   try {
-    if (!fs.existsSync(CONFIG_DIR)) {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true })
+    const settings = readSettings()
+    if (!settings) {
+      return { success: false, error: '配置文件不存在' }
     }
-    const fileName = name + '.json'
-    const filePath = path.join(CONFIG_DIR, fileName)
-    if (fs.existsSync(filePath)) {
-      return { success: false, error: '配置文件已存在' }
+    
+    const profiles = settings.apiProfiles || {}
+    if (!profiles[profileName]) {
+      return { success: false, error: `配置 "${profileName}" 不存在` }
     }
-    let data = {}
-    if (fs.existsSync(currentSettingsFile)) {
-      const content = fs.readFileSync(currentSettingsFile, 'utf-8')
-      data = JSON.parse(content)
+    
+    // 保存当前配置到 apiProfiles（如果当前配置存在）
+    const currentProfile = settings.currentApiProfile || 'default'
+    if (profiles[currentProfile]) {
+      const currentConfig = {}
+      for (const field of API_FIELDS) {
+        if (settings[field] !== undefined) {
+          currentConfig[field] = settings[field]
+        }
+      }
+      profiles[currentProfile] = currentConfig
     }
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8')
-    return { success: true, filePath: filePath }
+    
+    // 从 apiProfiles 加载新配置到主字段
+    const newConfig = profiles[profileName]
+    for (const field of API_FIELDS) {
+      if (newConfig[field] !== undefined) {
+        settings[field] = newConfig[field]
+      }
+    }
+    
+    settings.currentApiProfile = profileName
+    settings.apiProfiles = profiles
+    
+    writeSettings(settings)
+    
+    return { success: true, data: settings }
   } catch (error) {
     return { success: false, error: error.message }
   }
 })
 
-// Delete config
-ipcMain.handle('delete-config', async (event, filePath) => {
+// 创建新的 API 配置
+ipcMain.handle('create-api-profile', async (event, name) => {
   try {
-    if (filePath === DEFAULT_SETTINGS_FILE) {
-      return { success: false, error: '不能删除默认配置' }
+    const settings = readSettings()
+    if (!settings) {
+      return { success: false, error: '配置文件不存在' }
     }
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath)
+    
+    if (!settings.apiProfiles) {
+      settings.apiProfiles = { default: {} }
+      // 初始化 default 配置
+      for (const field of API_FIELDS) {
+        if (settings[field] !== undefined) {
+          settings.apiProfiles.default[field] = settings[field]
+        }
+      }
     }
+    
+    if (settings.apiProfiles[name]) {
+      return { success: false, error: `配置 "${name}" 已存在` }
+    }
+    
+    // 复制当前配置到新配置
+    const newConfig = {}
+    for (const field of API_FIELDS) {
+      if (settings[field] !== undefined) {
+        newConfig[field] = settings[field]
+      }
+    }
+    settings.apiProfiles[name] = newConfig
+    
+    writeSettings(settings)
+    
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }
   }
 })
 
-// Switch to config
-ipcMain.handle('switch-config', async (event, filePath) => {
+// 删除 API 配置
+ipcMain.handle('delete-api-profile', async (event, name) => {
   try {
-    if (!fs.existsSync(filePath)) {
+    const settings = readSettings()
+    if (!settings) {
       return { success: false, error: '配置文件不存在' }
     }
-    currentSettingsFile = filePath
-    return { success: true, filePath: currentSettingsFile }
+    
+    if (name === 'default') {
+      return { success: false, error: '不能删除默认配置' }
+    }
+    
+    const profiles = settings.apiProfiles || {}
+    if (!profiles[name]) {
+      return { success: false, error: `配置 "${name}" 不存在` }
+    }
+    
+    delete profiles[name]
+    settings.apiProfiles = profiles
+    
+    // 如果删除的是当前配置，切换到 default
+    if (settings.currentApiProfile === name) {
+      settings.currentApiProfile = 'default'
+      if (profiles.default) {
+        for (const field of API_FIELDS) {
+          if (profiles.default[field] !== undefined) {
+            settings[field] = profiles.default[field]
+          }
+        }
+      }
+    }
+    
+    writeSettings(settings)
+    
+    return { success: true, data: settings }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+// 重命名 API 配置
+ipcMain.handle('rename-api-profile', async (event, oldName, newName) => {
+  try {
+    const settings = readSettings()
+    if (!settings) {
+      return { success: false, error: '配置文件不存在' }
+    }
+    
+    if (oldName === 'default') {
+      return { success: false, error: '不能重命名默认配置' }
+    }
+    
+    const profiles = settings.apiProfiles || {}
+    if (!profiles[oldName]) {
+      return { success: false, error: `配置 "${oldName}" 不存在` }
+    }
+    
+    if (profiles[newName]) {
+      return { success: false, error: `配置 "${newName}" 已存在` }
+    }
+    
+    profiles[newName] = profiles[oldName]
+    delete profiles[oldName]
+    settings.apiProfiles = profiles
+    
+    if (settings.currentApiProfile === oldName) {
+      settings.currentApiProfile = newName
+    }
+    
+    writeSettings(settings)
+    
+    return { success: true }
   } catch (error) {
     return { success: false, error: error.message }
   }
@@ -181,10 +293,10 @@ ipcMain.handle('switch-config', async (event, filePath) => {
 // IPC Handlers
 ipcMain.handle('load-settings', async () => {
   try {
-    if (!fs.existsSync(currentSettingsFile)) {
+    if (!fs.existsSync(SETTINGS_FILE)) {
       return { success: false, error: 'File not found', data: null }
     }
-    const data = fs.readFileSync(currentSettingsFile, 'utf-8')
+    const data = fs.readFileSync(SETTINGS_FILE, 'utf-8')
     const json = JSON.parse(data)
     return { success: true, data: json }
   } catch (error) {
@@ -194,11 +306,22 @@ ipcMain.handle('load-settings', async () => {
 
 ipcMain.handle('save-settings', async (event, data) => {
   try {
-    if (fs.existsSync(currentSettingsFile)) {
-      const backupPath = currentSettingsFile + '.bak'
-      fs.copyFileSync(currentSettingsFile, backupPath)
+    // 保存时同步更新 apiProfiles 中的当前配置
+    const currentProfile = data.currentApiProfile || 'default'
+    if (!data.apiProfiles) {
+      data.apiProfiles = {}
     }
-    fs.writeFileSync(currentSettingsFile, JSON.stringify(data, null, 2), 'utf-8')
+    
+    // 更新当前配置到 apiProfiles
+    const currentConfig = {}
+    for (const field of API_FIELDS) {
+      if (data[field] !== undefined) {
+        currentConfig[field] = data[field]
+      }
+    }
+    data.apiProfiles[currentProfile] = currentConfig
+    
+    writeSettings(data)
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }
