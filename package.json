@@ -3,22 +3,84 @@
   "version": "1.0.0",
   "description": "iFlow Settings Editor - Vue 3 + Electron",
   "main": "main.js",
+  "author": "iFlow",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "start": "electron .",
     "electron:dev": "concurrently \"vite\" \"electron . --dev\"",
-    "electron:start": "vite build && electron ."
+    "electron:start": "vite build && electron .",
+    "pack": "electron-builder --dir",
+    "build:win": "vite build && electron-builder --win",
+    "build:win64": "vite build && electron-builder --win --x64",
+    "build:win32": "vite build && electron-builder --win --ia32",
+    "build:win-portable": "vite build && electron-builder --win portable",
+    "build:win-installer": "vite build && electron-builder --win nsis",
+    "dist": "vite build && electron-builder"
   },
-  "author": "iFlow",
-  "license": "MIT",
+  "build": {
+    "appId": "com.iflow.settings-editor",
+    "productName": "iFlow Settings Editor",
+    "copyright": "Copyright © 2024 iFlow",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-${version}-${arch}-setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "iFlow Settings Editor",
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "displayLanguageSelector": false,
+      "installerLanguages": [
+        "zh_CN",
+        "en_US"
+      ],
+      "language": "2052"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
+  },
   "devDependencies": {
     "@icon-park/vue-next": "^1.4.2",
     "@vitejs/plugin-vue": "^6.0.6",
     "concurrently": "^8.2.2",
     "electron": "^28.0.0",
+    "electron-builder": "^24.13.3",
     "vite": "^8.0.8",
     "vue": "^3.4.0"
-  },
-  "dependencies": {}
+  }
 }
