@@ -221,42 +221,6 @@
             </div>
           </div>
 
-          <div v-if="currentServer" class="card">
-            <div class="card-title">
-              <Edit size="16" />
-              编辑服务器
-            </div>
-            <div class="form-group">
-              <label class="form-label">名称</label>
-              <input type="text" class="form-input" id="serverName" :value="currentServerName" readonly />
-            </div>
-            <div class="form-group">
-              <label class="form-label">描述</label>
-              <input type="text" class="form-input" id="serverDescription" :value="currentServer.description || ''" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">命令</label>
-              <input type="text" class="form-input" id="serverCommand" :value="currentServer.command || ''" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">工作目录</label>
-              <input type="text" class="form-input" id="serverCwd" :value="currentServer.cwd || '.'" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">参数 (每行一个)</label>
-              <textarea class="form-textarea" id="serverArgs" rows="4">{{ serverArgsText }}</textarea>
-            </div>
-            <div class="form-group">
-              <label class="form-label">环境变量 (JSON 格式)</label>
-              <textarea class="form-textarea" id="serverEnv" rows="3">{{ serverEnvText }}</textarea>
-            </div>
-            <div style="margin-top: 16px">
-              <button class="btn btn-danger" @click="deleteServer">
-                <Delete size="12" />
-                删除服务器
-              </button>
-            </div>
-          </div>
         </section>
       </div>
     </main>
@@ -270,7 +234,7 @@
     </footer>
 
     <!-- Input Dialog -->
-    <div v-if="showInputDialog.show" class="dialog-overlay" @click.self="closeInputDialog(false)">
+    <div v-if="showInputDialog.show" class="dialog-overlay dialog-overlay-top" @click.self="closeInputDialog(false)">
       <div class="dialog">
         <div class="dialog-title">{{ showInputDialog.title }}</div>
         <div v-if="showInputDialog.isConfirm" class="dialog-confirm-text">{{ showInputDialog.placeholder }}</div>
@@ -281,11 +245,68 @@
         </div>
       </div>
     </div>
+
+    <!-- Server Side Panel -->
+    <div v-if="showServerPanel" class="side-panel-overlay" @click.self="closeServerPanel" @keyup.esc="closeServerPanel" tabindex="-1" ref="serverPanelOverlay">
+      <div class="side-panel" @click.stop>
+        <div class="side-panel-header">
+          <div class="side-panel-title">
+            <Server size="18" />
+            {{ isEditingServer ? '编辑服务器' : '添加服务器' }}
+          </div>
+          <button class="side-panel-close" @click="closeServerPanel">
+            <svg viewBox="0 0 10 10">
+              <line x1="0" y1="0" x2="10" y2="10" />
+              <line x1="10" y1="0" x2="0" y2="10" />
+            </svg>
+          </button>
+        </div>
+        <div class="side-panel-body">
+          <div class="form-group">
+            <label class="form-label">服务器名称 <span class="form-required">*</span></label>
+            <input type="text" class="form-input" v-model="editingServerData.name" placeholder="my-mcp-server" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">描述</label>
+            <input type="text" class="form-input" v-model="editingServerData.description" placeholder="服务器描述信息" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">命令 <span class="form-required">*</span></label>
+            <input type="text" class="form-input" v-model="editingServerData.command" placeholder="npx" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">工作目录</label>
+            <input type="text" class="form-input" v-model="editingServerData.cwd" placeholder="." />
+          </div>
+          <div class="form-group">
+            <label class="form-label">参数 (每行一个)</label>
+            <textarea class="form-textarea" v-model="editingServerData.args" rows="4" placeholder="-y&#10;package-name"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">环境变量 (JSON 格式)</label>
+            <textarea class="form-textarea" v-model="editingServerData.env" rows="3" placeholder='{"API_KEY": "xxx"}'></textarea>
+          </div>
+        </div>
+        <div class="side-panel-footer">
+          <button v-if="isEditingServer" class="btn btn-danger" @click="deleteServer">
+            <Delete size="14" />
+            删除
+          </button>
+          <div class="side-panel-footer-right">
+            <button class="btn btn-secondary" @click="closeServerPanel">取消</button>
+            <button class="btn btn-primary" @click="saveServerFromPanel">
+              <Save size="14" />
+              {{ isEditingServer ? '保存更改' : '添加服务器' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { Refresh, Save, Config, Key, Server, Globe, Setting, Robot, Search, Add, Edit, Delete, Exchange } from '@icon-park/vue-next'
 
 const settings = ref({
@@ -313,6 +334,16 @@ const apiProfiles = ref([])
 const currentApiProfile = ref('default')
 const showInputDialog = ref({ show: false, title: '', placeholder: '', callback: null })
 const inputDialogValue = ref('')
+const showServerPanel = ref(false)
+const isEditingServer = ref(false)
+const editingServerData = ref({
+  name: '',
+  description: '',
+  command: 'npx',
+  cwd: '.',
+  args: '',
+  env: ''
+})
 
 // Load API profiles list
 const loadApiProfiles = async () => {
@@ -419,7 +450,6 @@ const loadSettings = async () => {
 }
 
 const saveSettings = async () => {
-  collectServerData()
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
   if (result.success) {
@@ -458,74 +488,106 @@ const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(sett
 
 const selectServer = name => {
   currentServerName.value = name
+  openEditServerPanel(name)
+}
+
+const serverPanelOverlay = ref(null)
+
+const openAddServerPanel = () => {
+  isEditingServer.value = false
+  editingServerData.value = {
+    name: '',
+    description: '',
+    command: 'npx',
+    cwd: '.',
+    args: '-y\npackage-name',
+    env: ''
+  }
+  showServerPanel.value = true
+  nextTick(() => {
+    serverPanelOverlay.value?.focus()
+  })
+}
+
+const openEditServerPanel = (name) => {
+  const server = settings.value.mcpServers[name]
+  if (!server) return
+  isEditingServer.value = true
+  editingServerData.value = {
+    name: name,
+    description: server.description || '',
+    command: server.command || '',
+    cwd: server.cwd || '.',
+    args: (server.args || []).join('\n'),
+    env: server.env ? JSON.stringify(server.env, null, 2) : ''
+  }
+  showServerPanel.value = true
+  nextTick(() => {
+    serverPanelOverlay.value?.focus()
+  })
+}
+
+const closeServerPanel = () => {
+  showServerPanel.value = false
+}
+
+const saveServerFromPanel = async () => {
+  const name = editingServerData.value.name.trim()
+  if (!name) {
+    await window.electronAPI.showMessage({ type: 'warning', title: '错误', message: '请输入服务器名称' })
+    return
+  }
+  if (!isEditingServer.value && settings.value.mcpServers[name]) {
+    await window.electronAPI.showMessage({ type: 'warning', title: '错误', message: '服务器名称已存在' })
+    return
+  }
+
+  // 如果是编辑模式且名称改变了，需要删除旧的服务器
+  if (isEditingServer.value && currentServerName.value && currentServerName.value !== name) {
+    delete settings.value.mcpServers[currentServerName.value]
+  }
+
+  const serverConfig = {
+    command: editingServerData.value.command.trim(),
+    description: editingServerData.value.description.trim(),
+    cwd: editingServerData.value.cwd.trim() || '.',
+    args: editingServerData.value.args.split('\n').map(s => s.trim()).filter(s => s)
+  }
+
+  const envText = editingServerData.value.env.trim()
+  if (envText) {
+    try {
+      serverConfig.env = JSON.parse(envText)
+    } catch (e) {
+      await window.electronAPI.showMessage({ type: 'error', title: '错误', message: '环境变量 JSON 格式错误' })
+      return
+    }
+  }
+
+  settings.value.mcpServers[name] = serverConfig
+  currentServerName.value = name
+  showServerPanel.value = false
 }
 
 const addServer = async () => {
-  const name = await new Promise(resolve => {
-    showInputDialog.value = { show: true, title: '添加服务器', placeholder: '请输入服务器名称', callback: resolve }
-  })
-  if (!name) return
-  if (!settings.value.mcpServers) settings.value.mcpServers = {}
-  if (settings.value.mcpServers[name]) {
-    await window.electronAPI.showMessage({ type: 'warning', title: '错误', message: '服务器已存在' })
-    return
-  }
-  settings.value.mcpServers[name] = { command: 'npx', args: ['-y', 'package-name'] }
-  currentServerName.value = name
+  openAddServerPanel()
 }
 
 const deleteServer = async () => {
-  if (!currentServerName.value) return
+  const serverName = isEditingServer.value ? editingServerData.value.name : currentServerName.value
+  if (!serverName) return
   const confirmed = await new Promise(resolve => {
-    showInputDialog.value = { show: true, title: '删除服务器', placeholder: `确定要删除服务器 "${currentServerName.value}" 吗？`, callback: resolve, isConfirm: true }
+    showInputDialog.value = { show: true, title: '删除服务器', placeholder: `确定要删除服务器 "${serverName}" 吗？`, callback: resolve, isConfirm: true }
   })
   if (!confirmed) return
-  delete settings.value.mcpServers[currentServerName.value]
+  delete settings.value.mcpServers[serverName]
   currentServerName.value = null
-}
-
-const collectServerData = () => {
-  if (!currentServerName.value) return
-  const el = document.getElementById('serverName')
-  if (el) {
-    const name = el.value.trim()
-    if (name !== currentServerName.value) {
-      delete settings.value.mcpServers[currentServerName.value]
-      currentServerName.value = name
-    }
-    settings.value.mcpServers[name] = {
-      command: document.getElementById('serverCommand')?.value || '',
-      description: document.getElementById('serverDescription')?.value || '',
-      cwd: document.getElementById('serverCwd')?.value || '.',
-      args: (document.getElementById('serverArgs')?.value || '')
-        .split('\n')
-        .map(s => s.trim())
-        .filter(s => s),
-    }
-    const envText = document.getElementById('serverEnv')?.value || ''
-    if (envText) {
-      try {
-        settings.value.mcpServers[name].env = JSON.parse(envText)
-      } catch (e) {
-        alert('环境变量 JSON 格式错误')
-      }
-    }
-  }
+  showServerPanel.value = false
 }
 
 const currentServer = computed(() => {
   if (!currentServerName.value || !settings.value.mcpServers) return null
   return settings.value.mcpServers[currentServerName.value]
-})
-
-const serverArgsText = computed(() => {
-  if (!currentServer.value) return ''
-  return (currentServer.value.args || []).join('\n')
-})
-
-const serverEnvText = computed(() => {
-  if (!currentServer.value || !currentServer.value.env) return ''
-  return JSON.stringify(currentServer.value.env, null, 2)
 })
 
 const minimize = () => window.electronAPI.minimize()
@@ -629,6 +691,32 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
 .app {
   display: flex;
   flex-direction: column;
@@ -1256,6 +1344,9 @@ body {
   gap: 10px;
   margin-top: 22px;
 }
+.dialog-overlay-top {
+  z-index: 1100;
+}
 
 .iconpark-icon {
   display: inline-flex;
@@ -1266,5 +1357,112 @@ body {
 }
 .iconpark-icon svg {
   display: block;
+}
+
+/* Side Panel */
+.side-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+.side-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 420px;
+  max-width: 100%;
+  background: var(--bg-secondary);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-tertiary);
+}
+.side-panel-title {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.side-panel-title .iconpark-icon {
+  color: var(--accent);
+}
+.side-panel-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+.side-panel-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.side-panel-close svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+.side-panel-body {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+.side-panel-body .form-group {
+  margin-bottom: 20px;
+}
+.side-panel-body .form-group:last-child {
+  margin-bottom: 0;
+}
+.form-required {
+  color: var(--danger);
+  font-weight: 500;
+}
+.side-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-tertiary);
+}
+.side-panel-footer-right {
+  display: flex;
+  gap: 10px;
 }
 </style>
