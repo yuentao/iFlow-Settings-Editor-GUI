@@ -260,40 +260,109 @@ ipcMain.handle('delete-api-profile', async (event, name) => {
 })
 
 // 重命名 API 配置
+
 ipcMain.handle('rename-api-profile', async (event, oldName, newName) => {
+
   try {
+
     const settings = readSettings()
+
     if (!settings) {
+
       return { success: false, error: '配置文件不存在' }
+
     }
-    
+
     if (oldName === 'default') {
+
       return { success: false, error: '不能重命名默认配置' }
+
     }
-    
+
     const profiles = settings.apiProfiles || {}
+
     if (!profiles[oldName]) {
+
       return { success: false, error: `配置 "${oldName}" 不存在` }
+
     }
-    
+
     if (profiles[newName]) {
+
       return { success: false, error: `配置 "${newName}" 已存在` }
+
     }
-    
+
     profiles[newName] = profiles[oldName]
+
     delete profiles[oldName]
+
     settings.apiProfiles = profiles
-    
+
     if (settings.currentApiProfile === oldName) {
+
       settings.currentApiProfile = newName
+
     }
-    
+
     writeSettings(settings)
-    
+
     return { success: true }
+
   } catch (error) {
+
     return { success: false, error: error.message }
+
   }
+
+})
+
+
+
+// 复制 API 配置
+
+ipcMain.handle('duplicate-api-profile', async (event, sourceName, newName) => {
+
+  try {
+
+    const settings = readSettings()
+
+    if (!settings) {
+
+      return { success: false, error: '配置文件不存在' }
+
+    }
+
+    const profiles = settings.apiProfiles || {}
+
+    if (!profiles[sourceName]) {
+
+      return { success: false, error: `配置 "${sourceName}" 不存在` }
+
+    }
+
+    if (profiles[newName]) {
+
+      return { success: false, error: `配置 "${newName}" 已存在` }
+
+    }
+
+    // 深拷贝配置
+
+    profiles[newName] = JSON.parse(JSON.stringify(profiles[sourceName]))
+
+    settings.apiProfiles = profiles
+
+    writeSettings(settings)
+
+    return { success: true }
+
+  } catch (error) {
+
+    return { success: false, error: error.message }
+
+  }
+
 })
 
 // IPC Handlers

@@ -123,75 +123,48 @@
             <div class="card-title">
               <Exchange size="16" />
               配置文件管理
+              <button class="btn btn-primary btn-sm" @click="createNewApiProfile" style="margin-left: auto;">
+                <Add size="14" />
+                新建配置
+              </button>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">当前配置</label>
-                <select class="form-select" v-model="currentApiProfile" @change="switchApiProfile">
-                  <option v-for="profile in apiProfiles" :key="profile.name" :value="profile.name">{{ profile.name }}</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">&nbsp;</label>
-                <div class="btn-group">
-                  <button class="btn btn-secondary" @click="createNewApiProfile">
-                    <Add size="14" />
-                    新建
-                  </button>
-                  <button class="btn btn-danger" @click="deleteApiProfile" :disabled="currentApiProfile === 'default'">
-                    <Delete size="14" />
-                    删除
-                  </button>
+            <div class="profile-list">
+              <div 
+                v-for="profile in apiProfiles" 
+                :key="profile.name" 
+                class="profile-item"
+                :class="{ active: currentApiProfile === profile.name }"
+                @click="selectApiProfile(profile.name)"
+              >
+                <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
+                  <span class="profile-icon-text">{{ getProfileInitial(profile.name) }}</span>
                 </div>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-title">
-              <Robot size="16" />
-              AI 模型
-            </div>
-            <div class="form-group">
-              <label class="form-label">认证方式</label>
-              <select class="form-select" v-model="settings.selectedAuthType">
-                <option value="iflow">iFlow</option>
-                <option value="api">API Key</option>
-                <option value="openai-compatible">OpenAI 兼容</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">API Key</label>
-              <input type="password" class="form-input" v-model="settings.apiKey" placeholder="sk-cp-XXXXX..." />
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Base URL</label>
-                <input type="text" class="form-input" v-model="settings.baseUrl" placeholder="https://api.minimaxi.com/v1" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">模型名称</label>
-                <input type="text" class="form-input" v-model="settings.modelName" placeholder="MiniMax-M2.7" />
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-title">
-              <Search size="16" />
-              搜索服务
-            </div>
-            <div class="form-group">
-              <label class="form-label">搜索 API Key</label>
-              <input type="password" class="form-input" v-model="settings.searchApiKey" placeholder="sk-XXXXX..." />
-            </div>
-            <div class="form-group">
-              <label class="form-label">CNA</label>
-              <input type="text" class="form-input" v-model="settings.cna" placeholder="CNA 标识" />
-            </div>
-          </div>
-        </section>
-
-        <section v-if="currentSection === 'mcp'">
-          <div class="content-header">
+                <div class="profile-info">
+                  <div class="profile-name">{{ profile.name }}</div>
+                  <div class="profile-url">{{ getProfileUrl(profile.name) }}</div>
+                </div>
+                <div class="profile-status" v-if="currentApiProfile === profile.name">
+                  <span class="status-badge">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3,8 6,11 13,4"></polyline>
+                    </svg>
+                    使用中
+                  </span>
+                </div>
+                <div class="profile-actions" v-if="profile.name !== 'default'">
+                  <button class="action-btn" @click.stop="openApiEditDialog" title="编辑">
+                                        <Edit size="14" />
+                                      </button>                  <button class="action-btn" @click.stop="duplicateApiProfile(profile.name)" title="复制">
+                                    <Copy size="14" />
+                                  </button>                  <button class="action-btn action-btn-danger" @click.stop="deleteApiProfile(profile.name)" title="删除">
+                    <Delete size="14" />
+                  </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </section>
+                            <section v-if="currentSection === 'mcp'">          <div class="content-header">
             <h1 class="content-title">MCP 服务器</h1>
             <p class="content-desc">管理 Model Context Protocol 服务器配置</p>
           </div>
@@ -246,10 +219,156 @@
       </div>
     </div>
 
-    <!-- Server Side Panel -->
-    <div v-if="showServerPanel" class="side-panel-overlay" @click.self="closeServerPanel" @keyup.esc="closeServerPanel" tabindex="-1" ref="serverPanelOverlay">
-      <div class="side-panel" @click.stop>
-        <div class="side-panel-header">
+    <!-- Message Dialog -->
+    <div v-if="showMessageDialog.show" class="dialog-overlay dialog-overlay-top" @click.self="closeMessageDialog">
+      <div class="dialog message-dialog">
+        <div class="message-dialog-icon" :class="'message-dialog-icon-' + showMessageDialog.type">
+          <svg v-if="showMessageDialog.type === 'info'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+          <svg v-else-if="showMessageDialog.type === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+          <svg v-else-if="showMessageDialog.type === 'warning'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <svg v-else-if="showMessageDialog.type === 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+        </div>
+        <div class="message-dialog-title">{{ showMessageDialog.title }}</div>
+        <div class="message-dialog-message">{{ showMessageDialog.message }}</div>
+        <div class="dialog-actions">
+          <button class="btn btn-primary" @click="closeMessageDialog">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Profile Create Dialog -->
+  <div v-if="showApiCreateDialog" class="dialog-overlay dialog-overlay-top" @click.self="closeApiCreateDialog" @keyup.esc="closeApiCreateDialog" tabindex="-1" ref="apiCreateDialogOverlay" style="z-index: 1200;">
+    <div class="dialog api-edit-dialog" @click.stop>
+      <div class="dialog-header">
+        <div class="dialog-title">
+          <Add size="18" />
+          新建 API 配置
+        </div>
+        <button class="side-panel-close" @click="closeApiCreateDialog">
+          <svg viewBox="0 0 10 10">
+            <line x1="0" y1="0" x2="10" y2="10" />
+            <line x1="10" y1="0" x2="0" y2="10" />
+          </svg>
+        </button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label class="form-label">配置名称 <span class="form-required">*</span></label>
+          <input type="text" class="form-input" v-model="creatingApiData.name" placeholder="请输入配置名称" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">认证方式</label>
+          <select class="form-select" v-model="creatingApiData.selectedAuthType">
+            <option value="iflow">iFlow</option>
+            <option value="api">API Key</option>
+            <option value="openai-compatible">OpenAI 兼容</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">API Key</label>
+          <input type="password" class="form-input" v-model="creatingApiData.apiKey" placeholder="sk-cp-XXXXX..." />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Base URL</label>
+            <input type="text" class="form-input" v-model="creatingApiData.baseUrl" placeholder="https://api.minimaxi.com/v1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">模型名称</label>
+            <input type="text" class="form-input" v-model="creatingApiData.modelName" placeholder="MiniMax-M2.7" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">搜索 API Key</label>
+          <input type="password" class="form-input" v-model="creatingApiData.searchApiKey" placeholder="sk-XXXXX..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">CNA</label>
+          <input type="text" class="form-input" v-model="creatingApiData.cna" placeholder="CNA 标识" />
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" @click="closeApiCreateDialog">取消</button>
+        <button class="btn btn-primary" @click="saveApiCreate">
+          <Save size="14" /> 创建
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- API Profile Edit Dialog -->
+      <div v-if="showApiEditDialog" class="dialog-overlay dialog-overlay-top" @click.self="closeApiEditDialog" @keyup.esc="closeApiEditDialog" tabindex="-1" ref="apiEditDialogOverlay">
+        <div class="dialog api-edit-dialog" @click.stop>
+          <div class="dialog-header">
+            <div class="dialog-title">
+              <Key size="18" />
+              编辑 API 配置
+            </div>
+            <button class="side-panel-close" @click="closeApiEditDialog">
+              <svg viewBox="0 0 10 10">
+                <line x1="0" y1="0" x2="10" y2="10" />
+                <line x1="10" y1="0" x2="0" y2="10" />
+              </svg>
+            </button>
+          </div>
+          <div class="dialog-body">
+            <div class="form-group">
+              <label class="form-label">认证方式</label>
+              <select class="form-select" v-model="editingApiData.selectedAuthType">
+                <option value="iflow">iFlow</option>
+                <option value="api">API Key</option>
+                <option value="openai-compatible">OpenAI 兼容</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">API Key</label>
+              <input type="password" class="form-input" v-model="editingApiData.apiKey" placeholder="sk-cp-XXXXX..." />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Base URL</label>
+                <input type="text" class="form-input" v-model="editingApiData.baseUrl" placeholder="https://api.minimaxi.com/v1" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">模型名称</label>
+                <input type="text" class="form-input" v-model="editingApiData.modelName" placeholder="MiniMax-M2.7" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">搜索 API Key</label>
+              <input type="password" class="form-input" v-model="editingApiData.searchApiKey" placeholder="sk-XXXXX..." />
+            </div>
+            <div class="form-group">
+              <label class="form-label">CNA</label>
+              <input type="text" class="form-input" v-model="editingApiData.cna" placeholder="CNA 标识" />
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <button class="btn btn-secondary" @click="closeApiEditDialog">取消</button>
+            <button class="btn btn-primary" @click="saveApiEdit">
+              <Save size="14" /> 保存
+            </button>
+          </div>
+        </div>
+      </div>
+    
+      <!-- Server Side Panel -->
+      <div v-if="showServerPanel" class="side-panel-overlay" @click.self="closeServerPanel" @keyup.esc="closeServerPanel" tabindex="-1" ref="serverPanelOverlay">
+        <div class="side-panel" @click.stop>        <div class="side-panel-header">
           <div class="side-panel-title">
             <Server size="18" />
             {{ isEditingServer ? '编辑服务器' : '添加服务器' }}
@@ -307,7 +426,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
-import { Refresh, Save, Config, Key, Server, Globe, Setting, Robot, Search, Add, Edit, Delete, Exchange } from '@icon-park/vue-next'
+import { Refresh, Save, Config, Key, Server, Globe, Setting, Robot, Search, Add, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 
 const settings = ref({
   language: 'zh-CN',
@@ -334,6 +453,7 @@ const apiProfiles = ref([])
 const currentApiProfile = ref('default')
 const showInputDialog = ref({ show: false, title: '', placeholder: '', callback: null })
 const inputDialogValue = ref('')
+const showMessageDialog = ref({ show: false, type: 'info', title: '', message: '', callback: null })
 const showServerPanel = ref(false)
 const isEditingServer = ref(false)
 const editingServerData = ref({
@@ -343,6 +463,25 @@ const editingServerData = ref({
   cwd: '.',
   args: '',
   env: ''
+})
+const showApiEditDialog = ref(false)
+const editingApiData = ref({
+  selectedAuthType: 'iflow',
+  apiKey: '',
+  baseUrl: '',
+  modelName: '',
+  searchApiKey: '',
+  cna: ''
+})
+const showApiCreateDialog = ref(false)
+const creatingApiData = ref({
+  name: '',
+  selectedAuthType: 'iflow',
+  apiKey: '',
+  baseUrl: '',
+  modelName: '',
+  searchApiKey: '',
+  cna: ''
 })
 
 // Load API profiles list
@@ -383,49 +522,351 @@ const switchApiProfile = async () => {
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false
   } else {
-    await window.electronAPI.showMessage({ type: 'error', title: '切换失败', message: result.error })
+    await showMessage({ type: 'error', title: '切换失败', message: result.error })
   }
 }
 
 // Create new API profile
-const createNewApiProfile = async () => {
-  const name = await new Promise(resolve => {
-    showInputDialog.value = { show: true, title: '新建配置', placeholder: '请输入配置名称', callback: resolve }
-  })
-  if (!name) return
-  const result = await window.electronAPI.createApiProfile(name)
-  if (result.success) {
-    await loadApiProfiles()
-    await window.electronAPI.showMessage({ type: 'info', title: '创建成功', message: `配置 "${name}" 已创建` })
-  } else {
-    await window.electronAPI.showMessage({ type: 'error', title: '创建失败', message: result.error })
+
+const createNewApiProfile = () => {
+
+  creatingApiData.value = {
+
+    name: '',
+
+    selectedAuthType: 'iflow',
+
+    apiKey: '',
+
+    baseUrl: '',
+
+    modelName: '',
+
+    searchApiKey: '',
+
+    cna: ''
+
   }
+
+  showApiCreateDialog.value = true
+
+}
+
+
+
+// Close API create dialog
+
+const closeApiCreateDialog = () => {
+
+  showApiCreateDialog.value = false
+
+}
+
+
+
+// Save API create
+
+const saveApiCreate = async () => {
+
+  const name = creatingApiData.value.name.trim()
+
+  if (!name) {
+
+    await showMessage({ type: 'warning', title: '错误', message: '请输入配置名称' })
+
+    return
+
+  }
+
+
+
+  const result = await window.electronAPI.createApiProfile(name)
+
+  if (result.success) {
+
+    // 创建成功后，更新配置数据
+
+    const profileData = {
+
+      selectedAuthType: creatingApiData.value.selectedAuthType,
+
+      apiKey: creatingApiData.value.apiKey,
+
+      baseUrl: creatingApiData.value.baseUrl,
+
+      modelName: creatingApiData.value.modelName,
+
+      searchApiKey: creatingApiData.value.searchApiKey,
+
+      cna: creatingApiData.value.cna
+
+    }
+
+
+
+    // 保存配置数据
+
+    const loadResult = await window.electronAPI.loadSettings()
+
+    if (loadResult.success) {
+
+      const data = loadResult.data
+
+      if (!data.apiProfiles) data.apiProfiles = {}
+
+      data.apiProfiles[name] = profileData
+
+            await window.electronAPI.saveSettings(data)
+
+          }
+
+      
+
+          showApiCreateDialog.value = false
+
+          await loadApiProfiles()
+
+          await showMessage({ type: 'info', title: '创建成功', message: `配置 "${name}" 已创建` })
+
+  } else {
+
+    await showMessage({ type: 'error', title: '创建失败', message: result.error })
+
+  }
+
 }
 
 // Delete API profile
-const deleteApiProfile = async () => {
+
+const deleteApiProfile = async (name) => {
+
+  const profileName = name || currentApiProfile.value
+
+  if (profileName === 'default') {
+
+    await showMessage({ type: 'warning', title: '无法删除', message: '不能删除默认配置' })
+
+    return
+
+  }
+
+
+
+  const confirmed = await new Promise(resolve => {
+
+    showInputDialog.value = {
+
+      show: true,
+
+      title: '删除配置',
+
+      placeholder: `确定要删除配置 "${profileName}" 吗？`,
+
+      callback: resolve,
+
+      isConfirm: true
+
+    }
+
+  })
+
+  if (!confirmed) return
+
+
+
+  const result = await window.electronAPI.deleteApiProfile(profileName)
+
+  if (result.success) {
+
+    const data = JSON.parse(JSON.stringify(result.data))
+
+    if (!data.checkpointing) data.checkpointing = { enabled: true }
+
+    if (!data.mcpServers) data.mcpServers = {}
+
+    settings.value = data
+
+    originalSettings.value = JSON.parse(JSON.stringify(data))
+
+    modified.value = false
+
+    await loadApiProfiles()
+
+    await showMessage({ type: 'info', title: '删除成功', message: `配置已删除` })
+
+  } else {
+
+    await showMessage({ type: 'error', title: '删除失败', message: result.error })
+
+  }
+
+}
+
+// Rename API profile
+const renameApiProfile = async () => {
   if (currentApiProfile.value === 'default') {
-    await window.electronAPI.showMessage({ type: 'warning', title: '无法删除', message: '不能删除默认配置' })
+    await showMessage({ type: 'warning', title: '无法重命名', message: '不能重命名默认配置' })
     return
   }
-  const confirmed = await new Promise(resolve => {
-    showInputDialog.value = { show: true, title: '删除配置', placeholder: `确定要删除配置 "${currentApiProfile.value}" 吗？`, callback: resolve, isConfirm: true }
+  const newName = await new Promise(resolve => {
+    showInputDialog.value = { show: true, title: '重命名配置', placeholder: '请输入新的配置名称', defaultValue: currentApiProfile.value, callback: resolve }
   })
-  if (!confirmed) return
-  const result = await window.electronAPI.deleteApiProfile(currentApiProfile.value)
+  if (!newName || newName === currentApiProfile.value) return
+  const result = await window.electronAPI.renameApiProfile(currentApiProfile.value, newName)
   if (result.success) {
-    const data = JSON.parse(JSON.stringify(result.data))
-    if (!data.checkpointing) data.checkpointing = { enabled: true }
-    if (!data.mcpServers) data.mcpServers = {}
-    settings.value = data
-    originalSettings.value = JSON.parse(JSON.stringify(data))
-    modified.value = false
+    currentApiProfile.value = newName
     await loadApiProfiles()
-    await window.electronAPI.showMessage({ type: 'info', title: '删除成功', message: `配置已删除` })
+    await showMessage({ type: 'info', title: '重命名成功', message: `配置已重命名为 "${newName}"` })
   } else {
-    await window.electronAPI.showMessage({ type: 'error', title: '删除失败', message: result.error })
+    await showMessage({ type: 'error', title: '重命名失败', message: result.error })
   }
 }
+
+// Select API profile (click on card)
+const selectApiProfile = async (name) => {
+  if (name === currentApiProfile.value) return
+  currentApiProfile.value = name
+  isLoading.value = true
+  await switchApiProfile()
+  isLoading.value = false
+}
+
+// Get profile initial letter for icon
+const getProfileInitial = (name) => {
+  if (!name) return '?'
+  return name.charAt(0).toUpperCase()
+}
+
+// Get profile URL for display
+const getProfileUrl = (name) => {
+  if (!settings.value.apiProfiles || !settings.value.apiProfiles[name]) {
+    return '未配置'
+  }
+  const profile = settings.value.apiProfiles[name]
+  return profile.baseUrl || '未配置 Base URL'
+}
+
+// Get profile icon style (gradient colors)
+const profileColors = [
+  'linear-gradient(135deg, #f97316 0%, #fb923c 100%)', // orange
+  'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)', // purple
+  'linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)', // cyan
+  'linear-gradient(135deg, #10b981 0%, #34d399 100%)', // green
+  'linear-gradient(135deg, #f43f5e 0%, #fb7185 100%)', // rose
+  'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)', // blue
+]
+
+const getProfileIconStyle = (name) => {
+  if (name === 'default') {
+    return { background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' }
+  }
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % profileColors.length
+  return { background: profileColors[index] }
+}
+
+// Duplicate API profile
+
+const duplicateApiProfile = async (name) => {
+
+  const newName = await new Promise(resolve => {
+
+    showInputDialog.value = {
+
+      show: true,
+
+      title: '复制配置',
+
+      placeholder: '请输入新配置的名称',
+
+      callback: resolve
+
+    }
+
+  })
+
+  if (!newName) return
+
+
+
+  const result = await window.electronAPI.duplicateApiProfile(name, newName)
+
+  if (result.success) {
+
+    await loadApiProfiles()
+
+    await showMessage({ type: 'info', title: '复制成功', message: `配置已复制为 "${newName}"` })
+
+  } else {
+
+    await showMessage({ type: 'error', title: '复制失败', message: result.error })
+
+  }
+
+}
+
+
+
+// Open API edit dialog
+
+const openApiEditDialog = () => {
+
+  editingApiData.value = {
+
+    selectedAuthType: settings.value.selectedAuthType || 'iflow',
+
+    apiKey: settings.value.apiKey || '',
+
+    baseUrl: settings.value.baseUrl || '',
+
+    modelName: settings.value.modelName || '',
+
+    searchApiKey: settings.value.searchApiKey || '',
+
+    cna: settings.value.cna || ''
+
+  }
+
+  showApiEditDialog.value = true
+
+}
+
+
+
+// Close API edit dialog
+
+const closeApiEditDialog = () => {
+
+  showApiEditDialog.value = false
+
+}
+
+
+
+// Save API edit
+
+const saveApiEdit = () => {
+
+  settings.value.selectedAuthType = editingApiData.value.selectedAuthType
+
+  settings.value.apiKey = editingApiData.value.apiKey
+
+  settings.value.baseUrl = editingApiData.value.baseUrl
+
+  settings.value.modelName = editingApiData.value.modelName
+
+  settings.value.searchApiKey = editingApiData.value.searchApiKey
+
+  settings.value.cna = editingApiData.value.cna
+
+  showApiEditDialog.value = false
+
+}
+
+
 
 const loadSettings = async () => {
   const result = await window.electronAPI.loadSettings()
@@ -455,9 +896,9 @@ const saveSettings = async () => {
   if (result.success) {
     originalSettings.value = JSON.parse(JSON.stringify(settings.value))
     modified.value = false
-    await window.electronAPI.showMessage({ type: 'info', title: '保存成功', message: '设置已保存到 settings.json' })
+    await showMessage({ type: 'info', title: '保存成功', message: '设置已保存到 settings.json' })
   } else {
-    await window.electronAPI.showMessage({ type: 'error', title: '保存失败', message: `无法保存设置: ${result.error}` })
+    await showMessage({ type: 'error', title: '保存失败', message: `无法保存设置: ${result.error}` })
   }
 }
 
@@ -475,7 +916,9 @@ const reloadSettings = async () => {
 watch(
   settings,
   () => {
-    modified.value = true
+    if (!isLoading.value) {
+      modified.value = true
+    }
   },
   { deep: true },
 )
@@ -534,11 +977,11 @@ const closeServerPanel = () => {
 const saveServerFromPanel = async () => {
   const name = editingServerData.value.name.trim()
   if (!name) {
-    await window.electronAPI.showMessage({ type: 'warning', title: '错误', message: '请输入服务器名称' })
+    await showMessage({ type: 'warning', title: '错误', message: '请输入服务器名称' })
     return
   }
   if (!isEditingServer.value && settings.value.mcpServers[name]) {
-    await window.electronAPI.showMessage({ type: 'warning', title: '错误', message: '服务器名称已存在' })
+    await showMessage({ type: 'warning', title: '错误', message: '服务器名称已存在' })
     return
   }
 
@@ -559,7 +1002,7 @@ const saveServerFromPanel = async () => {
     try {
       serverConfig.env = JSON.parse(envText)
     } catch (e) {
-      await window.electronAPI.showMessage({ type: 'error', title: '错误', message: '环境变量 JSON 格式错误' })
+      await showMessage({ type: 'error', title: '错误', message: '环境变量 JSON 格式错误' })
       return
     }
   }
@@ -606,8 +1049,30 @@ const closeInputDialog = result => {
   }
   showInputDialog.value.show = false
   showInputDialog.value.isConfirm = false
+  showInputDialog.value.defaultValue = ''
   inputDialogValue.value = ''
 }
+
+// Message Dialog
+const showMessage = ({ type = 'info', title, message }) => {
+  return new Promise(resolve => {
+    showMessageDialog.value = { show: true, type, title, message, callback: resolve }
+  })
+}
+
+const closeMessageDialog = () => {
+  if (showMessageDialog.value.callback) {
+    showMessageDialog.value.callback(true)
+  }
+  showMessageDialog.value.show = false
+}
+
+// Watch for dialog open to set default value
+watch(() => showInputDialog.value.show, (show) => {
+  if (show && showInputDialog.value.defaultValue) {
+    inputDialogValue.value = showInputDialog.value.defaultValue
+  }
+})
 
 onMounted(async () => {
   await loadApiProfiles()
@@ -1348,6 +1813,59 @@ body {
   z-index: 1100;
 }
 
+/* Message Dialog */
+.message-dialog {
+  text-align: center;
+  padding: 32px 24px;
+}
+.message-dialog-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.message-dialog-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.message-dialog-icon-info {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+}
+.message-dialog-icon-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+.message-dialog-icon-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+.message-dialog-icon-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+.message-dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+.message-dialog-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.message-dialog .dialog-actions {
+  justify-content: center;
+  margin-top: 24px;
+}
+.message-dialog .dialog-actions .btn {
+  min-width: 100px;
+}
+
 .iconpark-icon {
   display: inline-flex;
   align-items: center;
@@ -1357,6 +1875,147 @@ body {
 }
 .iconpark-icon svg {
   display: block;
+}
+
+/* Profile List (API Configuration Cards) */
+.profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeIn 0.3s ease backwards;
+}
+
+.profile-item:nth-child(1) { animation-delay: 0.02s; }
+.profile-item:nth-child(2) { animation-delay: 0.04s; }
+.profile-item:nth-child(3) { animation-delay: 0.06s; }
+.profile-item:nth-child(4) { animation-delay: 0.08s; }
+.profile-item:nth-child(5) { animation-delay: 0.1s; }
+
+.profile-item:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-tertiary);
+  transform: translateX(4px);
+}
+
+.profile-item.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.profile-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.profile-icon-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+  margin-left: 14px;
+}
+
+.profile-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.profile-url {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-status {
+  margin-left: 12px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+.profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.profile-item:hover .profile-actions,
+.profile-item.active .profile-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.action-btn.action-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
 }
 
 /* Side Panel */
@@ -1464,5 +2123,57 @@ body {
 .side-panel-footer-right {
   display: flex;
   gap: 10px;
+}
+
+/* API Edit Dialog */
+.api-edit-dialog {
+  min-width: 480px;
+  max-width: 520px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.api-edit-dialog .dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-tertiary);
+}
+
+.api-edit-dialog .dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  margin-bottom: 0;
+}
+
+.api-edit-dialog .dialog-title .iconpark-icon {
+  color: var(--accent);
+}
+
+.api-edit-dialog .dialog-body {
+  padding: 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.api-edit-dialog .dialog-body .form-group {
+  margin-bottom: 18px;
+}
+
+.api-edit-dialog .dialog-body .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.api-edit-dialog .dialog-actions {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  margin-top: 0;
 }
 </style>

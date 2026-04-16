@@ -17,5 +17,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   switchApiProfile: (profileName) => ipcRenderer.invoke('switch-api-profile', profileName),
   createApiProfile: (name) => ipcRenderer.invoke('create-api-profile', name),
   deleteApiProfile: (name) => ipcRenderer.invoke('delete-api-profile', name),
-  renameApiProfile: (oldName, newName) => ipcRenderer.invoke('rename-api-profile', oldName, newName)
+  renameApiProfile: (oldName, newName) => ipcRenderer.invoke('rename-api-profile', oldName, newName),
+  duplicateApiProfile: (sourceName, newName) => ipcRenderer.invoke('duplicate-api-profile', sourceName, newName)
 })
