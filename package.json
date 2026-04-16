@@ -1,9 +1,12 @@
 {
   "name": "iflow-settings-editor",
   "version": "1.0.0",
-  "description": "iFlow Settings Editor - Vue 3 + Electron",
+  "description": "一个用于编辑 iFlow CLI 配置文件的桌面应用程序。",
   "main": "main.js",
-  "author": "iFlow",
+  "author": "上海潘哆呐科技有限公司",
+  "repository": {
+    "url": "https://git.pandorastudio.cn/product/iFlow-Settings-Editor-GUI.git"
+  },
   "license": "MIT",
   "scripts": {
     "dev": "vite",

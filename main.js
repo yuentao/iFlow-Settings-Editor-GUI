@@ -112,10 +112,15 @@ ipcMain.handle('list-api-profiles', async () => {
   try {
     const settings = readSettings()
     if (!settings) {
-      return { success: false, error: '配置文件不存在', profiles: [], currentProfile: '' }
+      return { success: true, profiles: [{ name: 'default', isDefault: true }], currentProfile: 'default' }
     }
     
     const profiles = settings.apiProfiles || {}
+    // 确保至少有 default 配置
+    if (Object.keys(profiles).length === 0) {
+      profiles.default = {}
+    }
+    
     const profileList = Object.keys(profiles).map(name => ({
       name,
       isDefault: name === 'default'
@@ -127,7 +132,7 @@ ipcMain.handle('list-api-profiles', async () => {
       currentProfile: settings.currentApiProfile || 'default'
     }
   } catch (error) {
-    return { success: false, error: error.message, profiles: [], currentProfile: '' }
+    return { success: false, error: error.message, profiles: [{ name: 'default', isDefault: true }], currentProfile: 'default' }
   }
 })
 

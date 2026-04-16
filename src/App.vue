@@ -318,8 +318,13 @@ const inputDialogValue = ref('')
 const loadApiProfiles = async () => {
   const result = await window.electronAPI.listApiProfiles()
   if (result.success) {
-    apiProfiles.value = result.profiles
-    currentApiProfile.value = result.currentProfile
+    // 确保至少有 default 配置
+    if (!result.profiles || result.profiles.length === 0) {
+      apiProfiles.value = [{ name: 'default', isDefault: true }]
+    } else {
+      apiProfiles.value = result.profiles
+    }
+    currentApiProfile.value = result.currentProfile || 'default'
   }
 }
 
@@ -397,6 +402,15 @@ const loadSettings = async () => {
     const data = JSON.parse(JSON.stringify(result.data))
     if (!data.checkpointing) data.checkpointing = { enabled: true }
     if (!data.mcpServers) data.mcpServers = {}
+    // 确保 API 相关字段有默认值
+    if (data.selectedAuthType === undefined) data.selectedAuthType = 'iflow'
+    if (data.apiKey === undefined) data.apiKey = ''
+    if (data.baseUrl === undefined) data.baseUrl = ''
+    if (data.modelName === undefined) data.modelName = ''
+    if (data.searchApiKey === undefined) data.searchApiKey = ''
+    if (data.cna === undefined) data.cna = ''
+    if (!data.apiProfiles) data.apiProfiles = { default: {} }
+    if (!data.currentApiProfile) data.currentApiProfile = 'default'
     settings.value = data
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false
