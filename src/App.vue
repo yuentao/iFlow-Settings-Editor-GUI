@@ -2,27 +2,27 @@
   <div class="app">
     <div class="titlebar">
       <div class="titlebar-left">
-        <div class="titlebar-icon"></div>
         <span class="titlebar-title">iFlow Settings Editor</span>
       </div>
       <div class="titlebar-controls">
         <button class="titlebar-btn" @click="minimize" title="最小化">
-          <svg viewBox="0 0 10 1"><line x1="0" y1="0.5" x2="10" y2="0.5"/></svg>
+          <svg viewBox="0 0 10 1"><line x1="0" y1="0.5" x2="10" y2="0.5" /></svg>
         </button>
         <button class="titlebar-btn" @click="maximize" title="最大化">
-          <svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" stroke-width="1" stroke="currentColor" fill="none"/></svg>
+          <svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" stroke-width="1" stroke="currentColor" fill="none" /></svg>
         </button>
         <button class="titlebar-btn close" @click="close" title="关闭">
-          <svg viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10"/><line x1="10" y1="0" x2="0" y2="10"/></svg>
+          <svg viewBox="0 0 10 10">
+            <line x1="0" y1="0" x2="10" y2="10" />
+            <line x1="10" y1="0" x2="0" y2="10" />
+          </svg>
         </button>
       </div>
     </div>
 
     <header class="header">
       <div class="header-left">
-        <div class="header-icon"></div>
         <span class="header-title">iFlow 设置编辑器</span>
-        <span class="header-subtitle">settings.json</span>
       </div>
       <div class="header-actions">
         <button class="btn btn-secondary" @click="reloadSettings">
@@ -161,16 +161,16 @@
             </div>
             <div class="form-group">
               <label class="form-label">API Key</label>
-              <input type="password" class="form-input" v-model="settings.apiKey" placeholder="sk-cp-XXXXX...">
+              <input type="password" class="form-input" v-model="settings.apiKey" placeholder="sk-cp-XXXXX..." />
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Base URL</label>
-                <input type="text" class="form-input" v-model="settings.baseUrl" placeholder="https://api.minimaxi.com/v1">
+                <input type="text" class="form-input" v-model="settings.baseUrl" placeholder="https://api.minimaxi.com/v1" />
               </div>
               <div class="form-group">
                 <label class="form-label">模型名称</label>
-                <input type="text" class="form-input" v-model="settings.modelName" placeholder="MiniMax-M2.7">
+                <input type="text" class="form-input" v-model="settings.modelName" placeholder="MiniMax-M2.7" />
               </div>
             </div>
           </div>
@@ -181,11 +181,11 @@
             </div>
             <div class="form-group">
               <label class="form-label">搜索 API Key</label>
-              <input type="password" class="form-input" v-model="settings.searchApiKey" placeholder="sk-XXXXX...">
+              <input type="password" class="form-input" v-model="settings.searchApiKey" placeholder="sk-XXXXX..." />
             </div>
             <div class="form-group">
               <label class="form-label">CNA</label>
-              <input type="text" class="form-input" v-model="settings.cna" placeholder="CNA 标识">
+              <input type="text" class="form-input" v-model="settings.cna" placeholder="CNA 标识" />
             </div>
           </div>
         </section>
@@ -196,18 +196,16 @@
             <p class="content-desc">管理 Model Context Protocol 服务器配置</p>
           </div>
           <div class="form-group">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <label class="form-label" style="margin: 0;">服务器列表</label>
-              <button class="btn btn-primary" @click="addServer" style="padding: 6px 12px; font-size: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
+              <label class="form-label" style="margin: 0">服务器列表</label>
+              <button class="btn btn-primary" @click="addServer" style="padding: 6px 12px; font-size: 12px">
                 <Add size="12" />
                 添加服务器
               </button>
             </div>
             <div class="server-list">
               <template v-if="serverCount > 0">
-                <div v-for="(config, name) in settings.mcpServers" :key="name"
-                     class="server-item" :class="{ selected: currentServerName === name }"
-                     @click="selectServer(name)">
+                <div v-for="(config, name) in settings.mcpServers" :key="name" class="server-item" :class="{ selected: currentServerName === name }" @click="selectServer(name)">
                   <div class="server-info">
                     <div class="server-name">{{ name }}</div>
                     <div class="server-desc">{{ config.description || '无描述' }}</div>
@@ -230,19 +228,19 @@
             </div>
             <div class="form-group">
               <label class="form-label">名称</label>
-              <input type="text" class="form-input" id="serverName" :value="currentServerName" readonly>
+              <input type="text" class="form-input" id="serverName" :value="currentServerName" readonly />
             </div>
             <div class="form-group">
               <label class="form-label">描述</label>
-              <input type="text" class="form-input" id="serverDescription" :value="currentServer.description || ''">
+              <input type="text" class="form-input" id="serverDescription" :value="currentServer.description || ''" />
             </div>
             <div class="form-group">
               <label class="form-label">命令</label>
-              <input type="text" class="form-input" id="serverCommand" :value="currentServer.command || ''">
+              <input type="text" class="form-input" id="serverCommand" :value="currentServer.command || ''" />
             </div>
             <div class="form-group">
               <label class="form-label">工作目录</label>
-              <input type="text" class="form-input" id="serverCwd" :value="currentServer.cwd || '.'">
+              <input type="text" class="form-input" id="serverCwd" :value="currentServer.cwd || '.'" />
             </div>
             <div class="form-group">
               <label class="form-label">参数 (每行一个)</label>
@@ -252,7 +250,7 @@
               <label class="form-label">环境变量 (JSON 格式)</label>
               <textarea class="form-textarea" id="serverEnv" rows="3">{{ serverEnvText }}</textarea>
             </div>
-            <div style="margin-top: 16px;">
+            <div style="margin-top: 16px">
               <button class="btn btn-danger" @click="deleteServer">
                 <Delete size="12" />
                 删除服务器
@@ -276,15 +274,7 @@
       <div class="dialog">
         <div class="dialog-title">{{ showInputDialog.title }}</div>
         <div v-if="showInputDialog.isConfirm" class="dialog-confirm-text">{{ showInputDialog.placeholder }}</div>
-        <input
-          v-else
-          type="text"
-          class="form-input"
-          v-model="inputDialogValue"
-          :placeholder="showInputDialog.placeholder"
-          @keyup.enter="closeInputDialog(true)"
-          autofocus
-        />
+        <input v-else type="text" class="form-input" v-model="inputDialogValue" :placeholder="showInputDialog.placeholder" @keyup.enter="closeInputDialog(true)" autofocus />
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="closeInputDialog(false)">取消</button>
           <button class="btn btn-primary" @click="closeInputDialog(true)">确定</button>
@@ -295,8 +285,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { Refresh, Save, Config, Key, Server, Globe, Setting, Robot, Search, Add, Edit, Delete, Exchange } from '@icon-park/vue-next';
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { Refresh, Save, Config, Key, Server, Globe, Setting, Robot, Search, Add, Edit, Delete, Exchange } from '@icon-park/vue-next'
 
 const settings = ref({
   language: 'zh-CN',
@@ -311,230 +301,250 @@ const settings = ref({
   searchApiKey: '',
   cna: '',
   currentApiProfile: 'default',
-  apiProfiles: { default: {} }
-});
+  apiProfiles: { default: {} },
+})
 
-const originalSettings = ref({});
-const modified = ref(false);
-const currentSection = ref('general');
-const currentServerName = ref(null);
-const isLoading = ref(true);
-const apiProfiles = ref([]);
-const currentApiProfile = ref('default');
-const showInputDialog = ref({ show: false, title: '', placeholder: '', callback: null });
-const inputDialogValue = ref('');
+const originalSettings = ref({})
+const modified = ref(false)
+const currentSection = ref('general')
+const currentServerName = ref(null)
+const isLoading = ref(true)
+const apiProfiles = ref([])
+const currentApiProfile = ref('default')
+const showInputDialog = ref({ show: false, title: '', placeholder: '', callback: null })
+const inputDialogValue = ref('')
 
 // Load API profiles list
 const loadApiProfiles = async () => {
-  const result = await window.electronAPI.listApiProfiles();
+  const result = await window.electronAPI.listApiProfiles()
   if (result.success) {
-    apiProfiles.value = result.profiles;
-    currentApiProfile.value = result.currentProfile;
+    apiProfiles.value = result.profiles
+    currentApiProfile.value = result.currentProfile
   }
-};
+}
 
 // Switch API profile
 const switchApiProfile = async () => {
   if (modified.value) {
-    const confirmed = await new Promise((resolve) => {
-      showInputDialog.value = { show: true, title: '切换配置', placeholder: '当前有未保存的更改，切换配置将丢失这些更改，确定要切换吗？', callback: resolve, isConfirm: true };
-    });
+    const confirmed = await new Promise(resolve => {
+      showInputDialog.value = { show: true, title: '切换配置', placeholder: '当前有未保存的更改，切换配置将丢失这些更改，确定要切换吗？', callback: resolve, isConfirm: true }
+    })
     if (!confirmed) {
       // 恢复到之前的值
-      const result = await window.electronAPI.listApiProfiles();
+      const result = await window.electronAPI.listApiProfiles()
       if (result.success) {
-        currentApiProfile.value = result.currentProfile;
+        currentApiProfile.value = result.currentProfile
       }
-      return;
+      return
     }
   }
-  const result = await window.electronAPI.switchApiProfile(currentApiProfile.value);
+  const result = await window.electronAPI.switchApiProfile(currentApiProfile.value)
   if (result.success) {
-    const data = JSON.parse(JSON.stringify(result.data));
-    if (!data.checkpointing) data.checkpointing = { enabled: true };
-    if (!data.mcpServers) data.mcpServers = {};
-    settings.value = data;
-    originalSettings.value = JSON.parse(JSON.stringify(data));
-    modified.value = false;
+    const data = JSON.parse(JSON.stringify(result.data))
+    if (!data.checkpointing) data.checkpointing = { enabled: true }
+    if (!data.mcpServers) data.mcpServers = {}
+    settings.value = data
+    originalSettings.value = JSON.parse(JSON.stringify(data))
+    modified.value = false
   } else {
-    await window.electronAPI.showMessage({ type: 'error', title: '切换失败', message: result.error });
+    await window.electronAPI.showMessage({ type: 'error', title: '切换失败', message: result.error })
   }
-};
+}
 
 // Create new API profile
 const createNewApiProfile = async () => {
-  const name = await new Promise((resolve) => {
-    showInputDialog.value = { show: true, title: '新建配置', placeholder: '请输入配置名称', callback: resolve };
-  });
-  if (!name) return;
-  const result = await window.electronAPI.createApiProfile(name);
+  const name = await new Promise(resolve => {
+    showInputDialog.value = { show: true, title: '新建配置', placeholder: '请输入配置名称', callback: resolve }
+  })
+  if (!name) return
+  const result = await window.electronAPI.createApiProfile(name)
   if (result.success) {
-    await loadApiProfiles();
-    await window.electronAPI.showMessage({ type: 'info', title: '创建成功', message: `配置 "${name}" 已创建` });
+    await loadApiProfiles()
+    await window.electronAPI.showMessage({ type: 'info', title: '创建成功', message: `配置 "${name}" 已创建` })
   } else {
-    await window.electronAPI.showMessage({ type: 'error', title: '创建失败', message: result.error });
+    await window.electronAPI.showMessage({ type: 'error', title: '创建失败', message: result.error })
   }
-};
+}
 
 // Delete API profile
 const deleteApiProfile = async () => {
   if (currentApiProfile.value === 'default') {
-    await window.electronAPI.showMessage({ type: 'warning', title: '无法删除', message: '不能删除默认配置' });
-    return;
+    await window.electronAPI.showMessage({ type: 'warning', title: '无法删除', message: '不能删除默认配置' })
+    return
   }
-  const confirmed = await new Promise((resolve) => {
-    showInputDialog.value = { show: true, title: '删除配置', placeholder: `确定要删除配置 "${currentApiProfile.value}" 吗？`, callback: resolve, isConfirm: true };
-  });
-  if (!confirmed) return;
-  const result = await window.electronAPI.deleteApiProfile(currentApiProfile.value);
+  const confirmed = await new Promise(resolve => {
+    showInputDialog.value = { show: true, title: '删除配置', placeholder: `确定要删除配置 "${currentApiProfile.value}" 吗？`, callback: resolve, isConfirm: true }
+  })
+  if (!confirmed) return
+  const result = await window.electronAPI.deleteApiProfile(currentApiProfile.value)
   if (result.success) {
-    const data = JSON.parse(JSON.stringify(result.data));
-    if (!data.checkpointing) data.checkpointing = { enabled: true };
-    if (!data.mcpServers) data.mcpServers = {};
-    settings.value = data;
-    originalSettings.value = JSON.parse(JSON.stringify(data));
-    modified.value = false;
-    await loadApiProfiles();
-    await window.electronAPI.showMessage({ type: 'info', title: '删除成功', message: `配置已删除` });
+    const data = JSON.parse(JSON.stringify(result.data))
+    if (!data.checkpointing) data.checkpointing = { enabled: true }
+    if (!data.mcpServers) data.mcpServers = {}
+    settings.value = data
+    originalSettings.value = JSON.parse(JSON.stringify(data))
+    modified.value = false
+    await loadApiProfiles()
+    await window.electronAPI.showMessage({ type: 'info', title: '删除成功', message: `配置已删除` })
   } else {
-    await window.electronAPI.showMessage({ type: 'error', title: '删除失败', message: result.error });
+    await window.electronAPI.showMessage({ type: 'error', title: '删除失败', message: result.error })
   }
-};
+}
 
 const loadSettings = async () => {
-  const result = await window.electronAPI.loadSettings();
+  const result = await window.electronAPI.loadSettings()
   if (result.success) {
-    const data = JSON.parse(JSON.stringify(result.data));
-    if (!data.checkpointing) data.checkpointing = { enabled: true };
-    if (!data.mcpServers) data.mcpServers = {};
-    settings.value = data;
-    originalSettings.value = JSON.parse(JSON.stringify(data));
-    modified.value = false;
+    const data = JSON.parse(JSON.stringify(result.data))
+    if (!data.checkpointing) data.checkpointing = { enabled: true }
+    if (!data.mcpServers) data.mcpServers = {}
+    settings.value = data
+    originalSettings.value = JSON.parse(JSON.stringify(data))
+    modified.value = false
   }
-  isLoading.value = false;
-};
+  isLoading.value = false
+}
 
 const saveSettings = async () => {
-  collectServerData();
-  const dataToSave = JSON.parse(JSON.stringify(settings.value));
-  const result = await window.electronAPI.saveSettings(dataToSave);
+  collectServerData()
+  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const result = await window.electronAPI.saveSettings(dataToSave)
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(settings.value));
-    modified.value = false;
-    await window.electronAPI.showMessage({ type: 'info', title: '保存成功', message: '设置已保存到 settings.json' });
+    originalSettings.value = JSON.parse(JSON.stringify(settings.value))
+    modified.value = false
+    await window.electronAPI.showMessage({ type: 'info', title: '保存成功', message: '设置已保存到 settings.json' })
   } else {
-    await window.electronAPI.showMessage({ type: 'error', title: '保存失败', message: `无法保存设置: ${result.error}` });
+    await window.electronAPI.showMessage({ type: 'error', title: '保存失败', message: `无法保存设置: ${result.error}` })
   }
-};
+}
 
 const reloadSettings = async () => {
   if (modified.value) {
-    const confirmed = await new Promise((resolve) => {
-      showInputDialog.value = { show: true, title: '重新加载', placeholder: '当前有未保存的更改，确定要重新加载吗？', callback: resolve, isConfirm: true };
-    });
-    if (!confirmed) return;
+    const confirmed = await new Promise(resolve => {
+      showInputDialog.value = { show: true, title: '重新加载', placeholder: '当前有未保存的更改，确定要重新加载吗？', callback: resolve, isConfirm: true }
+    })
+    if (!confirmed) return
   }
-  currentServerName.value = null;
-  await loadSettings();
-};
+  currentServerName.value = null
+  await loadSettings()
+}
 
-watch(settings, () => { modified.value = true }, { deep: true });
+watch(
+  settings,
+  () => {
+    modified.value = true
+  },
+  { deep: true },
+)
 
-const showSection = (section) => { currentSection.value = section; };
+const showSection = section => {
+  currentSection.value = section
+}
 
-const serverCount = computed(() => settings.value.mcpServers ? Object.keys(settings.value.mcpServers).length : 0);
+const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(settings.value.mcpServers).length : 0))
 
-const selectServer = (name) => { currentServerName.value = name; };
+const selectServer = name => {
+  currentServerName.value = name
+}
 
 const addServer = async () => {
-  const name = await new Promise((resolve) => {
-    showInputDialog.value = { show: true, title: '添加服务器', placeholder: '请输入服务器名称', callback: resolve };
-  });
-  if (!name) return;
-  if (!settings.value.mcpServers) settings.value.mcpServers = {};
+  const name = await new Promise(resolve => {
+    showInputDialog.value = { show: true, title: '添加服务器', placeholder: '请输入服务器名称', callback: resolve }
+  })
+  if (!name) return
+  if (!settings.value.mcpServers) settings.value.mcpServers = {}
   if (settings.value.mcpServers[name]) {
-    await window.electronAPI.showMessage({ type: 'warning', title: '错误', message: '服务器已存在' });
-    return;
+    await window.electronAPI.showMessage({ type: 'warning', title: '错误', message: '服务器已存在' })
+    return
   }
-  settings.value.mcpServers[name] = { command: 'npx', args: ['-y', 'package-name'] };
-  currentServerName.value = name;
-};
+  settings.value.mcpServers[name] = { command: 'npx', args: ['-y', 'package-name'] }
+  currentServerName.value = name
+}
 
 const deleteServer = async () => {
-  if (!currentServerName.value) return;
-  const confirmed = await new Promise((resolve) => {
-    showInputDialog.value = { show: true, title: '删除服务器', placeholder: `确定要删除服务器 "${currentServerName.value}" 吗？`, callback: resolve, isConfirm: true };
-  });
-  if (!confirmed) return;
-  delete settings.value.mcpServers[currentServerName.value];
-  currentServerName.value = null;
-};
+  if (!currentServerName.value) return
+  const confirmed = await new Promise(resolve => {
+    showInputDialog.value = { show: true, title: '删除服务器', placeholder: `确定要删除服务器 "${currentServerName.value}" 吗？`, callback: resolve, isConfirm: true }
+  })
+  if (!confirmed) return
+  delete settings.value.mcpServers[currentServerName.value]
+  currentServerName.value = null
+}
 
 const collectServerData = () => {
-  if (!currentServerName.value) return;
-  const el = document.getElementById('serverName');
+  if (!currentServerName.value) return
+  const el = document.getElementById('serverName')
   if (el) {
-    const name = el.value.trim();
+    const name = el.value.trim()
     if (name !== currentServerName.value) {
-      delete settings.value.mcpServers[currentServerName.value];
-      currentServerName.value = name;
+      delete settings.value.mcpServers[currentServerName.value]
+      currentServerName.value = name
     }
     settings.value.mcpServers[name] = {
       command: document.getElementById('serverCommand')?.value || '',
       description: document.getElementById('serverDescription')?.value || '',
       cwd: document.getElementById('serverCwd')?.value || '.',
-      args: (document.getElementById('serverArgs')?.value || '').split('\n').map(s => s.trim()).filter(s => s)
-    };
-    const envText = document.getElementById('serverEnv')?.value || '';
+      args: (document.getElementById('serverArgs')?.value || '')
+        .split('\n')
+        .map(s => s.trim())
+        .filter(s => s),
+    }
+    const envText = document.getElementById('serverEnv')?.value || ''
     if (envText) {
-      try { settings.value.mcpServers[name].env = JSON.parse(envText); }
-      catch (e) { alert('环境变量 JSON 格式错误'); }
+      try {
+        settings.value.mcpServers[name].env = JSON.parse(envText)
+      } catch (e) {
+        alert('环境变量 JSON 格式错误')
+      }
     }
   }
-};
+}
 
 const currentServer = computed(() => {
-  if (!currentServerName.value || !settings.value.mcpServers) return null;
-  return settings.value.mcpServers[currentServerName.value];
-});
+  if (!currentServerName.value || !settings.value.mcpServers) return null
+  return settings.value.mcpServers[currentServerName.value]
+})
 
 const serverArgsText = computed(() => {
-  if (!currentServer.value) return '';
-  return (currentServer.value.args || []).join('\n');
-});
+  if (!currentServer.value) return ''
+  return (currentServer.value.args || []).join('\n')
+})
 
 const serverEnvText = computed(() => {
-  if (!currentServer.value || !currentServer.value.env) return '';
-  return JSON.stringify(currentServer.value.env, null, 2);
-});
+  if (!currentServer.value || !currentServer.value.env) return ''
+  return JSON.stringify(currentServer.value.env, null, 2)
+})
 
-const minimize = () => window.electronAPI.minimize();
-const maximize = () => window.electronAPI.maximize();
-const close = () => window.electronAPI.close();
+const minimize = () => window.electronAPI.minimize()
+const maximize = () => window.electronAPI.maximize()
+const close = () => window.electronAPI.close()
 
-const closeInputDialog = (result) => {
+const closeInputDialog = result => {
   if (showInputDialog.value.callback) {
     // 如果是确认对话框，传递 result（true/false）
     // 如果是输入对话框，点击确定传递输入值，点击取消传递 false
     if (showInputDialog.value.isConfirm) {
-      showInputDialog.value.callback(result);
+      showInputDialog.value.callback(result)
     } else {
-      showInputDialog.value.callback(result ? inputDialogValue.value : false);
+      showInputDialog.value.callback(result ? inputDialogValue.value : false)
     }
   }
-  showInputDialog.value.show = false;
-  showInputDialog.value.isConfirm = false;
-  inputDialogValue.value = '';
-};
+  showInputDialog.value.show = false
+  showInputDialog.value.isConfirm = false
+  inputDialogValue.value = ''
+}
 
 onMounted(async () => {
-  await loadApiProfiles();
-  await loadSettings();
-});
+  await loadApiProfiles()
+  await loadSettings()
+})
 </script>
 
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 :root {
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
@@ -559,20 +569,41 @@ onMounted(async () => {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(-10px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -584,258 +615,642 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-.app { display: flex; flex-direction: column; height: 100vh; }
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
 
 /* Titlebar */
 .titlebar {
-  display: flex; align-items: center; justify-content: space-between;
-  height: 36px; background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;
 }
-.titlebar-left { display: flex; align-items: center; padding-left: 16px; gap: 10px; }
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  gap: 10px;
+}
 .titlebar-icon {
-  width: 18px; height: 18px;
+  width: 18px;
+  height: 18px;
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
-.titlebar-title { font-size: 13px; font-weight: 500; color: var(--text-secondary); letter-spacing: -0.01em; }
-.titlebar-controls { display: flex; -webkit-app-region: no-drag; }
+.titlebar-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+.titlebar-controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
 .titlebar-btn {
-  width: 48px; height: 36px; display: flex; align-items: center; justify-content: center;
-  border: none; background: transparent; color: var(--text-secondary); cursor: pointer;
+  width: 48px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.titlebar-btn:hover { background: var(--bg-hover); color: var(--text-primary); transform: scale(1.05); }
-.titlebar-btn:active { transform: scale(0.95); }
-.titlebar-btn.close:hover { background: var(--danger); color: white; }
-.titlebar-btn svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 1.5; fill: none; }
+.titlebar-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  transform: scale(1.05);
+}
+.titlebar-btn:active {
+  transform: scale(0.95);
+}
+.titlebar-btn.close:hover {
+  background: var(--danger);
+  color: white;
+}
+.titlebar-btn svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
 
 /* Header */
 .header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 24px; height: 60px; background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 60px;
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
 }
-.header-left { display: flex; align-items: center; gap: 14px; }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
 .header-icon {
-  width: 28px; height: 28px;
+  width: 28px;
+  height: 28px;
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(59, 130, 246, 0.25);
 }
-.header-title { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
-.header-subtitle { font-size: 13px; color: var(--text-tertiary); font-weight: 400; }
-.header-actions { display: flex; gap: 10px; }
+.header-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.header-subtitle {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
 
 /* Buttons */
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  padding: 9px 18px; border: none; border-radius: var(--radius);
-  font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: -0.01em;
-  position: relative; overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: -0.01em;
+  position: relative;
+  overflow: hidden;
 }
 .btn::after {
-  content: ''; position: absolute; top: 50%; left: 50%;
-  width: 0; height: 0; background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%; transform: translate(-50%, -50%);
-  transition: width 0.4s ease, height 0.4s ease;
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition:
+    width 0.4s ease,
+    height 0.4s ease;
 }
-.btn:active::after { width: 200px; height: 200px; }
+.btn:active::after {
+  width: 200px;
+  height: 200px;
+}
 .btn-primary {
-  background: var(--accent); color: white;
+  background: var(--accent);
+  color: white;
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
-.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4); }
-.btn-primary:active { transform: translateY(0) scale(0.98); }
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
 .btn-secondary {
-  background: var(--bg-secondary); color: var(--text-secondary);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   border: 1px solid var(--border);
 }
-.btn-secondary:hover { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--text-tertiary); }
-.btn-secondary:active { transform: scale(0.98); }
-.btn-danger { background: var(--danger); color: white; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3); }
-.btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
-.btn-danger:active { transform: translateY(0) scale(0.98); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-.btn-group { display: flex; gap: 10px; }
+.btn-secondary:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--text-tertiary);
+}
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+.btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+.btn-danger:active {
+  transform: translateY(0) scale(0.98);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+.btn-group {
+  display: flex;
+  gap: 10px;
+}
 
 /* Main Layout */
-.main { display: flex; flex: 1; overflow: hidden; }
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
 
 /* Sidebar */
 .sidebar {
-  width: 220px; background: var(--bg-secondary); border-right: 1px solid var(--border);
-  padding: 12px; display: flex; flex-direction: column;
+  width: 220px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
 }
-.sidebar-section { margin-bottom: 20px; }
+.sidebar-section {
+  margin-bottom: 20px;
+}
 .sidebar-title {
-  font-size: 11px; font-weight: 600; color: var(--text-tertiary);
-  text-transform: uppercase; letter-spacing: 0.08em;
-  padding: 6px 10px; margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 10px;
+  margin-bottom: 4px;
 }
 .nav-item {
-  display: flex; align-items: center; gap: 10px; padding: 10px;
-  border-radius: var(--radius); cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); color: var(--text-secondary);
-  margin-bottom: 2px; position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+  position: relative;
 }
 .nav-item::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 0; background: var(--accent); border-radius: var(--radius) 0 0 var(--radius);
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: var(--accent);
+  border-radius: var(--radius) 0 0 var(--radius);
   transition: width 0.2s ease;
 }
-.nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.nav-item:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
 .nav-item.active {
-  background: var(--accent-light); color: var(--accent);
-  font-weight: 500; animation: slideIn 0.3s ease;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 500;
+  animation: slideIn 0.3s ease;
 }
-.nav-item.active::before { width: 3px; }
-.nav-item-text { font-size: 13px; letter-spacing: -0.01em; }
+.nav-item.active::before {
+  width: 3px;
+}
+.nav-item-text {
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
 .nav-item-badge {
-  margin-left: auto; background: var(--bg-tertiary);
-  padding: 2px 7px; border-radius: 12px; font-size: 11px;
-  color: var(--text-tertiary); font-weight: 500;
+  margin-left: auto;
+  background: var(--bg-tertiary);
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
 }
-.nav-item.active .nav-item-badge { background: var(--accent); color: white; }
+.nav-item.active .nav-item-badge {
+  background: var(--accent);
+  color: white;
+}
 
 /* Content */
 .content {
-  flex: 1; padding: 28px 32px; overflow-y: auto; background: var(--bg-primary);
+  flex: 1;
+  padding: 28px 32px;
+  overflow-y: auto;
+  background: var(--bg-primary);
 }
-.content section { animation: fadeIn 0.35s ease; }
-.content-header { margin-bottom: 28px; }
-.content-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.03em; animation: slideIn 0.3s ease; }
-.content-desc { font-size: 14px; color: var(--text-tertiary); animation: fadeIn 0.4s ease 0.1s backwards; }
+.content section {
+  animation: fadeIn 0.35s ease;
+}
+.content-header {
+  margin-bottom: 28px;
+}
+.content-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: -0.03em;
+  animation: slideIn 0.3s ease;
+}
+.content-desc {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  animation: fadeIn 0.4s ease 0.1s backwards;
+}
 
 /* Cards */
 .card {
-  background: var(--bg-secondary); border-radius: var(--radius-lg);
-  border: 1px solid var(--border); padding: 20px 24px; margin-bottom: 20px;
-  box-shadow: var(--shadow-sm); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: fadeIn 0.4s ease backwards;
 }
-.card:nth-child(1) { animation-delay: 0.05s; }
-.card:nth-child(2) { animation-delay: 0.1s; }
-.card:nth-child(3) { animation-delay: 0.15s; }
-.card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+.card:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.card:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
 .card-title {
-  font-size: 14px; font-weight: 600; margin-bottom: 18px;
-  display: flex; align-items: center; gap: 10px; color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
   letter-spacing: -0.01em;
 }
-.card-title .iconpark-icon { color: var(--accent); }
+.card-title .iconpark-icon {
+  color: var(--accent);
+}
 
 /* Form Elements */
-.form-group { margin-bottom: 18px; }
-.form-group:last-child { margin-bottom: 0; }
+.form-group {
+  margin-bottom: 18px;
+}
+.form-group:last-child {
+  margin-bottom: 0;
+}
 .form-label {
-  display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px;
-  color: var(--text-secondary); letter-spacing: -0.01em;
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
 }
 .form-input {
-  width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius);
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 13px;
-  background: var(--bg-secondary); color: var(--text-primary);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); letter-spacing: -0.01em;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 13px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: -0.01em;
 }
-.form-input:hover { border-color: var(--text-tertiary); }
-.form-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); transform: translateY(-1px); }
-.form-input::placeholder { color: var(--text-tertiary); }
-.form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.form-input:hover {
+  border-color: var(--text-tertiary);
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+  transform: translateY(-1px);
+}
+.form-input::placeholder {
+  color: var(--text-tertiary);
+}
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
 .form-select {
-  width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius);
-  font-family: inherit; font-size: 13px; font-weight: 400;
-  background: var(--bg-secondary); color: var(--text-primary);
-  cursor: pointer; appearance: none; letter-spacing: -0.01em;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  appearance: none;
+  letter-spacing: -0.01em;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px;
-  transition: all 0.2s ease; position: relative;
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+  transition: all 0.2s ease;
+  position: relative;
 }
-.form-select:hover { border-color: var(--text-tertiary); background-color: var(--bg-tertiary); }
-.form-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); }
+.form-select:hover {
+  border-color: var(--text-tertiary);
+  background-color: var(--bg-tertiary);
+}
+.form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
 .form-textarea {
-  width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius);
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 13px;
-  background: var(--bg-secondary); color: var(--text-primary);
-  resize: vertical; min-height: 80px; line-height: 1.5;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 13px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
   transition: all 0.2s ease;
 }
-.form-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
 
 /* Server List */
 .server-list {
-  border: 1px solid var(--border); border-radius: var(--radius-lg);
-  overflow: hidden; background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg-secondary);
 }
 .server-item {
-  display: flex; align-items: center; padding: 14px 18px;
-  border-bottom: 1px solid var(--border-light); cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   animation: fadeIn 0.3s ease backwards;
 }
-.server-item:nth-child(1) { animation-delay: 0.02s; }
-.server-item:nth-child(2) { animation-delay: 0.04s; }
-.server-item:nth-child(3) { animation-delay: 0.06s; }
-.server-item:nth-child(4) { animation-delay: 0.08s; }
-.server-item:nth-child(5) { animation-delay: 0.1s; }
-.server-item:nth-child(6) { animation-delay: 0.12s; }
-.server-item:nth-child(7) { animation-delay: 0.14s; }
-.server-item:nth-child(8) { animation-delay: 0.16s; }
-.server-item:last-child { border-bottom: none; }
-.server-item:hover { background: var(--bg-tertiary); transform: translateX(4px); }
-.server-item.selected { background: var(--accent-light); border-left: 3px solid var(--accent); padding-left: 15px; }
-.server-info { flex: 1; min-width: 0; }
-.server-name { font-size: 13px; font-weight: 500; letter-spacing: -0.01em; }
-.server-desc { font-size: 12px; color: var(--text-tertiary); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.server-status { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); animation: pulse 2s ease-in-out infinite; }
+.server-item:nth-child(1) {
+  animation-delay: 0.02s;
+}
+.server-item:nth-child(2) {
+  animation-delay: 0.04s;
+}
+.server-item:nth-child(3) {
+  animation-delay: 0.06s;
+}
+.server-item:nth-child(4) {
+  animation-delay: 0.08s;
+}
+.server-item:nth-child(5) {
+  animation-delay: 0.1s;
+}
+.server-item:nth-child(6) {
+  animation-delay: 0.12s;
+}
+.server-item:nth-child(7) {
+  animation-delay: 0.14s;
+}
+.server-item:nth-child(8) {
+  animation-delay: 0.16s;
+}
+.server-item:last-child {
+  border-bottom: none;
+}
+.server-item:hover {
+  background: var(--bg-tertiary);
+  transform: translateX(4px);
+}
+.server-item.selected {
+  background: var(--accent-light);
+  border-left: 3px solid var(--accent);
+  padding-left: 15px;
+}
+.server-info {
+  flex: 1;
+  min-width: 0;
+}
+.server-name {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.server-desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.server-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+  animation: pulse 2s ease-in-out infinite;
+}
 
 /* Empty State */
 .empty-state {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 48px 24px; text-align: center; background: var(--bg-tertiary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--bg-tertiary);
   border-radius: var(--radius-lg);
 }
-.empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; color: var(--text-tertiary); }
-.empty-state-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; color: var(--text-secondary); }
-.empty-state-desc { font-size: 13px; color: var(--text-tertiary); margin-bottom: 20px; }
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+  color: var(--text-tertiary);
+}
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+.empty-state-desc {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 20px;
+}
 
 /* Footer */
 .footer {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 24px; background: var(--bg-secondary);
-  border-top: 1px solid var(--border); font-size: 12px; color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
-.footer-status { display: flex; align-items: center; gap: 8px; }
+.footer-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .footer-status-dot {
-  width: 7px; height: 7px; border-radius: 50%; background: var(--success);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
 }
-.footer-modified { color: var(--accent); font-weight: 500; }
+.footer-modified {
+  color: var(--accent);
+  font-weight: 500;
+}
 
 /* Dialog */
 .dialog-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center; z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
   animation: fadeIn 0.15s ease;
 }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .dialog {
-  background: var(--bg-secondary); border-radius: var(--radius-lg);
-  padding: 24px; min-width: 360px; max-width: 480px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  min-width: 360px;
+  max-width: 480px;
   box-shadow: var(--shadow-lg);
   animation: slideUp 0.2s ease;
 }
-@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.dialog-title { font-size: 15px; font-weight: 600; margin-bottom: 18px; letter-spacing: -0.01em; }
-.dialog-confirm-text { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; line-height: 1.5; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
-
-.iconpark-icon { 
-  display: inline-flex; align-items: center; justify-content: center; 
-  vertical-align: -0.125em; flex-shrink: 0;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.iconpark-icon svg { display: block; }
+.dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  letter-spacing: -0.01em;
+}
+.dialog-confirm-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.iconpark-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.125em;
+  flex-shrink: 0;
+}
+.iconpark-icon svg {
+  display: block;
+}
 </style>

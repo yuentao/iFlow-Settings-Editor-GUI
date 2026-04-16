@@ -23,6 +23,7 @@ function createWindow() {
     backgroundColor: '#f3f3f3',
     frame: false,
     show: false,
+    icon: path.join(__dirname, 'build', 'icon.ico'),
     webPreferences: {
       devTools: true,
       preload: path.join(__dirname, 'preload.js'),
