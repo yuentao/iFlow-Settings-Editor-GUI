@@ -11,8 +11,14 @@ const isDev = process.argv.includes('--dev')
 
 // 创建系统托盘
 function createTray() {
-  // 使用内置图标或创建空白图标
-  const iconPath = path.join(__dirname, 'build', 'icon.ico')
+  // 获取图标路径 - 打包后需要从 extraResources 获取
+  let iconPath
+  if (app.isPackaged) {
+    iconPath = path.join(process.resourcesPath, 'icon', 'icon.ico')
+  } else {
+    iconPath = path.join(__dirname, 'build', 'icon.ico')
+  }
+  
   let trayIcon
   if (fs.existsSync(iconPath)) {
     trayIcon = nativeImage.createFromPath(iconPath)

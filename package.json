@@ -30,6 +30,12 @@
       "output": "release",
       "buildResources": "build"
     },
+    "extraResources": [
+      {
+        "from": "build/icon.ico",
+        "to": "icon/icon.ico"
+      }
+    ],
     "files": [
       "dist/**/*",
       "main.js",
