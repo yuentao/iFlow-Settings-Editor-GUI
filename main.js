@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } = require('electron')
 const path = require('path')
 const fs = require('fs')
 console.log('main.js loaded')
@@ -6,7 +6,123 @@ console.log('app.getPath("home"):', app.getPath('home'))
 const SETTINGS_FILE = path.join(app.getPath('home'), '.iflow', 'settings.json')
 console.log('SETTINGS_FILE:', SETTINGS_FILE)
 let mainWindow
+let tray
 const isDev = process.argv.includes('--dev')
+
+// 创建系统托盘
+function createTray() {
+  // 使用内置图标或创建空白图标
+  const iconPath = path.join(__dirname, 'build', 'icon.ico')
+  let trayIcon
+  if (fs.existsSync(iconPath)) {
+    trayIcon = nativeImage.createFromPath(iconPath)
+  } else {
+    // 创建一个简单的图标
+    trayIcon = nativeImage.createEmpty()
+  }
+  // 调整图标大小以适应托盘
+  trayIcon = trayIcon.resize({ width: 16, height: 16 })
+
+  tray = new Tray(trayIcon)
+  tray.setToolTip('iFlow 设置编辑器')
+
+  updateTrayMenu()
+
+  // 双击托盘显示主窗口
+  tray.on('double-click', () => {
+    if (mainWindow) {
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+}
+
+// 更新托盘菜单
+function updateTrayMenu() {
+  const settings = readSettings()
+  const profiles = settings?.apiProfiles || {}
+  const currentProfile = settings?.currentApiProfile || 'default'
+  const profileList = Object.keys(profiles).length > 0
+    ? Object.keys(profiles)
+    : ['default']
+
+  const profileMenuItems = profileList.map(name => ({
+    label: name + (name === currentProfile ? ' ✓' : ''),
+    type: 'radio',
+    checked: name === currentProfile,
+    click: () => switchApiProfileFromTray(name)
+  }))
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '显示主窗口',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show()
+          mainWindow.focus()
+        }
+      }
+    },
+    { type: 'separator' },
+    {
+      label: '切换 API 配置',
+      submenu: profileMenuItems
+    },
+    { type: 'separator' },
+    {
+      label: '退出',
+      click: () => {
+        app.isQuitting = true
+        app.quit()
+      }
+    }
+  ])
+
+  tray.setContextMenu(contextMenu)
+}
+
+// 从托盘切换 API 配置
+function switchApiProfileFromTray(profileName) {
+  try {
+    const settings = readSettings()
+    if (!settings) return
+
+    const profiles = settings.apiProfiles || {}
+    if (!profiles[profileName]) return
+
+    // 保存当前配置到 apiProfiles
+    const currentProfile = settings.currentApiProfile || 'default'
+    if (profiles[currentProfile]) {
+      const currentConfig = {}
+      for (const field of API_FIELDS) {
+        if (settings[field] !== undefined) {
+          currentConfig[field] = settings[field]
+        }
+      }
+      profiles[currentProfile] = currentConfig
+    }
+
+    // 从 apiProfiles 加载新配置到主字段
+    const newConfig = profiles[profileName]
+    for (const field of API_FIELDS) {
+      if (newConfig[field] !== undefined) {
+        settings[field] = newConfig[field]
+      }
+    }
+    settings.currentApiProfile = profileName
+    settings.apiProfiles = profiles
+    writeSettings(settings)
+
+    updateTrayMenu()
+    // 通知渲染进程刷新
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('api-profile-switched', profileName)
+    }
+  } catch (error) {
+    console.error('切换API配置失败:', error)
+  }
+}
+
 function createWindow() {
   console.log('Creating window...')
   mainWindow = new BrowserWindow({
@@ -42,6 +158,7 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     console.log('Window ready to show')
     mainWindow.show()
+    createTray()
   })
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -49,7 +166,7 @@ function createWindow() {
 }
 app.whenReady().then(createWindow)
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (process.platform !== 'darwin' && app.isQuitting) {
     app.quit()
   }
 })
@@ -67,7 +184,13 @@ ipcMain.on('window-maximize', () => {
     mainWindow.maximize()
   }
 })
-ipcMain.on('window-close', () => mainWindow.close())
+ipcMain.on('window-close', () => {
+  if (!app.isQuitting) {
+    mainWindow.hide()
+  } else {
+    mainWindow.close()
+  }
+})
 ipcMain.handle('is-maximized', () => mainWindow.isMaximized())
 // API 配置相关的字段
 const API_FIELDS = ['selectedAuthType', 'apiKey', 'baseUrl', 'modelName', 'searchApiKey', 'cna']
