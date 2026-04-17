@@ -23,5 +23,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 托盘事件监听
   onApiProfileSwitched: (callback) => {
     ipcRenderer.on('api-profile-switched', (event, profileName) => callback(profileName))
+  },
+
+  // 语言切换通知
+  notifyLanguageChanged: () => {
+    ipcRenderer.send('language-changed')
   }
 })

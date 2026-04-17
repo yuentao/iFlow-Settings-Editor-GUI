@@ -1,17 +1,17 @@
 <template>
-  <div class="app">
+  <div class="app" :class="themeClass">
     <div class="titlebar">
       <div class="titlebar-left">
-        <span class="titlebar-title">iFlow 设置编辑器</span>
+        <span class="titlebar-title">{{ $t('app.title') }}</span>
       </div>
       <div class="titlebar-controls">
-        <button class="titlebar-btn" @click="minimize" title="最小化">
+        <button class="titlebar-btn" @click="minimize" :title="$t('window.minimize')">
           <svg viewBox="0 0 10 1"><line x1="0" y1="0.5" x2="10" y2="0.5" /></svg>
         </button>
-        <button class="titlebar-btn" @click="maximize" title="最大化">
+        <button class="titlebar-btn" @click="maximize" :title="$t('window.maximize')">
           <svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" stroke-width="1" stroke="currentColor" fill="none" /></svg>
         </button>
-        <button class="titlebar-btn close" @click="close" title="关闭">
+        <button class="titlebar-btn close" @click="close" :title="$t('window.close')">
           <svg viewBox="0 0 10 10">
             <line x1="0" y1="0" x2="10" y2="10" />
             <line x1="10" y1="0" x2="0" y2="10" />
@@ -22,21 +22,21 @@
     <main class="main">
       <aside class="sidebar">
         <div class="sidebar-section">
-          <div class="sidebar-title">常规</div>
+          <div class="sidebar-title">{{ $t('sidebar.general') }}</div>
           <div class="nav-item" :class="{ active: currentSection === 'general' }" @click="showSection('general')">
             <Config size="16" />
-            <span class="nav-item-text">基本设置</span>
+            <span class="nav-item-text">{{ $t('sidebar.basicSettings') }}</span>
           </div>
           <div class="nav-item" :class="{ active: currentSection === 'api' }" @click="showSection('api')">
             <Key size="16" />
-            <span class="nav-item-text">API 配置</span>
+            <span class="nav-item-text">{{ $t('sidebar.apiConfig') }}</span>
           </div>
         </div>
         <div class="sidebar-section">
-          <div class="sidebar-title">高级</div>
+          <div class="sidebar-title">{{ $t('sidebar.advanced') }}</div>
           <div class="nav-item" :class="{ active: currentSection === 'mcp' }" @click="showSection('mcp')">
             <Server size="16" />
-            <span class="nav-item-text">MCP 服务器</span>
+            <span class="nav-item-text">{{ $t('sidebar.mcpServers') }}</span>
             <span class="nav-item-badge">{{ serverCount }}</span>
           </div>
         </div>
@@ -44,30 +44,30 @@
       <div class="content">
         <section v-if="currentSection === 'general'">
           <div class="content-header">
-            <h1 class="content-title">基本设置</h1>
-            <p class="content-desc">配置应用程序的常规选项</p>
+            <h1 class="content-title">{{ $t('general.title') }}</h1>
+            <p class="content-desc">{{ $t('general.description') }}</p>
           </div>
           <div class="card">
             <div class="card-title">
               <Globe size="16" />
-              语言与界面
+              {{ $t('general.languageInterface') }}
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">语言</label>
+                <label class="form-label">{{ $t('general.language') }}</label>
                 <select class="form-select" v-model="settings.language">
-                  <option value="zh-CN">简体中文</option>
-                  <option value="en-US">English</option>
-                  <option value="ja-JP">日本語</option>
+                  <option value="zh-CN">{{ $t('languages.zh-CN') }}</option>
+                  <option value="en-US">{{ $t('languages.en-US') }}</option>
+                  <option value="ja-JP">{{ $t('languages.ja-JP') }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">主题</label>
+                <label class="form-label">{{ $t('general.theme') }}</label>
                 <select class="form-select" v-model="settings.theme">
-                  <option value="Xcode">Xcode</option>
-                  <option value="Dark">深色</option>
-                  <option value="Light">浅色</option>
-                  <option value="Solarized Dark">Solarized Dark</option>
+                  <option value="Xcode">{{ $t('theme.xcode') }}</option>
+                  <option value="Dark">{{ $t('theme.dark') }}</option>
+                  <option value="Light">{{ $t('theme.light') }}</option>
+                  <option value="Solarized Dark">{{ $t('theme.solarizedDark') }}</option>
                 </select>
               </div>
             </div>
@@ -75,21 +75,21 @@
           <div class="card">
             <div class="card-title">
               <Setting size="16" />
-              其他设置
+              {{ $t('general.otherSettings') }}
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">启动动画</label>
+                <label class="form-label">{{ $t('general.bootAnimation') }}</label>
                 <select class="form-select" v-model="settings.bootAnimationShown">
-                  <option :value="true">已显示</option>
-                  <option :value="false">未显示</option>
+                  <option :value="true">{{ $t('general.bootAnimationShown') }}</option>
+                  <option :value="false">{{ $t('general.bootAnimationNotShown') }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">检查点保存</label>
+                <label class="form-label">{{ $t('general.checkpointing') }}</label>
                 <select class="form-select" v-model="settings.checkpointing.enabled">
-                  <option :value="true">已启用</option>
-                  <option :value="false">已禁用</option>
+                  <option :value="true">{{ $t('general.enabled') }}</option>
+                  <option :value="false">{{ $t('general.disabled') }}</option>
                 </select>
               </div>
             </div>
@@ -97,16 +97,16 @@
         </section>
         <section v-if="currentSection === 'api'">
           <div class="content-header">
-            <h1 class="content-title">API 配置</h1>
-            <p class="content-desc">配置 AI 服务和搜索 API</p>
+            <h1 class="content-title">{{ $t('api.title') }}</h1>
+            <p class="content-desc">{{ $t('api.description') }}</p>
           </div>
           <div class="card">
             <div class="card-title">
               <Exchange size="16" />
-              配置文件管理
+              {{ $t('api.profileManagement') }}
               <button class="btn btn-primary btn-sm" @click="createNewApiProfile" style="margin-left: auto">
                 <Add size="14" />
-                新建配置
+                {{ $t('api.newProfile') }}
               </button>
             </div>
             <div class="profile-list">
@@ -123,17 +123,17 @@
                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="3,8 6,11 13,4"></polyline>
                     </svg>
-                    使用中
+                    {{ $t('api.inUse') }}
                   </span>
                 </div>
                 <div class="profile-actions">
-                  <button class="action-btn" @click.stop="openApiEditDialog(profile.name)" title="编辑">
+                  <button class="action-btn" @click.stop="openApiEditDialog(profile.name)" :title="$t('api.edit')">
                     <Edit size="14" />
                   </button>
-                  <button class="action-btn" @click.stop="duplicateApiProfile(profile.name)" title="复制">
+                  <button class="action-btn" @click.stop="duplicateApiProfile(profile.name)" :title="$t('api.duplicate')">
                     <Copy size="14" />
                   </button>
-                  <button class="action-btn action-btn-danger" v-if="profile.name !== 'default'" @click.stop="deleteApiProfile(profile.name)" title="删除">
+                  <button class="action-btn action-btn-danger" v-if="profile.name !== 'default'" @click.stop="deleteApiProfile(profile.name)" :title="$t('api.delete')">
                     <Delete size="14" />
                   </button>
                 </div>
@@ -143,15 +143,15 @@
         </section>
         <section v-if="currentSection === 'mcp'">
           <div class="content-header">
-            <h1 class="content-title">MCP 服务器</h1>
-            <p class="content-desc">管理 Model Context Protocol 服务器配置</p>
+            <h1 class="content-title">{{ $t('mcp.title') }}</h1>
+            <p class="content-desc">{{ $t('mcp.description') }}</p>
           </div>
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
-              <label class="form-label" style="margin: 0">服务器列表</label>
+              <label class="form-label" style="margin: 0">{{ $t('mcp.serverList') }}</label>
               <button class="btn btn-primary" @click="addServer" style="padding: 6px 12px; font-size: 12px">
                 <Add size="12" />
-                添加服务器
+                {{ $t('mcp.addServerBtn') }}
               </button>
             </div>
             <div class="server-list">
@@ -159,15 +159,15 @@
                 <div v-for="(config, name) in settings.mcpServers" :key="name" class="server-item" :class="{ selected: currentServerName === name }" @click="selectServer(name)">
                   <div class="server-info">
                     <div class="server-name">{{ name }}</div>
-                    <div class="server-desc">{{ config.description || '无描述' }}</div>
+                    <div class="server-desc">{{ config.description || $t('mcp.noDescription') }}</div>
                   </div>
                   <div class="server-status"></div>
                 </div>
               </template>
               <div v-else class="empty-state">
                 <Server size="48" class="empty-state-icon" />
-                <div class="empty-state-title">暂无 MCP 服务器</div>
-                <div class="empty-state-desc">点击上方按钮添加第一个服务器</div>
+                <div class="empty-state-title">{{ $t('mcp.noServers') }}</div>
+                <div class="empty-state-desc">{{ $t('mcp.addFirstServer') }}</div>
               </div>
             </div>
           </div>
@@ -177,7 +177,7 @@
     <footer class="footer">
       <div class="footer-status">
         <div class="footer-status-dot"></div>
-        <span>配置: {{ currentApiProfile || 'default' }}</span>
+        <span>{{ $t('api.currentConfig') }}: {{ currentApiProfile || 'default' }}</span>
       </div>
     </footer>
     <!-- Input Dialog -->
@@ -187,8 +187,8 @@
         <div v-if="showInputDialog.isConfirm" class="dialog-confirm-text">{{ showInputDialog.placeholder }}</div>
         <input v-else type="text" class="form-input" v-model="inputDialogValue" :placeholder="showInputDialog.placeholder" @keyup.enter="closeInputDialog(true)" autofocus />
         <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="closeInputDialog(false)">取消</button>
-          <button class="btn btn-primary" @click="closeInputDialog(true)">确定</button>
+          <button class="btn btn-secondary" @click="closeInputDialog(false)">{{ $t('dialog.cancel') }}</button>
+          <button class="btn btn-primary" @click="closeInputDialog(true)">{{ $t('dialog.confirm') }}</button>
         </div>
       </div>
     </div>
@@ -197,8 +197,8 @@
       <div class="dialog api-edit-dialog" @click.stop>
         <div class="dialog-header">
           <div class="dialog-title">
-            <Add size="18" />
-            新建 API 配置
+            <Key size="18" />
+            {{ $t('api.createTitle') }}
           </div>
           <button class="side-panel-close" @click="closeApiCreateDialog">
             <svg viewBox="0 0 10 10">
@@ -209,43 +209,43 @@
         </div>
         <div class="dialog-body">
           <div class="form-group">
-            <label class="form-label">配置名称 <span class="form-required">*</span></label>
-            <input type="text" class="form-input" v-model="creatingApiData.name" placeholder="请输入配置名称" />
+            <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
+            <input type="text" class="form-input" v-model="creatingApiData.name" :placeholder="$t('api.configNamePlaceholder')" />
           </div>
           <div class="form-group">
-            <label class="form-label">认证方式</label>
+            <label class="form-label">{{ $t('api.authType') }}</label>
             <select class="form-select" v-model="creatingApiData.selectedAuthType">
-              <option value="iflow">iFlow</option>
-              <option value="api">API Key</option>
-              <option value="openai-compatible">OpenAI 兼容</option>
+              <option value="iflow">{{ $t('api.auth.iflow') }}</option>
+              <option value="api">{{ $t('api.auth.api') }}</option>
+              <option value="openai-compatible">{{ $t('api.auth.openaiCompatible') }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">API Key</label>
-            <input type="password" class="form-input" v-model="creatingApiData.apiKey" placeholder="sk-cp-XXXXX..." />
+            <label class="form-label">{{ $t('api.apiKey') }}</label>
+            <input type="password" class="form-input" v-model="creatingApiData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Base URL</label>
-              <input type="text" class="form-input" v-model="creatingApiData.baseUrl" placeholder="https://api.minimaxi.com/v1" />
+              <label class="form-label">{{ $t('api.baseUrl') }}</label>
+              <input type="text" class="form-input" v-model="creatingApiData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
             </div>
             <div class="form-group">
-              <label class="form-label">模型名称</label>
-              <input type="text" class="form-input" v-model="creatingApiData.modelName" placeholder="MiniMax-M2.7" />
+              <label class="form-label">{{ $t('api.modelName') }}</label>
+              <input type="text" class="form-input" v-model="creatingApiData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">搜索 API Key</label>
-            <input type="password" class="form-input" v-model="creatingApiData.searchApiKey" placeholder="sk-XXXXX..." />
+            <label class="form-label">{{ $t('api.searchApiKey') }}</label>
+            <input type="password" class="form-input" v-model="creatingApiData.searchApiKey" :placeholder="$t('api.searchApiKeyPlaceholder')" />
           </div>
           <div class="form-group">
-            <label class="form-label">CNA</label>
-            <input type="text" class="form-input" v-model="creatingApiData.cna" placeholder="CNA 标识" />
+            <label class="form-label">{{ $t('api.cna') }}</label>
+            <input type="text" class="form-input" v-model="creatingApiData.cna" :placeholder="$t('api.cnaPlaceholder')" />
           </div>
         </div>
         <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="closeApiCreateDialog">取消</button>
-          <button class="btn btn-primary" @click="saveApiCreate"> <Save size="14" /> 创建 </button>
+          <button class="btn btn-secondary" @click="closeApiCreateDialog">{{ $t('dialog.cancel') }}</button>
+          <button class="btn btn-primary" @click="saveApiCreate"> <Save size="14" /> {{ $t('api.create') }} </button>
         </div>
       </div>
     </div>
@@ -255,7 +255,7 @@
         <div class="dialog-header">
           <div class="dialog-title">
             <Key size="18" />
-            编辑 API 配置
+            {{ $t('api.editTitle') }}
           </div>
           <button class="side-panel-close" @click="closeApiEditDialog">
             <svg viewBox="0 0 10 10">
@@ -266,39 +266,39 @@
         </div>
         <div class="dialog-body">
           <div class="form-group">
-            <label class="form-label">认证方式</label>
+            <label class="form-label">{{ $t('api.authType') }}</label>
             <select class="form-select" v-model="editingApiData.selectedAuthType">
-              <option value="iflow">iFlow</option>
-              <option value="api">API Key</option>
-              <option value="openai-compatible">OpenAI 兼容</option>
+              <option value="iflow">{{ $t('api.auth.iflow') }}</option>
+              <option value="api">{{ $t('api.auth.api') }}</option>
+              <option value="openai-compatible">{{ $t('api.auth.openaiCompatible') }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">API Key</label>
-            <input type="password" class="form-input" v-model="editingApiData.apiKey" placeholder="sk-cp-XXXXX..." />
+            <label class="form-label">{{ $t('api.apiKey') }}</label>
+            <input type="password" class="form-input" v-model="editingApiData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Base URL</label>
-              <input type="text" class="form-input" v-model="editingApiData.baseUrl" placeholder="https://api.minimaxi.com/v1" />
+              <label class="form-label">{{ $t('api.baseUrl') }}</label>
+              <input type="text" class="form-input" v-model="editingApiData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
             </div>
             <div class="form-group">
-              <label class="form-label">模型名称</label>
-              <input type="text" class="form-input" v-model="editingApiData.modelName" placeholder="MiniMax-M2.7" />
+              <label class="form-label">{{ $t('api.modelName') }}</label>
+              <input type="text" class="form-input" v-model="editingApiData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">搜索 API Key</label>
-            <input type="password" class="form-input" v-model="editingApiData.searchApiKey" placeholder="sk-XXXXX..." />
+            <label class="form-label">{{ $t('api.searchApiKey') }}</label>
+            <input type="password" class="form-input" v-model="editingApiData.searchApiKey" :placeholder="$t('api.searchApiKeyPlaceholder')" />
           </div>
           <div class="form-group">
-            <label class="form-label">CNA</label>
-            <input type="text" class="form-input" v-model="editingApiData.cna" placeholder="CNA 标识" />
+            <label class="form-label">{{ $t('api.cna') }}</label>
+            <input type="text" class="form-input" v-model="editingApiData.cna" :placeholder="$t('api.cnaPlaceholder')" />
           </div>
         </div>
         <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="closeApiEditDialog">取消</button>
-          <button class="btn btn-primary" @click="saveApiEdit"> <Save size="14" /> 保存 </button>
+          <button class="btn btn-secondary" @click="closeApiEditDialog">{{ $t('dialog.cancel') }}</button>
+          <button class="btn btn-primary" @click="saveApiEdit"> <Save size="14" /> {{ $t('api.save') }} </button>
         </div>
       </div>
     </div>
@@ -308,7 +308,7 @@
         <div class="side-panel-header">
           <div class="side-panel-title">
             <Server size="18" />
-            {{ isEditingServer ? '编辑服务器' : '添加服务器' }}
+            {{ isEditingServer ? $t('mcp.editServer') : $t('mcp.addServer') }}
           </div>
           <button class="side-panel-close" @click="closeServerPanel">
             <svg viewBox="0 0 10 10">
@@ -319,40 +319,40 @@
         </div>
         <div class="side-panel-body">
           <div class="form-group">
-            <label class="form-label">服务器名称 <span class="form-required">*</span></label>
-            <input type="text" class="form-input" v-model="editingServerData.name" placeholder="my-mcp-server" />
+            <label class="form-label">{{ $t('mcp.serverName') }} <span class="form-required">*</span></label>
+            <input type="text" class="form-input" v-model="editingServerData.name" :placeholder="$t('mcp.serverNamePlaceholder')" />
           </div>
           <div class="form-group">
-            <label class="form-label">描述</label>
-            <input type="text" class="form-input" v-model="editingServerData.description" placeholder="服务器描述信息" />
+            <label class="form-label">{{ $t('mcp.descriptionLabel') }}</label>
+            <input type="text" class="form-input" v-model="editingServerData.description" :placeholder="$t('mcp.descriptionPlaceholder')" />
           </div>
           <div class="form-group">
-            <label class="form-label">命令 <span class="form-required">*</span></label>
-            <input type="text" class="form-input" v-model="editingServerData.command" placeholder="npx" />
+            <label class="form-label">{{ $t('mcp.command') }} <span class="form-required">*</span></label>
+            <input type="text" class="form-input" v-model="editingServerData.command" :placeholder="$t('mcp.commandPlaceholder')" />
           </div>
           <div class="form-group">
-            <label class="form-label">工作目录</label>
-            <input type="text" class="form-input" v-model="editingServerData.cwd" placeholder="." />
+            <label class="form-label">{{ $t('mcp.workingDir') }}</label>
+            <input type="text" class="form-input" v-model="editingServerData.cwd" :placeholder="$t('mcp.cwdPlaceholder')" />
           </div>
           <div class="form-group">
-            <label class="form-label">参数 (每行一个)</label>
-            <textarea class="form-textarea" v-model="editingServerData.args" rows="4" placeholder="-y&#10;package-name"></textarea>
+            <label class="form-label">{{ $t('mcp.args') }}</label>
+            <textarea class="form-textarea" v-model="editingServerData.args" rows="4" :placeholder="$t('mcp.argsPlaceholder')"></textarea>
           </div>
           <div class="form-group">
-            <label class="form-label">环境变量 (JSON 格式)</label>
-            <textarea class="form-textarea" v-model="editingServerData.env" rows="3" placeholder='{"API_KEY": "xxx"}'></textarea>
+            <label class="form-label">{{ $t('mcp.envVars') }}</label>
+            <textarea class="form-textarea" v-model="editingServerData.env" rows="3" :placeholder="$t('mcp.envVarsPlaceholder')"></textarea>
           </div>
         </div>
         <div class="side-panel-footer">
           <button v-if="isEditingServer" class="btn btn-danger" @click="deleteServer">
             <Delete size="14" />
-            删除
+            {{ $t('mcp.delete') }}
           </button>
           <div class="side-panel-footer-right">
-            <button class="btn btn-secondary" @click="closeServerPanel">取消</button>
+            <button class="btn btn-secondary" @click="closeServerPanel">{{ $t('dialog.cancel') }}</button>
             <button class="btn btn-primary" @click="saveServerFromPanel">
               <Save size="14" />
-              {{ isEditingServer ? '保存更改' : '添加服务器' }}
+              {{ isEditingServer ? $t('mcp.saveChanges') : $t('mcp.addServer') }}
             </button>
           </div>
         </div>
@@ -384,7 +384,7 @@
         <div class="message-dialog-title">{{ showMessageDialog.title }}</div>
         <div class="message-dialog-message">{{ showMessageDialog.message }}</div>
         <div class="dialog-actions">
-          <button class="btn btn-primary" @click="closeMessageDialog">确定</button>
+          <button class="btn btn-primary" @click="closeMessageDialog">{{ $t('dialog.confirm') }}</button>
         </div>
       </div>
     </div>
@@ -392,7 +392,9 @@
 </template>
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Save, Config, Key, Server, Globe, Setting, Add, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
+const { locale, t } = useI18n()
 const settings = ref({
   language: 'zh-CN',
   theme: 'Xcode',
@@ -472,7 +474,7 @@ const switchApiProfile = async () => {
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false
   } else {
-    await showMessage({ type: 'error', title: '切换失败', message: result.error })
+    await showMessage({ type: 'error', title: t('api.switchFailed'), message: result.error })
   }
 }
 // Create new API profile
@@ -496,7 +498,7 @@ const closeApiCreateDialog = () => {
 const saveApiCreate = async () => {
   const name = creatingApiData.value.name.trim()
   if (!name) {
-    await showMessage({ type: 'warning', title: '错误', message: '请输入配置名称' })
+    await showMessage({ type: 'warning', title: t('messages.error'), message: t('messages.inputConfigName') })
     return
   }
   const result = await window.electronAPI.createApiProfile(name)
@@ -519,24 +521,24 @@ const saveApiCreate = async () => {
       await window.electronAPI.saveSettings(data)
       showApiCreateDialog.value = false
       await loadApiProfiles()
-      await showMessage({ type: 'info', title: '创建成功', message: `配置 "${name}" 已创建` })
+      await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configCreated', { name }) })
     }
   } else {
-    await showMessage({ type: 'error', title: '创建失败', message: result.error })
+    await showMessage({ type: 'error', title: t('messages.error'), message: result.error })
   }
 }
 // Delete API profile
 const deleteApiProfile = async name => {
   const profileName = name || currentApiProfile.value
   if (profileName === 'default') {
-    await showMessage({ type: 'warning', title: '无法删除', message: '不能删除默认配置' })
+    await showMessage({ type: 'warning', title: t('messages.warning'), message: t('messages.cannotDeleteDefault') })
     return
   }
   const confirmed = await new Promise(resolve => {
     showInputDialog.value = {
       show: true,
-      title: '删除配置',
-      placeholder: `确定要删除配置 "${profileName}" 吗？`,
+      title: t('api.delete'),
+      placeholder: t('messages.confirmDeleteConfig', { name: profileName }),
       callback: resolve,
       isConfirm: true,
     }
@@ -551,9 +553,9 @@ const deleteApiProfile = async name => {
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false
     await loadApiProfiles()
-    await showMessage({ type: 'info', title: '删除成功', message: `配置已删除` })
+    await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configDeleted') })
   } else {
-    await showMessage({ type: 'error', title: '删除失败', message: result.error })
+    await showMessage({ type: 'error', title: t('messages.error'), message: result.error })
   }
 }
 
@@ -573,10 +575,10 @@ const getProfileInitial = name => {
 // Get profile URL for display
 const getProfileUrl = name => {
   if (!settings.value.apiProfiles || !settings.value.apiProfiles[name]) {
-    return '未配置'
+    return t('api.unconfigured')
   }
   const profile = settings.value.apiProfiles[name]
-  return profile.baseUrl || '未配置 Base URL'
+  return profile.baseUrl || t('api.noBaseUrl')
 }
 // Get profile icon style (gradient colors)
 const profileColors = [
@@ -603,8 +605,8 @@ const duplicateApiProfile = async name => {
   const newName = await new Promise(resolve => {
     showInputDialog.value = {
       show: true,
-      title: '复制配置',
-      placeholder: '请输入新配置的名称',
+      title: t('api.duplicate'),
+      placeholder: t('api.newConfigNamePlaceholder'),
       callback: resolve,
     }
   })
@@ -612,9 +614,9 @@ const duplicateApiProfile = async name => {
   const result = await window.electronAPI.duplicateApiProfile(name, newName)
   if (result.success) {
     await loadApiProfiles()
-    await showMessage({ type: 'info', title: '复制成功', message: `配置已复制为 "${newName}"` })
+    await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configCopied', { name: newName }) })
   } else {
-    await showMessage({ type: 'error', title: '复制失败', message: result.error })
+    await showMessage({ type: 'error', title: t('messages.error'), message: result.error })
   }
 }
 // Open API edit dialog
@@ -690,17 +692,33 @@ const loadSettings = async () => {
 
 watch(
   settings,
-  () => {
+  async () => {
     if (!isLoading.value) {
       modified.value = true
+      // 自动保存基础设置到文件
+      const dataToSave = JSON.parse(JSON.stringify(settings.value))
+      await window.electronAPI.saveSettings(dataToSave)
     }
   },
   { deep: true },
+)
+watch(
+  () => settings.value.language,
+  newLang => {
+    locale.value = newLang
+    window.electronAPI.notifyLanguageChanged()
+  },
 )
 const showSection = section => {
   currentSection.value = section
 }
 const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(settings.value.mcpServers).length : 0))
+const themeClass = computed(() => {
+  const theme = settings.value.theme
+  if (theme === 'Dark') return 'dark'
+  if (theme === 'Solarized Dark') return 'solarized-dark'
+  return ''
+})
 const selectServer = name => {
   currentServerName.value = name
   openEditServerPanel(name)
@@ -744,11 +762,11 @@ const closeServerPanel = () => {
 const saveServerFromPanel = async () => {
   const name = editingServerData.value.name.trim()
   if (!name) {
-    await showMessage({ type: 'warning', title: '错误', message: '请输入服务器名称' })
+    await showMessage({ type: 'warning', title: t('messages.error'), message: t('mcp.inputServerName') })
     return
   }
   if (!isEditingServer.value && settings.value.mcpServers[name]) {
-    await showMessage({ type: 'warning', title: '错误', message: '服务器名称已存在' })
+    await showMessage({ type: 'warning', title: t('messages.error'), message: t('mcp.serverNameExists') })
     return
   }
   // 如果是编辑模式且名称改变了，需要删除旧的服务器
@@ -769,7 +787,7 @@ const saveServerFromPanel = async () => {
     try {
       serverConfig.env = JSON.parse(envText)
     } catch (e) {
-      await showMessage({ type: 'error', title: '错误', message: '环境变量 JSON 格式错误' })
+      await showMessage({ type: 'error', title: t('messages.error'), message: t('mcp.invalidEnvJson') })
       return
     }
   }
@@ -791,7 +809,7 @@ const deleteServer = async () => {
   const serverName = isEditingServer.value ? editingServerData.value.name : currentServerName.value
   if (!serverName) return
   const confirmed = await new Promise(resolve => {
-    showInputDialog.value = { show: true, title: '删除服务器', placeholder: `确定要删除服务器 "${serverName}" 吗？`, callback: resolve, isConfirm: true }
+    showInputDialog.value = { show: true, title: t('mcp.delete'), placeholder: t('messages.confirmDeleteServer', { name: serverName }), callback: resolve, isConfirm: true }
   })
   if (!confirmed) return
   delete settings.value.mcpServers[serverName]
@@ -848,11 +866,32 @@ watch(
     }
   },
 )
+// Apply theme class to body when theme changes
+watch(
+  () => settings.value.theme,
+  theme => {
+    const cls = themeClass.value
+    if (cls) {
+      document.body.classList.add(cls)
+      if (cls === 'dark') document.body.classList.remove('solarized-dark')
+      else if (cls === 'solarized-dark') document.body.classList.remove('dark')
+    } else {
+      document.body.classList.remove('dark', 'solarized-dark')
+    }
+  },
+)
 onMounted(async () => {
   await loadApiProfiles()
   await loadSettings()
+  // 同步初始语言到 i18n
+  locale.value = settings.value.language
+  // 应用初始主题
+  const cls = themeClass.value
+  if (cls) {
+    document.body.classList.add(cls)
+  }
   // 监听托盘切换 API 配置事件
-  window.electronAPI.onApiProfileSwitched(async (profileName) => {
+  window.electronAPI.onApiProfileSwitched(async profileName => {
     currentApiProfile.value = profileName
     await loadSettings()
   })
@@ -937,6 +976,46 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+/* Dark Theme Variables */
+.dark,
+.solarized-dark {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --bg-hover: #1f4068;
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --accent: #60a5fa;
+  --accent-hover: #3b82f6;
+  --accent-light: rgba(96, 165, 250, 0.15);
+  --border: #2d2d44;
+  --border-light: #232338;
+  --success: #34d399;
+  --danger: #f87171;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* Solarized Dark specific overrides */
+.solarized-dark {
+  --bg-primary: #002b36;
+  --bg-secondary: #073642;
+  --bg-tertiary: #094856;
+  --bg-hover: #0a5a6f;
+  --text-primary: #839496;
+  --text-secondary: #93a1a1;
+  --text-tertiary: #586e75;
+  --accent: #268bd2;
+  --accent-hover: #1a73c0;
+  --accent-light: rgba(38, 139, 210, 0.15);
+  --border: #1d3a47;
+  --border-light: #0d3a47;
+  --success: #2aa198;
+  --danger: #dc322f;
+}
+
 /* Scrollbar Styles */
 ::-webkit-scrollbar {
   width: 8px;

@@ -9,6 +9,68 @@ let mainWindow
 let tray
 const isDev = process.argv.includes('--dev')
 
+// 主进程翻译
+const trayTranslations = {
+  'zh-CN': {
+    showWindow: '显示主窗口',
+    switchApiConfig: '切换 API 配置',
+    exit: '退出',
+    tooltip: 'iFlow 设置编辑器'
+  },
+  'en-US': {
+    showWindow: 'Show Window',
+    switchApiConfig: 'Switch API Config',
+    exit: 'Exit',
+    tooltip: 'iFlow Settings Editor'
+  },
+  'ja-JP': {
+    showWindow: 'メインウィンドウを表示',
+    switchApiConfig: 'API 設定切替',
+    exit: '終了',
+    tooltip: 'iFlow 設定エディタ'
+  }
+}
+
+function getTrayTranslation() {
+  const settings = readSettings()
+  const lang = settings?.language || 'zh-CN'
+  return trayTranslations[lang] || trayTranslations['zh-CN']
+}
+
+// 错误消息翻译
+const errorTranslations = {
+  'zh-CN': {
+    configNotFound: '配置文件不存在',
+    configNotExist: '配置 "{name}" 不存在',
+    configAlreadyExists: '配置 "{name}" 已存在',
+    cannotDeleteDefault: '不能删除默认配置',
+    cannotRenameDefault: '不能重命名默认配置',
+    switchFailed: '切换API配置失败'
+  },
+  'en-US': {
+    configNotFound: 'Configuration file not found',
+    configNotExist: 'Configuration "{name}" does not exist',
+    configAlreadyExists: 'Configuration "{name}" already exists',
+    cannotDeleteDefault: 'Cannot delete default configuration',
+    cannotRenameDefault: 'Cannot rename default configuration',
+    switchFailed: 'Failed to switch API configuration'
+  },
+  'ja-JP': {
+    configNotFound: '設定ファイルが存在しません',
+    configNotExist: 'プロファイル "{name}" が存在しません',
+    configAlreadyExists: 'プロファイル "{name}" が既に存在します',
+    cannotDeleteDefault: 'デフォルトプロファイルは削除できません',
+    cannotRenameDefault: 'デフォルトプロファイルは名前変更できません',
+    switchFailed: 'API 設定の切替に失敗しました'
+  }
+}
+
+function getErrorTranslation() {
+  const settings = readSettings()
+  const lang = settings?.language || 'zh-CN'
+  return errorTranslations[lang] || errorTranslations['zh-CN']
+}
+
 // 创建系统托盘
 function createTray() {
   // 获取图标路径 - 打包后需要从 extraResources 获取
@@ -30,7 +92,7 @@ function createTray() {
   trayIcon = trayIcon.resize({ width: 16, height: 16 })
 
   tray = new Tray(trayIcon)
-  tray.setToolTip('iFlow 设置编辑器')
+  tray.setToolTip(getTrayTranslation().tooltip)
 
   updateTrayMenu()
 
@@ -59,9 +121,10 @@ function updateTrayMenu() {
     click: () => switchApiProfileFromTray(name)
   }))
 
+  const t = getTrayTranslation()
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: '显示主窗口',
+      label: t.showWindow,
       click: () => {
         if (mainWindow) {
           mainWindow.show()
@@ -71,12 +134,12 @@ function updateTrayMenu() {
     },
     { type: 'separator' },
     {
-      label: '切换 API 配置',
+      label: t.switchApiConfig,
       submenu: profileMenuItems
     },
     { type: 'separator' },
     {
-      label: '退出',
+      label: t.exit,
       click: () => {
         app.isQuitting = true
         app.quit()
@@ -198,6 +261,10 @@ ipcMain.on('window-close', () => {
   }
 })
 ipcMain.handle('is-maximized', () => mainWindow.isMaximized())
+// 监听语言切换以更新托盘菜单
+ipcMain.on('language-changed', () => {
+  updateTrayMenu()
+})
 // API 配置相关的字段
 const API_FIELDS = ['selectedAuthType', 'apiKey', 'baseUrl', 'modelName', 'searchApiKey', 'cna']
 // 读取设置文件
@@ -245,12 +312,13 @@ ipcMain.handle('list-api-profiles', async () => {
 ipcMain.handle('switch-api-profile', async (event, profileName) => {
   try {
     const settings = readSettings()
+    const t = getErrorTranslation()
     if (!settings) {
-      return { success: false, error: '配置文件不存在' }
+      return { success: false, error: t.configNotFound }
     }
     const profiles = settings.apiProfiles || {}
     if (!profiles[profileName]) {
-      return { success: false, error: `配置 "${profileName}" 不存在` }
+      return { success: false, error: t.configNotExist.replace('{name}', profileName) }
     }
     // 保存当前配置到 apiProfiles（如果当前配置存在）
     const currentProfile = settings.currentApiProfile || 'default'
@@ -282,8 +350,9 @@ ipcMain.handle('switch-api-profile', async (event, profileName) => {
 ipcMain.handle('create-api-profile', async (event, name) => {
   try {
     const settings = readSettings()
+    const t = getErrorTranslation()
     if (!settings) {
-      return { success: false, error: '配置文件不存在' }
+      return { success: false, error: t.configNotFound }
     }
     if (!settings.apiProfiles) {
       settings.apiProfiles = { default: {} }
@@ -295,7 +364,7 @@ ipcMain.handle('create-api-profile', async (event, name) => {
       }
     }
     if (settings.apiProfiles[name]) {
-      return { success: false, error: `配置 "${name}" 已存在` }
+      return { success: false, error: t.configAlreadyExists.replace('{name}', name) }
     }
     // 复制当前配置到新配置
     const newConfig = {}
@@ -315,15 +384,16 @@ ipcMain.handle('create-api-profile', async (event, name) => {
 ipcMain.handle('delete-api-profile', async (event, name) => {
   try {
     const settings = readSettings()
+    const t = getErrorTranslation()
     if (!settings) {
-      return { success: false, error: '配置文件不存在' }
+      return { success: false, error: t.configNotFound }
     }
     if (name === 'default') {
-      return { success: false, error: '不能删除默认配置' }
+      return { success: false, error: t.cannotDeleteDefault }
     }
     const profiles = settings.apiProfiles || {}
     if (!profiles[name]) {
-      return { success: false, error: `配置 "${name}" 不存在` }
+      return { success: false, error: t.configNotExist.replace('{name}', name) }
     }
     delete profiles[name]
     settings.apiProfiles = profiles
@@ -348,18 +418,19 @@ ipcMain.handle('delete-api-profile', async (event, name) => {
 ipcMain.handle('rename-api-profile', async (event, oldName, newName) => {
   try {
     const settings = readSettings()
+    const t = getErrorTranslation()
     if (!settings) {
-      return { success: false, error: '配置文件不存在' }
+      return { success: false, error: t.configNotFound }
     }
     if (oldName === 'default') {
-      return { success: false, error: '不能重命名默认配置' }
+      return { success: false, error: t.cannotRenameDefault }
     }
     const profiles = settings.apiProfiles || {}
     if (!profiles[oldName]) {
-      return { success: false, error: `配置 "${oldName}" 不存在` }
+      return { success: false, error: t.configNotExist.replace('{name}', oldName) }
     }
     if (profiles[newName]) {
-      return { success: false, error: `配置 "${newName}" 已存在` }
+      return { success: false, error: t.configAlreadyExists.replace('{name}', newName) }
     }
     profiles[newName] = profiles[oldName]
     delete profiles[oldName]
@@ -377,15 +448,16 @@ ipcMain.handle('rename-api-profile', async (event, oldName, newName) => {
 ipcMain.handle('duplicate-api-profile', async (event, sourceName, newName) => {
   try {
     const settings = readSettings()
+    const t = getErrorTranslation()
     if (!settings) {
-      return { success: false, error: '配置文件不存在' }
+      return { success: false, error: t.configNotFound }
     }
     const profiles = settings.apiProfiles || {}
     if (!profiles[sourceName]) {
-      return { success: false, error: `配置 "${sourceName}" 不存在` }
+      return { success: false, error: t.configNotExist.replace('{name}', sourceName) }
     }
     if (profiles[newName]) {
-      return { success: false, error: `配置 "${newName}" 已存在` }
+      return { success: false, error: t.configAlreadyExists.replace('{name}', newName) }
     }
     // 深拷贝配置
     profiles[newName] = JSON.parse(JSON.stringify(profiles[sourceName]))

@@ -91,5 +91,8 @@
     "electron-builder": "^24.13.3",
     "vite": "^8.0.8",
     "vue": "^3.4.0"
+  },
+  "dependencies": {
+    "vue-i18n": "^9.14.5"
   }
 }

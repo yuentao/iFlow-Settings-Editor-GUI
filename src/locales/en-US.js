@@ -1,0 +1,130 @@
+export default {
+  app: {
+    title: 'iFlow Settings Editor'
+  },
+  window: {
+    minimize: 'Minimize',
+    maximize: 'Maximize',
+    close: 'Close'
+  },
+  sidebar: {
+    general: 'General',
+    basicSettings: 'Basic Settings',
+    apiConfig: 'API Config',
+    advanced: 'Advanced',
+    mcpServers: 'MCP Servers'
+  },
+  general: {
+    title: 'Basic Settings',
+    description: 'Configure general application options',
+    language: 'Language',
+    theme: 'Theme',
+    languageInterface: 'Language & Interface',
+    otherSettings: 'Other Settings',
+    bootAnimation: 'Boot Animation',
+    bootAnimationShown: 'Shown',
+    bootAnimationNotShown: 'Not Shown',
+    checkpointing: 'Checkpointing',
+    enabled: 'Enabled',
+    disabled: 'Disabled'
+  },
+  theme: {
+    xcode: 'Xcode',
+    dark: 'Dark',
+    light: 'Light',
+    solarizedDark: 'Solarized Dark'
+  },
+  api: {
+    title: 'API Configuration',
+    description: 'Configure AI services and search API',
+    currentConfig: 'Current Config',
+    createTitle: 'Create API Configuration',
+    editTitle: 'Edit API Configuration',
+    profileManagement: 'Profile Management',
+    newProfile: 'New Profile',
+    profileName: 'Profile Name',
+    configName: 'Profile Name',
+    configNamePlaceholder: 'Enter configuration name',
+    newConfigNamePlaceholder: 'Enter new configuration name',
+    authType: 'Auth Type',
+    apiKey: 'API Key',
+    apiKeyPlaceholder: 'sk-cp-XXXXX...',
+    baseUrl: 'Base URL',
+    baseUrlPlaceholder: 'https://api.minimaxi.com/v1',
+    modelName: 'Model Name',
+    modelNamePlaceholder: 'MiniMax-M2.7',
+    searchApiKey: 'Search API Key',
+    searchApiKeyPlaceholder: 'sk-XXXXX...',
+    cna: 'CNA',
+    cnaPlaceholder: 'CNA identifier',
+    inUse: 'In Use',
+    cancel: 'Cancel',
+    create: 'Create',
+    save: 'Save',
+    edit: 'Edit',
+    duplicate: 'Duplicate',
+    delete: 'Delete',
+    unconfigured: 'Not configured',
+    noBaseUrl: 'Base URL not configured',
+    configCreated: 'Configuration "{name}" created',
+    configDeleted: 'Configuration deleted',
+    configCopied: 'Configuration copied as "{name}"',
+    switchFailed: 'Switch failed',
+    auth: {
+      iflow: 'iFlow',
+      api: 'API Key',
+      openaiCompatible: 'OpenAI Compatible'
+    }
+  },
+  mcp: {
+    title: 'MCP Servers',
+    description: 'Manage Model Context Protocol server configurations',
+    serverList: 'Server List',
+    addServer: 'Add Server',
+    editServer: 'Edit Server',
+    serverName: 'Server Name',
+    serverNamePlaceholder: 'my-mcp-server',
+    descriptionLabel: 'Description',
+    descriptionPlaceholder: 'Server description',
+    command: 'Command',
+    commandPlaceholder: 'npx',
+    workingDir: 'Working Directory',
+    cwdPlaceholder: '.',
+    args: 'Arguments (one per line)',
+    argsPlaceholder: '-y\\npackage-name',
+    envVars: 'Environment Variables (JSON)',
+    envVarsPlaceholder: "e.g. API_KEY=xxx",
+    invalidEnvJson: 'Invalid environment variables JSON format',
+    noServers: 'No MCP Servers',
+    addFirstServer: 'Click the button above to add your first server',
+    noDescription: 'No description',
+    delete: 'Delete',
+    cancel: 'Cancel',
+    saveChanges: 'Save Changes',
+    addServerBtn: 'Add Server',
+    inputServerName: 'Please enter server name',
+    serverNameExists: 'Server name already exists'
+  },
+  messages: {
+    error: 'Error',
+    warning: 'Warning',
+    success: 'Success',
+    info: 'Info',
+    cannotDeleteDefault: 'Cannot delete default configuration',
+    inputConfigName: 'Please enter configuration name',
+    confirmDeleteConfig: 'Are you sure you want to delete configuration "{name}"?',
+    confirmDeleteServer: 'Are you sure you want to delete server "{name}"?'
+  },
+  dialog: {
+    confirm: 'Confirm',
+    cancel: 'Cancel'
+  },
+  footer: {
+    config: 'Config'
+  },
+  languages: {
+    'zh-CN': '简体中文',
+    'en-US': 'English',
+    'ja-JP': '日本語'
+  }
+}
