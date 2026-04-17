@@ -22,8 +22,21 @@ iflow-settings-editor/
 ├── index.html           # HTML 入口
 ├── package.json         # 项目配置
 ├── vite.config.js       # Vite 配置
+├── vitest.config.js      # Vitest 测试配置
 ├── src/
 │   ├── main.js         # Vue 入口
+│   ├── components/     # 可复用组件
+│   │   ├── ApiProfileDialog.vue
+│   │   ├── Footer.vue
+│   │   ├── InputDialog.vue
+│   │   ├── MessageDialog.vue
+│   │   ├── ServerPanel.vue
+│   │   ├── SideBar.vue
+│   │   └── TitleBar.vue
+│   ├── views/         # 页面视图组件
+│   │   ├── ApiConfig.vue
+│   │   ├── GeneralSettings.vue
+│   │   └── McpServers.vue
 │   └── App.vue         # 主组件 (所有业务逻辑、UI 组件)
 ├── build/               # 构建资源 (图标等)
 ├── dist/                # Vite 构建输出
