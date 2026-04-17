@@ -126,14 +126,14 @@
                     使用中
                   </span>
                 </div>
-                <div class="profile-actions" v-if="profile.name !== 'default'">
+                <div class="profile-actions">
                   <button class="action-btn" @click.stop="openApiEditDialog(profile.name)" title="编辑">
                     <Edit size="14" />
                   </button>
                   <button class="action-btn" @click.stop="duplicateApiProfile(profile.name)" title="复制">
                     <Copy size="14" />
                   </button>
-                  <button class="action-btn action-btn-danger" @click.stop="deleteApiProfile(profile.name)" title="删除">
+                  <button class="action-btn action-btn-danger" v-if="profile.name !== 'default'" @click.stop="deleteApiProfile(profile.name)" title="删除">
                     <Delete size="14" />
                   </button>
                 </div>
@@ -624,12 +624,12 @@ const openApiEditDialog = profileName => {
   // 从 apiProfiles 中加载指定配置的数据
   const profile = settings.value.apiProfiles && settings.value.apiProfiles[profileName]
   editingApiData.value = {
-    selectedAuthType: profile ? profile.selectedAuthType : settings.value.selectedAuthType || 'iflow',
-    apiKey: profile ? profile.apiKey : settings.value.apiKey || '',
-    baseUrl: profile ? profile.baseUrl : settings.value.baseUrl || '',
-    modelName: profile ? profile.modelName : settings.value.modelName || '',
-    searchApiKey: profile ? profile.searchApiKey : settings.value.searchApiKey || '',
-    cna: profile ? profile.cna : settings.value.cna || '',
+    selectedAuthType: (profile && profile.selectedAuthType) || settings.value.selectedAuthType || 'openai-compatible',
+    apiKey: (profile && profile.apiKey) || settings.value.apiKey || '',
+    baseUrl: (profile && profile.baseUrl) || settings.value.baseUrl || '',
+    modelName: (profile && profile.modelName) || settings.value.modelName || '',
+    searchApiKey: (profile && profile.searchApiKey) || settings.value.searchApiKey || '',
+    cna: (profile && profile.cna) || settings.value.cna || '',
   }
   showApiEditDialog.value = true
 }
@@ -673,7 +673,7 @@ const loadSettings = async () => {
     if (data.theme === undefined) data.theme = 'Xcode'
     if (data.bootAnimationShown === undefined) data.bootAnimationShown = true
     // 确保 API 相关字段有默认值
-    if (data.selectedAuthType === undefined) data.selectedAuthType = 'openai-compatible'
+    if (!data.selectedAuthType) data.selectedAuthType = 'openai-compatible'
     if (data.apiKey === undefined) data.apiKey = ''
     if (data.baseUrl === undefined) data.baseUrl = ''
     if (data.modelName === undefined) data.modelName = ''
