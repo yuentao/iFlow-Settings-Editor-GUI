@@ -1,6 +1,6 @@
 {
   "name": "iflow-settings-editor",
-  "version": "1.0.0",
+  "version": "1.5.0",
   "description": "一个用于编辑 iFlow CLI 配置文件的桌面应用程序。",
   "main": "main.js",
   "author": "上海潘哆呐科技有限公司",
@@ -25,7 +25,7 @@
   "build": {
     "appId": "com.iflow.settings-editor",
     "productName": "iFlow Settings Editor",
-    "copyright": "Copyright © 2024 iFlow",
+    "copyright": "Copyright © 2025 上海潘哆呐科技有限公司",
     "directories": {
       "output": "release",
       "buildResources": "build"
