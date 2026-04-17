@@ -19,7 +19,6 @@
         </button>
       </div>
     </div>
-
     <main class="main">
       <aside class="sidebar">
         <div class="sidebar-section">
@@ -42,7 +41,6 @@
           </div>
         </div>
       </aside>
-
       <div class="content">
         <section v-if="currentSection === 'general'">
           <div class="content-header">
@@ -97,7 +95,6 @@
             </div>
           </div>
         </section>
-
         <section v-if="currentSection === 'api'">
           <div class="content-header">
             <h1 class="content-title">API 配置</h1>
@@ -177,14 +174,12 @@
         </section>
       </div>
     </main>
-
     <footer class="footer">
       <div class="footer-status">
         <div class="footer-status-dot"></div>
         <span>配置: {{ currentApiProfile || 'default' }}</span>
       </div>
     </footer>
-
     <!-- Input Dialog -->
     <div v-if="showInputDialog.show" class="dialog-overlay dialog-overlay-top">
       <div class="dialog" @click.stop>
@@ -197,40 +192,8 @@
         </div>
       </div>
     </div>
-
-    <!-- Message Dialog -->
-    <div v-if="showMessageDialog.show" class="dialog-overlay dialog-overlay-top">
-      <div class="dialog message-dialog" @click.stop>
-        <div class="message-dialog-icon" :class="'message-dialog-icon-' + showMessageDialog.type">
-          <svg v-if="showMessageDialog.type === 'info'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4M12 8h.01" />
-          </svg>
-          <svg v-else-if="showMessageDialog.type === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M9 12l2 2 4-4" />
-          </svg>
-          <svg v-else-if="showMessageDialog.type === 'warning'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-          <svg v-else-if="showMessageDialog.type === 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="15" y1="9" x2="9" y2="15" />
-            <line x1="9" y1="9" x2="15" y2="15" />
-          </svg>
-        </div>
-        <div class="message-dialog-title">{{ showMessageDialog.title }}</div>
-        <div class="message-dialog-message">{{ showMessageDialog.message }}</div>
-        <div class="dialog-actions">
-          <button class="btn btn-primary" @click="closeMessageDialog">确定</button>
-        </div>
-      </div>
-    </div>
-
     <!-- API Profile Create Dialog -->
-    <div v-if="showApiCreateDialog" class="dialog-overlay dialog-overlay-top" @keyup.esc="closeApiCreateDialog" tabindex="-1" ref="apiCreateDialogOverlay" style="z-index: 1200">
+    <div v-if="showApiCreateDialog" class="dialog-overlay dialog-overlay-top" @keyup.esc="closeApiCreateDialog" tabindex="-1" ref="apiCreateDialogOverlay">
       <div class="dialog api-edit-dialog" @click.stop>
         <div class="dialog-header">
           <div class="dialog-title">
@@ -286,7 +249,6 @@
         </div>
       </div>
     </div>
-
     <!-- API Profile Edit Dialog -->
     <div v-if="showApiEditDialog" class="dialog-overlay dialog-overlay-top" @keyup.esc="closeApiEditDialog" tabindex="-1" ref="apiEditDialogOverlay">
       <div class="dialog api-edit-dialog" @click.stop>
@@ -340,7 +302,6 @@
         </div>
       </div>
     </div>
-
     <!-- Server Side Panel -->
     <div v-if="showServerPanel" class="side-panel-overlay" @keyup.esc="closeServerPanel" tabindex="-1" ref="serverPanelOverlay">
       <div class="side-panel" @click.stop>
@@ -397,20 +358,48 @@
         </div>
       </div>
     </div>
+    <!-- Message Dialog (放在最后确保显示在所有对话框之上) -->
+    <div v-if="showMessageDialog.show" class="dialog-overlay dialog-overlay-top">
+      <div class="dialog message-dialog" @click.stop>
+        <div class="message-dialog-icon" :class="'message-dialog-icon-' + showMessageDialog.type">
+          <svg v-if="showMessageDialog.type === 'info'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4M12 8h.01" />
+          </svg>
+          <svg v-else-if="showMessageDialog.type === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9 12l2 2 4-4" />
+          </svg>
+          <svg v-else-if="showMessageDialog.type === 'warning'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <svg v-else-if="showMessageDialog.type === 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </svg>
+        </div>
+        <div class="message-dialog-title">{{ showMessageDialog.title }}</div>
+        <div class="message-dialog-message">{{ showMessageDialog.message }}</div>
+        <div class="dialog-actions">
+          <button class="btn btn-primary" @click="closeMessageDialog">确定</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
-
 <script setup>
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
-import { Refresh, Save, Config, Key, Server, Globe, Setting, Robot, Search, Add, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
-
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { Save, Config, Key, Server, Globe, Setting, Add, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 const settings = ref({
   language: 'zh-CN',
   theme: 'Xcode',
   bootAnimationShown: true,
   checkpointing: { enabled: true },
   mcpServers: {},
-  selectedAuthType: 'iflow',
+  selectedAuthType: 'openai-compatible',
   apiKey: '',
   baseUrl: '',
   modelName: '',
@@ -419,7 +408,6 @@ const settings = ref({
   currentApiProfile: 'default',
   apiProfiles: { default: {} },
 })
-
 const originalSettings = ref({})
 const modified = ref(false)
 const currentSection = ref('general')
@@ -443,7 +431,7 @@ const editingServerData = ref({
 const showApiEditDialog = ref(false)
 const editingApiProfileName = ref('')
 const editingApiData = ref({
-  selectedAuthType: 'iflow',
+  selectedAuthType: 'openai-compatible',
   apiKey: '',
   baseUrl: '',
   modelName: '',
@@ -453,14 +441,13 @@ const editingApiData = ref({
 const showApiCreateDialog = ref(false)
 const creatingApiData = ref({
   name: '',
-  selectedAuthType: 'iflow',
+  selectedAuthType: 'openai-compatible',
   apiKey: '',
   baseUrl: '',
   modelName: '',
   searchApiKey: '',
   cna: '',
 })
-
 // Load API profiles list
 const loadApiProfiles = async () => {
   const result = await window.electronAPI.listApiProfiles()
@@ -474,7 +461,6 @@ const loadApiProfiles = async () => {
     currentApiProfile.value = result.currentProfile || 'default'
   }
 }
-
 // Switch API profile
 const switchApiProfile = async () => {
   const result = await window.electronAPI.switchApiProfile(currentApiProfile.value)
@@ -489,35 +475,23 @@ const switchApiProfile = async () => {
     await showMessage({ type: 'error', title: '切换失败', message: result.error })
   }
 }
-
 // Create new API profile
-
 const createNewApiProfile = () => {
   creatingApiData.value = {
     name: '',
-
-    selectedAuthType: 'iflow',
-
+    selectedAuthType: 'openai-compatible',
     apiKey: '',
-
     baseUrl: '',
-
     modelName: '',
-
     searchApiKey: '',
-
     cna: '',
   }
-
   showApiCreateDialog.value = true
 }
-
 // Close API create dialog
-
 const closeApiCreateDialog = () => {
   showApiCreateDialog.value = false
 }
-
 // Save API create
 const saveApiCreate = async () => {
   const name = creatingApiData.value.name.trim()
@@ -525,7 +499,6 @@ const saveApiCreate = async () => {
     await showMessage({ type: 'warning', title: '错误', message: '请输入配置名称' })
     return
   }
-
   const result = await window.electronAPI.createApiProfile(name)
   if (result.success) {
     // 创建成功后，更新配置数据
@@ -537,7 +510,6 @@ const saveApiCreate = async () => {
       searchApiKey: creatingApiData.value.searchApiKey,
       cna: creatingApiData.value.cna,
     }
-
     // 保存配置数据
     const loadResult = await window.electronAPI.loadSettings()
     if (loadResult.success) {
@@ -545,7 +517,6 @@ const saveApiCreate = async () => {
       if (!data.apiProfiles) data.apiProfiles = {}
       data.apiProfiles[name] = profileData
       await window.electronAPI.saveSettings(data)
-
       showApiCreateDialog.value = false
       await loadApiProfiles()
       await showMessage({ type: 'info', title: '创建成功', message: `配置 "${name}" 已创建` })
@@ -554,7 +525,6 @@ const saveApiCreate = async () => {
     await showMessage({ type: 'error', title: '创建失败', message: result.error })
   }
 }
-
 // Delete API profile
 const deleteApiProfile = async name => {
   const profileName = name || currentApiProfile.value
@@ -562,7 +532,6 @@ const deleteApiProfile = async name => {
     await showMessage({ type: 'warning', title: '无法删除', message: '不能删除默认配置' })
     return
   }
-
   const confirmed = await new Promise(resolve => {
     showInputDialog.value = {
       show: true,
@@ -573,7 +542,6 @@ const deleteApiProfile = async name => {
     }
   })
   if (!confirmed) return
-
   const result = await window.electronAPI.deleteApiProfile(profileName)
   if (result.success) {
     const data = JSON.parse(JSON.stringify(result.data))
@@ -589,26 +557,6 @@ const deleteApiProfile = async name => {
   }
 }
 
-// Rename API profile
-const renameApiProfile = async () => {
-  if (currentApiProfile.value === 'default') {
-    await showMessage({ type: 'warning', title: '无法重命名', message: '不能重命名默认配置' })
-    return
-  }
-  const newName = await new Promise(resolve => {
-    showInputDialog.value = { show: true, title: '重命名配置', placeholder: '请输入新的配置名称', defaultValue: currentApiProfile.value, callback: resolve }
-  })
-  if (!newName || newName === currentApiProfile.value) return
-  const result = await window.electronAPI.renameApiProfile(currentApiProfile.value, newName)
-  if (result.success) {
-    currentApiProfile.value = newName
-    await loadApiProfiles()
-    await showMessage({ type: 'info', title: '重命名成功', message: `配置已重命名为 "${newName}"` })
-  } else {
-    await showMessage({ type: 'error', title: '重命名失败', message: result.error })
-  }
-}
-
 // Select API profile (click on card)
 const selectApiProfile = async name => {
   if (name === currentApiProfile.value) return
@@ -617,13 +565,11 @@ const selectApiProfile = async name => {
   await switchApiProfile()
   isLoading.value = false
 }
-
 // Get profile initial letter for icon
 const getProfileInitial = name => {
   if (!name) return '?'
   return name.charAt(0).toUpperCase()
 }
-
 // Get profile URL for display
 const getProfileUrl = name => {
   if (!settings.value.apiProfiles || !settings.value.apiProfiles[name]) {
@@ -632,7 +578,6 @@ const getProfileUrl = name => {
   const profile = settings.value.apiProfiles[name]
   return profile.baseUrl || '未配置 Base URL'
 }
-
 // Get profile icon style (gradient colors)
 const profileColors = [
   'linear-gradient(135deg, #f97316 0%, #fb923c 100%)', // orange
@@ -642,7 +587,6 @@ const profileColors = [
   'linear-gradient(135deg, #f43f5e 0%, #fb7185 100%)', // rose
   'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)', // blue
 ]
-
 const getProfileIconStyle = name => {
   if (name === 'default') {
     return { background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' }
@@ -654,35 +598,25 @@ const getProfileIconStyle = name => {
   const index = Math.abs(hash) % profileColors.length
   return { background: profileColors[index] }
 }
-
 // Duplicate API profile
-
 const duplicateApiProfile = async name => {
   const newName = await new Promise(resolve => {
     showInputDialog.value = {
       show: true,
-
       title: '复制配置',
-
       placeholder: '请输入新配置的名称',
-
       callback: resolve,
     }
   })
-
   if (!newName) return
-
   const result = await window.electronAPI.duplicateApiProfile(name, newName)
-
   if (result.success) {
     await loadApiProfiles()
-
     await showMessage({ type: 'info', title: '复制成功', message: `配置已复制为 "${newName}"` })
   } else {
     await showMessage({ type: 'error', title: '复制失败', message: result.error })
   }
 }
-
 // Open API edit dialog
 const openApiEditDialog = profileName => {
   // 保存正在编辑的配置名称
@@ -699,24 +633,19 @@ const openApiEditDialog = profileName => {
   }
   showApiEditDialog.value = true
 }
-
 // Close API edit dialog
-
 const closeApiEditDialog = () => {
   showApiEditDialog.value = false
 }
-
 // Save API edit
 const saveApiEdit = async () => {
   if (!settings.value.apiProfiles) {
     settings.value.apiProfiles = {}
   }
-
   // 确保配置对象存在
   if (!settings.value.apiProfiles[editingApiProfileName.value]) {
     settings.value.apiProfiles[editingApiProfileName.value] = {}
   }
-
   // 保存到指定的配置
   settings.value.apiProfiles[editingApiProfileName.value].selectedAuthType = editingApiData.value.selectedAuthType
   settings.value.apiProfiles[editingApiProfileName.value].apiKey = editingApiData.value.apiKey
@@ -724,17 +653,15 @@ const saveApiEdit = async () => {
   settings.value.apiProfiles[editingApiProfileName.value].modelName = editingApiData.value.modelName
   settings.value.apiProfiles[editingApiProfileName.value].searchApiKey = editingApiData.value.searchApiKey
   settings.value.apiProfiles[editingApiProfileName.value].cna = editingApiData.value.cna
-
   showApiEditDialog.value = false
-
   // 自动保存到文件
-  const result = await window.electronAPI.saveSettings(settings.value)
+  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const result = await window.electronAPI.saveSettings(dataToSave)
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(settings.value))
+    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
     modified.value = false
   }
 }
-
 const loadSettings = async () => {
   const result = await window.electronAPI.loadSettings()
   if (result.success) {
@@ -746,7 +673,7 @@ const loadSettings = async () => {
     if (data.theme === undefined) data.theme = 'Xcode'
     if (data.bootAnimationShown === undefined) data.bootAnimationShown = true
     // 确保 API 相关字段有默认值
-    if (data.selectedAuthType === undefined) data.selectedAuthType = 'iflow'
+    if (data.selectedAuthType === undefined) data.selectedAuthType = 'openai-compatible'
     if (data.apiKey === undefined) data.apiKey = ''
     if (data.baseUrl === undefined) data.baseUrl = ''
     if (data.modelName === undefined) data.modelName = ''
@@ -761,29 +688,6 @@ const loadSettings = async () => {
   isLoading.value = false
 }
 
-const saveSettings = async () => {
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(settings.value))
-    modified.value = false
-    await showMessage({ type: 'info', title: '保存成功', message: '设置已保存到 settings.json' })
-  } else {
-    await showMessage({ type: 'error', title: '保存失败', message: `无法保存设置: ${result.error}` })
-  }
-}
-
-const reloadSettings = async () => {
-  if (modified.value) {
-    const confirmed = await new Promise(resolve => {
-      showInputDialog.value = { show: true, title: '重新加载', placeholder: '当前有未保存的更改，确定要重新加载吗？', callback: resolve, isConfirm: true }
-    })
-    if (!confirmed) return
-  }
-  currentServerName.value = null
-  await loadSettings()
-}
-
 watch(
   settings,
   () => {
@@ -793,20 +697,15 @@ watch(
   },
   { deep: true },
 )
-
 const showSection = section => {
   currentSection.value = section
 }
-
 const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(settings.value.mcpServers).length : 0))
-
 const selectServer = name => {
   currentServerName.value = name
   openEditServerPanel(name)
 }
-
 const serverPanelOverlay = ref(null)
-
 const openAddServerPanel = () => {
   isEditingServer.value = false
   editingServerData.value = {
@@ -822,7 +721,6 @@ const openAddServerPanel = () => {
     serverPanelOverlay.value?.focus()
   })
 }
-
 const openEditServerPanel = name => {
   const server = settings.value.mcpServers[name]
   if (!server) return
@@ -840,11 +738,9 @@ const openEditServerPanel = name => {
     serverPanelOverlay.value?.focus()
   })
 }
-
 const closeServerPanel = () => {
   showServerPanel.value = false
 }
-
 const saveServerFromPanel = async () => {
   const name = editingServerData.value.name.trim()
   if (!name) {
@@ -855,12 +751,10 @@ const saveServerFromPanel = async () => {
     await showMessage({ type: 'warning', title: '错误', message: '服务器名称已存在' })
     return
   }
-
   // 如果是编辑模式且名称改变了，需要删除旧的服务器
   if (isEditingServer.value && currentServerName.value && currentServerName.value !== name) {
     delete settings.value.mcpServers[currentServerName.value]
   }
-
   const serverConfig = {
     command: editingServerData.value.command.trim(),
     description: editingServerData.value.description.trim(),
@@ -870,7 +764,6 @@ const saveServerFromPanel = async () => {
       .map(s => s.trim())
       .filter(s => s),
   }
-
   const envText = editingServerData.value.env.trim()
   if (envText) {
     try {
@@ -880,16 +773,20 @@ const saveServerFromPanel = async () => {
       return
     }
   }
-
   settings.value.mcpServers[name] = serverConfig
   currentServerName.value = name
   showServerPanel.value = false
+  // 自动保存到文件
+  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const result = await window.electronAPI.saveSettings(dataToSave)
+  if (result.success) {
+    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    modified.value = false
+  }
 }
-
 const addServer = async () => {
   openAddServerPanel()
 }
-
 const deleteServer = async () => {
   const serverName = isEditingServer.value ? editingServerData.value.name : currentServerName.value
   if (!serverName) return
@@ -900,17 +797,21 @@ const deleteServer = async () => {
   delete settings.value.mcpServers[serverName]
   currentServerName.value = null
   showServerPanel.value = false
+  // 自动保存到文件
+  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const result = await window.electronAPI.saveSettings(dataToSave)
+  if (result.success) {
+    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    modified.value = false
+  }
 }
-
 const currentServer = computed(() => {
   if (!currentServerName.value || !settings.value.mcpServers) return null
   return settings.value.mcpServers[currentServerName.value]
 })
-
 const minimize = () => window.electronAPI.minimize()
 const maximize = () => window.electronAPI.maximize()
 const close = () => window.electronAPI.close()
-
 const closeInputDialog = result => {
   if (showInputDialog.value.callback) {
     // 如果是确认对话框，传递 result（true/false）
@@ -926,21 +827,18 @@ const closeInputDialog = result => {
   showInputDialog.value.defaultValue = ''
   inputDialogValue.value = ''
 }
-
 // Message Dialog
 const showMessage = ({ type = 'info', title, message }) => {
   return new Promise(resolve => {
     showMessageDialog.value = { show: true, type, title, message, callback: resolve }
   })
 }
-
 const closeMessageDialog = () => {
   if (showMessageDialog.value.callback) {
     showMessageDialog.value.callback(true)
   }
   showMessageDialog.value.show = false
 }
-
 // Watch for dialog open to set default value
 watch(
   () => showInputDialog.value.show,
@@ -950,13 +848,11 @@ watch(
     }
   },
 )
-
 onMounted(async () => {
   await loadApiProfiles()
   await loadSettings()
 })
 </script>
-
 <style>
 * {
   margin: 0;
@@ -984,7 +880,6 @@ onMounted(async () => {
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
 }
-
 /* Animations */
 @keyframes fadeIn {
   from {
@@ -1033,7 +928,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
 /* Scrollbar Styles */
 ::-webkit-scrollbar {
   width: 8px;
@@ -1058,13 +952,11 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
-
 .app {
   display: flex;
   flex-direction: column;
   height: 100vh;
 }
-
 /* Titlebar */
 .titlebar {
   display: flex;
@@ -1080,13 +972,6 @@ body {
   align-items: center;
   padding-left: 16px;
   gap: 10px;
-}
-.titlebar-icon {
-  width: 18px;
-  height: 18px;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 .titlebar-title {
   font-size: 13px;
@@ -1129,44 +1014,6 @@ body {
   stroke-width: 1.5;
   fill: none;
 }
-
-/* Header */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  height: 60px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.header-icon {
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.25);
-}
-.header-title {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-.header-subtitle {
-  font-size: 13px;
-  color: var(--text-tertiary);
-  font-weight: 400;
-}
-.header-actions {
-  display: flex;
-  gap: 10px;
-}
-
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -1216,11 +1063,6 @@ body {
 .btn-primary:active {
   transform: translateY(0) scale(0.98);
 }
-.btn-secondary {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-}
 .btn-secondary:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
@@ -1246,18 +1088,12 @@ body {
   cursor: not-allowed;
   transform: none !important;
 }
-.btn-group {
-  display: flex;
-  gap: 10px;
-}
-
 /* Main Layout */
 .main {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
-
 /* Sidebar */
 .sidebar {
   width: 220px;
@@ -1332,7 +1168,6 @@ body {
   background: var(--accent);
   color: white;
 }
-
 /* Content */
 .content {
   flex: 1;
@@ -1358,7 +1193,6 @@ body {
   color: var(--text-tertiary);
   animation: fadeIn 0.4s ease 0.1s backwards;
 }
-
 /* Cards */
 .card {
   background: var(--bg-secondary);
@@ -1396,7 +1230,6 @@ body {
 .card-title .iconpark-icon {
   color: var(--accent);
 }
-
 /* Form Elements */
 .form-group {
   margin-bottom: 18px;
@@ -1454,7 +1287,6 @@ body {
   cursor: pointer;
   appearance: none;
   letter-spacing: -0.01em;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 40px;
@@ -1469,7 +1301,6 @@ body {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-light);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 .form-textarea {
   width: 100%;
@@ -1490,7 +1321,6 @@ body {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-light);
 }
-
 /* Server List */
 .server-list {
   border: 1px solid var(--border);
@@ -1568,7 +1398,6 @@ body {
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
   animation: pulse 2s ease-in-out infinite;
 }
-
 /* Empty State */
 .empty-state {
   display: flex;
@@ -1597,7 +1426,6 @@ body {
   color: var(--text-tertiary);
   margin-bottom: 20px;
 }
-
 /* Footer */
 .footer {
   display: flex;
@@ -1625,7 +1453,6 @@ body {
   color: var(--accent);
   font-weight: 500;
 }
-
 /* Dialog */
 .dialog-overlay {
   position: fixed;
@@ -1687,13 +1514,14 @@ body {
   margin-top: 22px;
 }
 .dialog-overlay-top {
-  z-index: 1100;
+  z-index: 1300;
 }
-
 /* Message Dialog */
 .message-dialog {
+  position: relative;
   text-align: center;
   padding: 32px 24px;
+  z-index: 1400;
 }
 .message-dialog-icon {
   width: 48px;
@@ -1742,7 +1570,6 @@ body {
 .message-dialog .dialog-actions .btn {
   min-width: 100px;
 }
-
 .iconpark-icon {
   display: inline-flex;
   align-items: center;
@@ -1753,26 +1580,23 @@ body {
 .iconpark-icon svg {
   display: block;
 }
-
 /* Profile List (API Configuration Cards) */
 .profile-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-
 .profile-item {
   display: flex;
   align-items: center;
   padding: 14px 16px;
   background: var(--bg-secondary);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   animation: fadeIn 0.3s ease backwards;
 }
-
 .profile-item:nth-child(1) {
   animation-delay: 0.02s;
 }
@@ -1788,21 +1612,17 @@ body {
 .profile-item:nth-child(5) {
   animation-delay: 0.1s;
 }
-
 .profile-item:hover {
   background: var(--bg-tertiary);
   border-color: var(--text-tertiary);
   transform: translateX(4px);
 }
-
 .profile-item.active {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
-  border-color: var(--accent);
   box-shadow:
     0 0 0 1px var(--accent),
     0 4px 12px rgba(59, 130, 246, 0.15);
 }
-
 .profile-icon {
   width: 40px;
   height: 40px;
@@ -1813,27 +1633,23 @@ body {
   flex-shrink: 0;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
-
 .profile-icon-text {
   font-size: 16px;
   font-weight: 700;
   color: white;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
-
 .profile-info {
   flex: 1;
   min-width: 0;
   margin-left: 14px;
 }
-
 .profile-name {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
 }
-
 .profile-url {
   font-size: 12px;
   color: var(--text-tertiary);
@@ -1842,11 +1658,9 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .profile-status {
   margin-left: 12px;
 }
-
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -1858,12 +1672,10 @@ body {
   font-size: 12px;
   font-weight: 500;
 }
-
 .status-badge svg {
   width: 12px;
   height: 12px;
 }
-
 .profile-actions {
   display: flex;
   align-items: center;
@@ -1872,12 +1684,10 @@ body {
   opacity: 0;
   transition: opacity 0.2s ease;
 }
-
 .profile-item:hover .profile-actions,
 .profile-item.active .profile-actions {
   opacity: 1;
 }
-
 .action-btn {
   width: 32px;
   height: 32px;
@@ -1891,22 +1701,18 @@ body {
   border-radius: var(--radius);
   transition: all 0.2s ease;
 }
-
 .action-btn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
-
 .action-btn.action-btn-danger:hover {
   background: rgba(239, 68, 68, 0.1);
   color: var(--danger);
 }
-
 .btn-sm {
   padding: 6px 12px;
   font-size: 12px;
 }
-
 /* Side Panel */
 .side-panel-overlay {
   position: fixed;
@@ -2013,7 +1819,6 @@ body {
   display: flex;
   gap: 10px;
 }
-
 /* API Edit Dialog */
 .api-edit-dialog {
   min-width: 480px;
@@ -2021,7 +1826,6 @@ body {
   padding: 0;
   overflow: hidden;
 }
-
 .api-edit-dialog .dialog-header {
   display: flex;
   align-items: center;
@@ -2030,7 +1834,6 @@ body {
   border-bottom: 1px solid var(--border);
   background: var(--bg-tertiary);
 }
-
 .api-edit-dialog .dialog-title {
   font-size: 15px;
   font-weight: 600;
@@ -2040,25 +1843,20 @@ body {
   color: var(--text-primary);
   margin-bottom: 0;
 }
-
 .api-edit-dialog .dialog-title .iconpark-icon {
   color: var(--accent);
 }
-
 .api-edit-dialog .dialog-body {
   padding: 24px;
   max-height: 60vh;
   overflow-y: auto;
 }
-
 .api-edit-dialog .dialog-body .form-group {
   margin-bottom: 18px;
 }
-
 .api-edit-dialog .dialog-body .form-group:last-child {
   margin-bottom: 0;
 }
-
 .api-edit-dialog .dialog-actions {
   padding: 16px 24px;
   border-top: 1px solid var(--border);
