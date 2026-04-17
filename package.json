@@ -89,6 +89,8 @@
     "concurrently": "^8.2.2",
     "electron": "^28.0.0",
     "electron-builder": "^24.13.3",
+    "less": "^4.6.4",
+    "less-loader": "^12.3.2",
     "vite": "^8.0.8",
     "vue": "^3.4.0"
   },
