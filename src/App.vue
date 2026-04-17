@@ -152,11 +152,12 @@
                   </span>
                 </div>
                 <div class="profile-actions" v-if="profile.name !== 'default'">
-                  <button class="action-btn" @click.stop="openApiEditDialog" title="编辑">
-                                        <Edit size="14" />
-                                      </button>                  <button class="action-btn" @click.stop="duplicateApiProfile(profile.name)" title="复制">
-                                    <Copy size="14" />
-                                  </button>                  <button class="action-btn action-btn-danger" @click.stop="deleteApiProfile(profile.name)" title="删除">
+                  <button class="action-btn" @click.stop="openApiEditDialog(profile.name)" title="编辑">
+                    <Edit size="14" />
+                  </button>
+                  <button class="action-btn" @click.stop="duplicateApiProfile(profile.name)" title="复制">
+                    <Copy size="14" />
+                  </button>                  <button class="action-btn action-btn-danger" @click.stop="deleteApiProfile(profile.name)" title="删除">
                     <Delete size="14" />
                   </button>
                                     </div>
@@ -465,6 +466,7 @@ const editingServerData = ref({
   env: ''
 })
 const showApiEditDialog = ref(false)
+const editingApiProfileName = ref('')
 const editingApiData = ref({
   selectedAuthType: 'iflow',
   apiKey: '',
@@ -811,27 +813,20 @@ const duplicateApiProfile = async (name) => {
 
 
 // Open API edit dialog
-
-const openApiEditDialog = () => {
-
+const openApiEditDialog = (profileName) => {
+  // 保存正在编辑的配置名称
+  editingApiProfileName.value = profileName
+  // 从 apiProfiles 中加载指定配置的数据
+  const profile = settings.value.apiProfiles && settings.value.apiProfiles[profileName]
   editingApiData.value = {
-
-    selectedAuthType: settings.value.selectedAuthType || 'iflow',
-
-    apiKey: settings.value.apiKey || '',
-
-    baseUrl: settings.value.baseUrl || '',
-
-    modelName: settings.value.modelName || '',
-
-    searchApiKey: settings.value.searchApiKey || '',
-
-    cna: settings.value.cna || ''
-
+    selectedAuthType: profile ? profile.selectedAuthType : settings.value.selectedAuthType || 'iflow',
+    apiKey: profile ? profile.apiKey : settings.value.apiKey || '',
+    baseUrl: profile ? profile.baseUrl : settings.value.baseUrl || '',
+    modelName: profile ? profile.modelName : settings.value.modelName || '',
+    searchApiKey: profile ? profile.searchApiKey : settings.value.searchApiKey || '',
+    cna: profile ? profile.cna : settings.value.cna || ''
   }
-
   showApiEditDialog.value = true
-
 }
 
 
@@ -847,23 +842,25 @@ const closeApiEditDialog = () => {
 
 
 // Save API edit
-
 const saveApiEdit = () => {
-
-  settings.value.selectedAuthType = editingApiData.value.selectedAuthType
-
-  settings.value.apiKey = editingApiData.value.apiKey
-
-  settings.value.baseUrl = editingApiData.value.baseUrl
-
-  settings.value.modelName = editingApiData.value.modelName
-
-  settings.value.searchApiKey = editingApiData.value.searchApiKey
-
-  settings.value.cna = editingApiData.value.cna
-
+  if (!settings.value.apiProfiles) {
+    settings.value.apiProfiles = {}
+  }
+  
+  // 确保配置对象存在
+  if (!settings.value.apiProfiles[editingApiProfileName.value]) {
+    settings.value.apiProfiles[editingApiProfileName.value] = {}
+  }
+  
+  // 保存到指定的配置
+  settings.value.apiProfiles[editingApiProfileName.value].selectedAuthType = editingApiData.value.selectedAuthType
+  settings.value.apiProfiles[editingApiProfileName.value].apiKey = editingApiData.value.apiKey
+  settings.value.apiProfiles[editingApiProfileName.value].baseUrl = editingApiData.value.baseUrl
+  settings.value.apiProfiles[editingApiProfileName.value].modelName = editingApiData.value.modelName
+  settings.value.apiProfiles[editingApiProfileName.value].searchApiKey = editingApiData.value.searchApiKey
+  settings.value.apiProfiles[editingApiProfileName.value].cna = editingApiData.value.cna
+  
   showApiEditDialog.value = false
-
 }
 
 
