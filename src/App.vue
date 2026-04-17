@@ -235,6 +235,17 @@ const saveApiEdit = async data => {
   settings.value.apiProfiles[editingApiProfileName.value].modelName = data.modelName
   settings.value.apiProfiles[editingApiProfileName.value].searchApiKey = data.searchApiKey
   settings.value.apiProfiles[editingApiProfileName.value].cna = data.cna
+  
+  // 如果编辑的是当前配置，需要同步到主设置对象
+  if (editingApiProfileName.value === currentApiProfile.value) {
+    settings.value.selectedAuthType = data.selectedAuthType
+    settings.value.apiKey = data.apiKey
+    settings.value.baseUrl = data.baseUrl
+    settings.value.modelName = data.modelName
+    settings.value.searchApiKey = data.searchApiKey
+    settings.value.cna = data.cna
+  }
+  
   showApiEditDialog.value = false
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
