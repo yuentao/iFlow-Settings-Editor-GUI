@@ -787,6 +787,10 @@ const loadSettings = async () => {
     const data = JSON.parse(JSON.stringify(result.data))
     if (!data.checkpointing) data.checkpointing = { enabled: true }
     if (!data.mcpServers) data.mcpServers = {}
+    // 确保常规设置字段有默认值
+    if (data.language === undefined) data.language = 'zh-CN'
+    if (data.theme === undefined) data.theme = 'Xcode'
+    if (data.bootAnimationShown === undefined) data.bootAnimationShown = true
     // 确保 API 相关字段有默认值
     if (data.selectedAuthType === undefined) data.selectedAuthType = 'iflow'
     if (data.apiKey === undefined) data.apiKey = ''
