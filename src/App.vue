@@ -207,8 +207,8 @@
     </footer>
 
     <!-- Input Dialog -->
-    <div v-if="showInputDialog.show" class="dialog-overlay dialog-overlay-top" @click.self="closeInputDialog(false)">
-      <div class="dialog">
+    <div v-if="showInputDialog.show" class="dialog-overlay dialog-overlay-top">
+      <div class="dialog" @click.stop>
         <div class="dialog-title">{{ showInputDialog.title }}</div>
         <div v-if="showInputDialog.isConfirm" class="dialog-confirm-text">{{ showInputDialog.placeholder }}</div>
         <input v-else type="text" class="form-input" v-model="inputDialogValue" :placeholder="showInputDialog.placeholder" @keyup.enter="closeInputDialog(true)" autofocus />
@@ -220,8 +220,8 @@
     </div>
 
     <!-- Message Dialog -->
-    <div v-if="showMessageDialog.show" class="dialog-overlay dialog-overlay-top" @click.self="closeMessageDialog">
-      <div class="dialog message-dialog">
+    <div v-if="showMessageDialog.show" class="dialog-overlay dialog-overlay-top">
+      <div class="dialog message-dialog" @click.stop>
         <div class="message-dialog-icon" :class="'message-dialog-icon-' + showMessageDialog.type">
           <svg v-if="showMessageDialog.type === 'info'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
@@ -251,7 +251,7 @@
     </div>
 
     <!-- API Profile Create Dialog -->
-  <div v-if="showApiCreateDialog" class="dialog-overlay dialog-overlay-top" @click.self="closeApiCreateDialog" @keyup.esc="closeApiCreateDialog" tabindex="-1" ref="apiCreateDialogOverlay" style="z-index: 1200;">
+  <div v-if="showApiCreateDialog" class="dialog-overlay dialog-overlay-top" @keyup.esc="closeApiCreateDialog" tabindex="-1" ref="apiCreateDialogOverlay" style="z-index: 1200;">
     <div class="dialog api-edit-dialog" @click.stop>
       <div class="dialog-header">
         <div class="dialog-title">
@@ -311,7 +311,7 @@
   </div>
 
   <!-- API Profile Edit Dialog -->
-      <div v-if="showApiEditDialog" class="dialog-overlay dialog-overlay-top" @click.self="closeApiEditDialog" @keyup.esc="closeApiEditDialog" tabindex="-1" ref="apiEditDialogOverlay">
+      <div v-if="showApiEditDialog" class="dialog-overlay dialog-overlay-top" @keyup.esc="closeApiEditDialog" tabindex="-1" ref="apiEditDialogOverlay">
         <div class="dialog api-edit-dialog" @click.stop>
           <div class="dialog-header">
             <div class="dialog-title">
@@ -367,7 +367,7 @@
       </div>
     
       <!-- Server Side Panel -->
-      <div v-if="showServerPanel" class="side-panel-overlay" @click.self="closeServerPanel" @keyup.esc="closeServerPanel" tabindex="-1" ref="serverPanelOverlay">
+      <div v-if="showServerPanel" class="side-panel-overlay" @keyup.esc="closeServerPanel" tabindex="-1" ref="serverPanelOverlay">
         <div class="side-panel" @click.stop>        <div class="side-panel-header">
           <div class="side-panel-title">
             <Server size="18" />
