@@ -280,6 +280,11 @@ body {
   letter-spacing: -0.01em;
 }
 
+.form-required {
+  color: var(--danger);
+  margin-left: 3px;
+}
+
 .form-input {
   width: 100%;
   padding: 10px 14px;
@@ -434,6 +439,12 @@ body {
   transform: translateY(0) scale(0.98);
 }
 
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
 .btn-secondary:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
@@ -447,7 +458,7 @@ body {
 .btn-danger {
   background: var(--danger);
   color: white;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  border: 1px solid var(--danger);
 }
 
 .btn-danger:hover {
@@ -468,6 +479,32 @@ body {
 .btn-sm {
   padding: 6px 12px;
   font-size: 12px;
+}
+
+// Side panel close button (used by ServerPanel and ApiProfileDialog)
+.side-panel-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+.side-panel-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.side-panel-close svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
 }
 
 // Empty state
@@ -518,6 +555,10 @@ body {
   animation: fadeIn 0.15s ease;
 }
 
+.dialog-overlay-top {
+  z-index: 1400;
+}
+
 .dialog {
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
@@ -540,6 +581,12 @@ body {
   color: var(--text-secondary);
   margin-bottom: 8px;
   line-height: 1.5;
+}
+
+.dialog-body {
+  padding: 20px 24px;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 .dialog-actions {
