@@ -391,7 +391,7 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Save, Config, Key, Server, Globe, Setting, Add, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 const settings = ref({
   language: 'zh-CN',
@@ -851,6 +851,15 @@ watch(
 onMounted(async () => {
   await loadApiProfiles()
   await loadSettings()
+  // 监听托盘切换 API 配置事件
+  window.electronAPI.onApiProfileSwitched(async (profileName) => {
+    currentApiProfile.value = profileName
+    await loadSettings()
+  })
+})
+
+onUnmounted(() => {
+  // 清理监听器
 })
 </script>
 <style>
