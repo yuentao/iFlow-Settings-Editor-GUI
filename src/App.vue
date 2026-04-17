@@ -24,16 +24,6 @@
       <div class="header-left">
         <span class="header-title">iFlow 设置编辑器</span>
       </div>
-      <div class="header-actions">
-        <button class="btn btn-secondary" @click="reloadSettings">
-          <Refresh size="14" />
-          重新加载
-        </button>
-        <button class="btn btn-primary" @click="saveSettings">
-          <Save size="14" />
-          保存更改
-        </button>
-      </div>
     </header>
 
     <main class="main">
@@ -204,7 +194,6 @@
         <div class="footer-status-dot"></div>
         <span>配置: {{ currentApiProfile || 'default' }}</span>
       </div>
-      <span :class="{ 'footer-modified': modified }">{{ modified ? '● 已修改' : '✓ 未修改' }}</span>
     </footer>
 
     <!-- Input Dialog -->
@@ -567,141 +556,74 @@ const closeApiCreateDialog = () => {
 
 
 // Save API create
-
 const saveApiCreate = async () => {
-
   const name = creatingApiData.value.name.trim()
-
   if (!name) {
-
     await showMessage({ type: 'warning', title: '错误', message: '请输入配置名称' })
-
     return
-
   }
-
-
 
   const result = await window.electronAPI.createApiProfile(name)
-
   if (result.success) {
-
     // 创建成功后，更新配置数据
-
     const profileData = {
-
       selectedAuthType: creatingApiData.value.selectedAuthType,
-
       apiKey: creatingApiData.value.apiKey,
-
       baseUrl: creatingApiData.value.baseUrl,
-
       modelName: creatingApiData.value.modelName,
-
       searchApiKey: creatingApiData.value.searchApiKey,
-
       cna: creatingApiData.value.cna
-
     }
 
-
-
     // 保存配置数据
-
     const loadResult = await window.electronAPI.loadSettings()
-
     if (loadResult.success) {
-
       const data = loadResult.data
-
       if (!data.apiProfiles) data.apiProfiles = {}
-
       data.apiProfiles[name] = profileData
-
-            await window.electronAPI.saveSettings(data)
-
-          }
-
+      await window.electronAPI.saveSettings(data)
       
-
-          showApiCreateDialog.value = false
-
-          await loadApiProfiles()
-
-          await showMessage({ type: 'info', title: '创建成功', message: `配置 "${name}" 已创建` })
-
+      showApiCreateDialog.value = false
+      await loadApiProfiles()
+      await showMessage({ type: 'info', title: '创建成功', message: `配置 "${name}" 已创建` })
+    }
   } else {
-
     await showMessage({ type: 'error', title: '创建失败', message: result.error })
-
   }
-
 }
 
 // Delete API profile
-
 const deleteApiProfile = async (name) => {
-
   const profileName = name || currentApiProfile.value
-
   if (profileName === 'default') {
-
     await showMessage({ type: 'warning', title: '无法删除', message: '不能删除默认配置' })
-
     return
-
   }
-
-
 
   const confirmed = await new Promise(resolve => {
-
     showInputDialog.value = {
-
       show: true,
-
       title: '删除配置',
-
       placeholder: `确定要删除配置 "${profileName}" 吗？`,
-
       callback: resolve,
-
       isConfirm: true
-
     }
-
   })
-
   if (!confirmed) return
 
-
-
   const result = await window.electronAPI.deleteApiProfile(profileName)
-
   if (result.success) {
-
     const data = JSON.parse(JSON.stringify(result.data))
-
     if (!data.checkpointing) data.checkpointing = { enabled: true }
-
     if (!data.mcpServers) data.mcpServers = {}
-
     settings.value = data
-
     originalSettings.value = JSON.parse(JSON.stringify(data))
-
     modified.value = false
-
     await loadApiProfiles()
-
     await showMessage({ type: 'info', title: '删除成功', message: `配置已删除` })
-
   } else {
-
     await showMessage({ type: 'error', title: '删除失败', message: result.error })
-
   }
-
 }
 
 // Rename API profile
@@ -842,7 +764,7 @@ const closeApiEditDialog = () => {
 
 
 // Save API edit
-const saveApiEdit = () => {
+const saveApiEdit = async () => {
   if (!settings.value.apiProfiles) {
     settings.value.apiProfiles = {}
   }
@@ -861,6 +783,13 @@ const saveApiEdit = () => {
   settings.value.apiProfiles[editingApiProfileName.value].cna = editingApiData.value.cna
   
   showApiEditDialog.value = false
+  
+  // 自动保存到文件
+  const result = await window.electronAPI.saveSettings(settings.value)
+  if (result.success) {
+    originalSettings.value = JSON.parse(JSON.stringify(settings.value))
+    modified.value = false
+  }
 }
 
 
