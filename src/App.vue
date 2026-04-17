@@ -491,19 +491,6 @@ const loadApiProfiles = async () => {
 
 // Switch API profile
 const switchApiProfile = async () => {
-  if (modified.value) {
-    const confirmed = await new Promise(resolve => {
-      showInputDialog.value = { show: true, title: '切换配置', placeholder: '当前有未保存的更改，切换配置将丢失这些更改，确定要切换吗？', callback: resolve, isConfirm: true }
-    })
-    if (!confirmed) {
-      // 恢复到之前的值
-      const result = await window.electronAPI.listApiProfiles()
-      if (result.success) {
-        currentApiProfile.value = result.currentProfile
-      }
-      return
-    }
-  }
   const result = await window.electronAPI.switchApiProfile(currentApiProfile.value)
   if (result.success) {
     const data = JSON.parse(JSON.stringify(result.data))
