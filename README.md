@@ -17,17 +17,18 @@
 
 ```
 iflow-settings-editor/
-├── main.js              # Electron 主进程 (窗口管理、IPC、文件操作)
-├── preload.js           # 预加载脚本 (IPC 通信)
+├── main.js              # Electron 主进程 (窗口管理、IPC、文件操作、系统托盘)
+├── preload.js           # 预加载脚本 (contextBridge API)
 ├── index.html           # HTML 入口
 ├── package.json         # 项目配置
 ├── vite.config.js       # Vite 配置
 ├── src/
 │   ├── main.js         # Vue 入口
-│   └── App.vue       # 主组件 (所有业务逻辑)
+│   └── App.vue         # 主组件 (所有业务逻辑、UI 组件)
 ├── build/               # 构建资源 (图标等)
+├── dist/                # Vite 构建输出
 ├── release/             # 打包输出目录
-└── screenshots/          # 截图资源
+└── screenshots/         # 截图资源
 ```
 
 ## 快速开始
@@ -61,7 +62,8 @@ npm run build:win        # 构建 Windows 安装包 (NSIS)
 npm run build:win64      # 构建 Windows x64 安装包
 npm run build:win32      # 构建 Windows x86 安装包
 npm run build:win-portable  # 构建可移植版本
-npm run build:dist       # 完整构建和打包
+npm run build:win-installer  # 构建 NSIS 安装包
+npm run dist             # 完整构建和打包
 ```
 
 ## 功能模块
@@ -81,7 +83,7 @@ npm run build:dist       # 完整构建和打包
 
 管理多个环境的 API 配置：
 
-- **配置列表**: 显示所有可用的 API 配置文件
+- **配置列表**: 显示所有可用的 API 配置文件，带彩色图标和状态标记
 - **配置切换**: 点击配置卡片直接切换
 - **创建配置**: 新建 API 配置文件
 - **编辑配置**: 修改现有配置的认证方式、API Key、Base URL 等
@@ -98,9 +100,9 @@ npm run build:dist       # 完整构建和打包
 
 管理 Model Context Protocol 服务器配置：
 
-- **服务器列表**: 显示所有已配置的服务器
+- **服务器列表**: 显示所有已配置的服务器，带描述信息
 - **添加服务器**: 创建新的 MCP 服务器配置
-- **编辑服务器**: 修改现有服务器的配置
+- **编辑服务器**: 通过侧边面板修改现有服务器配置
 - **删除服务器**: 移除服务器配置
 - **服务器配置项**:
   - 名称
@@ -113,7 +115,7 @@ npm run build:dist       # 完整构建和打包
 ## 核心架构
 
 ### 进程模型
-- **Main Process (main.js)**: Electron 主进程，处理窗口管理、IPC 通信、文件系统操作
+- **Main Process (main.js)**: Electron 主进程，处理窗口管理、IPC 通信、文件系统操作、系统托盘
 - **Preload (preload.js)**: 通过 `contextBridge.exposeInMainWorld` 暴露安全 API
 - **Renderer (Vue)**: 渲染进程，只通过 preload 暴露的 API 与主进程通信
 
@@ -121,6 +123,15 @@ npm run build:dist       # 完整构建和打包
 - 窗口尺寸: 1100x750，最小尺寸: 900x600
 - 无边框窗口 (frame: false)，自定义标题栏
 - 开发模式加载 `http://localhost:5173`，生产模式加载 `dist/index.html`
+- **关闭窗口时隐藏到系统托盘**，双击托盘图标可重新显示
+
+### 系统托盘
+- 托盘图标显示应用状态
+- 右键菜单支持：
+  - 显示主窗口
+  - 切换 API 配置（显示所有配置列表，当前配置带勾选标记）
+  - 退出应用
+- 双击托盘图标显示主窗口
 
 ### 安全配置
 - `contextIsolation: true` - 隔离上下文
@@ -136,7 +147,7 @@ npm run build:dist       # 完整构建和打包
   - 允许修改安装目录
   - 允许提升权限
   - 创建桌面和开始菜单快捷方式
-  - 支持中文和英文界面界面
+  - 支持中文和英文界面 (zh_CN, en_US)
   - 卸载时保留用户数据
 
 ### 输出目录
@@ -150,17 +161,19 @@ npm run build:dist       # 完整构建和打包
 - 保存设置时会自动创建备份 (`settings.json.bak`)
 - MCP 服务器参数每行一个，环境变量支持 JSON 格式
 - API 配置切换时会直接应用新配置，未保存的更改会被替换
+- 关闭窗口时应用会隐藏到系统托盘，不会退出应用
 
 ## 开发注意事项
 
 1. **修改检测**: 通过 `watch(settings, () => { modified.value = true }, { deep: true })` 深度监听
-2. **服务器编辑**: 使用 DOM 操作收集表单数据
+2. **服务器编辑**: 使用侧边面板 (Side Panel) 收集表单数据
 3. **MCP 参数**: 每行一个参数，通过换行分割
 4. **环境变量**: 支持 JSON 格式输入
 5. **窗口控制**: 通过 IPC 发送指令，主进程处理实际窗口操作
 6. **API 配置切换**: 多个环境配置存储在 `settings.apiProfiles` 对象中
 7. **序列化问题**: IPC 通信使用 `JSON.parse(JSON.stringify())` 避免 Vue 响应式代理问题
 8. **默认值处理**: 加载配置时检查 `undefined` 并应用默认值，防止界面显示异常
+9. **托盘切换事件**: 监听 `onApiProfileSwitched` 处理托盘发起的配置切换
 
 ## 许可证
 
