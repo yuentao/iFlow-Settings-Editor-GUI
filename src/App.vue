@@ -84,6 +84,7 @@ const currentServerName = ref(null)
 const isLoading = ref(true)
 const apiProfiles = ref([])
 const currentApiProfile = ref('default')
+const systemTheme = ref('Light')
 
 const showInputDialog = ref({ show: false, title: '', placeholder: '', callback: null, isConfirm: false, defaultValue: '' })
 const showMessageDialog = ref({ show: false, type: 'info', title: '', message: '', callback: null })
@@ -307,8 +308,14 @@ const showSection = section => {
 
 const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(settings.value.mcpServers).length : 0))
 
-const themeClass = computed(() => {
+const getEffectiveTheme = () => {
   const theme = settings.value.uiTheme
+  if (theme === 'System') return systemTheme.value
+  return theme
+}
+
+const themeClass = computed(() => {
+  const theme = getEffectiveTheme()
   if (theme === 'Dark') return 'dark'
   return ''
 })
@@ -471,14 +478,10 @@ const closeMessageDialog = () => {
 
 watch(
   () => settings.value.uiTheme,
-  theme => {
+  () => {
+    document.body.classList.remove('dark')
     const cls = themeClass.value
-    if (cls) {
-      document.body.classList.add(cls)
-      if (cls === 'dark') document.body.classList.remove('solarized-dark')
-    } else {
-      document.body.classList.remove('dark', 'solarized-dark')
-    }
+    if (cls) document.body.classList.add(cls)
     applyAcrylicStyle()
   },
 )
@@ -494,7 +497,7 @@ const applyAcrylicStyle = () => {
   const intensity = settings.value.acrylicIntensity
   if (intensity === undefined || intensity === null) return
   const opacity = 1 - intensity / 100
-  const isDark = settings.value.uiTheme === 'Dark'
+  const isDark = getEffectiveTheme() === 'Dark'
   const root = document.documentElement
 
   if (isDark) {
@@ -512,10 +515,28 @@ const applyAcrylicStyle = () => {
   }
 }
 
+const updateSystemTheme = () => {
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  systemTheme.value = isDark ? 'Dark' : 'Light'
+  if (settings.value.uiTheme === 'System') {
+    const cls = themeClass.value
+    document.body.classList.remove('dark')
+    if (cls) document.body.classList.add(cls)
+    applyAcrylicStyle()
+  }
+}
+
 onMounted(async () => {
   await loadApiProfiles()
   await loadSettings()
   locale.value = settings.value.language
+
+  // 初始化系统主题
+  updateSystemTheme()
+
+  // 监听系统主题变化
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateSystemTheme)
+
   const cls = themeClass.value
   if (cls) {
     document.body.classList.add(cls)

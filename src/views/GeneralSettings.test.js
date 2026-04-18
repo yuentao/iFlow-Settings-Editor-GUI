@@ -61,9 +61,10 @@ describe('GeneralSettings.vue', () => {
     });
 
     const themeOptions = wrapper.findAll('.form-select')[1].findAll('option');
-    expect(themeOptions.length).toBe(2);
+    expect(themeOptions.length).toBe(3);
     expect(themeOptions[0].attributes('value')).toBe('Light');
     expect(themeOptions[1].attributes('value')).toBe('Dark');
+    expect(themeOptions[2].attributes('value')).toBe('System');
   });
 
   it('reflects current settings in form controls', async () => {

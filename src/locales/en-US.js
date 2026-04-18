@@ -33,7 +33,8 @@ export default {
   },
   theme: {
     dark: 'Dark',
-    light: 'Light'
+    light: 'Light',
+    system: 'System'
   },
   api: {
     title: 'API Configuration',

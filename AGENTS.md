@@ -97,7 +97,7 @@ npm run test:run
 
 ### 主题系统
 
-支持两种主题：`Light` (浅色) / `Dark` (深色)
+支持三种主题：`Light` (浅色) / `Dark` (深色) / `System` (跟随系统)
 
 CSS 变量定义在 `src/styles/global.less`，包括：
 - `--bg-primary/secondary/elevated` - 背景层级

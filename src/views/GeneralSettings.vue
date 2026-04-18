@@ -23,6 +23,7 @@
           <select class="form-select" v-model="localSettings.uiTheme">
             <option value="Light">{{ $t('theme.light') }}</option>
             <option value="Dark">{{ $t('theme.dark') }}</option>
+            <option value="System">{{ $t('theme.system') }}</option>
           </select>
         </div>
       </div>
@@ -90,11 +91,23 @@ const localSettings = computed({
   set: val => emit('update:settings', val),
 })
 
+const systemTheme = ref('Light')
+
 const supportsAcrylic = computed(() => {
-  return typeof document !== 'undefined' && 'backdropFilter' in document.documentElement.style && props.settings.uiTheme !== 'Dark'
+  if (typeof document === 'undefined' || !('backdropFilter' in document.documentElement.style)) return false
+  const effectiveTheme = props.settings.uiTheme === 'System' ? systemTheme.value : props.settings.uiTheme
+  return effectiveTheme !== 'Dark'
 })
 
 const sliderWrapper = ref(null)
+
+onMounted(() => {
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  systemTheme.value = isDark ? 'Dark' : 'Light'
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    systemTheme.value = e.matches ? 'Dark' : 'Light'
+  })
+})
 
 const updateSliderValue = e => {
   const value = Number(e.target.value)

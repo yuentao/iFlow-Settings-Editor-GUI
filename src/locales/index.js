@@ -33,7 +33,8 @@ export default {
   },
   theme: {
     dark: '深色',
-    light: '浅色'
+    light: '浅色',
+    system: '跟随系统'
   },
   api: {
     title: 'API 配置',
