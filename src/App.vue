@@ -310,7 +310,6 @@ const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(sett
 const themeClass = computed(() => {
   const theme = settings.value.uiTheme
   if (theme === 'Dark') return 'dark'
-  if (theme === 'Solarized Dark') return 'solarized-dark'
   return ''
 })
 
@@ -477,7 +476,6 @@ watch(
     if (cls) {
       document.body.classList.add(cls)
       if (cls === 'dark') document.body.classList.remove('solarized-dark')
-      else if (cls === 'solarized-dark') document.body.classList.remove('dark')
     } else {
       document.body.classList.remove('dark', 'solarized-dark')
     }

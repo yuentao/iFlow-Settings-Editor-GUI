@@ -32,10 +32,8 @@ export default {
     acrylicMax: '透明'
   },
   theme: {
-    xcode: 'Xcode',
     dark: 'ダーク',
-    light: 'ライト',
-    solarizedDark: 'Solarized Dark'
+    light: 'ライト'
   },
   api: {
     title: 'API 設定',

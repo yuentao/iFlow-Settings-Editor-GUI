@@ -32,10 +32,8 @@ export default {
     acrylicMax: 'Transparent'
   },
   theme: {
-    xcode: 'Xcode',
     dark: 'Dark',
-    light: 'Light',
-    solarizedDark: 'Solarized Dark'
+    light: 'Light'
   },
   api: {
     title: 'API Configuration',
