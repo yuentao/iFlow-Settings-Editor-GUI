@@ -76,6 +76,8 @@ npm run build:win-installer
 
 ### API 配置管理
 
+![编辑API配置](./screenshots/编辑API配置.png)
+
 在「API 配置」页面可以：
 
 - **切换配置** - 点击不同配置文件快速切换
@@ -90,6 +92,9 @@ npm run build:win-installer
 - OpenAI 兼容
 
 ### MCP 服务器管理
+
+![添加服务器](./screenshots/添加服务器.png)
+![MCP管理](./screenshots/MCP管理.png)
 
 在「MCP 服务器」页面可以：
 
