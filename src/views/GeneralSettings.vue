@@ -51,18 +51,20 @@
       <div class="form-row" v-if="supportsAcrylic">
         <div class="form-group form-group-full">
           <label class="form-label">{{ $t('general.acrylicEffect') }}: {{ localSettings.acrylicIntensity }}%</label>
-          <div class="slider-container">
+          <div class="slider-wrapper" ref="sliderWrapper">
+            <div class="slider-track">
+              <div class="slider-fill" :style="{ width: localSettings.acrylicIntensity + '%' }"></div>
+            </div>
             <input
               type="range"
               class="form-slider"
               min="0"
               max="100"
               :value="localSettings.acrylicIntensity"
-              @input="updateSliderStyle"
-              ref="sliderRef"
+              @input="updateSliderValue"
             />
-            <span class="slider-hint">{{ $t('general.acrylicMin') }} — {{ $t('general.acrylicMax') }}</span>
           </div>
+          <span class="slider-hint">{{ $t('general.acrylicMin') }} — {{ $t('general.acrylicMax') }}</span>
         </div>
       </div>
     </div>
@@ -92,33 +94,12 @@ const supportsAcrylic = computed(() => {
   return typeof document !== 'undefined' && 'backdropFilter' in document.documentElement.style && props.settings.uiTheme !== 'Dark'
 })
 
-const sliderRef = ref(null)
+const sliderWrapper = ref(null)
 
-const updateSliderStyle = e => {
-  const value = e.target.value
-  const percent = ((value - 0) / (100 - 0)) * 100
-  e.target.style.backgroundSize = `${percent}% 100%`
-  emit('update:settings', { ...props.settings, acrylicIntensity: Number(value) })
+const updateSliderValue = e => {
+  const value = Number(e.target.value)
+  emit('update:settings', { ...props.settings, acrylicIntensity: value })
 }
-
-onMounted(() => {
-  if (sliderRef.value) {
-    const percent = ((props.settings.acrylicIntensity - 0) / (100 - 0)) * 100
-    sliderRef.value.style.backgroundSize = `${percent}% 100%`
-  }
-})
-
-watch(
-  () => props.settings.uiTheme,
-  () => {
-    nextTick(() => {
-      if (sliderRef.value && supportsAcrylic.value) {
-        const percent = ((props.settings.acrylicIntensity - 0) / (100 - 0)) * 100
-        sliderRef.value.style.backgroundSize = `${percent}% 100%`
-      }
-    })
-  },
-)
 </script>
 
 <style lang="less" scoped>
@@ -126,24 +107,40 @@ watch(
   grid-column: 1 / -1;
 }
 
-.slider-container {
+.slider-wrapper {
+  position: relative;
+  width: 100%;
+  height: 20px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
 }
 
-.form-slider {
+.slider-track {
+  position: absolute;
   width: 100%;
   height: 4px;
   background: var(--border);
   border-radius: 2px;
+  overflow: hidden;
+}
+
+.slider-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.05s ease;
+}
+
+.form-slider {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: transparent;
   outline: none;
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
-  background-image: linear-gradient(var(--accent), var(--accent));
-  background-size: var(--slider-progress, 50%) 100%;
-  background-repeat: no-repeat;
+  z-index: 1;
 }
 
 .form-slider::-webkit-slider-thumb {
@@ -181,5 +178,6 @@ watch(
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);
   text-align: right;
+  margin-top: 4px;
 }
 </style>
