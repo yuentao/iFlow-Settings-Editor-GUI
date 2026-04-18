@@ -42,53 +42,61 @@ watch(() => props.dialog.show, (show) => {
 </script>
 
 <style lang="less" scoped>
+// Windows 11 Style Input Dialog - Fluent Design
 .dialog-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1300;
   animation: fadeIn 0.15s ease;
 }
+
 .dialog {
-  background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
-  padding: 24px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
   min-width: 360px;
   max-width: 480px;
-  box-shadow: var(--shadow-lg);
-  animation: slideUp 0.2s ease;
+  box-shadow: var(--shadow-xl);
+  animation: scaleIn 0.2s ease;
 }
+
 .dialog-title {
-  font-size: 15px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-md);
+  color: var(--text-primary);
   letter-spacing: -0.01em;
 }
+
 .dialog-confirm-text {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-md);
   line-height: 1.5;
 }
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 22px;
+  gap: var(--space-sm);
+  margin-top: var(--space-xl);
 }
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 </style>

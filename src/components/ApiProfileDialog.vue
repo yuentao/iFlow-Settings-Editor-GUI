@@ -135,47 +135,56 @@ defineEmits([
 </script>
 
 <style lang="less" scoped>
+// Windows 11 Style API Edit Dialog - Fluent Design
 .api-edit-dialog {
   min-width: 480px;
   max-width: 520px;
   padding: 0;
   overflow: hidden;
+  border-radius: var(--radius-xl);
 }
+
 .api-edit-dialog .dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-tertiary);
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--control-fill);
 }
+
 .api-edit-dialog .dialog-title {
-  font-size: 15px;
+  font-size: var(--font-size-base);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   color: var(--text-primary);
   margin-bottom: 0;
+  
+  .iconpark-icon {
+    color: var(--accent);
+  }
 }
-.api-edit-dialog .dialog-title .iconpark-icon {
-  color: var(--accent);
-}
+
 .api-edit-dialog .dialog-body {
-  padding: 24px;
+  padding: var(--space-xl);
   max-height: 60vh;
   overflow-y: auto;
+  
+  .form-group {
+    margin-bottom: var(--space-lg);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
 }
-.api-edit-dialog .dialog-body .form-group {
-  margin-bottom: 18px;
-}
-.api-edit-dialog .dialog-body .form-group:last-child {
-  margin-bottom: 0;
-}
+
 .api-edit-dialog .dialog-actions {
-  padding: 16px 24px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-tertiary);
+  padding: var(--space-lg) var(--space-xl);
+  border-top: 1px solid var(--border-light);
+  background: var(--control-fill);
   margin-top: 0;
 }
 </style>

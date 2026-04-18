@@ -27,37 +27,41 @@ const close = () => window.electronAPI.close()
 </script>
 
 <style lang="less" scoped>
+// Windows 11 Style Title Bar - Fluent Design
 .titlebar {
   height: 32px;
   background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px;
+  padding: 0 4px 0 12px;
   -webkit-app-region: drag;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
 }
+
 .titlebar-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
+
 .titlebar-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
 }
+
 .titlebar-controls {
   display: flex;
   align-items: center;
-  gap: 4px;
   -webkit-app-region: no-drag;
 }
+
 .titlebar-btn {
-  width: 32px;
-  height: 24px;
+  width: 46px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -65,22 +69,32 @@ const close = () => window.electronAPI.close()
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-.titlebar-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-.titlebar-btn.close:hover {
-  background: var(--danger);
-  color: white;
-}
-.titlebar-btn svg {
-  width: 10px;
-  height: 10px;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  fill: none;
+  transition: background 0.1s ease;
+  
+  &:hover {
+    background: var(--control-fill-hover);
+    color: var(--text-primary);
+  }
+  
+  &:active {
+    background: var(--control-fill-pressed);
+  }
+  
+  &.close:hover {
+    background: #c42b1c;
+    color: #ffffff;
+  }
+  
+  &.close:active {
+    background: #a72b1c;
+  }
+  
+  svg {
+    width: 10px;
+    height: 10px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+  }
 }
 </style>

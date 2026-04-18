@@ -12,6 +12,8 @@
 | @icon-park/vue-next | ^1.4.2 | 图标库 |
 | concurrently | ^8.2.2 | 并发执行工具 |
 | electron-builder | ^24.13.3 | 应用打包工具 |
+| vue-i18n | ^9.14.5 | 国际化支持 |
+| less | ^4.6.4 | CSS 预处理器 |
 
 ## 项目结构
 
@@ -88,7 +90,7 @@ npm run dist             # 完整构建和打包
 配置应用程序的常规选项：
 
 - **语言**: zh-CN / en-US / ja-JP
-- **主题**: Xcode / Dark / Light / Solarized Dark
+- **主题**: Xcode / Dark / Solarized Dark
 - **启动动画**: 已显示 / 未显示
 - **检查点保存**: 启用 / 禁用
 
@@ -151,6 +153,22 @@ npm run dist             # 完整构建和打包
 - `nodeIntegration: false` - 禁用 Node.js
 - `webSecurity: false` - 仅开发环境解决 CSP 问题
 
+## 设计系统
+
+本项目采用 **Windows 11 Fluent Design** 设计规范，实现统一的视觉效果。
+
+### 主题支持
+- **Xcode**: macOS 风格浅色主题
+- **Dark**: Windows 11 风格深色主题
+- **Solarized Dark**: Solarized 配色深色主题
+
+### 设计特点
+- **Mica-inspired 层次感**: 使用半透明背景和分层深度
+- **圆角系统**: 4px / 6px / 8px / 12px 四级圆角
+- **阴影层次**: sm / md / lg / xl 四级阴影
+- **过渡动画**: 0.1s-0.2s 流畅曲线
+- **Segoe UI Variable 字体**: Windows 11 原生字体
+
 ## 打包配置
 
 ### Windows 平台
@@ -191,3 +209,5 @@ npm run dist             # 完整构建和打包
 ## 许可证
 
 MIT License
+
+Copyright © 2026 上海潘哆呐科技有限公司

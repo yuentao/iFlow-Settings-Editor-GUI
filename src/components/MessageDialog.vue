@@ -42,72 +42,93 @@ defineEmits(['close'])
 </script>
 
 <style lang="less" scoped>
+// Windows 11 Style Message Dialog - Fluent Design
 .dialog-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1300;
   animation: fadeIn 0.15s ease;
 }
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
 .message-dialog {
   position: relative;
   text-align: center;
-  padding: 32px 24px;
-  z-index: 1400;
+  padding: var(--space-2xl) var(--space-xl);
+  animation: scaleIn 0.2s ease;
 }
+
 .message-dialog-icon {
   width: 48px;
   height: 48px;
-  margin: 0 auto 16px;
+  margin: 0 auto var(--space-md);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  
+  svg {
+    width: 24px;
+    height: 24px;
+  }
 }
-.message-dialog-icon svg {
-  width: 24px;
-  height: 24px;
-}
+
 .message-dialog-icon-info {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--accent);
+  background: var(--info-bg);
+  color: var(--info);
 }
+
 .message-dialog-icon-success {
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--success-bg);
   color: var(--success);
 }
+
 .message-dialog-icon-warning {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+  background: var(--warning-bg);
+  color: var(--warning);
 }
+
 .message-dialog-icon-error {
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--danger-bg);
   color: var(--danger);
 }
+
 .message-dialog-title {
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-xs);
   color: var(--text-primary);
 }
+
 .message-dialog-message {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   line-height: 1.5;
 }
+
 .message-dialog .dialog-actions {
   justify-content: center;
-  margin-top: 24px;
+  margin-top: var(--space-xl);
+  
+  .btn {
+    min-width: 100px;
+  }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 </style>

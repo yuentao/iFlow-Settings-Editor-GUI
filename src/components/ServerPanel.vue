@@ -93,17 +93,19 @@ watch(() => props.data, (val) => {
 </script>
 
 <style lang="less" scoped>
+// Windows 11 Style Side Panel - Fluent Design
 .side-panel-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(4px);
   z-index: 1000;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn 0.15s ease;
 }
+
 .side-panel {
   position: absolute;
   right: 0;
@@ -111,32 +113,36 @@ watch(() => props.data, (val) => {
   bottom: 0;
   width: 420px;
   max-width: 100%;
-  background: var(--bg-secondary);
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
-  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInFromRight 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 .side-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-tertiary);
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--control-fill);
 }
+
 .side-panel-title {
-  font-size: 15px;
+  font-size: var(--font-size-base);
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  
+  .iconpark-icon {
+    color: var(--accent);
+  }
 }
-.side-panel-title .iconpark-icon {
-  color: var(--accent);
-}
+
 .side-panel-close {
   width: 32px;
   height: 32px;
@@ -147,53 +153,58 @@ watch(() => props.data, (val) => {
   background: transparent;
   color: var(--text-tertiary);
   cursor: pointer;
-  border-radius: var(--radius);
-  transition: all 0.2s ease;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  
+  &:hover {
+    background: var(--control-fill-hover);
+    color: var(--text-primary);
+  }
+  
+  svg {
+    width: 12px;
+    height: 12px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+  }
 }
-.side-panel-close:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-.side-panel-close svg {
-  width: 14px;
-  height: 14px;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  fill: none;
-}
+
 .side-panel-body {
   flex: 1;
-  padding: 24px;
+  padding: var(--space-xl);
   overflow-y: auto;
+  
+  .form-group {
+    margin-bottom: var(--space-lg);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
 }
-.side-panel-body .form-group {
-  margin-bottom: 20px;
-}
-.side-panel-body .form-group:last-child {
-  margin-bottom: 0;
-}
-.form-required {
-  color: var(--danger);
-  font-weight: 500;
-}
+
 .side-panel-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-tertiary);
+  padding: var(--space-lg) var(--space-xl);
+  border-top: 1px solid var(--border-light);
+  background: var(--control-fill);
 }
+
 .side-panel-footer-right {
   display: flex;
-  gap: 10px;
+  gap: var(--space-sm);
 }
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+
+@keyframes slideInFromRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 </style>

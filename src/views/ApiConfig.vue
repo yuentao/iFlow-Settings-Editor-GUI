@@ -100,116 +100,119 @@ const getProfileIconStyle = name => {
 </script>
 
 <style lang="less" scoped>
+// Windows 11 Style Profile List - Fluent Design
 .profile-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
+
 .profile-item {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s ease;
   animation: fadeIn 0.3s ease backwards;
+  
+  &:nth-child(1) { animation-delay: 0.02s; }
+  &:nth-child(2) { animation-delay: 0.04s; }
+  &:nth-child(3) { animation-delay: 0.06s; }
+  &:nth-child(4) { animation-delay: 0.08s; }
+  &:nth-child(5) { animation-delay: 0.1s; }
+  
+  &:hover {
+    background: var(--control-fill);
+    border-color: var(--border);
+    transform: translateX(2px);
+  }
+  
+  &.active {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
 }
-.profile-item:nth-child(1) {
-  animation-delay: 0.02s;
-}
-.profile-item:nth-child(2) {
-  animation-delay: 0.04s;
-}
-.profile-item:nth-child(3) {
-  animation-delay: 0.06s;
-}
-.profile-item:nth-child(4) {
-  animation-delay: 0.08s;
-}
-.profile-item:nth-child(5) {
-  animation-delay: 0.1s;
-}
-.profile-item:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-tertiary);
-  transform: translateX(4px);
-}
-.profile-item.active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
-  box-shadow:
-    0 0 0 1px var(--accent),
-    0 4px 12px rgba(59, 130, 246, 0.15);
-}
+
 .profile-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
 .profile-icon-text {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
+
 .profile-info {
   flex: 1;
   min-width: 0;
-  margin-left: 14px;
+  margin-left: 12px;
 }
+
 .profile-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
 }
+
 .profile-url {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-tertiary);
-  margin-top: 3px;
+  margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .profile-status {
-  margin-left: 12px;
+  margin-left: 10px;
 }
+
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--accent);
-  border-radius: 16px;
-  font-size: 12px;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 11px;
   font-weight: 500;
+  
+  svg {
+    width: 10px;
+    height: 10px;
+  }
 }
-.status-badge svg {
-  width: 12px;
-  height: 12px;
-}
+
 .profile-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 12px;
+  gap: 2px;
+  margin-left: 8px;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.15s ease;
+  
+  .profile-item:hover &,
+  .profile-item.active & {
+    opacity: 1;
+  }
 }
-.profile-item:hover .profile-actions,
-.profile-item.active .profile-actions {
-  opacity: 1;
-}
+
 .action-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -218,28 +221,32 @@ const getProfileIconStyle = name => {
   color: var(--text-tertiary);
   cursor: pointer;
   border-radius: var(--radius);
-  transition: all 0.2s ease;
+  transition: all 0.1s ease;
+  
+  &:hover {
+    background: var(--control-fill);
+    color: var(--text-primary);
+  }
+  
+  &.action-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+  }
 }
-.action-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-.action-btn.action-btn-danger:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--danger);
-}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 .btn-sm {
-  padding: 6px 12px;
+  padding: 5px 10px;
   font-size: 12px;
   align-self: flex-end;
 }

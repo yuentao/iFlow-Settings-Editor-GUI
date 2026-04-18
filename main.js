@@ -199,7 +199,7 @@ function createWindow() {
     height: 750,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: '#f3f3f3',
+    backgroundMaterial: 'acrylic', // on Windows 11
     frame: false,
     show: false,
     icon: path.join(__dirname, 'build', 'icon.ico'),

@@ -40,58 +40,76 @@ defineEmits(['navigate'])
 </script>
 
 <style lang="less" scoped>
+// Windows 11 Style Sidebar - Fluent Design
 .sidebar {
-  width: 240px;
+  width: 220px;
   background: var(--bg-secondary);
-  border-right: 1px solid var(--border);
-  padding: 24px 20px;
+  border-right: 1px solid var(--border-light);
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 24px;
   flex-shrink: 0;
   overflow-y: auto;
 }
+
 .sidebar-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
+
 .sidebar-title {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--text-tertiary);
-  padding: 0 14px;
-  margin-bottom: 8px;
+  padding: 0 12px;
+  margin-bottom: 6px;
 }
+
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 500;
-  gap: 5px;
+  font-weight: 400;
+  gap: 10px;
+  
+  &:hover {
+    background: var(--control-fill);
+    color: var(--text-primary);
+  }
+  
+  &.active {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 500;
+    
+    .iconpark-icon {
+      color: var(--accent);
+    }
+  }
 }
-.nav-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+
+.nav-item-text {
+  flex: 1;
 }
-.nav-item.active {
-  background: var(--accent-light);
-  color: var(--accent);
-}
+
 .nav-item-badge {
   margin-left: auto;
-  background: var(--bg-tertiary);
+  background: var(--control-fill);
   color: var(--text-tertiary);
-  padding: 2px 8px;
+  padding: 1px 8px;
   border-radius: 10px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
+  min-width: 24px;
+  text-align: center;
 }
 </style>

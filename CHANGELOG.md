@@ -2,6 +2,20 @@
 
 所有重要的版本更新都会记录在此文件中。
 
+## [1.6.0] - 2026-04-18
+
+### 架构
+- **重构样式系统：采用 Windows 11 Fluent Design 规范**
+  - 完整实现 Windows UI Kit 设计系统
+  - 三种主题支持：Xcode / Dark / Solarized Dark
+  - Mica-inspired 半透明层次设计
+  - Segoe UI Variable 字体系统
+  - 四级圆角和阴影层次
+
+### 新增
+- **vue-i18n 国际化支持**
+- **less CSS 预处理器**
+
 ## [1.5.1] - 2026-04-17
 
 ### 新增
