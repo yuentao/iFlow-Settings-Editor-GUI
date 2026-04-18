@@ -7,7 +7,7 @@
 ### 架构
 - **重构样式系统：采用 Windows 11 Fluent Design 规范**
   - 完整实现 Windows UI Kit 设计系统
-  - 三种主题支持：Xcode / Dark / Solarized Dark
+  - 两种主题支持：浅色 / 深色
   - Mica-inspired 半透明层次设计
   - Segoe UI Variable 字体系统
   - 四级圆角和阴影层次
