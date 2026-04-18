@@ -15,20 +15,20 @@ const trayTranslations = {
     showWindow: '显示主窗口',
     switchApiConfig: '切换 API 配置',
     exit: '退出',
-    tooltip: 'iFlow 设置编辑器'
+    tooltip: 'iFlow 设置编辑器',
   },
   'en-US': {
     showWindow: 'Show Window',
     switchApiConfig: 'Switch API Config',
     exit: 'Exit',
-    tooltip: 'iFlow Settings Editor'
+    tooltip: 'iFlow Settings Editor',
   },
   'ja-JP': {
     showWindow: 'メインウィンドウを表示',
     switchApiConfig: 'API 設定切替',
     exit: '終了',
-    tooltip: 'iFlow 設定エディタ'
-  }
+    tooltip: 'iFlow 設定エディタ',
+  },
 }
 
 function getTrayTranslation() {
@@ -45,7 +45,7 @@ const errorTranslations = {
     configAlreadyExists: '配置 "{name}" 已存在',
     cannotDeleteDefault: '不能删除默认配置',
     cannotRenameDefault: '不能重命名默认配置',
-    switchFailed: '切换API配置失败'
+    switchFailed: '切换API配置失败',
   },
   'en-US': {
     configNotFound: 'Configuration file not found',
@@ -53,7 +53,7 @@ const errorTranslations = {
     configAlreadyExists: 'Configuration "{name}" already exists',
     cannotDeleteDefault: 'Cannot delete default configuration',
     cannotRenameDefault: 'Cannot rename default configuration',
-    switchFailed: 'Failed to switch API configuration'
+    switchFailed: 'Failed to switch API configuration',
   },
   'ja-JP': {
     configNotFound: '設定ファイルが存在しません',
@@ -61,8 +61,8 @@ const errorTranslations = {
     configAlreadyExists: 'プロファイル "{name}" が既に存在します',
     cannotDeleteDefault: 'デフォルトプロファイルは削除できません',
     cannotRenameDefault: 'デフォルトプロファイルは名前変更できません',
-    switchFailed: 'API 設定の切替に失敗しました'
-  }
+    switchFailed: 'API 設定の切替に失敗しました',
+  },
 }
 
 function getErrorTranslation() {
@@ -80,7 +80,7 @@ function createTray() {
   } else {
     iconPath = path.join(__dirname, 'build', 'icon.ico')
   }
-  
+
   let trayIcon
   if (fs.existsSync(iconPath)) {
     trayIcon = nativeImage.createFromPath(iconPath)
@@ -110,15 +110,13 @@ function updateTrayMenu() {
   const settings = readSettings()
   const profiles = settings?.apiProfiles || {}
   const currentProfile = settings?.currentApiProfile || 'default'
-  const profileList = Object.keys(profiles).length > 0
-    ? Object.keys(profiles)
-    : ['default']
+  const profileList = Object.keys(profiles).length > 0 ? Object.keys(profiles) : ['default']
 
   const profileMenuItems = profileList.map(name => ({
     label: name + (name === currentProfile ? ' ✓' : ''),
     type: 'radio',
     checked: name === currentProfile,
-    click: () => switchApiProfileFromTray(name)
+    click: () => switchApiProfileFromTray(name),
   }))
 
   const t = getTrayTranslation()
@@ -130,12 +128,12 @@ function updateTrayMenu() {
           mainWindow.show()
           mainWindow.focus()
         }
-      }
+      },
     },
     { type: 'separator' },
     {
       label: t.switchApiConfig,
-      submenu: profileMenuItems
+      submenu: profileMenuItems,
     },
     { type: 'separator' },
     {
@@ -143,8 +141,8 @@ function updateTrayMenu() {
       click: () => {
         app.isQuitting = true
         app.quit()
-      }
-    }
+      },
+    },
   ])
 
   tray.setContextMenu(contextMenu)
@@ -553,7 +551,7 @@ ipcMain.handle('list-skills', async () => {
         }
 
         // 计算文件夹总大小
-        const calcFolderSize = (dirPath) => {
+        const calcFolderSize = dirPath => {
           let size = 0
           const items = fs.readdirSync(dirPath)
           for (const item of items) {
@@ -572,7 +570,7 @@ ipcMain.handle('list-skills', async () => {
           folderName: file,
           size: calcFolderSize(skillPath),
           path: skillPath,
-          hasLicense: fs.existsSync(licensePath)
+          hasLicense: fs.existsSync(licensePath),
         })
       }
     }
@@ -590,9 +588,9 @@ ipcMain.handle('import-skill-local', async () => {
       title: '导入技能',
       filters: [
         { name: '技能压缩包', extensions: ['zip'] },
-        { name: '所有文件', extensions: ['*'] }
+        { name: '所有文件', extensions: ['*'] },
       ],
-      properties: ['openFile']
+      properties: ['openFile'],
     })
 
     if (result.canceled || result.filePaths.length === 0) {
@@ -705,7 +703,7 @@ ipcMain.handle('import-skill-local', async () => {
           title: '技能已存在',
           message: `技能 "${skillName}" 已存在，是否覆盖？`,
           buttons: ['覆盖', '取消'],
-          defaultId: 1
+          defaultId: 1,
         })
 
         if (overwrite.response === 1) {
@@ -750,7 +748,7 @@ ipcMain.handle('import-skill-online', async (event, url, name) => {
         title: '技能已存在',
         message: `技能 "${name}" 已存在，是否覆盖？`,
         buttons: ['覆盖', '取消'],
-        defaultId: 1
+        defaultId: 1,
       })
 
       if (overwrite.response === 1) {
@@ -764,28 +762,32 @@ ipcMain.handle('import-skill-online', async (event, url, name) => {
     // 创建目标文件夹
     fs.mkdirSync(destPath, { recursive: true })
 
-    return new Promise((resolve) => {
-      protocol.get(url, (response) => {
-        // 处理重定向
-        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-          const redirectUrl = new URL(response.headers.location, url)
-          protocol.get(redirectUrl.toString(), (redirectResponse) => {
-            handleDownload(redirectResponse, destPath, name).then(resolve)
-          }).on('error', (err) => {
-            resolve({ success: false, error: err.message })
-          })
-          return
-        }
+    return new Promise(resolve => {
+      protocol
+        .get(url, response => {
+          // 处理重定向
+          if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+            const redirectUrl = new URL(response.headers.location, url)
+            protocol
+              .get(redirectUrl.toString(), redirectResponse => {
+                handleDownload(redirectResponse, destPath, name).then(resolve)
+              })
+              .on('error', err => {
+                resolve({ success: false, error: err.message })
+              })
+            return
+          }
 
-        if (response.statusCode !== 200) {
-          resolve({ success: false, error: `下载失败: HTTP ${response.statusCode}` })
-          return
-        }
+          if (response.statusCode !== 200) {
+            resolve({ success: false, error: `下载失败: HTTP ${response.statusCode}` })
+            return
+          }
 
-        handleDownload(response, destPath, name).then(resolve)
-      }).on('error', (err) => {
-        resolve({ success: false, error: err.message })
-      })
+          handleDownload(response, destPath, name).then(resolve)
+        })
+        .on('error', err => {
+          resolve({ success: false, error: err.message })
+        })
     })
   } catch (error) {
     return { success: false, error: error.message }
@@ -794,18 +796,15 @@ ipcMain.handle('import-skill-online', async (event, url, name) => {
 
 // 处理下载内容
 function handleDownload(response, destPath, name) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     // 检测是否为 GitHub 仓库的 tarball/zipball
     const contentDisposition = response.headers['content-disposition']
     const contentType = response.headers['content-type'] || ''
 
-    if (contentType.includes('application/zip') ||
-        contentType.includes('application/x-tar') ||
-        (contentDisposition && contentDisposition.includes('attachment'))) {
-
+    if (contentType.includes('application/zip') || contentType.includes('application/x-tar') || (contentDisposition && contentDisposition.includes('attachment'))) {
       // 下载为压缩包
       const chunks = []
-      response.on('data', (chunk) => chunks.push(chunk))
+      response.on('data', chunk => chunks.push(chunk))
       response.on('end', () => {
         try {
           const content = Buffer.concat(chunks)
@@ -862,7 +861,7 @@ function handleDownload(response, destPath, name) {
     } else {
       // 直接下载文件内容
       const chunks = []
-      response.on('data', (chunk) => chunks.push(chunk))
+      response.on('data', chunk => chunks.push(chunk))
       response.on('end', () => {
         try {
           const content = Buffer.concat(chunks)
@@ -890,7 +889,7 @@ ipcMain.handle('export-skill', async (event, name, folderName) => {
     const result = await dialog.showOpenDialog(mainWindow, {
       title: '导出技能到',
       buttonLabel: '选择导出位置',
-      properties: ['openDirectory', 'createDirectory']
+      properties: ['openDirectory', 'createDirectory'],
     })
 
     if (result.canceled || result.filePaths.length === 0) {
@@ -926,7 +925,7 @@ ipcMain.handle('delete-skill', async (event, name) => {
       title: '确认删除',
       message: `确定要删除技能 "${name}" 吗？`,
       buttons: ['删除', '取消'],
-      defaultId: 1
+      defaultId: 1,
     })
 
     if (confirmed.response === 1) {

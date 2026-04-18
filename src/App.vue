@@ -73,8 +73,6 @@ const settings = ref({
   apiKey: '',
   baseUrl: '',
   modelName: '',
-  searchApiKey: '',
-  cna: '',
   currentApiProfile: 'default',
   apiProfiles: { default: {} },
   acrylicIntensity: 50,
@@ -96,9 +94,9 @@ const isEditingServer = ref(false)
 const editingServerData = ref({ name: '', description: '', command: 'npx', cwd: '.', args: '', env: '' })
 const showApiEditDialog = ref(false)
 const editingApiProfileName = ref('')
-const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', searchApiKey: '', cna: '' })
+const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '' })
 const showApiCreateDialog = ref(false)
-const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', searchApiKey: '', cna: '' })
+const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '' })
 
 const updateSettings = newSettings => {
   settings.value = newSettings
@@ -127,7 +125,7 @@ const switchApiProfile = async () => {
 }
 
 const createNewApiProfile = () => {
-  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', searchApiKey: '', cna: '' }
+  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '' }
   showApiCreateDialog.value = true
 }
 
@@ -148,8 +146,6 @@ const saveApiCreate = async data => {
       apiKey: data.apiKey,
       baseUrl: data.baseUrl,
       modelName: data.modelName,
-      searchApiKey: data.searchApiKey,
-      cna: data.cna,
     }
     const loadResult = await window.electronAPI.loadSettings()
     if (loadResult.success) {
@@ -221,8 +217,6 @@ const openApiEditDialog = profileName => {
     apiKey: (profile && profile.apiKey) || settings.value.apiKey || '',
     baseUrl: (profile && profile.baseUrl) || settings.value.baseUrl || '',
     modelName: (profile && profile.modelName) || settings.value.modelName || '',
-    searchApiKey: (profile && profile.searchApiKey) || settings.value.searchApiKey || '',
-    cna: (profile && profile.cna) || settings.value.cna || '',
   }
   showApiEditDialog.value = true
 }
@@ -238,19 +232,15 @@ const saveApiEdit = async data => {
   settings.value.apiProfiles[editingApiProfileName.value].apiKey = data.apiKey
   settings.value.apiProfiles[editingApiProfileName.value].baseUrl = data.baseUrl
   settings.value.apiProfiles[editingApiProfileName.value].modelName = data.modelName
-  settings.value.apiProfiles[editingApiProfileName.value].searchApiKey = data.searchApiKey
-  settings.value.apiProfiles[editingApiProfileName.value].cna = data.cna
-  
+
   // 如果编辑的是当前配置，需要同步到主设置对象
   if (editingApiProfileName.value === currentApiProfile.value) {
     settings.value.selectedAuthType = data.selectedAuthType
     settings.value.apiKey = data.apiKey
     settings.value.baseUrl = data.baseUrl
     settings.value.modelName = data.modelName
-    settings.value.searchApiKey = data.searchApiKey
-    settings.value.cna = data.cna
   }
-  
+
   showApiEditDialog.value = false
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
@@ -273,8 +263,6 @@ const loadSettings = async () => {
     if (data.apiKey === undefined) data.apiKey = ''
     if (data.baseUrl === undefined) data.baseUrl = ''
     if (data.modelName === undefined) data.modelName = ''
-    if (data.searchApiKey === undefined) data.searchApiKey = ''
-    if (data.cna === undefined) data.cna = ''
     if (!data.apiProfiles) data.apiProfiles = { default: {} }
     if (!data.currentApiProfile) data.currentApiProfile = 'default'
     if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
@@ -324,7 +312,7 @@ const loadSkillCount = async () => {
   }
 }
 
-const onSkillsChanged = (count) => {
+const onSkillsChanged = count => {
   skillCount.value = count
 }
 
@@ -338,31 +326,6 @@ const themeClass = computed(() => {
   const theme = getEffectiveTheme()
   if (theme === 'Dark') return 'dark'
   return ''
-})
-
-const acrylicStyle = computed(() => {
-  const intensity = settings.value.acrylicIntensity
-  if (intensity === undefined || intensity === null) return {}
-  const opacity = 1 - intensity / 100
-  const isDark = settings.value.uiTheme === 'Dark'
-
-  if (isDark) {
-    return {
-      '--bg-primary': `rgba(31, 31, 31, ${Math.max(0.05, opacity * 0.85)})`,
-      '--bg-secondary': `rgba(45, 45, 45, ${Math.max(0.05, opacity * 0.7)})`,
-      '--bg-elevated': `rgba(51, 51, 51, ${Math.max(0.05, opacity * 0.95)})`,
-      '--bg-mica': `rgba(31, 31, 31, ${Math.max(0.05, opacity * 0.85)})`,
-      '--control-fill': `rgba(51, 51, 51, ${Math.max(0.05, opacity * 0.85)})`,
-    }
-  } else {
-    return {
-      '--bg-primary': `rgba(243, 243, 243, ${Math.max(0.05, opacity * 0.85)})`,
-      '--bg-secondary': `rgba(255, 255, 255, ${Math.max(0.05, opacity * 0.7)})`,
-      '--bg-elevated': `rgba(255, 255, 255, ${Math.max(0.05, opacity * 0.95)})`,
-      '--bg-mica': `rgba(243, 243, 243, ${Math.max(0.05, opacity * 0.473)})`,
-      '--control-fill': `rgba(249, 249, 249, ${Math.max(0.05, opacity * 0.85)})`,
-    }
-  }
 })
 
 const selectServer = name => {
@@ -397,7 +360,7 @@ const closeServerPanel = () => {
   showServerPanel.value = false
 }
 
-const saveServerFromPanel = async (data) => {
+const saveServerFromPanel = async data => {
   const name = data.name.trim()
   if (!name) {
     await showMessage({ type: 'warning', title: t('messages.error'), message: t('mcp.inputServerName') })
@@ -520,16 +483,9 @@ const applyAcrylicStyle = () => {
   const isDark = getEffectiveTheme() === 'Dark'
   const root = document.documentElement
 
-  if (isDark) {
-    root.style.setProperty('--bg-primary', `rgba(31, 31, 31, ${Math.max(0.05, opacity * 0.85)})`)
-    root.style.setProperty('--bg-secondary', `rgba(45, 45, 45, ${Math.max(0.05, opacity * 0.7)})`)
-    root.style.setProperty('--bg-elevated', `rgba(51, 51, 51, ${Math.max(0.05, opacity * 0.95)})`)
-    root.style.setProperty('--bg-mica', `rgba(31, 31, 31, ${Math.max(0.05, opacity * 0.85)})`)
-    root.style.setProperty('--control-fill', `rgba(51, 51, 51, ${Math.max(0.05, opacity * 0.85)})`)
-  } else {
+  if (!isDark) {
     root.style.setProperty('--bg-primary', `rgba(243, 243, 243, ${Math.max(0.05, opacity * 0.85)})`)
     root.style.setProperty('--bg-secondary', `rgba(255, 255, 255, ${Math.max(0.05, opacity * 0.7)})`)
-    root.style.setProperty('--bg-elevated', `rgba(255, 255, 255, ${Math.max(0.05, opacity * 0.95)})`)
     root.style.setProperty('--bg-mica', `rgba(243, 243, 243, ${Math.max(0.05, opacity * 0.473)})`)
     root.style.setProperty('--control-fill', `rgba(249, 249, 249, ${Math.max(0.05, opacity * 0.85)})`)
   }

@@ -41,14 +41,6 @@
             <input type="text" class="form-input" v-model="createData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">{{ $t('api.searchApiKey') }}</label>
-          <input type="password" class="form-input" v-model="createData.searchApiKey" :placeholder="$t('api.searchApiKeyPlaceholder')" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ $t('api.cna') }}</label>
-          <input type="text" class="form-input" v-model="createData.cna" :placeholder="$t('api.cnaPlaceholder')" />
-        </div>
       </div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('close-create')">{{ $t('dialog.cancel') }}</button>
@@ -97,14 +89,6 @@
             <label class="form-label">{{ $t('api.modelName') }}</label>
             <input type="text" class="form-input" v-model="editData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
           </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ $t('api.searchApiKey') }}</label>
-          <input type="password" class="form-input" v-model="editData.searchApiKey" :placeholder="$t('api.searchApiKeyPlaceholder')" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ $t('api.cna') }}</label>
-          <input type="text" class="form-input" v-model="editData.cna" :placeholder="$t('api.cnaPlaceholder')" />
         </div>
       </div>
       <div class="dialog-actions">
