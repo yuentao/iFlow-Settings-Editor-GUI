@@ -28,5 +28,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 语言切换通知
   notifyLanguageChanged: () => {
     ipcRenderer.send('language-changed')
-  }
+  },
+
+  // 技能管理
+  listSkills: () => ipcRenderer.invoke('list-skills'),
+  importSkillLocal: () => ipcRenderer.invoke('import-skill-local'),
+  importSkillOnline: (url, name) => ipcRenderer.invoke('import-skill-online', url, name),
+  exportSkill: (name, fileName) => ipcRenderer.invoke('export-skill', name, fileName),
+  deleteSkill: (name) => ipcRenderer.invoke('delete-skill', name),
 })

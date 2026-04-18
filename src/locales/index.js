@@ -12,7 +12,8 @@ export default {
     basicSettings: '基本设置',
     apiConfig: 'API 配置',
     advanced: '高级',
-    mcpServers: 'MCP 服务器'
+    mcpServers: 'MCP 服务器',
+    skills: '技能'
   },
   general: {
     title: '基本设置',
@@ -106,6 +107,23 @@ export default {
     addServerBtn: '添加服务器',
     inputServerName: '请输入服务器名称',
     serverNameExists: '服务器名称已存在'
+  },
+  skills: {
+    title: '技能管理',
+    description: '管理 iFlow CLI 技能配置',
+    importLocal: '本地导入',
+    importOnline: '在线导入',
+    export: '导出',
+    delete: '删除',
+    noSkills: '暂无技能',
+    addFirstSkill: '点击上方按钮添加第一个技能',
+    noDescription: '无描述',
+    url: '技能 URL',
+    urlPlaceholder: 'https://github.com/user/repo/archive/refs/heads/main.zip',
+    skillName: '技能名称',
+    namePlaceholder: 'my-skill',
+    cancel: '取消',
+    import: '导入'
   },
   messages: {
     error: '错误',

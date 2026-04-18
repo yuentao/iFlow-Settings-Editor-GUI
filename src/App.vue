@@ -3,7 +3,7 @@
     <TitleBar @minimize="minimize" @maximize="maximize" @close="close" />
 
     <main class="main">
-      <SideBar :current-section="currentSection" :server-count="serverCount" @navigate="showSection" />
+      <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" @navigate="showSection" />
 
       <div class="content">
         <GeneralSettings v-if="currentSection === 'general'" :settings="settings" @update:settings="updateSettings" />
@@ -20,6 +20,8 @@
           @delete-profile="deleteApiProfile" />
 
         <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :selected-server="currentServerName" :server-count="serverCount" @add-server="addServer" @select-server="selectServer" />
+
+        <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @skills-changed="onSkillsChanged" />
       </div>
     </main>
 
@@ -57,6 +59,7 @@ import ServerPanel from './components/ServerPanel.vue'
 import GeneralSettings from './views/GeneralSettings.vue'
 import ApiConfig from './views/ApiConfig.vue'
 import McpServers from './views/McpServers.vue'
+import SkillsView from './views/SkillsView.vue'
 
 const { locale, t } = useI18n()
 
@@ -308,6 +311,23 @@ const showSection = section => {
 
 const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(settings.value.mcpServers).length : 0))
 
+const skillCount = ref(0)
+
+const loadSkillCount = async () => {
+  try {
+    const result = await window.electronAPI.listSkills()
+    if (result.success) {
+      skillCount.value = result.skills ? result.skills.length : 0
+    }
+  } catch (error) {
+    console.error('Failed to load skill count:', error)
+  }
+}
+
+const onSkillsChanged = (count) => {
+  skillCount.value = count
+}
+
 const getEffectiveTheme = () => {
   const theme = settings.value.uiTheme
   if (theme === 'System') return systemTheme.value
@@ -529,6 +549,7 @@ const updateSystemTheme = () => {
 onMounted(async () => {
   await loadApiProfiles()
   await loadSettings()
+  await loadSkillCount()
   locale.value = settings.value.language
 
   // 初始化系统主题

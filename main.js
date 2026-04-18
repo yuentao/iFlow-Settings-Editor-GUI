@@ -505,3 +505,437 @@ ipcMain.handle('save-settings', async (event, data) => {
 ipcMain.handle('show-message', async (event, { type, title, message }) => {
   return dialog.showMessageBox(mainWindow, { type, title, message })
 })
+
+// 技能文件夹路径
+const SKILLS_FOLDER = path.join(app.getPath('home'), '.iflow', 'skills')
+
+// 确保技能文件夹存在
+function ensureSkillsFolder() {
+  if (!fs.existsSync(SKILLS_FOLDER)) {
+    fs.mkdirSync(SKILLS_FOLDER, { recursive: true })
+  }
+}
+
+// 获取技能列表
+ipcMain.handle('list-skills', async () => {
+  try {
+    ensureSkillsFolder()
+    const files = fs.readdirSync(SKILLS_FOLDER)
+    const skills = []
+
+    for (const file of files) {
+      const skillPath = path.join(SKILLS_FOLDER, file)
+      const stat = fs.statSync(skillPath)
+
+      // 技能是文件夹格式，包含 SKILL.md 文件
+      if (stat.isDirectory()) {
+        const skillMdPath = path.join(skillPath, 'SKILL.md')
+        const licensePath = path.join(skillPath, 'LICENSE.txt')
+
+        let description = ''
+        let name = file
+
+        if (fs.existsSync(skillMdPath)) {
+          try {
+            const content = fs.readFileSync(skillMdPath, 'utf-8')
+            // 解析 YAML front matter
+            const frontMatterMatch = content.match(/^---\n([\s\S]*?)\n---/)
+            if (frontMatterMatch) {
+              const frontMatter = frontMatterMatch[1]
+              const nameMatch = frontMatter.match(/name:\s*(.+)/)
+              const descMatch = frontMatter.match(/description:\s*(.+)/)
+              if (nameMatch) name = nameMatch[1].trim()
+              if (descMatch) description = descMatch[1].trim()
+            }
+          } catch (e) {
+            console.error('Failed to parse SKILL.md:', e)
+          }
+        }
+
+        // 计算文件夹总大小
+        const calcFolderSize = (dirPath) => {
+          let size = 0
+          const items = fs.readdirSync(dirPath)
+          for (const item of items) {
+            const itemPath = path.join(dirPath, item)
+            const itemStat = fs.statSync(itemPath)
+            if (itemStat.isFile()) {
+              size += itemStat.size
+            }
+          }
+          return size
+        }
+
+        skills.push({
+          name,
+          description,
+          folderName: file,
+          size: calcFolderSize(skillPath),
+          path: skillPath,
+          hasLicense: fs.existsSync(licensePath)
+        })
+      }
+    }
+
+    return { success: true, skills }
+  } catch (error) {
+    return { success: false, error: error.message, skills: [] }
+  }
+})
+
+// 本地导入技能
+ipcMain.handle('import-skill-local', async () => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: '导入技能',
+      filters: [
+        { name: '技能压缩包', extensions: ['zip'] },
+        { name: '所有文件', extensions: ['*'] }
+      ],
+      properties: ['openFile']
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, cancelled: true }
+    }
+
+    const sourcePath = result.filePaths[0]
+    const fileName = path.basename(sourcePath)
+    const tmpDir = path.join(app.getPath('temp'), `skill-import-${Date.now()}`)
+
+    ensureSkillsFolder()
+
+    try {
+      // 创建临时解压目录
+      fs.mkdirSync(tmpDir, { recursive: true })
+
+      // 解压压缩包
+      const admzip = require('adm-zip')
+      const zip = new admzip(sourcePath)
+      zip.extractAllTo(tmpDir, true)
+
+      // 检查 SKILL.md 是否直接在解压目录中（不嵌套在文件夹中）
+      const directSkillMdPath = path.join(tmpDir, 'SKILL.md')
+      let skillFolder = null
+      let skillName = ''
+
+      if (fs.existsSync(directSkillMdPath)) {
+        // SKILL.md 直接在解压目录中
+        skillFolder = tmpDir
+        const content = fs.readFileSync(directSkillMdPath, 'utf-8')
+        const nameMatch = content.match(/^---\n([\s\S]*?)\n---/)
+        if (nameMatch) {
+          const frontMatter = nameMatch[1]
+          const nMatch = frontMatter.match(/name:\s*(.+)/)
+          if (nMatch) skillName = nMatch[1].trim()
+        }
+        // 如果没有解析到名称，使用 ZIP 文件名（去掉扩展名）
+        if (!skillName) {
+          skillName = path.basename(sourcePath, '.zip')
+        }
+      } else {
+        // 递归查找包含 SKILL.md 的文件夹
+        const findSkillFolder = (dirPath, depth = 0) => {
+          if (depth > 3) return null // 防止无限递归
+
+          const entries = fs.readdirSync(dirPath)
+          for (const entry of entries) {
+            const entryPath = path.join(dirPath, entry)
+            const stat = fs.statSync(entryPath)
+
+            if (stat.isDirectory()) {
+              const skillMdPath = path.join(entryPath, 'SKILL.md')
+              if (fs.existsSync(skillMdPath)) {
+                return entryPath
+              }
+              // 递归检查子文件夹
+              const found = findSkillFolder(entryPath, depth + 1)
+              if (found) return found
+            }
+          }
+          return null
+        }
+
+        skillFolder = findSkillFolder(tmpDir)
+
+        if (skillFolder) {
+          const skillMdPath = path.join(skillFolder, 'SKILL.md')
+          const content = fs.readFileSync(skillMdPath, 'utf-8')
+          const nameMatch = content.match(/^---\n([\s\S]*?)\n---/)
+          if (nameMatch) {
+            const frontMatter = nameMatch[1]
+            const nMatch = frontMatter.match(/name:\s*(.+)/)
+            if (nMatch) skillName = nMatch[1].trim()
+          }
+          // 如果没有解析到名称，使用文件夹名称
+          if (!skillName) {
+            skillName = path.basename(skillFolder)
+          }
+        }
+      }
+
+      if (!skillFolder) {
+        // 调试信息：列出解压后的所有文件
+        const listAllFiles = (dirPath, files = [], baseDepth = 0) => {
+          try {
+            const entries = fs.readdirSync(dirPath)
+            for (const entry of entries) {
+              const entryPath = path.join(dirPath, entry)
+              const stat = fs.statSync(entryPath)
+              if (stat.isDirectory()) {
+                listAllFiles(entryPath, files, baseDepth + 1)
+              } else {
+                files.push(`${'  '.repeat(baseDepth)}${entry}`)
+              }
+            }
+          } catch (e) {}
+          return files
+        }
+        const allFiles = listAllFiles(tmpDir)
+        console.error('解压后文件列表:', allFiles.join('\n'))
+        return { success: false, error: `压缩包中未找到有效的技能文件夹（缺少 SKILL.md）\n解压内容:\n${allFiles.slice(0, 20).join('\n')}` }
+      }
+
+      const destPath = path.join(SKILLS_FOLDER, skillName)
+
+      // 如果技能已存在，询问是否覆盖
+      if (fs.existsSync(destPath)) {
+        const overwrite = await dialog.showMessageBox(mainWindow, {
+          type: 'warning',
+          title: '技能已存在',
+          message: `技能 "${skillName}" 已存在，是否覆盖？`,
+          buttons: ['覆盖', '取消'],
+          defaultId: 1
+        })
+
+        if (overwrite.response === 1) {
+          return { success: false, cancelled: true }
+        }
+
+        fs.rmSync(destPath, { recursive: true })
+      }
+
+      // 复制技能文件夹
+      fs.cpSync(skillFolder, destPath, { recursive: true })
+      return { success: true, message: `技能 "${skillName}" 导入成功` }
+    } finally {
+      // 清理临时目录
+      if (fs.existsSync(tmpDir)) {
+        fs.rmSync(tmpDir, { recursive: true, force: true })
+      }
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+// 在线导入技能
+ipcMain.handle('import-skill-online', async (event, url, name) => {
+  try {
+    ensureSkillsFolder()
+
+    const https = require('https')
+    const http = require('http')
+    const { URL } = require('url')
+
+    const parsedUrl = new URL(url)
+    const protocol = parsedUrl.protocol === 'https:' ? https : http
+
+    const destPath = path.join(SKILLS_FOLDER, name)
+
+    // 检查是否已存在
+    if (fs.existsSync(destPath)) {
+      const overwrite = await dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        title: '技能已存在',
+        message: `技能 "${name}" 已存在，是否覆盖？`,
+        buttons: ['覆盖', '取消'],
+        defaultId: 1
+      })
+
+      if (overwrite.response === 1) {
+        return { success: false, cancelled: true }
+      }
+
+      // 删除旧文件夹
+      fs.rmSync(destPath, { recursive: true })
+    }
+
+    // 创建目标文件夹
+    fs.mkdirSync(destPath, { recursive: true })
+
+    return new Promise((resolve) => {
+      protocol.get(url, (response) => {
+        // 处理重定向
+        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          const redirectUrl = new URL(response.headers.location, url)
+          protocol.get(redirectUrl.toString(), (redirectResponse) => {
+            handleDownload(redirectResponse, destPath, name).then(resolve)
+          }).on('error', (err) => {
+            resolve({ success: false, error: err.message })
+          })
+          return
+        }
+
+        if (response.statusCode !== 200) {
+          resolve({ success: false, error: `下载失败: HTTP ${response.statusCode}` })
+          return
+        }
+
+        handleDownload(response, destPath, name).then(resolve)
+      }).on('error', (err) => {
+        resolve({ success: false, error: err.message })
+      })
+    })
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+// 处理下载内容
+function handleDownload(response, destPath, name) {
+  return new Promise((resolve) => {
+    // 检测是否为 GitHub 仓库的 tarball/zipball
+    const contentDisposition = response.headers['content-disposition']
+    const contentType = response.headers['content-type'] || ''
+
+    if (contentType.includes('application/zip') ||
+        contentType.includes('application/x-tar') ||
+        (contentDisposition && contentDisposition.includes('attachment'))) {
+
+      // 下载为压缩包
+      const chunks = []
+      response.on('data', (chunk) => chunks.push(chunk))
+      response.on('end', () => {
+        try {
+          const content = Buffer.concat(chunks)
+          const tmpPath = path.join(app.getPath('temp'), `skill-${Date.now()}`)
+
+          if (contentType.includes('zip') || (contentDisposition && contentDisposition.includes('.zip'))) {
+            // ZIP 文件
+            const admzip = require('adm-zip')
+            fs.writeFileSync(tmpPath + '.zip', content)
+            const zip = new admzip(tmpPath + '.zip')
+            // 解压并提取第一个文件夹
+            zip.extractAllTo(tmpPath, true)
+            const entries = fs.readdirSync(tmpPath)
+            const firstEntry = entries.find(e => fs.statSync(path.join(tmpPath, e)).isDirectory())
+            if (firstEntry) {
+              const extractedPath = path.join(tmpPath, firstEntry)
+              const skillFiles = fs.readdirSync(extractedPath)
+              for (const file of skillFiles) {
+                fs.cpSync(path.join(extractedPath, file), path.join(destPath, file))
+              }
+            }
+            fs.rmSync(tmpPath, { recursive: true, force: true })
+            if (fs.existsSync(tmpPath + '.zip')) fs.unlinkSync(tmpPath + '.zip')
+          } else {
+            // TAR 文件
+            fs.writeFileSync(tmpPath, content)
+            // 使用 tar 解压 (需要系统有 tar 命令)
+            const { execSync } = require('child_process')
+            try {
+              execSync(`tar -xf "${tmpPath}" -C "${tmpPath}-dir"`, { stdio: 'pipe' })
+              const entries = fs.readdirSync(tmpPath + '-dir')
+              const firstEntry = entries.find(e => fs.statSync(path.join(tmpPath + '-dir', e)).isDirectory())
+              if (firstEntry) {
+                const extractedPath = path.join(tmpPath + '-dir', firstEntry)
+                const skillFiles = fs.readdirSync(extractedPath)
+                for (const file of skillFiles) {
+                  fs.cpSync(path.join(extractedPath, file), path.join(destPath, file))
+                }
+              }
+              fs.rmSync(tmpPath, { recursive: true, force: true })
+              if (fs.existsSync(tmpPath + '-dir')) fs.rmSync(tmpPath + '-dir', { recursive: true, force: true })
+            } catch (e) {
+              // 如果没有 tar 命令，尝试直接复制
+              fs.cpSync(tmpPath, destPath, { recursive: true })
+              fs.rmSync(tmpPath, { recursive: true, force: true })
+            }
+          }
+
+          resolve({ success: true, message: `技能 "${name}" 在线导入成功` })
+        } catch (writeError) {
+          resolve({ success: false, error: writeError.message })
+        }
+      })
+    } else {
+      // 直接下载文件内容
+      const chunks = []
+      response.on('data', (chunk) => chunks.push(chunk))
+      response.on('end', () => {
+        try {
+          const content = Buffer.concat(chunks)
+          // 假设下载的是 SKILL.md 内容
+          const skillMdPath = path.join(destPath, 'SKILL.md')
+          fs.writeFileSync(skillMdPath, content)
+          resolve({ success: true, message: `技能 "${name}" 在线导入成功` })
+        } catch (writeError) {
+          resolve({ success: false, error: writeError.message })
+        }
+      })
+    }
+  })
+}
+
+// 导出技能
+ipcMain.handle('export-skill', async (event, name, folderName) => {
+  try {
+    const skillPath = path.join(SKILLS_FOLDER, folderName)
+
+    if (!fs.existsSync(skillPath)) {
+      return { success: false, error: `技能 "${name}" 不存在` }
+    }
+
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: '导出技能到',
+      buttonLabel: '选择导出位置',
+      properties: ['openDirectory', 'createDirectory']
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, cancelled: true }
+    }
+
+    const destPath = path.join(result.filePaths[0], folderName)
+
+    // 如果目标已存在，删除
+    if (fs.existsSync(destPath)) {
+      fs.rmSync(destPath, { recursive: true })
+    }
+
+    // 复制整个文件夹
+    fs.cpSync(skillPath, destPath, { recursive: true })
+    return { success: true, message: `技能 "${name}" 导出成功` }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+// 删除技能
+ipcMain.handle('delete-skill', async (event, name) => {
+  try {
+    const skillPath = path.join(SKILLS_FOLDER, name)
+
+    if (!fs.existsSync(skillPath)) {
+      return { success: false, error: `技能 "${name}" 不存在` }
+    }
+
+    const confirmed = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      title: '确认删除',
+      message: `确定要删除技能 "${name}" 吗？`,
+      buttons: ['删除', '取消'],
+      defaultId: 1
+    })
+
+    if (confirmed.response === 1) {
+      return { success: false, cancelled: true }
+    }
+
+    fs.rmSync(skillPath, { recursive: true })
+    return { success: true, message: `技能 "${name}" 已删除` }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})

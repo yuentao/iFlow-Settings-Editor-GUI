@@ -12,7 +12,8 @@ export default {
     basicSettings: 'Basic Settings',
     apiConfig: 'API Config',
     advanced: 'Advanced',
-    mcpServers: 'MCP Servers'
+    mcpServers: 'MCP Servers',
+    skills: 'Skills'
   },
   general: {
     title: 'Basic Settings',
@@ -106,6 +107,23 @@ export default {
     addServerBtn: 'Add Server',
     inputServerName: 'Please enter server name',
     serverNameExists: 'Server name already exists'
+  },
+  skills: {
+    title: 'Skills',
+    description: 'Manage iFlow CLI skills configurations',
+    importLocal: 'Import Local',
+    importOnline: 'Import Online',
+    export: 'Export',
+    delete: 'Delete',
+    noSkills: 'No Skills',
+    addFirstSkill: 'Click the buttons above to add your first skill',
+    noDescription: 'No description',
+    url: 'Skill URL',
+    urlPlaceholder: 'https://github.com/user/repo/archive/refs/heads/main.zip',
+    skillName: 'Skill Name',
+    namePlaceholder: 'my-skill',
+    cancel: 'Cancel',
+    import: 'Import'
   },
   messages: {
     error: 'Error',

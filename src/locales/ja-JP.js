@@ -12,7 +12,8 @@ export default {
     basicSettings: '基本設定',
     apiConfig: 'API 設定',
     advanced: '詳細',
-    mcpServers: 'MCP サーバー'
+    mcpServers: 'MCP サーバー',
+    skills: 'スキル'
   },
   general: {
     title: '基本設定',
@@ -106,6 +107,23 @@ export default {
     addServerBtn: 'サーバーを追加',
     inputServerName: 'サーバー名を入力してください',
     serverNameExists: 'サーバー名は既に存在します'
+  },
+  skills: {
+    title: 'スキル管理',
+    description: 'iFlow CLI スキル設定を管理',
+    importLocal: 'ローカル取込',
+    importOnline: 'オンライン取込',
+    export: 'エクスポート',
+    delete: '削除',
+    noSkills: 'スキルがありません',
+    addFirstSkill: '上のボタンをクリックして最初のスを追加',
+    noDescription: '説明なし',
+    url: 'スキル URL',
+    urlPlaceholder: 'https://github.com/user/repo/archive/refs/heads/main.zip',
+    skillName: 'スキル名',
+    namePlaceholder: 'my-skill',
+    cancel: 'キャンセル',
+    import: '取込'
   },
   messages: {
     error: 'エラー',

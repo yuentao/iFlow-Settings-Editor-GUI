@@ -18,12 +18,17 @@
         <span class="nav-item-text">{{ $t('sidebar.mcpServers') }}</span>
         <span class="nav-item-badge">{{ serverCount }}</span>
       </div>
+      <div class="nav-item" :class="{ active: currentSection === 'skills' }" @click="$emit('navigate', 'skills')">
+        <Star size="16" />
+        <span class="nav-item-text">{{ $t('sidebar.skills') }}</span>
+        <span class="nav-item-badge">{{ skillCount }}</span>
+      </div>
     </div>
   </aside>
 </template>
 
 <script setup>
-import { Config, Key, Server } from '@icon-park/vue-next'
+import { Config, Key, Server, Star } from '@icon-park/vue-next'
 
 defineProps({
   currentSection: {
@@ -31,6 +36,10 @@ defineProps({
     default: 'general',
   },
   serverCount: {
+    type: Number,
+    default: 0,
+  },
+  skillCount: {
     type: Number,
     default: 0,
   },
