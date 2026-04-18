@@ -66,6 +66,7 @@ export default {
     unconfigured: '未設定',
     noBaseUrl: 'Base URL 未設定',
     configCreated: 'プロファイル "{name}" を作成しました',
+    configSaved: 'プロファイルを保存しました',
     configDeleted: 'プロファイルを削除しました',
     configCopied: 'プロファイルを "{name}" に複製しました',
     switchFailed: '切り替えに失敗しました',

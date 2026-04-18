@@ -66,6 +66,7 @@ export default {
     unconfigured: '未配置',
     noBaseUrl: '未配置 Base URL',
     configCreated: '配置 "{name}" 已创建',
+    configSaved: '配置已保存',
     configDeleted: '配置已删除',
     configCopied: '配置已复制为 "{name}"',
     switchFailed: '切换失败',

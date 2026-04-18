@@ -247,6 +247,7 @@ const saveApiEdit = async data => {
   if (result.success) {
     originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
     modified.value = false
+    await showMessage({ type: 'success', title: t('messages.success'), message: t('api.configSaved') })
   }
 }
 

@@ -66,6 +66,7 @@ export default {
     unconfigured: 'Not configured',
     noBaseUrl: 'Base URL not configured',
     configCreated: 'Configuration "{name}" created',
+    configSaved: 'Configuration saved',
     configDeleted: 'Configuration deleted',
     configCopied: 'Configuration copied as "{name}"',
     switchFailed: 'Switch failed',
