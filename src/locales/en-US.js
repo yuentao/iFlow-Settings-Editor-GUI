@@ -26,7 +26,10 @@ export default {
     bootAnimationNotShown: 'Not Shown',
     checkpointing: 'Checkpointing',
     enabled: 'Enabled',
-    disabled: 'Disabled'
+    disabled: 'Disabled',
+    acrylicEffect: 'Acrylic Effect',
+    acrylicMin: 'Opaque',
+    acrylicMax: 'Transparent'
   },
   theme: {
     xcode: 'Xcode',

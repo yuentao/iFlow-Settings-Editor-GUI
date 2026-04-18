@@ -21,10 +21,8 @@
         <div class="form-group">
           <label class="form-label">{{ $t('general.theme') }}</label>
           <select class="form-select" v-model="localSettings.theme">
-            <option value="Xcode">{{ $t('theme.xcode') }}</option>
-            <option value="Dark">{{ $t('theme.dark') }}</option>
             <option value="Light">{{ $t('theme.light') }}</option>
-            <option value="Solarized Dark">{{ $t('theme.solarizedDark') }}</option>
+            <option value="Dark">{{ $t('theme.dark') }}</option>
           </select>
         </div>
       </div>
@@ -50,6 +48,23 @@
           </select>
         </div>
       </div>
+      <div class="form-row" v-if="supportsAcrylic">
+        <div class="form-group form-group-full">
+          <label class="form-label">{{ $t('general.acrylicEffect') }}: {{ localSettings.acrylicIntensity }}%</label>
+          <div class="slider-container">
+            <input
+              type="range"
+              class="form-slider"
+              min="0"
+              max="100"
+              :value="localSettings.acrylicIntensity"
+              @input="updateSliderStyle"
+              ref="sliderRef"
+            />
+            <span class="slider-hint">{{ $t('general.acrylicMin') }} — {{ $t('general.acrylicMax') }}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -66,12 +81,105 @@ const props = defineProps({
 
 const emit = defineEmits(['update:settings'])
 
-import { computed } from 'vue'
+import { computed, ref, onMounted, watch, nextTick } from 'vue'
 
 const localSettings = computed({
   get: () => props.settings,
   set: val => emit('update:settings', val),
 })
+
+const supportsAcrylic = computed(() => {
+  return typeof document !== 'undefined' && 'backdropFilter' in document.documentElement.style && props.settings.theme !== 'Dark'
+})
+
+const sliderRef = ref(null)
+
+const updateSliderStyle = e => {
+  const value = e.target.value
+  const percent = ((value - 0) / (100 - 0)) * 100
+  e.target.style.backgroundSize = `${percent}% 100%`
+  emit('update:settings', { ...props.settings, acrylicIntensity: Number(value) })
+}
+
+onMounted(() => {
+  if (sliderRef.value) {
+    const percent = ((props.settings.acrylicIntensity - 0) / (100 - 0)) * 100
+    sliderRef.value.style.backgroundSize = `${percent}% 100%`
+  }
+})
+
+watch(
+  () => props.settings.theme,
+  () => {
+    nextTick(() => {
+      if (sliderRef.value && supportsAcrylic.value) {
+        const percent = ((props.settings.acrylicIntensity - 0) / (100 - 0)) * 100
+        sliderRef.value.style.backgroundSize = `${percent}% 100%`
+      }
+    })
+  },
+)
 </script>
 
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.form-group-full {
+  grid-column: 1 / -1;
+}
+
+.slider-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-slider {
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-size: var(--slider-progress, 50%) 100%;
+  background-repeat: no-repeat;
+}
+
+.form-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.1s ease;
+}
+
+.form-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.form-slider::-webkit-slider-thumb:active {
+  transform: scale(0.95);
+}
+
+.form-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.slider-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-align: right;
+}
+</style>

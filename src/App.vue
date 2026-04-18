@@ -74,6 +74,7 @@ const settings = ref({
   cna: '',
   currentApiProfile: 'default',
   apiProfiles: { default: {} },
+  acrylicIntensity: 50,
 })
 
 const originalSettings = ref({})
@@ -272,6 +273,7 @@ const loadSettings = async () => {
     if (data.cna === undefined) data.cna = ''
     if (!data.apiProfiles) data.apiProfiles = { default: {} }
     if (!data.currentApiProfile) data.currentApiProfile = 'default'
+    if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
     settings.value = data
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false
@@ -310,6 +312,31 @@ const themeClass = computed(() => {
   if (theme === 'Dark') return 'dark'
   if (theme === 'Solarized Dark') return 'solarized-dark'
   return ''
+})
+
+const acrylicStyle = computed(() => {
+  const intensity = settings.value.acrylicIntensity
+  if (intensity === undefined || intensity === null) return {}
+  const opacity = 1 - intensity / 100
+  const isDark = settings.value.theme === 'Dark'
+
+  if (isDark) {
+    return {
+      '--bg-primary': `rgba(31, 31, 31, ${Math.max(0.05, opacity * 0.85)})`,
+      '--bg-secondary': `rgba(45, 45, 45, ${Math.max(0.05, opacity * 0.7)})`,
+      '--bg-elevated': `rgba(51, 51, 51, ${Math.max(0.05, opacity * 0.95)})`,
+      '--bg-mica': `rgba(31, 31, 31, ${Math.max(0.05, opacity * 0.85)})`,
+      '--control-fill': `rgba(51, 51, 51, ${Math.max(0.05, opacity * 0.85)})`,
+    }
+  } else {
+    return {
+      '--bg-primary': `rgba(243, 243, 243, ${Math.max(0.05, opacity * 0.85)})`,
+      '--bg-secondary': `rgba(255, 255, 255, ${Math.max(0.05, opacity * 0.7)})`,
+      '--bg-elevated': `rgba(255, 255, 255, ${Math.max(0.05, opacity * 0.95)})`,
+      '--bg-mica': `rgba(243, 243, 243, ${Math.max(0.05, opacity * 0.473)})`,
+      '--control-fill': `rgba(249, 249, 249, ${Math.max(0.05, opacity * 0.85)})`,
+    }
+  }
 })
 
 const selectServer = name => {
@@ -454,8 +481,38 @@ watch(
     } else {
       document.body.classList.remove('dark', 'solarized-dark')
     }
+    applyAcrylicStyle()
   },
 )
+
+watch(
+  () => settings.value.acrylicIntensity,
+  () => {
+    applyAcrylicStyle()
+  },
+)
+
+const applyAcrylicStyle = () => {
+  const intensity = settings.value.acrylicIntensity
+  if (intensity === undefined || intensity === null) return
+  const opacity = 1 - intensity / 100
+  const isDark = settings.value.theme === 'Dark'
+  const root = document.documentElement
+
+  if (isDark) {
+    root.style.setProperty('--bg-primary', `rgba(31, 31, 31, ${Math.max(0.05, opacity * 0.85)})`)
+    root.style.setProperty('--bg-secondary', `rgba(45, 45, 45, ${Math.max(0.05, opacity * 0.7)})`)
+    root.style.setProperty('--bg-elevated', `rgba(51, 51, 51, ${Math.max(0.05, opacity * 0.95)})`)
+    root.style.setProperty('--bg-mica', `rgba(31, 31, 31, ${Math.max(0.05, opacity * 0.85)})`)
+    root.style.setProperty('--control-fill', `rgba(51, 51, 51, ${Math.max(0.05, opacity * 0.85)})`)
+  } else {
+    root.style.setProperty('--bg-primary', `rgba(243, 243, 243, ${Math.max(0.05, opacity * 0.85)})`)
+    root.style.setProperty('--bg-secondary', `rgba(255, 255, 255, ${Math.max(0.05, opacity * 0.7)})`)
+    root.style.setProperty('--bg-elevated', `rgba(255, 255, 255, ${Math.max(0.05, opacity * 0.95)})`)
+    root.style.setProperty('--bg-mica', `rgba(243, 243, 243, ${Math.max(0.05, opacity * 0.473)})`)
+    root.style.setProperty('--control-fill', `rgba(249, 249, 249, ${Math.max(0.05, opacity * 0.85)})`)
+  }
+}
 
 onMounted(async () => {
   await loadApiProfiles()
@@ -465,6 +522,7 @@ onMounted(async () => {
   if (cls) {
     document.body.classList.add(cls)
   }
+  applyAcrylicStyle()
   window.electronAPI.onApiProfileSwitched(async profileName => {
     currentApiProfile.value = profileName
     await loadSettings()

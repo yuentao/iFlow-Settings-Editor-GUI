@@ -26,7 +26,10 @@ export default {
     bootAnimationNotShown: '未显示',
     checkpointing: '检查点保存',
     enabled: '已启用',
-    disabled: '已禁用'
+    disabled: '已禁用',
+    acrylicEffect: '亚克力效果',
+    acrylicMin: '不透明',
+    acrylicMax: '透明'
   },
   theme: {
     xcode: 'Xcode',

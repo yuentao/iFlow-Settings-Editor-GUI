@@ -26,7 +26,10 @@ export default {
     bootAnimationNotShown: '未表示',
     checkpointing: 'チェックポイント保存',
     enabled: '有効',
-    disabled: '無効'
+    disabled: '無効',
+    acrylicEffect: 'アクリリック効果',
+    acrylicMin: '不透明',
+    acrylicMax: '透明'
   },
   theme: {
     xcode: 'Xcode',
