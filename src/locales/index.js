@@ -70,6 +70,7 @@ export default {
     configDeleted: '配置已删除',
     configCopied: '配置已复制为 "{name}"',
     switchFailed: '切换失败',
+    dragToSort: '拖动排序',
     auth: {
       iflow: 'iFlow',
       api: 'API Key',

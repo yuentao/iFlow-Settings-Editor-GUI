@@ -14,8 +14,21 @@
     </div>
     <div class="card">
       <div class="profile-list">
-        <div v-for="profile in profiles" :key="profile.name" class="profile-item" :class="{ active: currentProfile === profile.name }" @click="$emit('select-profile', profile.name)">
-          <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
+        <div
+          v-for="(profile, index) in profiles"
+          :key="profile.name"
+          class="profile-item"
+          :class="{ active: currentProfile === profile.name, dragging: dragIndex === index }"
+          draggable="true"
+          @dragstart="onDragStart(index)"
+          @dragover.prevent="onDragOver(index)"
+          @drop="onDrop(index)"
+          @dragend="onDragEnd"
+          @click="$emit('select-profile', profile.name)"
+        >
+          <div class="drag-handle" :title="$t('api.dragToSort')">
+                        ⋮⋮
+                      </div>          <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
             <span class="profile-icon-text">{{ getProfileInitial(profile.name) }}</span>
           </div>
           <div class="profile-info">
@@ -48,6 +61,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { Add, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 
 const props = defineProps({
@@ -65,7 +79,34 @@ const props = defineProps({
   },
 })
 
-defineEmits(['create-profile', 'select-profile', 'edit-profile', 'duplicate-profile', 'delete-profile'])
+const emit = defineEmits(['create-profile', 'select-profile', 'edit-profile', 'duplicate-profile', 'delete-profile', 'reorder-profiles'])
+const dragIndex = ref(-1)
+const dragOverIndex = ref(-1)
+
+const onDragStart = (index) => {
+  dragIndex.value = index
+}
+
+const onDragOver = (index) => {
+  dragOverIndex.value = index
+}
+
+const onDrop = (index) => {
+  if (dragIndex.value !== -1 && dragIndex.value !== index) {
+    const newProfiles = [...props.profiles]
+    const [removed] = newProfiles.splice(dragIndex.value, 1)
+    newProfiles.splice(index, 0, removed)
+    // 通过emit通知父组件排序变化
+    emit('reorder-profiles', newProfiles)
+  }
+  dragIndex.value = -1
+  dragOverIndex.value = -1
+}
+
+const onDragEnd = () => {
+  dragIndex.value = -1
+  dragOverIndex.value = -1
+}
 
 const profileColors = [
   'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
@@ -151,6 +192,32 @@ const getProfileIconStyle = name => {
     background: var(--accent-light);
     border-color: var(--accent);
     box-shadow: var(--shadow-sm);
+  }
+
+  &.dragging {
+    opacity: 0.5;
+    transform: scale(1.02);
+  }
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  margin-right: 4px;
+  color: var(--text-tertiary);
+  cursor: grab;
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: var(--text-secondary);
+    background: var(--control-fill);
+  }
+
+  &:active {
+    cursor: grabbing;
   }
 }
 

@@ -70,6 +70,7 @@ export default {
     configDeleted: 'Configuration deleted',
     configCopied: 'Configuration copied as "{name}"',
     switchFailed: 'Switch failed',
+    dragToSort: 'Drag to sort',
     auth: {
       iflow: 'iFlow',
       api: 'API Key',

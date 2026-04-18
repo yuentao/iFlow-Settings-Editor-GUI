@@ -17,7 +17,8 @@
           @select-profile="selectApiProfile"
           @edit-profile="openApiEditDialog"
           @duplicate-profile="duplicateApiProfile"
-          @delete-profile="deleteApiProfile" />
+          @delete-profile="deleteApiProfile"
+          @reorder-profiles="reorderApiProfiles" />
 
         <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :selected-server="currentServerName" :server-count="serverCount" @add-server="addServer" @select-server="selectServer" />
 
@@ -184,6 +185,19 @@ const deleteApiProfile = async name => {
     await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configDeleted') })
   } else {
     await showMessage({ type: 'error', title: t('messages.error'), message: result.error })
+  }
+}
+
+const reorderApiProfiles = async newProfiles => {
+  // 更新本地列表
+  apiProfiles.value = newProfiles
+  // 保存排序顺序到settings
+  settings.value.apiProfilesOrder = newProfiles.map(p => p.name)
+  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const result = await window.electronAPI.saveSettings(dataToSave)
+  if (result.success) {
+    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    modified.value = false
   }
 }
 

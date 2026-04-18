@@ -70,6 +70,7 @@ export default {
     configDeleted: 'プロファイルを削除しました',
     configCopied: 'プロファイルを "{name}" に複製しました',
     switchFailed: '切り替えに失敗しました',
+    dragToSort: 'ドラッグして並べ替え',
     auth: {
       iflow: 'iFlow',
       api: 'API Key',
