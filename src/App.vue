@@ -62,7 +62,7 @@ const { locale, t } = useI18n()
 
 const settings = ref({
   language: 'zh-CN',
-  theme: 'Xcode',
+  uiTheme: 'Light',
   bootAnimationShown: true,
   checkpointing: { enabled: true },
   mcpServers: {},
@@ -263,7 +263,7 @@ const loadSettings = async () => {
     if (!data.checkpointing) data.checkpointing = { enabled: true }
     if (!data.mcpServers) data.mcpServers = {}
     if (data.language === undefined) data.language = 'zh-CN'
-    if (data.theme === undefined) data.theme = 'Xcode'
+    if (data.uiTheme === undefined) data.uiTheme = 'Light'
     if (data.bootAnimationShown === undefined) data.bootAnimationShown = true
     if (!data.selectedAuthType) data.selectedAuthType = 'openai-compatible'
     if (data.apiKey === undefined) data.apiKey = ''
@@ -308,7 +308,7 @@ const showSection = section => {
 const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(settings.value.mcpServers).length : 0))
 
 const themeClass = computed(() => {
-  const theme = settings.value.theme
+  const theme = settings.value.uiTheme
   if (theme === 'Dark') return 'dark'
   if (theme === 'Solarized Dark') return 'solarized-dark'
   return ''
@@ -318,7 +318,7 @@ const acrylicStyle = computed(() => {
   const intensity = settings.value.acrylicIntensity
   if (intensity === undefined || intensity === null) return {}
   const opacity = 1 - intensity / 100
-  const isDark = settings.value.theme === 'Dark'
+  const isDark = settings.value.uiTheme === 'Dark'
 
   if (isDark) {
     return {
@@ -471,7 +471,7 @@ const closeMessageDialog = () => {
 }
 
 watch(
-  () => settings.value.theme,
+  () => settings.value.uiTheme,
   theme => {
     const cls = themeClass.value
     if (cls) {
@@ -496,7 +496,7 @@ const applyAcrylicStyle = () => {
   const intensity = settings.value.acrylicIntensity
   if (intensity === undefined || intensity === null) return
   const opacity = 1 - intensity / 100
-  const isDark = settings.value.theme === 'Dark'
+  const isDark = settings.value.uiTheme === 'Dark'
   const root = document.documentElement
 
   if (isDark) {

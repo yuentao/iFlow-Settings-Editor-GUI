@@ -6,9 +6,10 @@ import GeneralSettings from './GeneralSettings.vue';
 describe('GeneralSettings.vue', () => {
   const mockSettings = {
     language: 'zh-CN',
-    theme: 'Xcode',
+    uiTheme: 'Light',
     bootAnimationShown: true,
     checkpointing: { enabled: true },
+    acrylicIntensity: 50,
   };
 
   it('renders correctly with props', () => {
@@ -60,11 +61,9 @@ describe('GeneralSettings.vue', () => {
     });
 
     const themeOptions = wrapper.findAll('.form-select')[1].findAll('option');
-    expect(themeOptions.length).toBe(4);
-    expect(themeOptions[0].attributes('value')).toBe('Xcode');
+    expect(themeOptions.length).toBe(2);
+    expect(themeOptions[0].attributes('value')).toBe('Light');
     expect(themeOptions[1].attributes('value')).toBe('Dark');
-    expect(themeOptions[2].attributes('value')).toBe('Light');
-    expect(themeOptions[3].attributes('value')).toBe('Solarized Dark');
   });
 
   it('reflects current settings in form controls', async () => {
@@ -82,7 +81,7 @@ describe('GeneralSettings.vue', () => {
     await nextTick();
     const selectElements = wrapper.findAll('.form-select');
     expect(selectElements[0].element.value).toBe('zh-CN');
-    expect(selectElements[1].element.value).toBe('Xcode');
+    expect(selectElements[1].element.value).toBe('Light');
     expect(selectElements[2].element.value).toBe('true');
     expect(selectElements[3].element.value).toBe('true');
   });
@@ -149,9 +148,9 @@ describe('GeneralSettings.vue', () => {
       },
     });
 
-    expect(wrapper.findAll('.form-row').length).toBe(2);
-    expect(wrapper.findAll('.form-group').length).toBe(4);
-    expect(wrapper.findAll('.form-label').length).toBe(4);
+    expect(wrapper.findAll('.form-row').length).toBe(3);
+    expect(wrapper.findAll('.form-group').length).toBe(5);
+    expect(wrapper.findAll('.form-label').length).toBe(5);
     expect(wrapper.findAll('.form-select').length).toBe(4);
   });
 });

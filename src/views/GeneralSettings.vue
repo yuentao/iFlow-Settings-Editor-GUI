@@ -20,7 +20,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('general.theme') }}</label>
-          <select class="form-select" v-model="localSettings.theme">
+          <select class="form-select" v-model="localSettings.uiTheme">
             <option value="Light">{{ $t('theme.light') }}</option>
             <option value="Dark">{{ $t('theme.dark') }}</option>
           </select>
@@ -89,7 +89,7 @@ const localSettings = computed({
 })
 
 const supportsAcrylic = computed(() => {
-  return typeof document !== 'undefined' && 'backdropFilter' in document.documentElement.style && props.settings.theme !== 'Dark'
+  return typeof document !== 'undefined' && 'backdropFilter' in document.documentElement.style && props.settings.uiTheme !== 'Dark'
 })
 
 const sliderRef = ref(null)
@@ -109,7 +109,7 @@ onMounted(() => {
 })
 
 watch(
-  () => props.settings.theme,
+  () => props.settings.uiTheme,
   () => {
     nextTick(() => {
       if (sliderRef.value && supportsAcrylic.value) {
