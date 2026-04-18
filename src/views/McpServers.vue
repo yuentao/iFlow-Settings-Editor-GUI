@@ -5,14 +5,13 @@
       <p class="content-desc">{{ $t('mcp.description') }}</p>
     </div>
     <div class="form-group">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
-        <label class="form-label" style="margin: 0">{{ $t('mcp.serverList') }}</label>
-        <button class="btn btn-primary" @click="$emit('add-server')" style="padding: 6px 12px; font-size: 12px">
-          <Add size="12" />
+      <div class="page-actions">
+        <button class="btn btn-primary" @click="$emit('add-server')">
+          <Add size="14" />
           {{ $t('mcp.addServerBtn') }}
         </button>
-      </div>
-      <div class="server-list">
+    </div>
+    <div class="server-list">
         <template v-if="serverCount > 0">
           <div
             v-for="(config, name) in servers"
@@ -60,6 +59,13 @@ defineEmits(['add-server', 'select-server'])
 </script>
 
 <style lang="less" scoped>
+.page-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
 // Windows 11 Style Server List - Fluent Design
 .server-list {
   border: 1px solid var(--border);

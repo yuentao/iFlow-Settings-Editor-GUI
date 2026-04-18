@@ -4,15 +4,15 @@
       <h1 class="content-title">{{ $t('api.title') }}</h1>
       <p class="content-desc">{{ $t('api.description') }}</p>
     </div>
-    <div class="card">
-      <div class="card-title">
-        <Exchange size="16" />
-        {{ $t('api.profileManagement') }}
-        <button class="btn btn-primary btn-sm" @click="$emit('create-profile')" style="margin-left: auto">
+    <div class="form-group">
+      <div class="page-actions">
+        <button class="btn btn-primary" @click="$emit('create-profile')">
           <Add size="14" />
           {{ $t('api.newProfile') }}
         </button>
       </div>
+    </div>
+    <div class="card">
       <div class="profile-list">
         <div v-for="profile in profiles" :key="profile.name" class="profile-item" :class="{ active: currentProfile === profile.name }" @click="$emit('select-profile', profile.name)">
           <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
@@ -100,6 +100,13 @@ const getProfileIconStyle = name => {
 </script>
 
 <style lang="less" scoped>
+.page-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
 // Windows 11 Style Profile List - Fluent Design
 .profile-list {
   display: flex;
@@ -117,19 +124,29 @@ const getProfileIconStyle = name => {
   cursor: pointer;
   transition: all 0.15s ease;
   animation: fadeIn 0.3s ease backwards;
-  
-  &:nth-child(1) { animation-delay: 0.02s; }
-  &:nth-child(2) { animation-delay: 0.04s; }
-  &:nth-child(3) { animation-delay: 0.06s; }
-  &:nth-child(4) { animation-delay: 0.08s; }
-  &:nth-child(5) { animation-delay: 0.1s; }
-  
+
+  &:nth-child(1) {
+    animation-delay: 0.02s;
+  }
+  &:nth-child(2) {
+    animation-delay: 0.04s;
+  }
+  &:nth-child(3) {
+    animation-delay: 0.06s;
+  }
+  &:nth-child(4) {
+    animation-delay: 0.08s;
+  }
+  &:nth-child(5) {
+    animation-delay: 0.1s;
+  }
+
   &:hover {
     background: var(--control-fill);
     border-color: var(--border);
     transform: translateX(2px);
   }
-  
+
   &.active {
     background: var(--accent-light);
     border-color: var(--accent);
@@ -189,7 +206,7 @@ const getProfileIconStyle = name => {
   border-radius: var(--radius);
   font-size: 11px;
   font-weight: 500;
-  
+
   svg {
     width: 10px;
     height: 10px;
@@ -203,7 +220,7 @@ const getProfileIconStyle = name => {
   margin-left: 8px;
   opacity: 0;
   transition: opacity 0.15s ease;
-  
+
   .profile-item:hover &,
   .profile-item.active & {
     opacity: 1;
@@ -222,12 +239,12 @@ const getProfileIconStyle = name => {
   cursor: pointer;
   border-radius: var(--radius);
   transition: all 0.1s ease;
-  
+
   &:hover {
     background: var(--control-fill);
     color: var(--text-primary);
   }
-  
+
   &.action-btn-danger:hover {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
