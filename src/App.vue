@@ -344,8 +344,8 @@ const closeServerPanel = () => {
   showServerPanel.value = false
 }
 
-const saveServerFromPanel = async () => {
-  const name = editingServerData.value.name.trim()
+const saveServerFromPanel = async (data) => {
+  const name = data.name.trim()
   if (!name) {
     await showMessage({ type: 'warning', title: t('messages.error'), message: t('mcp.inputServerName') })
     return
@@ -358,15 +358,15 @@ const saveServerFromPanel = async () => {
     delete settings.value.mcpServers[currentServerName.value]
   }
   const serverConfig = {
-    command: editingServerData.value.command.trim(),
-    description: editingServerData.value.description.trim(),
-    cwd: editingServerData.value.cwd.trim() || '.',
-    args: editingServerData.value.args
+    command: data.command.trim(),
+    description: data.description.trim(),
+    cwd: data.cwd.trim() || '.',
+    args: data.args
       .split('\n')
       .map(s => s.trim())
       .filter(s => s),
   }
-  const envText = editingServerData.value.env.trim()
+  const envText = data.env.trim()
   if (envText) {
     try {
       serverConfig.env = JSON.parse(envText)
