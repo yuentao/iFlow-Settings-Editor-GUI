@@ -972,28 +972,21 @@ ipcMain.handle('export-skill', async (event, name, folderName) => {
 
 // 删除技能
 ipcMain.handle('delete-skill', async (event, name) => {
+  console.log('delete-skill called with:', name)
   try {
     const skillPath = path.join(SKILLS_FOLDER, name)
+    console.log('Deleting skill at:', skillPath)
+    console.log('Path exists:', fs.existsSync(skillPath))
 
     if (!fs.existsSync(skillPath)) {
       return { success: false, error: `技能 "${name}" 不存在` }
     }
 
-    const confirmed = await dialog.showMessageBox(mainWindow, {
-      type: 'warning',
-      title: '确认删除',
-      message: `确定要删除技能 "${name}" 吗？`,
-      buttons: ['删除', '取消'],
-      defaultId: 1,
-    })
-
-    if (confirmed.response === 1) {
-      return { success: false, cancelled: true }
-    }
-
     fs.rmSync(skillPath, { recursive: true })
+    console.log('Skill deleted successfully')
     return { success: true, message: `技能 "${name}" 已删除` }
   } catch (error) {
+    console.error('Delete skill error:', error)
     return { success: false, error: error.message }
   }
 })
