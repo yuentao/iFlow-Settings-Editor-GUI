@@ -31,10 +31,15 @@
 │  ├── TitleBar.vue - 自定义标题栏                     │
 │  ├── SideBar.vue - 侧边导航                          │
 │  ├── Footer.vue - 底部栏                             │
+│  ├── InputDialog.vue - 输入对话框                    │
+│  ├── MessageDialog.vue - 消息对话框                   │
+│  ├── ApiProfileDialog.vue - API 配置弹窗             │
+│  ├── ServerPanel.vue - 服务器编辑面板                │
 │  └── views/                                         │
 │      ├── GeneralSettings.vue - 基础设置              │
 │      ├── ApiConfig.vue - API 配置管理                │
-│      └── McpServers.vue - MCP 服务器管理             │
+│      ├── McpServers.vue - MCP 服务器管理             │
+│      └── SkillsView.vue - 技能管理                  │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -43,6 +48,7 @@
 - **路径**: `~/.iflow/settings.json`
 - **编码**: UTF-8 JSON
 - **备份**: 自动生成 `.bak` 备份文件
+- **技能目录**: `~/.iflow/skills/`
 
 ## 开发命令
 
@@ -59,8 +65,10 @@ npm run electron:dev
 # 构建生产版本
 npm run build
 
-# 打包 Windows 安装包 (x64)
+# 打包 Windows 版本 (x64)
 npm run build:win
+npm run build:win64    # 仅 x64
+npm run build:win32    # 仅 ia32
 
 # 打包 Windows 便携版
 npm run build:win-portable
@@ -92,7 +100,7 @@ npm run test:run
 | 字体 | Segoe UI Variable, Segoe UI, system-ui |
 | 等宽字体 | Cascadia Code, Consolas |
 | 圆角 | 4px (sm) / 6px / 8px (lg) / 12px (xl) |
-| 阴影 | 四级层次 (sm///lg/xl) |
+| 阴影 | 四级层次 (sm/lg/xl) |
 | 过渡动画 | 0.1-0.2s ease, 0.15s cubic-bezier(0.4, 0, 0.2, 1) |
 
 ### 主题系统
@@ -119,22 +127,29 @@ src/
 ├── App.vue              # 根组件
 ├── components/
 │   ├── TitleBar.vue     # 标题栏 (窗口控制按钮)
-│   ├── SideBar.vue      # 侧边导航栏
-│   ├── Footer.vue       # 底部栏
-│   ├── InputDialog.vue  # 输入对话框
+│   ├── TitleBar.test.js
+│   ├── SideBar.vue       # 侧边导航栏
+│   ├── SideBar.test.js
+│   ├── Footer.vue        # 底部栏
+│   ├── Footer.test.js
+│   ├── InputDialog.vue   # 输入对话框
 │   ├── MessageDialog.vue # 消息对话框
 │   ├── ApiProfileDialog.vue # API 配置弹窗
-│   └── ServerPanel.vue  # 服务器编辑面板
+│   └── ServerPanel.vue   # 服务器编辑面板
 ├── views/
-│   ├── GeneralSettings.vue # 常规设置视图
-│   ├── ApiConfig.vue    # API 配置视图
-│   └── McpServers.vue   # MCP 服务器视图
+│   ├── GeneralSettings.vue  # 常规设置视图
+│   ├── GeneralSettings.test.js
+│   ├── ApiConfig.vue     # API 配置视图
+│   ├── ApiConfig.test.js
+│   ├── McpServers.vue    # MCP 服务器视图
+│   ├── McpServers.test.js
+│   └── SkillsView.vue    # 技能管理视图
 ├── locales/
-│   ├── index.js         # 中文 (zh-CN)
-│   ├── en-US.js         # 英文
-│   └── ja-JP.js         # 日文
+│   ├── index.js          # 中文 (zh-CN)
+│   ├── en-US.js          # 英文
+│   └── ja-JP.js          # 日文
 └── styles/
-    └── global.less      # 全局样式 (Windows Fluent Design)
+    └── global.less       # 全局样式 (Windows Fluent Design)
 ```
 
 ## 关键模块
@@ -161,6 +176,17 @@ window.electronAPI.createApiProfile(name)
 window.electronAPI.deleteApiProfile(name)
 window.electronAPI.renameApiProfile(oldName, newName)
 window.electronAPI.duplicateApiProfile(sourceName, newName)
+
+// 技能管理
+window.electronAPI.listSkills()
+window.electronAPI.importSkillLocal()
+window.electronAPI.importSkillOnline(url, name)
+window.electronAPI.exportSkill(name, folderName)
+window.electronAPI.deleteSkill(name)
+
+// 事件监听
+window.electronAPI.onApiProfileSwitched(callback)
+window.electronAPI.notifyLanguageChanged()
 ```
 
 ### API 配置管理
@@ -177,11 +203,22 @@ window.electronAPI.duplicateApiProfile(sourceName, newName)
 }
 ```
 
+**API 字段**: `selectedAuthType`, `apiKey`, `baseUrl`, `modelName`, `searchApiKey`, `cna`
+
+### 技能管理
+
+技能文件夹位于 `~/.iflow/skills/`，每个技能是一个包含 `SKILL.md` 的文件夹：
+- 支持本地 ZIP 导入
+- 支持在线 URL 导入（GitHub tarball/zipball）
+- 导出技能到指定目录
+- 解析 SKILL.md 的 YAML front matter 获取名称和描述
+
 ### 系统托盘
 
 - 窗口关闭时隐藏到托盘而非退出
 - 托盘菜单支持快速切换 API 配置
 - 双击托盘图标显示主窗口
+- 支持多语言托盘菜单
 
 ## 代码风格
 
@@ -213,7 +250,7 @@ onMounted(async () => { ... })
 
 ### 测试规范
 
-- 测试文件命名: `*.test.js` 或 `*.spec.js`
+- 测试文件命名: `*.test.js`
 - 使用 Vitest + @vue/test-utils
 - DOM 测试环境: happy-dom
 - 覆盖范围排除: node_modules, dist, release, build
@@ -231,3 +268,4 @@ onMounted(async () => { ... })
 1. **图标不显示**: 检查 `build/icon.ico` 是否存在
 2. **配置不保存**: 确认 `~/.iflow/settings.json` 目录可写
 3. **亚克力效果异常**: 检查 `acrylicIntensity` 值是否在 0-100 范围内
+4. **技能导入失败**: 确保压缩包内包含有效的 SKILL.md 文件

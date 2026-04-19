@@ -16,7 +16,7 @@ describe('SideBar.vue', () => {
     expect(wrapper.find('.sidebar').exists()).toBe(true);
   });
 
-  it('has three nav items', () => {
+  it('has four nav items', () => {
     const wrapper = mount(SideBar, {
       global: {
         mocks: {
@@ -26,7 +26,7 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item');
-    expect(navItems.length).toBe(3);
+    expect(navItems.length).toBe(4);
   });
 
   it('has two sections', () => {
@@ -93,7 +93,7 @@ describe('SideBar.vue', () => {
     });
 
     const badges = wrapper.findAll('.nav-item-badge');
-    expect(badges.length).toBe(1);
+    expect(badges.length).toBe(2); // MCP and Skills both show badges
     expect(badges[0].text()).toBe('5');
   });
 
@@ -111,7 +111,7 @@ describe('SideBar.vue', () => {
     });
 
     const badges = wrapper.findAll('.nav-item-badge');
-    expect(badges.length).toBe(1);
+    expect(badges.length).toBe(2); // MCP and Skills both show badges
     expect(badges[0].text()).toBe('0');
   });
 
