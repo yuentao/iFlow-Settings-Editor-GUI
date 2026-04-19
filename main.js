@@ -226,13 +226,28 @@ function createWindow() {
     show: false,
     icon: path.join(__dirname, 'build', 'icon.ico'),
     webPreferences: {
-      devTools: true,
+      devTools: isDev, // 只在开发模式启用 devTools
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: false,
     },
   })
+
+  // 非开发模式下阻止开发者工具快捷键
+  if (!isDev) {
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      // 阻止 Ctrl+Shift+I (DevTools) 和 F12 (DevTools)
+      if (input.ctrl && input.shift && input.key.toLowerCase() === 'i') {
+        event.preventDefault()
+        return false
+      }
+      if (input.key === 'F12') {
+        event.preventDefault()
+        return false
+      }
+    })
+  }
   console.log('Loading index.html...')
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
