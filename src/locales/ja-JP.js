@@ -19,7 +19,9 @@ export default {
     title: '基本設定',
     description: 'アプリケーションの一般設定を構成',
     language: '言語',
+    languageDesc: '表示言語を選択',
     theme: 'テーマ',
+    themeDesc: 'ライト、ダーク、システムを選択',
     languageInterface: '言語とインターフェース',
     otherSettings: 'その他の設定',
     bootAnimation: '起動アニメーション',
@@ -30,7 +32,10 @@ export default {
     disabled: '無効',
     acrylicEffect: 'アクリリック効果',
     acrylicMin: '不透明',
-    acrylicMax: '透明'
+    acrylicMax: '透明',
+    autoLaunchSettings: '自動起動',
+    autoLaunch: 'システム起動時に自動起動',
+    autoLaunchHint: '有効にすると、システム起動時にアプリケーションが自動的に起動し、バックグラウンドでサイレント実行されます。メインウィンドウは表示されません。'
   },
   theme: {
     dark: 'ダーク',

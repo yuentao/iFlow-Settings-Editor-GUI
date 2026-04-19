@@ -19,7 +19,9 @@ export default {
     title: '基本设置',
     description: '配置应用程序的常规选项',
     language: '语言',
+    languageDesc: '选择界面显示语言',
     theme: '主题',
+    themeDesc: '选择浅色、深色或跟随系统',
     languageInterface: '语言与界面',
     otherSettings: '其他设置',
     bootAnimation: '启动动画',
@@ -30,7 +32,10 @@ export default {
     disabled: '已禁用',
     acrylicEffect: '亚克力效果',
     acrylicMin: '不透明',
-    acrylicMax: '透明'
+    acrylicMax: '透明',
+    autoLaunchSettings: '开机自启动',
+    autoLaunch: '开机自启动',
+    autoLaunchHint: '启用后，应用程序将在系统启动时自动运行，并以后台模式静默启动，不显示主窗口。'
   },
   theme: {
     dark: '深色',

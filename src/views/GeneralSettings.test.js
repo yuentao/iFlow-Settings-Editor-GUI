@@ -26,7 +26,7 @@ describe('GeneralSettings.vue', () => {
 
     expect(wrapper.exists()).toBe(true);
     expect(wrapper.find('.content-title').exists()).toBe(true);
-    expect(wrapper.findAll('.card').length).toBe(2);
+    expect(wrapper.findAll('.card').length).toBe(3);
   });
 
   it('displays language options correctly', () => {
@@ -103,7 +103,7 @@ describe('GeneralSettings.vue', () => {
     expect(wrapper.find('.content-desc').text()).toBe('translated-general.description');
   });
 
-  it('has two cards for settings sections', () => {
+  it('has three cards for settings sections', () => {
     const wrapper = mount(GeneralSettings, {
       props: {
         settings: mockSettings,
@@ -116,7 +116,7 @@ describe('GeneralSettings.vue', () => {
     });
 
     const cards = wrapper.findAll('.card');
-    expect(cards.length).toBe(2);
+    expect(cards.length).toBe(3);
   });
 
   it('displays card titles with icons', () => {
@@ -132,9 +132,10 @@ describe('GeneralSettings.vue', () => {
     });
 
     const cardTitles = wrapper.findAll('.card-title');
-    expect(cardTitles.length).toBe(2);
+    expect(cardTitles.length).toBe(3);
     expect(cardTitles[0].text()).toContain('general.languageInterface');
-    expect(cardTitles[1].text()).toContain('general.otherSettings');
+    expect(cardTitles[1].text()).toContain('general.autoLaunchSettings');
+    expect(cardTitles[2].text()).toContain('general.otherSettings');
   });
 
   it('shows all form controls with proper structure', () => {
@@ -149,9 +150,9 @@ describe('GeneralSettings.vue', () => {
       },
     });
 
-    expect(wrapper.findAll('.form-row').length).toBe(3);
-    expect(wrapper.findAll('.form-group').length).toBe(5);
-    expect(wrapper.findAll('.form-label').length).toBe(5);
+    expect(wrapper.findAll('.setting-item').length).toBe(6);
+    expect(wrapper.findAll('.setting-label').length).toBe(6);
     expect(wrapper.findAll('.form-select').length).toBe(4);
+    expect(wrapper.find('.switch').exists()).toBe(true);
   });
 });

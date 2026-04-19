@@ -6,6 +6,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSettings: (data) => ipcRenderer.invoke('save-settings', data),
   showMessage: (options) => ipcRenderer.invoke('show-message', options),
 
+  // 开机自启动
+  getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
+  setAutoLaunch: (enabled) => ipcRenderer.invoke('set-auto-launch', enabled),
+
   // 窗口控制
   isMaximized: () => ipcRenderer.invoke('is-maximized'),
   minimize: () => ipcRenderer.send('window-minimize'),

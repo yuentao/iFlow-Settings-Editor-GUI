@@ -19,7 +19,9 @@ export default {
     title: 'Basic Settings',
     description: 'Configure general application options',
     language: 'Language',
+    languageDesc: 'Choose your preferred display language',
     theme: 'Theme',
+    themeDesc: 'Select light, dark, or follow system',
     languageInterface: 'Language & Interface',
     otherSettings: 'Other Settings',
     bootAnimation: 'Boot Animation',
@@ -30,7 +32,10 @@ export default {
     disabled: 'Disabled',
     acrylicEffect: 'Acrylic Effect',
     acrylicMin: 'Opaque',
-    acrylicMax: 'Transparent'
+    acrylicMax: 'Transparent',
+    autoLaunchSettings: 'Auto Start',
+    autoLaunch: 'Auto Start on Boot',
+    autoLaunchHint: 'When enabled, the application will automatically start when the system boots and run silently in the background without showing the main window.'
   },
   theme: {
     dark: 'Dark',

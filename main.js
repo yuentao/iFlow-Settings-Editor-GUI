@@ -9,6 +9,30 @@ let mainWindow
 let tray
 const isDev = process.argv.includes('--dev')
 
+// 检测是否后台静默启动（开机自启动时使用）
+const isSilentLaunch = process.argv.includes('--hidden') || process.argv.includes('--silent')
+
+// 自启动设置
+function getAutoLaunchSettings() {
+  const settings = readSettings()
+  return settings?.autoLaunch ?? false
+}
+
+function setAutoLaunchEnabled(enabled) {
+  const settings = readSettings() || {}
+  settings.autoLaunch = enabled
+  writeSettings(settings)
+
+  // 设置 Electron 的自启动
+  if (app.isReady()) {
+    app.setLoginItemSettings({
+      openAtLogin: enabled,
+      openAsHidden: true, // 静默启动不显示窗口
+      path: app.getPath('exe'),
+    })
+  }
+}
+
 // 主进程翻译
 const trayTranslations = {
   'zh-CN': {
@@ -224,14 +248,31 @@ function createWindow() {
   })
   mainWindow.once('ready-to-show', () => {
     console.log('Window ready to show')
-    mainWindow.show()
-    createTray()
+    // 如果是后台静默启动，不显示窗口，只创建托盘
+    if (isSilentLaunch) {
+      console.log('Silent launch mode - hiding window')
+      createTray()
+    } else {
+      mainWindow.show()
+      createTray()
+    }
   })
   mainWindow.on('closed', () => {
     mainWindow = null
   })
 }
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  // 初始化自启动设置
+  const autoLaunchEnabled = getAutoLaunchSettings()
+  if (autoLaunchEnabled) {
+    app.setLoginItemSettings({
+      openAtLogin: true,
+      openAsHidden: true,
+      path: app.getPath('exe'),
+    })
+  }
+  createWindow()
+})
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin' && app.isQuitting) {
     app.quit()
@@ -262,6 +303,24 @@ ipcMain.handle('is-maximized', () => mainWindow.isMaximized())
 // 监听语言切换以更新托盘菜单
 ipcMain.on('language-changed', () => {
   updateTrayMenu()
+})
+
+// 开机自启动
+ipcMain.handle('get-auto-launch', async () => {
+  try {
+    return { success: true, enabled: getAutoLaunchSettings() }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('set-auto-launch', async (event, enabled) => {
+  try {
+    setAutoLaunchEnabled(enabled)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
 })
 // API 配置相关的字段
 const API_FIELDS = ['selectedAuthType', 'apiKey', 'baseUrl', 'modelName', 'searchApiKey', 'cna']
