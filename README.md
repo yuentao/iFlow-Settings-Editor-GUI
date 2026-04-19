@@ -14,6 +14,8 @@
 - 💧 **亚克力效果** - 可调节透明度的现代视觉效果
 - 🧩 **技能管理** - 本地和在线导入、导出、删除 iFlow 技能
 - 📦 **系统托盘** - 最小化到托盘，快速切换 API 配置
+- 🚀 **开机自启动** - 支持开机自动启动，可选后台静默启动
+- 📊 **仪表盘视图** - 直观展示当前配置状态和快捷操作
 
 ## 技术栈
 
@@ -25,6 +27,8 @@
 | vue-i18n | 9.x |
 | Less | 4.x |
 | Vitest | 4.x |
+| electron-builder | 24.x |
+| @icon-park/vue-next | 1.4.x |
 
 ## 支持的系统
 
@@ -165,8 +169,18 @@ iFlow-Settings-Editor-GUI/
     ├── main.js          # Vue 入口
     ├── App.vue          # 根组件
     ├── components/      # 公共组件
+    │   ├── TitleBar.vue        # 标题栏
+    │   ├── SideBar.vue         # 侧边导航
+    │   ├── InputDialog.vue     # 输入对话框
+    │   ├── MessageDialog.vue   # 消息对话框
+    │   ├── ApiProfileDialog.vue # API 配置弹窗
+    │   └── ServerPanel.vue     # 服务器编辑面板
     ├── views/           # 页面视图
-    │   └── SkillsView.vue  # 技能管理视图
+    │   ├── GeneralSettings.vue # 常规设置
+    │   ├── ApiConfig.vue      # API 配置管理
+    │   ├── McpServers.vue     # MCP 服务器管理
+    │   ├── SkillsView.vue     # 技能管理
+    │   └── Dashboard.vue     # 仪表盘
     ├── locales/         # 国际化语言包
     └── styles/          # 全局样式
 ```

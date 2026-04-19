@@ -30,7 +30,6 @@
 │  src/App.vue - 根组件                               │
 │  ├── TitleBar.vue - 自定义标题栏                     │
 │  ├── SideBar.vue - 侧边导航                          │
-│  ├── Footer.vue - 底部栏                             │
 │  ├── InputDialog.vue - 输入对话框                    │
 │  ├── MessageDialog.vue - 消息对话框                   │
 │  ├── ApiProfileDialog.vue - API 配置弹窗             │
@@ -39,7 +38,8 @@
 │      ├── GeneralSettings.vue - 基础设置              │
 │      ├── ApiConfig.vue - API 配置管理                │
 │      ├── McpServers.vue - MCP 服务器管理             │
-│      └── SkillsView.vue - 技能管理                  │
+│      ├── SkillsView.vue - 技能管理                  │
+│      └── Dashboard.vue - 仪表盘视图                  │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -62,6 +62,9 @@ npm run dev
 # Electron 开发模式 (并行启动 Vite + Electron)
 npm run electron:dev
 
+# Electron 生产模式 (先构建再启动)
+npm run electron:start
+
 # 构建生产版本
 npm run build
 
@@ -75,6 +78,9 @@ npm run build:win-portable
 
 # 打包 Windows 安装程序 (NSIS)
 npm run build:win-installer
+
+# 打包全部 (根据配置)
+npm run dist
 
 # 运行测试
 npm run test
@@ -128,14 +134,16 @@ src/
 ├── components/
 │   ├── TitleBar.vue     # 标题栏 (窗口控制按钮)
 │   ├── TitleBar.test.js
-│   ├── SideBar.vue       # 侧边导航栏
+│   ├── SideBar.vue      # 侧边导航栏
 │   ├── SideBar.test.js
-│   ├── Footer.vue        # 底部栏
-│   ├── Footer.test.js
-│   ├── InputDialog.vue   # 输入对话框
-│   ├── MessageDialog.vue # 消息对话框
+│   ├── InputDialog.vue  # 输入对话框
+│   ├── InputDialog.test.js
+│   ├── MessageDialog.vue    # 消息对话框
+│   ├── MessageDialog.test.js
 │   ├── ApiProfileDialog.vue # API 配置弹窗
-│   └── ServerPanel.vue   # 服务器编辑面板
+│   ├── ApiProfileDialog.test.js
+│   └── ServerPanel.vue  # 服务器编辑面板
+│   └── ServerPanel.test.js
 ├── views/
 │   ├── GeneralSettings.vue  # 常规设置视图
 │   ├── GeneralSettings.test.js
@@ -143,7 +151,9 @@ src/
 │   ├── ApiConfig.test.js
 │   ├── McpServers.vue    # MCP 服务器视图
 │   ├── McpServers.test.js
-│   └── SkillsView.vue    # 技能管理视图
+│   ├── SkillsView.vue    # 技能管理视图
+│   ├── SkillsView.test.js
+│   └── Dashboard.vue    # 仪表盘视图
 ├── locales/
 │   ├── index.js          # 中文 (zh-CN)
 │   ├── en-US.js          # 英文
@@ -168,6 +178,10 @@ window.electronAPI.minimize()
 window.electronAPI.maximize()
 window.electronAPI.close()
 window.electronAPI.isMaximized()
+
+// 开机自启动
+window.electronAPI.getAutoLaunch()
+window.electronAPI.setAutoLaunch(enabled)
 
 // API 配置管理
 window.electronAPI.listApiProfiles()
@@ -219,6 +233,12 @@ window.electronAPI.notifyLanguageChanged()
 - 托盘菜单支持快速切换 API 配置
 - 双击托盘图标显示主窗口
 - 支持多语言托盘菜单
+
+### 开机自启动
+
+- 支持开机自动启动功能
+- 支持后台静默启动模式（`--hidden` / `--silent` 参数）
+- 自启动设置存储在 `~/.iflow/settings.json` 的 `autoLaunch` 字段
 
 ## 代码风格
 
