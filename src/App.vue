@@ -6,13 +6,7 @@
       <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" @navigate="showSection" />
 
       <div class="content">
-        <Dashboard
-          v-if="currentSection === 'dashboard'"
-          :settings="settings"
-          :current-api-profile="currentApiProfile"
-          :server-count="serverCount"
-          :skill-count="skillCount"
-          @navigate="showSection" />
+        <Dashboard v-if="currentSection === 'dashboard'" :settings="settings" :current-api-profile="currentApiProfile" :server-count="serverCount" :skill-count="skillCount" @navigate="showSection" />
 
         <GeneralSettings v-if="currentSection === 'general'" :settings="settings" @update:settings="updateSettings" />
 
@@ -30,13 +24,9 @@
 
         <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :selected-server="currentServerName" :server-count="serverCount" @add-server="addServer" @select-server="selectServer" />
 
-        <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @skills-changed="onSkillsChanged" />
+        <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
       </div>
     </main>
-
-    <InputDialog :dialog="showInputDialog" @confirm="handleInputConfirm" @cancel="closeInputDialog" />
-
-    <MessageDialog :dialog="showMessageDialog" @close="closeMessageDialog" />
 
     <ApiProfileDialog
       :show-create="showApiCreateDialog"
@@ -50,6 +40,10 @@
       @save-edit="saveApiEdit" />
 
     <ServerPanel :show="showServerPanel" :is-editing="isEditingServer" :data="editingServerData" @close="closeServerPanel" @save="saveServerFromPanel" @delete="deleteServer" />
+
+    <InputDialog :dialog="showInputDialog" @confirm="handleInputConfirm" @cancel="closeInputDialog" />
+    
+    <MessageDialog :dialog="showMessageDialog" @close="closeMessageDialog" @confirm="handleMessageConfirm" style="z-index: 1500" />
   </div>
 </template>
 
@@ -502,11 +496,18 @@ const showMessage = ({ type = 'info', title, message }) => {
   })
 }
 
+const showInput = ({ type, title, placeholder, callback, isConfirm, defaultValue }) => {
+  showInputDialog.value = { show: true, title, placeholder, callback, isConfirm, defaultValue }
+}
+
 const closeMessageDialog = () => {
-  if (showMessageDialog.value.callback) {
-    showMessageDialog.value.callback(true)
-  }
   showMessageDialog.value.show = false
+}
+
+const handleMessageConfirm = result => {
+  if (showMessageDialog.value.callback) {
+    showMessageDialog.value.callback(result)
+  }
 }
 
 watch(

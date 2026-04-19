@@ -90,7 +90,7 @@
 import { ref, onMounted } from 'vue'
 import { Star, FolderOpen, Download, Upload, Delete } from '@icon-park/vue-next'
 
-const emit = defineEmits(['show-message', 'skills-changed'])
+const emit = defineEmits(['show-message', 'skills-changed', 'show-input-dialog'])
 
 const skills = ref([])
 const selectedSkill = ref(null)
@@ -184,32 +184,32 @@ const exportSkill = async (skill) => {
   }
 }
 
-const deleteSkill = async (skill) => {
-  try {
-    const confirmed = await new Promise(resolve => {
-      emit('show-message', {
-        type: 'warning',
-        title: 'Confirm Delete',
-        message: `确定要删除技能 "${skill.name}" 吗？`,
-        callback: resolve
-      })
-    })
+const deleteSkill = (skill) => {
+  const folderToDelete = skill.folderName || skill.name
 
+  new Promise(resolve => {
+    emit('show-input-dialog', {
+      type: 'confirm',
+      title: 'Confirm Delete',
+      placeholder: `确定要删除技能 "${skill.name}" 吗？`,
+      callback: resolve,
+      isConfirm: true
+    })
+  }).then(confirmed => {
     if (!confirmed) return
 
-    const result = await window.electronAPI.deleteSkill(skill.name)
-    if (result.success) {
-      if (selectedSkill.value === skill.name) {
-        selectedSkill.value = null
+    window.electronAPI.deleteSkill(folderToDelete).then(result => {
+      if (result.success) {
+        if (selectedSkill.value === skill.name) {
+          selectedSkill.value = null
+        }
+        loadSkills()
+        emit('show-message', { type: 'success', title: 'Success', message: result.message })
+      } else {
+        emit('show-message', { type: 'error', title: 'Error', message: result.error })
       }
-      await loadSkills()
-      emit('show-message', { type: 'success', title: 'Success', message: result.message })
-    } else {
-      emit('show-message', { type: 'error', title: 'Error', message: result.error })
-    }
-  } catch (error) {
-    emit('show-message', { type: 'error', title: 'Error', message: error.message })
-  }
+    })
+  })
 }
 
 onMounted(() => {

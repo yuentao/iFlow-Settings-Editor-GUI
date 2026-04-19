@@ -24,21 +24,26 @@
       <div class="message-dialog-title">{{ dialog.title }}</div>
       <div class="message-dialog-message">{{ dialog.message }}</div>
       <div class="dialog-actions">
-        <button class="btn btn-primary" @click="$emit('close')">{{ $t('dialog.confirm') }}</button>
+        <button class="btn btn-primary" @click="handleConfirm">{{ $t('dialog.confirm') }}</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   dialog: {
     type: Object,
-    default: () => ({ show: false, type: 'info', title: '', message: '' })
+    default: () => ({ show: false, type: 'info', title: '', message: '', callback: null })
   }
 })
 
-defineEmits(['close'])
+const emit = defineEmits(['close', 'confirm'])
+
+const handleConfirm = () => {
+  emit('confirm', true)
+  emit('close')
+}
 </script>
 
 <style lang="less" scoped>
