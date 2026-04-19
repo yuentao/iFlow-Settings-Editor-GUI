@@ -37,6 +37,7 @@
       :show-edit="showApiEditDialog"
       :create-data="creatingApiData"
       :edit-data="editingApiData"
+      :current-profile-name="currentApiProfile"
       @close-create="closeApiCreateDialog"
       @save-create="saveApiCreate"
       @close-edit="closeApiEditDialog"
@@ -227,6 +228,7 @@ const openApiEditDialog = profileName => {
   editingApiProfileName.value = profileName
   const profile = settings.value.apiProfiles && settings.value.apiProfiles[profileName]
   editingApiData.value = {
+    name: profileName,
     selectedAuthType: (profile && profile.selectedAuthType) || settings.value.selectedAuthType || 'openai-compatible',
     apiKey: (profile && profile.apiKey) || settings.value.apiKey || '',
     baseUrl: (profile && profile.baseUrl) || settings.value.baseUrl || '',
@@ -240,15 +242,42 @@ const closeApiEditDialog = () => {
 }
 
 const saveApiEdit = async data => {
-  if (!settings.value.apiProfiles) settings.value.apiProfiles = {}
-  if (!settings.value.apiProfiles[editingApiProfileName.value]) settings.value.apiProfiles[editingApiProfileName.value] = {}
-  settings.value.apiProfiles[editingApiProfileName.value].selectedAuthType = data.selectedAuthType
-  settings.value.apiProfiles[editingApiProfileName.value].apiKey = data.apiKey
-  settings.value.apiProfiles[editingApiProfileName.value].baseUrl = data.baseUrl
-  settings.value.apiProfiles[editingApiProfileName.value].modelName = data.modelName
+  const oldName = editingApiProfileName.value
+  const newName = data.name.trim()
+
+  // 检查名称是否改变
+  if (oldName !== newName) {
+    if (!newName) {
+      await showMessage({ type: 'warning', title: t('messages.error'), message: t('messages.inputConfigName') })
+      return
+    }
+    // 调用重命名 API
+    const renameResult = await window.electronAPI.renameApiProfile(oldName, newName)
+    if (!renameResult.success) {
+      await showMessage({ type: 'error', title: t('messages.error'), message: renameResult.error })
+      return
+    }
+    // 更新当前配置名称
+    if (oldName === currentApiProfile.value) {
+      currentApiProfile.value = newName
+    }
+    // 删除旧名称的配置
+    if (settings.value.apiProfiles[oldName]) {
+      delete settings.value.apiProfiles[oldName]
+    }
+    editingApiProfileName.value = newName
+    await loadApiProfiles()
+  }
+
+  // 更新配置数据
+  if (!settings.value.apiProfiles[newName]) settings.value.apiProfiles[newName] = {}
+  settings.value.apiProfiles[newName].selectedAuthType = data.selectedAuthType
+  settings.value.apiProfiles[newName].apiKey = data.apiKey
+  settings.value.apiProfiles[newName].baseUrl = data.baseUrl
+  settings.value.apiProfiles[newName].modelName = data.modelName
 
   // 如果编辑的是当前配置，需要同步到主设置对象
-  if (editingApiProfileName.value === currentApiProfile.value) {
+  if (newName === currentApiProfile.value) {
     settings.value.selectedAuthType = data.selectedAuthType
     settings.value.apiKey = data.apiKey
     settings.value.baseUrl = data.baseUrl

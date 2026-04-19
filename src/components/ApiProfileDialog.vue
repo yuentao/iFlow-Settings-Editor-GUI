@@ -69,6 +69,10 @@
       </div>
       <div class="dialog-body">
         <div class="form-group">
+          <label class="form-label">{{ $t('api.configName') }}</label>
+          <input type="text" class="form-input" v-model="editData.name" :disabled="editData.name === currentProfileName" />
+        </div>
+        <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
           <select class="form-select" v-model="editData.selectedAuthType">
             <option value="iflow">{{ $t('api.auth.iflow') }}</option>
@@ -109,7 +113,8 @@ defineProps({
   showCreate: Boolean,
   showEdit: Boolean,
   createData: Object,
-  editData: Object
+  editData: Object,
+  currentProfileName: String
 })
 
 defineEmits([
