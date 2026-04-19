@@ -245,7 +245,7 @@ const updateSliderValue = e => {
 .slider-container {
   position: relative;
   width: 100%;
-  padding-top: var(--space-sm);
+  height: 20px;
 }
 
 .slider-track {
@@ -254,10 +254,10 @@ const updateSliderValue = e => {
   height: 4px;
   background: var(--border);
   border-radius: 2px;
-  overflow: hidden;
   top: 50%;
   transform: translateY(-50%);
   left: 0;
+  overflow: hidden;
 }
 
 .slider-fill {
@@ -268,16 +268,17 @@ const updateSliderValue = e => {
 }
 
 .form-slider {
-  position: relative;
+  position: absolute;
   width: 100%;
-  height: 4px;
+  height: 20px;
   background: transparent;
   outline: none;
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
-  z-index: 1;
   margin: 0;
+  top: 0;
+  left: 0;
 
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -287,8 +288,8 @@ const updateSliderValue = e => {
     border-radius: 50%;
     background: var(--accent);
     cursor: pointer;
-    border: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
     transition: transform 0.1s ease;
   }
 
@@ -306,8 +307,8 @@ const updateSliderValue = e => {
     border-radius: 50%;
     background: var(--accent);
     cursor: pointer;
-    border: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
 }
 

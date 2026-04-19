@@ -6,6 +6,14 @@
       <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" @navigate="showSection" />
 
       <div class="content">
+        <Dashboard
+          v-if="currentSection === 'dashboard'"
+          :settings="settings"
+          :current-api-profile="currentApiProfile"
+          :server-count="serverCount"
+          :skill-count="skillCount"
+          @navigate="showSection" />
+
         <GeneralSettings v-if="currentSection === 'general'" :settings="settings" @update:settings="updateSettings" />
 
         <ApiConfig
@@ -25,8 +33,6 @@
         <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @skills-changed="onSkillsChanged" />
       </div>
     </main>
-
-    <Footer :current-config="currentApiProfile" />
 
     <InputDialog :dialog="showInputDialog" @confirm="handleInputConfirm" @cancel="closeInputDialog" />
 
@@ -53,7 +59,6 @@ import { useI18n } from 'vue-i18n'
 
 import TitleBar from './components/TitleBar.vue'
 import SideBar from './components/SideBar.vue'
-import Footer from './components/Footer.vue'
 import InputDialog from './components/InputDialog.vue'
 import MessageDialog from './components/MessageDialog.vue'
 import ApiProfileDialog from './components/ApiProfileDialog.vue'
@@ -62,6 +67,7 @@ import GeneralSettings from './views/GeneralSettings.vue'
 import ApiConfig from './views/ApiConfig.vue'
 import McpServers from './views/McpServers.vue'
 import SkillsView from './views/SkillsView.vue'
+import Dashboard from './views/Dashboard.vue'
 
 const { locale, t } = useI18n()
 
@@ -82,7 +88,7 @@ const settings = ref({
 
 const originalSettings = ref({})
 const modified = ref(false)
-const currentSection = ref('general')
+const currentSection = ref('dashboard')
 const currentServerName = ref(null)
 const isLoading = ref(true)
 const apiProfiles = ref([])

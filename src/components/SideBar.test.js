@@ -16,7 +16,7 @@ describe('SideBar.vue', () => {
     expect(wrapper.find('.sidebar').exists()).toBe(true);
   });
 
-  it('has four nav items', () => {
+  it('has five nav items', () => {
     const wrapper = mount(SideBar, {
       global: {
         mocks: {
@@ -26,7 +26,7 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item');
-    expect(navItems.length).toBe(4);
+    expect(navItems.length).toBe(5);
   });
 
   it('has two sections', () => {
@@ -55,15 +55,17 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item');
-    expect(navItems[0].classes('active')).toBe(false);
-    expect(navItems[1].classes('active')).toBe(true);
-    expect(navItems[2].classes('active')).toBe(false);
+    // Order: Dashboard(0), API Config(1), Basic Settings(2), MCP(3), Skills(4)
+    expect(navItems[0].classes('active')).toBe(false); // Dashboard
+    expect(navItems[1].classes('active')).toBe(true);  // API Config
+    expect(navItems[2].classes('active')).toBe(false);  // Basic Settings
+    expect(navItems[3].classes('active')).toBe(false); // MCP
   });
 
   it('emits navigate event when nav item is clicked', async () => {
     const wrapper = mount(SideBar, {
       props: {
-        currentSection: 'general',
+        currentSection: 'dashboard',
       },
       global: {
         mocks: {
@@ -73,10 +75,11 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item');
-    await navItems[1].trigger('click');
+    // Order: Dashboard(0), API Config(1), Basic Settings(2), MCP(3), Skills(4)
+    await navItems[2].trigger('click'); // Click Basic Settings
 
     expect(wrapper.emitted('navigate')).toBeTruthy();
-    expect(wrapper.emitted('navigate')[0][0]).toBe('api');
+    expect(wrapper.emitted('navigate')[0][0]).toBe('general');
   });
 
   it('displays server count badge correctly', () => {
@@ -139,9 +142,11 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item-text');
-    expect(navItems[0].text()).toBe('translated-sidebar.basicSettings');
+    // Order: Dashboard(0), API Config(1), Basic Settings(2), MCP(3), Skills(4)
+    expect(navItems[0].text()).toBe('translated-sidebar.dashboard');
     expect(navItems[1].text()).toBe('translated-sidebar.apiConfig');
-    expect(navItems[2].text()).toBe('translated-sidebar.mcpServers');
+    expect(navItems[2].text()).toBe('translated-sidebar.basicSettings');
+    expect(navItems[3].text()).toBe('translated-sidebar.mcpServers');
   });
 
   it('handles null currentSection', () => {
@@ -160,5 +165,6 @@ describe('SideBar.vue', () => {
     expect(navItems[0].classes('active')).toBe(false);
     expect(navItems[1].classes('active')).toBe(false);
     expect(navItems[2].classes('active')).toBe(false);
+    expect(navItems[3].classes('active')).toBe(false);
   });
 });

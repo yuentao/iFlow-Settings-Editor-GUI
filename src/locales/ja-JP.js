@@ -9,11 +9,31 @@ export default {
   },
   sidebar: {
     general: '一般',
+    dashboard: 'ダッシュボード',
     basicSettings: '基本設定',
     apiConfig: 'API 設定',
     advanced: '詳細',
     mcpServers: 'MCP サーバー',
     skills: 'スキル'
+  },
+  dashboard: {
+    title: 'ダッシュボード',
+    description: '設定の概観を表示',
+    currentApiConfig: '現在の API 設定',
+    mcpServers: 'MCP サーバー',
+    skills: 'スキル',
+    theme: 'テーマ',
+    profiles: 'プロファイル',
+    configured: '設定済み',
+    installed: 'インストール済み',
+    noServers: '未設定',
+    noSkills: '未インストール',
+    enabled: '有効',
+    disabled: '無効',
+    shown: '表示済み',
+    hidden: '非表示',
+    followSystem: 'システムに従う',
+    manual: '手動'
   },
   general: {
     title: '基本設定',
