@@ -13,12 +13,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 从 release 分支推送时自动创建 tag
+  # 从 release 分支推送时自动创建 tag 并构建
   create-tag:
     if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,7 +28,6 @@ jobs:
       - name: Extract version from changelog
         id: version
         run: |
-          # 从 CHANGELOG.md 提取第一个版本号
           VERSION=$(awk -F'[][]' '/^## \[.*\]/ {print $2; exit}' CHANGELOG.md)
           if [ -z "$VERSION" ]; then
             echo "无法从 CHANGELOG.md 提取版本号"
@@ -45,6 +46,7 @@ jobs:
           git push origin "$TAG_NAME"
 
   build-mac:
+    needs: create-tag
     strategy:
       fail-fast: false
       matrix:
@@ -88,6 +90,7 @@ jobs:
           retention-days: 30
 
   build-windows:
+    needs: create-tag
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -115,9 +118,8 @@ jobs:
           retention-days: 30
 
   release:
-    needs: [build-mac, build-windows]
+    needs: [create-tag, build-mac, build-windows]
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     permissions:
       contents: write
     steps:
@@ -138,7 +140,7 @@ jobs:
         id: changelog
         run: |
           CHANGELOG_FILE="CHANGELOG.md"
-          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          TAG_VERSION="v${{ needs.create-tag.outputs.version }}"
 
           # 匹配版本标题行，提取到下一个版本之前的内容
           CHANGELOG_CONTENT=$(awk -v version="$TAG_VERSION" '
