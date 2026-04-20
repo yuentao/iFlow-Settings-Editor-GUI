@@ -140,7 +140,6 @@ jobs:
         id: changelog
         run: |
           CHANGELOG_FILE="CHANGELOG.md"
-          # 去掉 v 前缀用于匹配 changelog
           VERSION="${{ needs.create-tag.outputs.version }}"
           TAG_VERSION="v${VERSION}"
 
@@ -154,8 +153,11 @@ jobs:
           if [ -z "$CHANGELOG_CONTENT" ]; then
             echo "body=${TAG_VERSION} 更新内容" >> $GITHUB_OUTPUT
           else
-            BODY=$(echo "$CHANGELOG_CONTENT" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
-            echo "body=${BODY}" >> $GITHUB_OUTPUT
+            # 使用 printf 保持原始换行，不做转义
+            BODY=$(printf '%s' "$CHANGELOG_CONTENT")
+            echo "body<<EOF" >> $GITHUB_OUTPUT
+            echo "$BODY" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
           fi
 
           echo "版本: $TAG_VERSION"
