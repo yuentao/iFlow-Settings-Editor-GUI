@@ -413,6 +413,8 @@ ipcMain.handle('switch-api-profile', async (event, profileName) => {
     settings.currentApiProfile = profileName
     settings.apiProfiles = profiles
     writeSettings(settings)
+    // 更新托盘菜单
+    updateTrayMenu()
     return { success: true, data: settings }
   } catch (error) {
     return { success: false, error: error.message }
@@ -447,6 +449,8 @@ ipcMain.handle('create-api-profile', async (event, name) => {
     }
     settings.apiProfiles[name] = newConfig
     writeSettings(settings)
+    // 更新托盘菜单
+    updateTrayMenu()
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }
@@ -481,6 +485,8 @@ ipcMain.handle('delete-api-profile', async (event, name) => {
       }
     }
     writeSettings(settings)
+    // 更新托盘菜单
+    updateTrayMenu()
     return { success: true, data: settings }
   } catch (error) {
     return { success: false, error: error.message }
@@ -511,6 +517,8 @@ ipcMain.handle('rename-api-profile', async (event, oldName, newName) => {
       settings.currentApiProfile = newName
     }
     writeSettings(settings)
+    // 更新托盘菜单
+    updateTrayMenu()
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }
@@ -535,6 +543,8 @@ ipcMain.handle('duplicate-api-profile', async (event, sourceName, newName) => {
     profiles[newName] = JSON.parse(JSON.stringify(profiles[sourceName]))
     settings.apiProfiles = profiles
     writeSettings(settings)
+    // 更新托盘菜单
+    updateTrayMenu()
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }
