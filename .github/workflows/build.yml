@@ -17,9 +17,14 @@ concurrency:
 
 jobs:
   # 从 release 分支推送时自动创建 tag 并构建
+  # 从 release 分支推送时自动创建 tag 并构建
   create-tag:
     if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     permissions:
       contents: write
     outputs:
@@ -49,6 +54,7 @@ jobs:
           git push origin "$TAG_NAME"
 
   build-mac:
+    needs: create-tag
     needs: create-tag
     strategy:
       fail-fast: false
@@ -94,6 +100,7 @@ jobs:
 
   build-windows:
     needs: create-tag
+    needs: create-tag
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -122,6 +129,7 @@ jobs:
 
   release:
     needs: [create-tag, build-mac, build-windows]
+    needs: [create-tag, build-mac, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -143,6 +151,7 @@ jobs:
         id: changelog
         run: |
           CHANGELOG_FILE="CHANGELOG.md"
+          TAG_VERSION="v${{ needs.create-tag.outputs.version }}"
           TAG_VERSION="v${{ needs.create-tag.outputs.version }}"
 
           # 匹配版本标题行，提取到下一个版本之前的内容
