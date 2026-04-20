@@ -178,6 +178,8 @@ jobs:
         with:
           draft: false
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+          tag_name: v${{ needs.create-tag.outputs.version }}
+          name: v${{ needs.create-tag.outputs.version }}
           body: ${{ steps.changelog.outputs.body }}
           files: release-files/*
         env:
