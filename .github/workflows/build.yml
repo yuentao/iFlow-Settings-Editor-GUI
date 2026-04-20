@@ -6,6 +6,9 @@ on:
       - release
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - release
   workflow_dispatch:
 
 concurrency:
