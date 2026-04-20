@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - release
-    tags:
-      - 'v*'
+  pull_request:
+    branches:
+      - release
   workflow_dispatch:
 
 concurrency:
@@ -13,7 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 从 release 分支推送时自动创建 tag 并构建
   create-tag:
     if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
@@ -142,12 +142,9 @@ jobs:
           CHANGELOG_FILE="CHANGELOG.md"
           TAG_VERSION="v${{ needs.create-tag.outputs.version }}"
 
-          # 匹配版本标题行，提取到下一个版本之前的内容
           CHANGELOG_CONTENT=$(awk -v version="$TAG_VERSION" '
             BEGIN { found=0 }
-            # 匹配版本标题行 ## [1.8.5] - 2026-04-20
-            found == 0 && /^## \[/ && index($0, "[" version "]") > 0 { found=1; next }
-            # 遇到下一个版本标题时退出
+            found == 0 && /^## \[.*\]/ && index($0, "[" version "]") > 0 { found=1; next }
             found && /^## \[.*\]/ { found=0; exit }
             found { print }
           ' "$CHANGELOG_FILE")
@@ -155,7 +152,6 @@ jobs:
           if [ -z "$CHANGELOG_CONTENT" ]; then
             echo "body=${TAG_VERSION} 更新内容" >> $GITHUB_OUTPUT
           else
-            # 转义并格式化
             BODY=$(echo "$CHANGELOG_CONTENT" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
             echo "body=${BODY}" >> $GITHUB_OUTPUT
           fi
@@ -178,6 +174,8 @@ jobs:
         with:
           draft: false
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+          tag_name: v${{ needs.create-tag.outputs.version }}
+          name: v${{ needs.create-tag.outputs.version }}
           body: ${{ steps.changelog.outputs.body }}
           files: release-files/*
         env:
