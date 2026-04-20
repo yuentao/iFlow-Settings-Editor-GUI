@@ -33,6 +33,7 @@
 ## 支持的系统
 
 - Windows 10 / 11 (x64)
+- macOS 12+ (x64 / arm64)
 
 ## 安装
 
@@ -63,9 +64,36 @@ npm run build:win-portable
 
 # 构建 NSIS 安装程序
 npm run build:win-installer
+
+# 构建 macOS 安装包 (x64 + arm64)
+npm run build:mac
+
+# 构建 macOS 指定架构
+npm run build:mac64   # 仅 x64
+npm run build:mac-arm # 仅 arm64
+
+# 构建 macOS DMG 安装包
+npm run build:mac-dmg
+
+# 构建 macOS ZIP 压缩包
+npm run build:mac-zip
 ```
 
 构建完成后，安装包位于 `release/` 目录下。
+
+### CI/CD
+
+项目使用 GitHub Actions 进行持续集成和发布：
+
+- **推送标签** `v*` 自动构建并创建 GitHub Release
+- 支持 Windows (x64) 和 macOS (x64/arm64) 多平台构建
+- 自动提取 CHANGELOG.md 生成发布说明
+
+```bash
+# 触发发布
+git tag v1.9.0
+git push origin v1.9.0
+```
 
 ## 使用说明
 
