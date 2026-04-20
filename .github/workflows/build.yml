@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, release]
     tags:
       - 'v*'
   pull_request:
@@ -14,6 +14,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 从 release 分支推送时自动创建 tag
+  create-tag:
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from changelog
+        id: version
+        run: |
+          # 从 CHANGELOG.md 提取第一个版本号
+          VERSION=$(awk -F'[][]' '/^## \[.*\]/ {print $2; exit}' CHANGELOG.md)
+          if [ -z "$VERSION" ]; then
+            echo "无法从 CHANGELOG.md 提取版本号"
+            exit 1
+          fi
+          echo "提取到版本: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        run: |
+          TAG_NAME="v${{ steps.version.outputs.version }}"
+          echo "创建 tag: $TAG_NAME"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+          git push origin "$TAG_NAME"
+
   build-mac:
     strategy:
       fail-fast: false
