@@ -20,6 +20,11 @@
     "build:win32": "vite build && electron-builder --win --ia32",
     "build:win-portable": "vite build && electron-builder --win portable",
     "build:win-installer": "vite build && electron-builder --win nsis",
+    "build:mac": "vite build && electron-builder --mac",
+    "build:mac64": "vite build && electron-builder --mac --x64",
+    "build:mac-arm": "vite build && electron-builder --mac --arm64",
+    "build:mac-dmg": "vite build && electron-builder --mac dmg",
+    "build:mac-zip": "vite build && electron-builder --mac zip",
     "dist": "vite build && electron-builder",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -34,10 +39,15 @@
       "output": "release",
       "buildResources": "build"
     },
+    "publish": null,
     "extraResources": [
       {
         "from": "build/icon.ico",
         "to": "icon/icon.ico"
+      },
+      {
+        "from": "build/icon.icns",
+        "to": "icon/icon.icns"
       }
     ],
     "files": [
@@ -63,6 +73,19 @@
       ],
       "icon": "build/icon.ico",
       "artifactName": "${productName}-${version}-${arch}-setup.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "${productName}-${version}",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
