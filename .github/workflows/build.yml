@@ -110,11 +110,11 @@ jobs:
           CHANGELOG_FILE="CHANGELOG.md"
           TAG_VERSION="${GITHUB_REF#refs/tags/v}"
 
-          # 精确匹配版本标题行，提取到下一个版本之前的内容
-          CHANGELOG_CONTENT=$(awk -v version="[$TAG_VERSION]" -v date="[0-9]{4}-[0-9]{2}-[0-9]{2}" '
+          # 匹配版本标题行，提取到下一个版本之前的内容
+          CHANGELOG_CONTENT=$(awk -v version="$TAG_VERSION" '
             BEGIN { found=0 }
-            # 精确匹配版本行
-            $0 == version { found=1; next }
+            # 匹配版本标题行 ## [1.8.5] - 2026-04-20
+            found == 0 && /^## \[/ && index($0, "[" version "]") > 0 { found=1; next }
             # 遇到下一个版本标题时退出
             found && /^## \[.*\]/ { found=0; exit }
             found { print }
