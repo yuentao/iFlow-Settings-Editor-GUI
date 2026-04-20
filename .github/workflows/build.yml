@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - release
-    tags:
-      - 'v*'
   pull_request:
     branches:
       - release
@@ -16,15 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 从 release 分支推送时自动创建 tag 并构建
-  # 从 release 分支推送时自动创建 tag 并构建
   create-tag:
     if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     permissions:
       contents: write
     outputs:
@@ -54,7 +46,6 @@ jobs:
           git push origin "$TAG_NAME"
 
   build-mac:
-    needs: create-tag
     needs: create-tag
     strategy:
       fail-fast: false
@@ -100,7 +91,6 @@ jobs:
 
   build-windows:
     needs: create-tag
-    needs: create-tag
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -129,7 +119,6 @@ jobs:
 
   release:
     needs: [create-tag, build-mac, build-windows]
-    needs: [create-tag, build-mac, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -152,14 +141,10 @@ jobs:
         run: |
           CHANGELOG_FILE="CHANGELOG.md"
           TAG_VERSION="v${{ needs.create-tag.outputs.version }}"
-          TAG_VERSION="v${{ needs.create-tag.outputs.version }}"
 
-          # 匹配版本标题行，提取到下一个版本之前的内容
           CHANGELOG_CONTENT=$(awk -v version="$TAG_VERSION" '
             BEGIN { found=0 }
-            # 匹配版本标题行 ## [1.8.5] - 2026-04-20
-            found == 0 && /^## \[/ && index($0, "[" version "]") > 0 { found=1; next }
-            # 遇到下一个版本标题时退出
+            found == 0 && /^## \[.*\]/ && index($0, "[" version "]") > 0 { found=1; next }
             found && /^## \[.*\]/ { found=0; exit }
             found { print }
           ' "$CHANGELOG_FILE")
@@ -167,7 +152,6 @@ jobs:
           if [ -z "$CHANGELOG_CONTENT" ]; then
             echo "body=${TAG_VERSION} 更新内容" >> $GITHUB_OUTPUT
           else
-            # 转义并格式化
             BODY=$(echo "$CHANGELOG_CONTENT" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
             echo "body=${BODY}" >> $GITHUB_OUTPUT
           fi
