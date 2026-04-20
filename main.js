@@ -25,11 +25,15 @@ function setAutoLaunchEnabled(enabled) {
 
   // 设置 Electron 的自启动
   if (app.isReady()) {
-    app.setLoginItemSettings({
+    const loginSettings = {
       openAtLogin: enabled,
       openAsHidden: true, // 静默启动不显示窗口
-      path: app.getPath('exe'),
-    })
+    }
+    // macOS 不需要指定 path，Windows 需要
+    if (process.platform !== 'darwin') {
+      loginSettings.path = app.getPath('exe')
+    }
+    app.setLoginItemSettings(loginSettings)
   }
 }
 
@@ -97,12 +101,30 @@ function getErrorTranslation() {
 
 // 创建系统托盘
 function createTray() {
-  // 获取图标路径 - 打包后需要从 extraResources 获取
+  // 获取图标路径 - 根据平台选择不同格式
+  // macOS 使用 .icns，Windows 使用 .ico
   let iconPath
+  const isMac = process.platform === 'darwin'
+
   if (app.isPackaged) {
-    iconPath = path.join(process.resourcesPath, 'icon', 'icon.ico')
+    const iconDir = path.join(process.resourcesPath, 'icon')
+    if (isMac) {
+      iconPath = path.join(iconDir, 'icon.icns')
+      if (!fs.existsSync(iconPath)) {
+        iconPath = path.join(iconDir, 'icon.ico') // 回退到 ico
+      }
+    } else {
+      iconPath = path.join(iconDir, 'icon.ico')
+    }
   } else {
-    iconPath = path.join(__dirname, 'build', 'icon.ico')
+    if (isMac) {
+      iconPath = path.join(__dirname, 'build', 'icon.icns')
+      if (!fs.existsSync(iconPath)) {
+        iconPath = path.join(__dirname, 'build', 'icon.ico')
+      }
+    } else {
+      iconPath = path.join(__dirname, 'build', 'icon.ico')
+    }
   }
 
   let trayIcon
@@ -216,15 +238,28 @@ function switchApiProfileFromTray(profileName) {
 
 function createWindow() {
   console.log('Creating window...')
+
+  // 根据平台选择图标
+  const isMac = process.platform === 'darwin'
+  let windowIcon
+  if (isMac) {
+    windowIcon = path.join(__dirname, 'build', 'icon.icns')
+    if (!fs.existsSync(windowIcon)) {
+      windowIcon = path.join(__dirname, 'build', 'icon.ico')
+    }
+  } else {
+    windowIcon = path.join(__dirname, 'build', 'icon.ico')
+  }
+
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 750,
     minWidth: 900,
     minHeight: 600,
-    backgroundMaterial: 'acrylic', // on Windows 11
+    backgroundMaterial: isMac ? undefined : 'acrylic', // 仅 Windows 支持 acrylic 效果
     frame: false,
     show: false,
-    icon: path.join(__dirname, 'build', 'icon.ico'),
+    icon: windowIcon,
     webPreferences: {
       devTools: isDev, // 只在开发模式启用 devTools
       preload: path.join(__dirname, 'preload.js'),
@@ -280,11 +315,14 @@ app.whenReady().then(() => {
   // 初始化自启动设置
   const autoLaunchEnabled = getAutoLaunchSettings()
   if (autoLaunchEnabled) {
-    app.setLoginItemSettings({
+    const loginSettings = {
       openAtLogin: true,
       openAsHidden: true,
-      path: app.getPath('exe'),
-    })
+    }
+    if (process.platform !== 'darwin') {
+      loginSettings.path = app.getPath('exe')
+    }
+    app.setLoginItemSettings(loginSettings)
   }
   createWindow()
 })
