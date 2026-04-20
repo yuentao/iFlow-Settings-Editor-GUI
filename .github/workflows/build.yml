@@ -140,9 +140,11 @@ jobs:
         id: changelog
         run: |
           CHANGELOG_FILE="CHANGELOG.md"
-          TAG_VERSION="v${{ needs.create-tag.outputs.version }}"
+          # 去掉 v 前缀用于匹配 changelog
+          VERSION="${{ needs.create-tag.outputs.version }}"
+          TAG_VERSION="v${VERSION}"
 
-          CHANGELOG_CONTENT=$(awk -v version="$TAG_VERSION" '
+          CHANGELOG_CONTENT=$(awk -v version="$VERSION" '
             BEGIN { found=0 }
             found == 0 && /^## \[.*\]/ && index($0, "[" version "]") > 0 { found=1; next }
             found && /^## \[.*\]/ { found=0; exit }
