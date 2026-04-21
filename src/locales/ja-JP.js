@@ -1,6 +1,8 @@
 export default {
   app: {
-    title: 'iFlow 設定エディタ'
+    title: 'iFlow 設定エディタ',
+    name: 'iFlow 設定エディタ',
+    company: 'Pandora Studio Co., Ltd.'
   },
   window: {
     minimize: '最小化',
@@ -155,8 +157,15 @@ export default {
     info: '情報',
     cannotDeleteDefault: 'デフォルトプロファイルは削除できません',
     inputConfigName: 'プロファイル名を入力してください',
+    confirmDelete: '削除の確認',
     confirmDeleteConfig: 'プロファイル "{name}" を削除してもよろしいですか？',
-    confirmDeleteServer: 'サーバー "{name}" を削除してもよろしいですか？'
+    confirmDeleteServer: 'サーバー "{name}" を削除してもよろしいですか？',
+    confirmDeleteSkill: 'スキル "{name}" を削除してもよろしいですか？',
+    skillNotFound: 'スキル "{name}" がありません',
+    skillExportSuccess: 'スキル "{name}" のエクスポートが成功しました',
+    skillDeleteSuccess: 'スキル "{name}" が削除されました',
+    skillImportSuccess: 'スキル "{name}" のインポートが成功しました',
+    overwriteConfirm: 'スキル "{name}" は既に存在します。上書きしますか？'
   },
   dialog: {
     confirm: '確認',
@@ -164,6 +173,36 @@ export default {
   },
   footer: {
     config: '設定'
+  },
+  update: {
+    title: 'アップデートを確認',
+    available: '新しいバージョンがあります',
+    currentVersion: '現在のバージョン',
+    newVersion: '最新バージョン',
+    releaseNotes: 'リリースノート',
+    later: '後で通知',
+    updateNow: '今すぐ更新',
+    updateHint: 'ダウンロード完了後自動的にインストールされます',
+    downloading: 'アップデートをダウンロード中...',
+    readyToInstall: 'インストール準備完了',
+    downloadComplete: 'ダウンロード完了、インストールできます',
+    cancel: 'キャンセル',
+    installNow: '今すぐインストール',
+    checkFailed: 'アップデート確認に失敗しました',
+    noUpdate: '最新バージョンです',
+    downloadingProgress: 'ダウンロード進捗',
+    downloadingSpeed: 'ダウンロード速度',
+    error: {
+      network: 'ネットワークエラー、接続を確認してください',
+      server: 'サーバーエラー、しばらくしてから再試行してください',
+      unknown: '不明なエラー'
+    },
+    menu: {
+      checkUpdate: 'アップデートを確認',
+      about: 'バージョン情報',
+      autoUpdate: '自動更新'
+    },
+    checking: '確認中...'
   },
   languages: {
     'zh-CN': '简体中文',

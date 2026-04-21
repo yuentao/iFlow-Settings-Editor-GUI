@@ -1,6 +1,8 @@
 export default {
   app: {
-    title: 'iFlow Settings Editor'
+    title: 'iFlow Settings Editor',
+    name: 'iFlow Settings Editor',
+    company: 'Pandora Studio Co., Ltd.'
   },
   window: {
     minimize: 'Minimize',
@@ -163,8 +165,15 @@ export default {
     info: 'Info',
     cannotDeleteDefault: 'Cannot delete default configuration',
     inputConfigName: 'Please enter configuration name',
+    confirmDelete: 'Confirm Delete',
     confirmDeleteConfig: 'Are you sure you want to delete configuration "{name}"?',
-    confirmDeleteServer: 'Are you sure you want to delete server "{name}"?'
+    confirmDeleteServer: 'Are you sure you want to delete server "{name}"?',
+    confirmDeleteSkill: 'Are you sure you want to delete skill "{name}"?',
+    skillNotFound: 'Skill "{name}" not found',
+    skillExportSuccess: 'Skill "{name}" exported successfully',
+    skillDeleteSuccess: 'Skill "{name}" deleted successfully',
+    skillImportSuccess: 'Skill "{name}" imported successfully',
+    overwriteConfirm: 'Skill "{name}" already exists. Do you want to overwrite it?'
   },
   dialog: {
     confirm: 'Confirm',
@@ -172,6 +181,36 @@ export default {
   },
   footer: {
     config: 'Config'
+  },
+  update: {
+    title: 'Check for Updates',
+    available: 'Update Available',
+    currentVersion: 'Current Version',
+    newVersion: 'Latest Version',
+    releaseNotes: 'Release Notes',
+    later: 'Remind Later',
+    updateNow: 'Update Now',
+    updateHint: 'Update will be installed automatically after download',
+    downloading: 'Downloading Update...',
+    readyToInstall: 'Ready to Install',
+    downloadComplete: 'Download complete, ready to install',
+    cancel: 'Cancel',
+    installNow: 'Install Now',
+    checkFailed: 'Failed to check for updates',
+    noUpdate: 'You are using the latest version',
+    downloadingProgress: 'Download Progress',
+    downloadingSpeed: 'Download Speed',
+    error: {
+      network: 'Network error, please check your connection',
+      server: 'Server error, please try again later',
+      unknown: 'Unknown error'
+    },
+    menu: {
+      checkUpdate: 'Check for Updates',
+      about: 'About',
+      autoUpdate: 'Auto Update'
+    },
+    checking: 'Checking...'
   },
   languages: {
     'zh-CN': '简体中文',

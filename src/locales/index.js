@@ -1,6 +1,8 @@
 export default {
   app: {
-    title: 'iFlow 设置编辑器'
+    title: 'iFlow 设置编辑器',
+    name: 'iFlow 设置编辑器',
+    company: '上海潘哆呐科技有限公司'
   },
   window: {
     minimize: '最小化',
@@ -163,8 +165,15 @@ export default {
     info: '信息',
     cannotDeleteDefault: '不能删除默认配置',
     inputConfigName: '请输入配置名称',
+    confirmDelete: '确认删除',
     confirmDeleteConfig: '确定要删除配置 "{name}" 吗？',
-    confirmDeleteServer: '确定要删除服务器 "{name}" 吗？'
+    confirmDeleteServer: '确定要删除服务器 "{name}" 吗？',
+    confirmDeleteSkill: '确定要删除技能 "{name}" 吗？',
+    skillNotFound: '技能 "{name}" 不存在',
+    skillExportSuccess: '技能 "{name}" 导出成功',
+    skillDeleteSuccess: '技能 "{name}" 已删除',
+    skillImportSuccess: '技能 "{name}" 导入成功',
+    overwriteConfirm: '技能 "{name}" 已存在，是否覆盖？'
   },
   dialog: {
     confirm: '确定',
@@ -172,6 +181,36 @@ export default {
   },
   footer: {
     config: '配置'
+  },
+  update: {
+    title: '检查更新',
+    available: '发现新版本',
+    currentVersion: '当前版本',
+    newVersion: '最新版本',
+    releaseNotes: '更新说明',
+    later: '稍后提醒',
+    updateNow: '立即更新',
+    updateHint: '更新将在后台下载完成后自动安装',
+    downloading: '正在下载更新...',
+    readyToInstall: '更新已下载',
+    downloadComplete: '下载完成，可以安装更新了',
+    cancel: '取消',
+    installNow: '立即安装',
+    checkFailed: '检查更新失败',
+    noUpdate: '已是最新版本',
+    downloadingProgress: '下载进度',
+    downloadingSpeed: '下载速度',
+    error: {
+      network: '网络错误，请检查网络连接',
+      server: '服务器错误，请稍后重试',
+      unknown: '未知错误'
+    },
+    menu: {
+      checkUpdate: '检查更新',
+      about: '关于',
+      autoUpdate: '自动更新'
+    },
+    checking: '检查中...'
   },
   languages: {
     'zh-CN': '简体中文',

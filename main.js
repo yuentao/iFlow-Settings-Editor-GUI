@@ -3,6 +3,10 @@ const path = require('path')
 const fs = require('fs')
 console.log('main.js loaded')
 console.log('app.getPath("home"):', app.getPath('home'))
+
+// 导入更新模块
+const { setupIpcHandlers: setupUpdateIpcHandlers } = require('./updateChecker')
+const { initAutoUpdater } = require('./autoUpdater')
 const SETTINGS_FILE = path.join(app.getPath('home'), '.iflow', 'settings.json')
 console.log('SETTINGS_FILE:', SETTINGS_FILE)
 let mainWindow
@@ -326,6 +330,16 @@ app.whenReady().then(() => {
     }
     app.setLoginItemSettings(loginSettings)
   }
+
+  // 设置更新 IPC 处理器
+  setupUpdateIpcHandlers(() => mainWindow)
+
+  // 初始化自动更新器
+  initAutoUpdater(() => mainWindow, {
+    autoCheck: true,
+    checkInterval: 60 * 60 * 1000, // 1小时检查一次
+  })
+
   createWindow()
 })
 app.on('window-all-closed', () => {
@@ -360,6 +374,24 @@ ipcMain.on('language-changed', () => {
   updateTrayMenu()
 })
 
+// 待处理的确认对话框回调
+const pendingConfirmDialogs = new Map()
+
+// 共享函数：在主进程内部显示确认对话框并等待结果
+function callConfirmDialog(titleKey, messageKey, messageParams) {
+  return new Promise((resolve) => {
+    const requestId = `confirm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    pendingConfirmDialogs.set(requestId, resolve)
+    mainWindow.webContents.send('show-confirm-request', { requestId, titleKey, messageKey, messageParams })
+  })
+}
+
+// 确认对话框结果回调
+ipcMain.on('confirm-dialog-result', (event, { requestId, confirmed }) => {
+  pendingConfirmDialogs.get(requestId)?.(confirmed)
+  pendingConfirmDialogs.delete(requestId)
+})
+
 // 开机自启动
 ipcMain.handle('get-auto-launch', async () => {
   try {
@@ -372,6 +404,27 @@ ipcMain.handle('get-auto-launch', async () => {
 ipcMain.handle('set-auto-launch', async (event, enabled) => {
   try {
     setAutoLaunchEnabled(enabled)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('get-auto-update', async () => {
+  try {
+    const settings = readSettings()
+    const autoUpdate = settings?.autoUpdate !== undefined ? settings.autoUpdate : true
+    return { success: true, enabled: autoUpdate }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('set-auto-update', async (event, enabled) => {
+  try {
+    const settings = readSettings() || {}
+    settings.autoUpdate = enabled
+    writeSettings(settings)
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }
@@ -624,8 +677,14 @@ ipcMain.handle('save-settings', async (event, data) => {
     return { success: false, error: error.message }
   }
 })
-ipcMain.handle('show-message', async (event, { type, title, message }) => {
-  return dialog.showMessageBox(mainWindow, { type, title, message })
+ipcMain.handle('show-message', async (event, { type, titleKey, messageKey, messageParams }) => {
+  // 返回给渲染进程显示 Vue 对话框
+  return { type, titleKey, messageKey, messageParams }
+})
+
+ipcMain.handle('show-confirm-dialog', async (event, { titleKey, messageKey, messageParams }) => {
+  // 通过渲染进程显示确认对话框并等待结果
+  return callConfirmDialog(titleKey, messageKey, messageParams)
 })
 
 // 技能文件夹路径
@@ -822,15 +881,9 @@ ipcMain.handle('import-skill-local', async () => {
 
       // 如果技能已存在，询问是否覆盖
       if (fs.existsSync(destPath)) {
-        const overwrite = await dialog.showMessageBox(mainWindow, {
-          type: 'warning',
-          title: '技能已存在',
-          message: `技能 "${skillName}" 已存在，是否覆盖？`,
-          buttons: ['覆盖', '取消'],
-          defaultId: 1,
-        })
+        const confirmed = await callConfirmDialog('messages.warning', 'messages.overwriteConfirm', { name: skillName })
 
-        if (overwrite.response === 1) {
+        if (!confirmed) {
           return { success: false, cancelled: true }
         }
 
@@ -867,15 +920,9 @@ ipcMain.handle('import-skill-online', async (event, url, name) => {
 
     // 检查是否已存在
     if (fs.existsSync(destPath)) {
-      const overwrite = await dialog.showMessageBox(mainWindow, {
-        type: 'warning',
-        title: '技能已存在',
-        message: `技能 "${name}" 已存在，是否覆盖？`,
-        buttons: ['覆盖', '取消'],
-        defaultId: 1,
-      })
+      const confirmed = await callConfirmDialog('messages.warning', 'messages.overwriteConfirm', { name })
 
-      if (overwrite.response === 1) {
+      if (!confirmed) {
         return { success: false, cancelled: true }
       }
 
@@ -1007,7 +1054,7 @@ ipcMain.handle('export-skill', async (event, name, folderName) => {
     const skillPath = path.join(SKILLS_FOLDER, folderName)
 
     if (!fs.existsSync(skillPath)) {
-      return { success: false, error: `技能 "${name}" 不存在` }
+      return { success: false, error: 'messages.skillNotFound', name }
     }
 
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -1029,7 +1076,7 @@ ipcMain.handle('export-skill', async (event, name, folderName) => {
 
     // 复制整个文件夹
     fs.cpSync(skillPath, destPath, { recursive: true })
-    return { success: true, message: `技能 "${name}" 导出成功` }
+    return { success: true, message: 'messages.skillExportSuccess', name }
   } catch (error) {
     return { success: false, error: error.message }
   }
@@ -1044,12 +1091,12 @@ ipcMain.handle('delete-skill', async (event, name) => {
     console.log('Path exists:', fs.existsSync(skillPath))
 
     if (!fs.existsSync(skillPath)) {
-      return { success: false, error: `技能 "${name}" 不存在` }
+      return { success: false, error: 'messages.skillNotFound', name }
     }
 
     fs.rmSync(skillPath, { recursive: true })
     console.log('Skill deleted successfully')
-    return { success: true, message: `技能 "${name}" 已删除` }
+    return { success: true, message: 'messages.skillDeleteSuccess', name }
   } catch (error) {
     console.error('Delete skill error:', error)
     return { success: false, error: error.message }
