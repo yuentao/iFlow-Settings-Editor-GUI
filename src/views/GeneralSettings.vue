@@ -91,22 +91,51 @@
           <div class="slider-track">
             <div class="slider-fill" :style="{ width: localSettings.acrylicIntensity + '%' }"></div>
           </div>
-          <input
-            type="range"
-            class="form-slider"
-            min="0"
-            max="100"
-            :value="localSettings.acrylicIntensity"
-            @input="updateSliderValue"
-          />
+          <input type="range" class="form-slider" min="0" max="100" :value="localSettings.acrylicIntensity" @input="updateSliderValue" />
         </div>
       </div>
     </div>
+
+    <!-- 关于 -->
+    <div class="card card-appear" style="animation-delay: 0.1s">
+      <div class="card-title">
+        <Info size="16" />
+        {{ $t('update.menu.about') }}
+      </div>
+      <div class="about-content">
+        <div class="about-logo">
+          <img class="about-icon" src="/icon.png" alt="iFlow" />
+        </div>
+        <div class="about-info">
+          <div class="about-name">{{ $t('app.name') }}</div>
+          <div class="about-version">{{ $t('update.currentVersion') }}: {{ appVersion }}</div>
+          <div class="about-copyright">© 2026 {{ $t('app.company') }}</div>
+        </div>
+      </div>
+      <div class="about-actions">
+        <div class="auto-update-toggle">
+          <label class="switch switch-sm">
+            <input type="checkbox" v-model="autoUpdateEnabled" @change="onAutoUpdateChange" />
+            <span class="slider"></span>
+          </label>
+          <span class="auto-update-label">{{ $t('update.menu.autoUpdate') }}</span>
+        </div>
+        <button class="btn btn-secondary" @click="checkForUpdates" :disabled="isCheckingUpdate">
+          <Loading v-if="isCheckingUpdate" size="14" class="spin" />
+          <Refresh v-else size="14" />
+          {{ isCheckingUpdate ? $t('update.checking') : $t('update.menu.checkUpdate') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- 消息对话框 -->
+    <MessageDialog :dialog="messageDialog" @close="messageDialog.show = false" />
   </section>
 </template>
 
 <script setup>
-import { Globe, Setting, Rocket } from '@icon-park/vue-next'
+import { Globe, Setting, Rocket, Info, Refresh, Loading } from '@icon-park/vue-next'
+import MessageDialog from '../components/MessageDialog.vue'
 
 const props = defineProps({
   settings: {
@@ -125,8 +154,17 @@ const localSettings = computed({
 })
 
 const autoLaunchEnabled = ref(false)
-
+const autoUpdateEnabled = ref(true)
+const appVersion = ref('1.0.0')
 const systemTheme = ref('Light')
+const isCheckingUpdate = ref(false)
+let checkUpdateTimer = null
+const messageDialog = ref({
+  show: false,
+  type: 'info',
+  title: '',
+  message: '',
+})
 
 const supportsAcrylic = computed(() => {
   if (typeof document === 'undefined' || !('backdropFilter' in document.documentElement.style)) return false
@@ -155,7 +193,83 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load auto launch status:', error)
   }
+
+  // 获取应用版本
+  try {
+    if (window.electronAPI && window.electronAPI.getAppVersion) {
+      const result = await window.electronAPI.getAppVersion()
+      if (result?.version) {
+        appVersion.value = result.version
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load app version:', error)
+  }
+
+  // 加载自动更新状态
+  try {
+    if (window.electronAPI && window.electronAPI.getAutoUpdate) {
+      const result = await window.electronAPI.getAutoUpdate()
+      if (result.success) {
+        autoUpdateEnabled.value = result.enabled
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load auto update status:', error)
+  }
 })
+
+const checkForUpdates = async () => {
+  // 防抖：检查更新中或 2 秒内再次点击则忽略
+  if (isCheckingUpdate.value) return
+  isCheckingUpdate.value = true
+
+  // 2 秒后恢复检查状态
+  if (checkUpdateTimer) clearTimeout(checkUpdateTimer)
+  checkUpdateTimer = setTimeout(() => {
+    isCheckingUpdate.value = false
+  }, 2000)
+
+  try {
+    if (window.electronAPI && window.electronAPI.checkForUpdates) {
+      const result = await window.electronAPI.checkForUpdates()
+      if (result.success) {
+        if (result.updateAvailable) {
+          // 更新可用，会通过 onUpdateAvailable 事件触发显示通知
+        } else {
+          // 已是最新版本
+          messageDialog.value = {
+            show: true,
+            type: 'info',
+            title: 'update.title',
+            message: 'update.noUpdate',
+          }
+        }
+      } else {
+        // 检查失败
+        messageDialog.value = {
+          show: true,
+          type: 'error',
+          title: 'update.title',
+          message: 'update.checkFailed',
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to check for updates:', error)
+    messageDialog.value = {
+      show: true,
+      type: 'error',
+      title: 'update.title',
+      message: 'update.checkFailed',
+    }
+  } finally {
+    // 如果没有成功恢复，在这里也恢复状态
+    setTimeout(() => {
+      isCheckingUpdate.value = false
+    }, 2000)
+  }
+}
 
 const onAutoLaunchChange = async () => {
   try {
@@ -164,6 +278,16 @@ const onAutoLaunchChange = async () => {
     }
   } catch (error) {
     console.error('Failed to set auto launch:', error)
+  }
+}
+
+const onAutoUpdateChange = async () => {
+  try {
+    if (window.electronAPI && window.electronAPI.setAutoUpdate) {
+      await window.electronAPI.setAutoUpdate(autoUpdateEnabled.value)
+    }
+  } catch (error) {
+    console.error('Failed to set auto update:', error)
   }
 }
 
@@ -360,6 +484,25 @@ input:checked + .slider:before {
   transform: translateX(18px);
 }
 
+// Small switch variant
+.switch-sm {
+  width: 32px;
+  height: 18px;
+
+  .slider {
+    &:before {
+      height: 12px;
+      width: 12px;
+      left: 3px;
+      bottom: 3px;
+    }
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(14px);
+  }
+}
+
 // Responsive
 @media (max-width: 600px) {
   .setting-item {
@@ -374,6 +517,87 @@ input:checked + .slider:before {
 
   .setting-select {
     width: 100%;
+  }
+}
+
+// About section
+.about-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.about-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.about-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.about-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.about-name {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.about-version {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.about-copyright {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.about-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.auto-update-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.auto-update-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+// Loading spin animation
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>
