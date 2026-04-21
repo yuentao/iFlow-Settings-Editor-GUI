@@ -19,13 +19,7 @@
 
       <div class="skill-list">
         <template v-if="skills.length > 0">
-          <div
-            v-for="(skill, index) in skills"
-            :key="skill.name"
-            class="skill-item"
-            :class="{ selected: selectedSkill === skill.name }"
-            @click="selectSkill(skill)"
-          >
+          <div v-for="(skill, index) in skills" :key="skill.name" class="skill-item" :class="{ selected: selectedSkill === skill.name }" @click="selectSkill(skill)">
             <div class="skill-icon">
               <Star size="20" />
             </div>
@@ -60,21 +54,11 @@
         <div class="dialog-body">
           <div class="form-group">
             <label class="form-label">{{ $t('skills.url') }}</label>
-            <input
-              v-model="onlineUrl"
-              type="text"
-              class="form-input"
-              :placeholder="$t('skills.urlPlaceholder')"
-            />
+            <input v-model="onlineUrl" type="text" class="form-input" :placeholder="$t('skills.urlPlaceholder')" />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('skills.skillName') }}</label>
-            <input
-              v-model="onlineName"
-              type="text"
-              class="form-input"
-              :placeholder="$t('skills.namePlaceholder')"
-            />
+            <input v-model="onlineName" type="text" class="form-input" :placeholder="$t('skills.namePlaceholder')" />
           </div>
         </div>
         <div class="dialog-actions">
@@ -105,18 +89,18 @@ const loadSkills = async () => {
       skills.value = result.skills || []
       emit('skills-changed', skills.value.length)
     } else {
-      emit('show-message', { type: 'error', title: 'Error', message: result.error })
+      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
     }
   } catch (error) {
     console.error('Failed to load skills:', error)
   }
 }
 
-const selectSkill = (skill) => {
+const selectSkill = skill => {
   selectedSkill.value = skill.name
 }
 
-const formatFileSize = (bytes) => {
+const formatFileSize = bytes => {
   if (!bytes) return ''
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
@@ -128,14 +112,14 @@ const importLocal = async () => {
     const result = await window.electronAPI.importSkillLocal()
     if (result.success) {
       await loadSkills()
-      emit('show-message', { type: 'success', title: 'Success', message: result.message })
+      emit('show-message', { type: 'success', title: 'messages.success', message: result.message })
     } else if (result.cancelled) {
       // User cancelled
     } else {
-      emit('show-message', { type: 'error', title: 'Error', message: result.error })
+      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'Error', message: error.message })
+    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
   }
 }
 
@@ -157,43 +141,44 @@ const confirmOnlineImport = async () => {
     if (result.success) {
       showOnlineDialog.value = false
       await loadSkills()
-      emit('show-message', { type: 'success', title: 'Success', message: result.message })
+      emit('show-message', { type: 'success', title: 'messages.success', message: result.message })
     } else {
-      emit('show-message', { type: 'error', title: 'Error', message: result.error })
+      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'Error', message: error.message })
+    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
   }
 }
 
-const exportSkill = async (skill) => {
+const exportSkill = async skill => {
   const targetSkill = skill || skills.value.find(s => s.name === selectedSkill.value)
   if (!targetSkill) return
 
   try {
     const result = await window.electronAPI.exportSkill(targetSkill.name, targetSkill.folderName)
     if (result.success) {
-      emit('show-message', { type: 'success', title: 'Success', message: result.message })
+      emit('show-message', { type: 'success', title: 'messages.success', message: result.message, messageParams: { name: targetSkill.name } })
     } else if (result.cancelled) {
       // User cancelled
     } else {
-      emit('show-message', { type: 'error', title: 'Error', message: result.error })
+      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'Error', message: error.message })
+    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
   }
 }
 
-const deleteSkill = (skill) => {
+const deleteSkill = skill => {
   const folderToDelete = skill.folderName || skill.name
 
   new Promise(resolve => {
     emit('show-input-dialog', {
       type: 'confirm',
-      title: 'Confirm Delete',
-      placeholder: `确定要删除技能 "${skill.name}" 吗？`,
+      title: 'messages.confirmDelete',
+      placeholder: 'messages.confirmDeleteSkill',
       callback: resolve,
-      isConfirm: true
+      isConfirm: true,
+      name: skill.name
     })
   }).then(confirmed => {
     if (!confirmed) return
@@ -204,9 +189,9 @@ const deleteSkill = (skill) => {
           selectedSkill.value = null
         }
         loadSkills()
-        emit('show-message', { type: 'success', title: 'Success', message: result.message })
+        emit('show-message', { type: 'success', title: 'messages.success', message: result.message, messageParams: { name: skill.name } })
       } else {
-        emit('show-message', { type: 'error', title: 'Error', message: result.error })
+        emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
       }
     })
   })
@@ -241,11 +226,21 @@ onMounted(() => {
   transition: all 0.15s ease;
   animation: fadeIn 0.3s ease backwards;
 
-  &:nth-child(1) { animation-delay: 0.02s; }
-  &:nth-child(2) { animation-delay: 0.04s; }
-  &:nth-child(3) { animation-delay: 0.06s; }
-  &:nth-child(4) { animation-delay: 0.08s; }
-  &:nth-child(5) { animation-delay: 0.1s; }
+  &:nth-child(1) {
+    animation-delay: 0.02s;
+  }
+  &:nth-child(2) {
+    animation-delay: 0.04s;
+  }
+  &:nth-child(3) {
+    animation-delay: 0.06s;
+  }
+  &:nth-child(4) {
+    animation-delay: 0.08s;
+  }
+  &:nth-child(5) {
+    animation-delay: 0.1s;
+  }
 
   &:last-child {
     border-bottom: none;
@@ -335,7 +330,13 @@ onMounted(() => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
