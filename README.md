@@ -2,7 +2,7 @@
 
 一个用于编辑 iFlow CLI 配置文件的桌面应用程序。
 
-![iFlow Settings Editor](./screenshots/main.png)
+![iFlow Settings Editor](./screenshots/仪表盘.png)
 
 ## 功能特性
 
@@ -99,6 +99,8 @@ git push origin v1.9.0
 
 ### 基础设置
 
+![基本设置](./screenshots/基本设置.png)
+
 在「常规」页面可以设置：
 
 - **语言** - 界面显示语言
@@ -109,12 +111,13 @@ git push origin v1.9.0
 
 ### API 配置管理
 
-![编辑API配置](./screenshots/编辑API配置.png)
+![编辑API配置](./screenshots/API配置.png)
 
 在「API 配置」页面可以：
 
 - **切换配置** - 点击不同配置文件快速切换
 - **新建配置** - 创建新的 API 环境配置
+  ![新建API配置](./screenshots/新建API配置.png)
 - **编辑配置** - 修改现有配置的名称、认证方式、API Key、Base URL 等
 - **重命名配置** - 为配置设置新名称（当前使用中的配置不可重命名）
 - **复制配置** - 复制现有配置创建新配置
@@ -122,14 +125,13 @@ git push origin v1.9.0
 - **删除配置** - 删除不需要的配置（默认配置不可删除）
 
 支持的认证方式：
-- iFlow
 - API Key
 - OpenAI 兼容
 
 ### MCP 服务器管理
 
-![添加服务器](./screenshots/添加服务器.png)
-![MCP管理](./screenshots/MCP管理.png)
+![添加服务器](./screenshots/添加MCP服务器.png)
+![MCP管理](./screenshots/MCP服务器.png)
 
 在「MCP 服务器」页面可以：
 
@@ -139,7 +141,7 @@ git push origin v1.9.0
 
 ### 技能管理
 
-![技能管理](./screenshots/skills-jp.jpg)
+![技能管理](./screenshots/技能管理.png)
 
 在「技能」页面可以：
 
@@ -149,6 +151,8 @@ git push origin v1.9.0
 - **删除技能** - 移除不需要的技能
 
 ### 系统托盘
+
+![托盘图标](./screenshots/托盘图标.png)
 
 - 关闭窗口时，应用会最小化到系统托盘
 - 双击托盘图标可重新显示主窗口
