@@ -32,6 +32,7 @@ function setAutoLaunchEnabled(enabled) {
     // macOS 不需要指定 path，Windows 需要
     if (process.platform !== 'darwin') {
       loginSettings.path = app.getPath('exe')
+      loginSettings.args = ['--hidden'] // Windows 需要显式传递启动参数
     }
     app.setLoginItemSettings(loginSettings)
   }
@@ -321,6 +322,7 @@ app.whenReady().then(() => {
     }
     if (process.platform !== 'darwin') {
       loginSettings.path = app.getPath('exe')
+      loginSettings.args = ['--hidden'] // Windows 需要显式传递启动参数
     }
     app.setLoginItemSettings(loginSettings)
   }
