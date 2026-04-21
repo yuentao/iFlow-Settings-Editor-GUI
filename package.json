@@ -54,7 +54,9 @@
       "dist/**/*",
       "main.js",
       "preload.js",
-      "package.json"
+      "package.json",
+      "updateChecker.js",
+      "autoUpdater.js"
     ],
     "win": {
       "target": [
@@ -128,6 +130,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.17",
+    "electron-updater": "^6.8.3",
     "vue-i18n": "^9.14.5"
   }
 }
