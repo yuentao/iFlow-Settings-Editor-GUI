@@ -256,6 +256,7 @@ let updateState = {
   progress: 0, // 下载进度 0-100
   error: null,
   downloadPath: null,
+  isBackground: false, // 是否后台下载
 }
 
 // 设置更新状态并通知渲染进程
@@ -282,10 +283,17 @@ function setupIpcHandlers(mainWindowRef, translateFn) {
       const hasUpdate = compareVersions(latestVersion, currentVersion) > 0
 
       if (hasUpdate) {
+        // 如果正在下载中（前台或后台），保持当前状态不变
+        if (updateState.status === 'downloading') {
+          return { success: true, hasUpdate: true, version: latestVersion }
+        }
+
         const downloadAsset = getDownloadAsset(latest)
+        // 如果已经下载了相同版本，保留下载状态
+        const alreadyDownloaded = updateState.status === 'downloaded' && updateState.info?.version === latestVersion
         setUpdateState(
           {
-            status: 'available',
+            status: alreadyDownloaded ? 'downloaded' : 'available',
             info: {
               version: latestVersion,
               releaseNotes: latest.body || '',
@@ -294,6 +302,8 @@ function setupIpcHandlers(mainWindowRef, translateFn) {
               downloadName: downloadAsset?.name || 'update.exe',
               size: downloadAsset?.size || 0,
             },
+            // 如果之前已下载，保留下载路径
+            ...(alreadyDownloaded && { downloadPath: updateState.downloadPath }),
           },
           mainWindowRef(),
         )
@@ -365,6 +375,56 @@ function setupIpcHandlers(mainWindowRef, translateFn) {
     }
   })
 
+  // 后台下载更新（静默模式，不弹进度窗）
+  ipcMain.handle('download-update-background', async () => {
+    try {
+      if (!updateState.info?.downloadUrl) {
+        throw new Error(t('update.error.noDownloadUrl'))
+      }
+
+      // 标记为后台下载
+      setUpdateState({ status: 'downloading', progress: 0, isBackground: true }, mainWindowRef())
+      downloadCancelled = false
+
+      const tmpDir = app.getPath('temp')
+      const destPath = path.join(tmpDir, updateState.info.downloadName)
+
+      currentDownloadOptions = { cancelled: false }
+
+      // 后台下载也发送进度事件，渲染进程可选择显示
+      await downloadFile(updateState.info.downloadUrl, destPath, (downloaded, total) => {
+        const progress = Math.round((downloaded / total) * 100)
+        setUpdateState({ progress }, mainWindowRef())
+        mainWindowRef().webContents.send('update-download-progress', progress)
+      }, currentDownloadOptions)
+
+      setUpdateState(
+        {
+          status: 'downloaded',
+          downloadPath: destPath,
+          progress: 100,
+          isBackground: false, // 下载完成，清除后台标记
+        },
+        mainWindowRef(),
+      )
+
+      // 发送后台下载完成事件（可用于系统通知）
+      mainWindowRef().webContents.send('update-background-complete', {
+        version: updateState.info.version,
+        downloadPath: destPath,
+      })
+
+      return { success: true, downloadPath: destPath }
+    } catch (error) {
+      if (error.message === 'Download cancelled') {
+        setUpdateState({ status: 'idle', error: null, isBackground: false }, mainWindowRef())
+        return { success: false, cancelled: true }
+      }
+      setUpdateState({ status: 'error', error: error.message, isBackground: false }, mainWindowRef())
+      return { success: false, error: error.message }
+    }
+  })
+
   // 取消下载
   ipcMain.handle('cancel-download', async () => {
     if (currentDownloadOptions) {
@@ -374,7 +434,7 @@ function setupIpcHandlers(mainWindowRef, translateFn) {
       }
     }
     downloadCancelled = true
-    setUpdateState({ status: 'idle' }, mainWindowRef())
+    setUpdateState({ status: 'idle', isBackground: false }, mainWindowRef())
     return { success: true }
   })
 
