@@ -26,7 +26,7 @@
 
       <div v-if="releaseNotes" class="update-notes">
         <div class="notes-title">{{ $t('update.releaseNotes') }}</div>
-        <div class="notes-content">{{ releaseNotes }}</div>
+        <div class="notes-content" v-html="formattedReleaseNotes"></div>
       </div>
 
       <div class="update-actions">
@@ -46,7 +46,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
+import { marked } from 'marked'
 
 const props = defineProps({
   show: {
@@ -68,6 +69,17 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update', 'later', 'close'])
+
+// 格式化 Markdown 格式的更新日志
+const formattedReleaseNotes = computed(() => {
+  if (!props.releaseNotes) return ''
+  // 配置 marked 选项
+  marked.setOptions({
+    breaks: true, // 将换行转换为 <br>
+    gfm: true, // 启用 GitHub  flavored Markdown
+  })
+  return marked.parse(props.releaseNotes)
+})
 
 const handleUpdate = () => {
   emit('update')
@@ -202,8 +214,85 @@ const handleLater = () => {
 .notes-content {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
   white-space: pre-wrap;
+
+  // Markdown 渲染样式
+  :deep(h1),
+  :deep(h2),
+  :deep(h3),
+  :deep(h4) {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: var(--space-sm) 0 var(--space-xs);
+  }
+
+  :deep(p) {
+    margin: var(--space-xs) 0;
+  }
+
+  :deep(ul),
+  :deep(ol) {
+    margin: var(--space-xs) 0;
+    padding-left: var(--space-lg);
+  }
+
+  :deep(li) {
+    margin: 2px 0;
+  }
+
+  :deep(code) {
+    background: var(--bg-primary);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+  }
+
+  :deep(pre) {
+    background: var(--bg-primary);
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    margin: var(--space-xs) 0;
+
+    code {
+      background: none;
+      padding: 0;
+    }
+  }
+
+  :deep(blockquote) {
+    border-left: 3px solid var(--accent);
+    margin: var(--space-xs) 0;
+    padding-left: var(--space-sm);
+    color: var(--text-tertiary);
+  }
+
+  :deep(a) {
+    color: var(--accent);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  :deep(strong) {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  :deep(em) {
+    font-style: italic;
+  }
+
+  :deep(hr) {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: var(--space-sm) 0;
+  }
 }
 
 .update-actions {
