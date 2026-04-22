@@ -57,7 +57,7 @@
       style="z-index: 1600"
     />
 
-    <UpdateNotification :show="showUpdateNotification" :current-version="currentAppVersion" :latest-version="latestUpdateVersion" :release-notes="updateReleaseNotes" @update="handleUpdateNow" @later="handleUpdateLater" @close="handleUpdateLater" />
+    <UpdateNotification :show="showUpdateNotification" :current-version="currentAppVersion" :latest-version="latestUpdateVersion" :release-notes="updateReleaseNotes" @update="handleUpdateNow" @background="handleDownloadBackground" @later="handleUpdateLater" @close="handleUpdateLater" />
 
     <UpdateProgress
       :show="showUpdateProgress"
@@ -429,6 +429,7 @@ const updateReleaseNotes = ref('')
 const updateProgressStatus = ref('downloading')
 const updateDownloadProgress = ref(0)
 const updateDownloadSpeed = ref('')
+const isBackgroundDownloading = ref(false)
 
 const getEffectiveTheme = () => {
   const theme = settings.value.uiTheme
@@ -556,6 +557,19 @@ const initUpdateListeners = () => {
       updateReleaseNotes.value = state.info.releaseNotes || ''
       showUpdateNotification.value = true
       showUpdateProgress.value = false
+      isBackgroundDownloading.value = false
+    } else if (state.status === 'downloading' && state.isBackground) {
+      // 后台下载开始，不显示进度窗
+      isBackgroundDownloading.value = true
+      showUpdateProgress.value = false
+    } else if (state.status === 'downloaded') {
+      isBackgroundDownloading.value = false
+      updateProgressStatus.value = 'downloaded'
+      updateDownloadProgress.value = 100
+      showUpdateProgress.value = false // 下载完成，隐藏进度窗（安装按钮在 GeneralSettings）
+    } else if (state.status === 'idle' || state.status === 'error') {
+      isBackgroundDownloading.value = false
+      showUpdateProgress.value = false
     }
   })
 
@@ -570,9 +584,12 @@ const initUpdateListeners = () => {
   // 监听下载进度
   window.electronAPI.onUpdateDownloadProgress(progress => {
     updateDownloadProgress.value = progress
-    showUpdateProgress.value = true
-    showUpdateNotification.value = false
-    updateProgressStatus.value = 'downloading'
+    if (!isBackgroundDownloading.value) {
+      showUpdateProgress.value = true
+      showUpdateNotification.value = false
+      updateProgressStatus.value = 'downloading'
+    }
+    // 后台下载时不显示进度窗，进度由 GeneralSettings 自行处理
   })
 
   // 监听下载完成
@@ -589,6 +606,16 @@ const initUpdateListeners = () => {
   // 监听安装更新
   window.electronAPI.onInstallUpdate(() => {
     window.electronAPI.installUpdate()
+  })
+
+  // 监听后台下载完成
+  window.electronAPI.onUpdateBackgroundComplete(info => {
+    // 后台下载完成，显示通知消息
+    showMessage({
+      type: 'info',
+      title: t('update.title'),
+      message: t('update.backgroundComplete', { version: info?.version || '' })
+    })
   })
 }
 
@@ -634,6 +661,20 @@ const handleUpdateNow = async () => {
 const handleUpdateLater = () => {
   showUpdateNotification.value = false
   showUpdateProgress.value = false
+}
+
+// 后台下载更新（不显示进度窗）
+const handleDownloadBackground = async () => {
+  showUpdateNotification.value = false
+  // 不显示进度窗，直接后台下载
+  try {
+    await window.electronAPI.downloadUpdateBackground()
+    // 下载完成后的提示会在 updateChecker 中通过事件通知
+  } catch (error) {
+    console.error('Background download failed:', error)
+    // 后台下载失败也可以提示用户
+    await showMessage({ type: 'error', title: t('update.title'), message: t('update.error.downloadFailed', { code: '??' }) })
+  }
 }
 
 const handleUpdateCancel = async () => {

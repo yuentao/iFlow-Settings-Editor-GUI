@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 更新相关 API
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  downloadUpdateBackground: () => ipcRenderer.invoke('download-update-background'),
   cancelDownload: () => ipcRenderer.invoke('cancel-download'),
   installUpdate: () => ipcRenderer.invoke('install-update'),
   getUpdateStatus: () => ipcRenderer.invoke('get-update-status'),
@@ -85,6 +86,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateDownloaded: (callback) => {
     ipcRenderer.on('update-downloaded', (event) => callback())
   },
+  onUpdateBackgroundComplete: (callback) => {
+    ipcRenderer.on('update-background-complete', (event, info) => callback(info))
+  },
+  removeUpdateListener: (channel, callback) => {
+    ipcRenderer.removeListener(channel, callback)
+  },
   onAutoCheckUpdate: (callback) => {
     ipcRenderer.on('auto-check-update', (event) => callback())
   },
@@ -98,6 +105,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('update-available')
     ipcRenderer.removeAllListeners('update-download-progress')
     ipcRenderer.removeAllListeners('update-downloaded')
+    ipcRenderer.removeAllListeners('update-background-complete')
     ipcRenderer.removeAllListeners('auto-check-update')
     ipcRenderer.removeAllListeners('install-update')
   },

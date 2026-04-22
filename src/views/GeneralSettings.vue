@@ -125,6 +125,16 @@
           <Refresh v-else size="14" />
           {{ isCheckingUpdate ? $t('update.checking') : $t('update.menu.checkUpdate') }}
         </button>
+        <button v-if="updateReady" class="btn btn-primary" @click="handleInstallUpdate">
+          {{ $t('update.installNow') }}
+        </button>
+      </div>
+      <!-- 后台下载进度指示器 -->
+      <div v-if="isBackgroundDownloading" class="background-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" :style="{ width: backgroundProgress + '%' }"></div>
+        </div>
+        <div class="progress-text">{{ $t('update.backgroundDownloading', { progress: backgroundProgress }) }}</div>
       </div>
     </div>
 
@@ -146,7 +156,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:settings'])
 
-import { computed, ref, onMounted, watch, nextTick } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 
 const localSettings = computed({
   get: () => props.settings,
@@ -166,6 +176,12 @@ const messageDialog = ref({
   message: '',
 })
 
+// 更新相关状态
+const updateReady = ref(false)
+const updateVersion = ref('')
+const isBackgroundDownloading = ref(false)
+const backgroundProgress = ref(0)
+
 const supportsAcrylic = computed(() => {
   if (typeof document === 'undefined' || !('backdropFilter' in document.documentElement.style)) return false
   const effectiveTheme = props.settings.uiTheme === 'System' ? systemTheme.value : props.settings.uiTheme
@@ -173,6 +189,31 @@ const supportsAcrylic = computed(() => {
 })
 
 const sliderWrapper = ref(null)
+
+// 更新状态变化处理
+const handleStatusChanged = (state) => {
+  if (state.status === 'downloaded') {
+    updateReady.value = true
+    updateVersion.value = state.info?.version || ''
+    isBackgroundDownloading.value = false
+    backgroundProgress.value = 100
+  } else if (state.status === 'downloading' && state.isBackground) {
+    isBackgroundDownloading.value = true
+    updateReady.value = false
+    backgroundProgress.value = state.progress || 0
+  } else {
+    isBackgroundDownloading.value = false
+    updateReady.value = false
+    backgroundProgress.value = 0
+  }
+}
+
+// 后台下载进度处理
+const handleBackgroundProgress = (progress) => {
+  if (isBackgroundDownloading.value) {
+    backgroundProgress.value = progress
+  }
+}
 
 onMounted(async () => {
   // 加载系统主题
@@ -217,7 +258,51 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load auto update status:', error)
   }
+
+  // 检查当前更新状态
+  const checkUpdateState = async () => {
+    try {
+      if (window.electronAPI && window.electronAPI.getUpdateStatus) {
+        const result = await window.electronAPI.getUpdateStatus()
+        if (result.success && result.status === 'downloaded') {
+          updateReady.value = true
+          updateVersion.value = result.info?.version || ''
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get update status:', error)
+    }
+  }
+  await checkUpdateState()
+
+  // 监听更新状态变化
+  window.electronAPI.onUpdateStatusChanged(handleStatusChanged)
+  // 监听下载进度（后台下载用）
+  window.electronAPI.onUpdateDownloadProgress(handleBackgroundProgress)
 })
+
+onUnmounted(() => {
+  if (window.electronAPI && window.electronAPI.removeUpdateListener) {
+    window.electronAPI.removeUpdateListener('update-status-changed', handleStatusChanged)
+    window.electronAPI.removeUpdateListener('update-download-progress', handleBackgroundProgress)
+  }
+})
+
+const handleInstallUpdate = async () => {
+  try {
+    if (window.electronAPI && window.electronAPI.installUpdate) {
+      await window.electronAPI.installUpdate()
+    }
+  } catch (error) {
+    console.error('Failed to install update:', error)
+    messageDialog.value = {
+      show: true,
+      type: 'error',
+      title: 'update.title',
+      message: 'update.installFailed',
+    }
+  }
+}
 
 const checkForUpdates = async () => {
   // 防抖：检查更新中或 2 秒内再次点击则忽略
@@ -585,6 +670,33 @@ input:checked + .slider:before {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   user-select: none;
+}
+
+// 后台下载进度条
+.background-progress {
+  margin-top: var(--space-md);
+  padding: 0 var(--space-sm);
+}
+
+.background-progress .progress-bar {
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.background-progress .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  border-radius: var(--radius-sm);
+  transition: width 0.2s ease;
+}
+
+.background-progress .progress-text {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-align: center;
 }
 
 // Loading spin animation
