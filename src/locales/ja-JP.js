@@ -198,7 +198,13 @@ export default {
     error: {
       network: 'ネットワークエラー、接続を確認してください',
       server: 'サーバーエラー、しばらくしてから再試行してください',
-      unknown: '不明なエラー'
+      unknown: '不明なエラー',
+      requestTimeout: 'リクエストタイムアウト',
+      downloadFailed: 'ダウンロードに失敗しました: HTTP {code}',
+      downloadTimeout: 'ダウンロードタイムアウト',
+      noDownloadUrl: 'ダウンロードURLがありません',
+      noDownloadedUpdate: 'ダウンロードされたアップデートがありません',
+      noReleaseUrl: 'リリースページのURLがありません',
     },
     menu: {
       checkUpdate: 'アップデートを確認',

@@ -3,9 +3,7 @@
  * 定时检查更新、事件通知
  */
 
-const { app, BrowserWindow } = require('electron')
-const path = require('path')
-const fs = require('fs')
+const { app } = require('electron')
 
 // 自动更新检查间隔（毫秒）- 默认 1 小时
 const DEFAULT_CHECK_INTERVAL = 60 * 60 * 1000

@@ -5,7 +5,7 @@
   "main": "main.js",
   "author": "上海潘哆呐科技有限公司",
   "repository": {
-    "url": "https://git.pandorastudio.cn/product/iFlow-Settings-Editor-GUI.git"
+    "url": "https://github.com/yuentao/iFlow-Settings-Editor-GUI.git"
   },
   "license": "MIT",
   "scripts": {

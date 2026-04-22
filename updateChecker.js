@@ -3,7 +3,7 @@
  * 使用 GitHub Releases API 检查更新并下载
  */
 
-const { app, ipcMain, dialog, shell } = require('electron')
+const { app, ipcMain, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const https = require('https')
@@ -18,7 +18,18 @@ try {
   console.error('Failed to load electron-updater:', e)
 }
 
-const SETTINGS_FILE = path.join(app.getPath('home'), '.iflow', 'settings.json')
+// 翻译函数（由主进程注入）
+let t = key => key
+
+/**
+ * 设置翻译函数
+ * @param {Function} translateFn - 翻译函数 t(key, params)
+ */
+function setupTranslations(translateFn) {
+  if (translateFn) {
+    t = translateFn
+  }
+}
 
 // GitHub 仓库信息 - 从 package.json 获取
 function getRepoInfo() {
@@ -83,7 +94,7 @@ function httpRequest(url, options = {}) {
       }
 
       if (res.statusCode !== 200) {
-        reject(new Error(`HTTP ${res.statusCode}`))
+        reject(new Error(t('update.error.downloadFailed', { code: res.statusCode })))
         return
       }
 
@@ -95,7 +106,7 @@ function httpRequest(url, options = {}) {
     req.on('error', reject)
     req.setTimeout(30000, () => {
       req.destroy()
-      reject(new Error('Request timeout'))
+      reject(new Error(t('update.error.requestTimeout')))
     })
 
     req.end()
@@ -108,7 +119,7 @@ async function fetchLatestRelease(githubToken = null) {
   const url = `https://api.github.com/repos/${owner}/${repo}/releases/latest`
 
   const headers = {
-    'Accept': 'application/vnd.github.v3+json',
+    Accept: 'application/vnd.github.v3+json',
     'User-Agent': 'iFlow-Settings-Editor',
   }
 
@@ -132,7 +143,7 @@ function getDownloadAsset(release) {
   }
 
   const platform = process.platform
-  const arch = process.arch === 'x64' ? 'x64' : (process.arch === 'arm64' ? 'arm64' : 'x64')
+  const arch = process.arch === 'x64' ? 'x64' : process.arch === 'arm64' ? 'arm64' : 'x64'
 
   // 优先查找 NSIS 安装包（适用于 Windows）
   if (platform === 'win32') {
@@ -176,7 +187,7 @@ async function downloadFile(url, destPath, onProgress) {
       }
 
       if (res.statusCode !== 200) {
-        reject(new Error(`Download failed: HTTP ${res.statusCode}`))
+        reject(new Error(t('update.error.downloadFailed', { code: res.statusCode })))
         return
       }
 
@@ -205,7 +216,7 @@ async function downloadFile(url, destPath, onProgress) {
     req.on('error', reject)
     req.setTimeout(30000, () => {
       req.destroy()
-      reject(new Error('Download timeout'))
+      reject(new Error(t('update.error.downloadTimeout')))
     })
   })
 }
@@ -213,8 +224,8 @@ async function downloadFile(url, destPath, onProgress) {
 // 更新检查状态
 let updateState = {
   status: 'idle', // idle, checking, available, downloading, downloaded, error
-  info: null,      // release 信息
-  progress: 0,     // 下载进度 0-100
+  info: null, // release 信息
+  progress: 0, // 下载进度 0-100
   error: null,
   downloadPath: null,
 }
@@ -228,7 +239,10 @@ function setUpdateState(newState, mainWindow) {
 }
 
 // IPC 处理器
-function setupIpcHandlers(mainWindowRef) {
+function setupIpcHandlers(mainWindowRef, translateFn) {
+  // 设置翻译函数
+  setupTranslations(translateFn)
+
   // 检查更新
   ipcMain.handle('check-for-updates', async () => {
     try {
@@ -241,17 +255,20 @@ function setupIpcHandlers(mainWindowRef) {
 
       if (hasUpdate) {
         const downloadAsset = getDownloadAsset(latest)
-        setUpdateState({
-          status: 'available',
-          info: {
-            version: latestVersion,
-            releaseNotes: latest.body || '',
-            releaseUrl: latest.html_url || '',
-            downloadUrl: downloadAsset?.browser_download_url || null,
-            downloadName: downloadAsset?.name || 'update.exe',
-            size: downloadAsset?.size || 0,
-          }
-        }, mainWindowRef())
+        setUpdateState(
+          {
+            status: 'available',
+            info: {
+              version: latestVersion,
+              releaseNotes: latest.body || '',
+              releaseUrl: latest.html_url || '',
+              downloadUrl: downloadAsset?.browser_download_url || null,
+              downloadName: downloadAsset?.name || 'update.exe',
+              size: downloadAsset?.size || 0,
+            },
+          },
+          mainWindowRef(),
+        )
         return {
           success: true,
           hasUpdate: true,
@@ -281,7 +298,7 @@ function setupIpcHandlers(mainWindowRef) {
   ipcMain.handle('download-update', async () => {
     try {
       if (!updateState.info?.downloadUrl) {
-        throw new Error('No download URL available')
+        throw new Error(t('update.error.noDownloadUrl'))
       }
 
       setUpdateState({ status: 'downloading', progress: 0 }, mainWindowRef())
@@ -294,11 +311,14 @@ function setupIpcHandlers(mainWindowRef) {
         setUpdateState({ progress }, mainWindowRef())
       })
 
-      setUpdateState({
-        status: 'downloaded',
-        downloadPath: destPath,
-        progress: 100
-      }, mainWindowRef())
+      setUpdateState(
+        {
+          status: 'downloaded',
+          downloadPath: destPath,
+          progress: 100,
+        },
+        mainWindowRef(),
+      )
 
       return { success: true, downloadPath: destPath }
     } catch (error) {
@@ -311,7 +331,7 @@ function setupIpcHandlers(mainWindowRef) {
   ipcMain.handle('install-update', async () => {
     try {
       if (!updateState.downloadPath) {
-        throw new Error('No update downloaded')
+        throw new Error(t('update.error.noDownloadedUpdate'))
       }
 
       // 使用 shell 执行安装程序
@@ -341,7 +361,7 @@ function setupIpcHandlers(mainWindowRef) {
       await shell.openExternal(updateState.info.releaseUrl)
       return { success: true }
     }
-    return { success: false, error: 'No release URL' }
+    return { success: false, error: t('update.error.noReleaseUrl') }
   })
 }
 

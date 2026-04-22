@@ -206,7 +206,13 @@ export default {
     error: {
       network: '网络错误，请检查网络连接',
       server: '服务器错误，请稍后重试',
-      unknown: '未知错误'
+      unknown: '未知错误',
+      requestTimeout: '请求超时',
+      downloadFailed: '下载失败: HTTP {code}',
+      downloadTimeout: '下载超时',
+      noDownloadUrl: '无可用下载链接',
+      noDownloadedUpdate: '没有已下载的更新',
+      noReleaseUrl: '没有 Release 页面链接',
     },
     menu: {
       checkUpdate: '检查更新',

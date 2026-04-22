@@ -206,7 +206,13 @@ export default {
     error: {
       network: 'Network error, please check your connection',
       server: 'Server error, please try again later',
-      unknown: 'Unknown error'
+      unknown: 'Unknown error',
+      requestTimeout: 'Request timeout',
+      downloadFailed: 'Download failed: HTTP {code}',
+      downloadTimeout: 'Download timeout',
+      noDownloadUrl: 'No download URL available',
+      noDownloadedUpdate: 'No update downloaded',
+      noReleaseUrl: 'No release page URL',
     },
     menu: {
       checkUpdate: 'Check for Updates',

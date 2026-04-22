@@ -317,7 +317,7 @@ app.whenReady().then(() => {
   }
 
   // 设置更新 IPC 处理器
-  setupUpdateIpcHandlers(() => mainWindow)
+  setupUpdateIpcHandlers(() => mainWindow, (key, params) => t(key, params))
 
   // 初始化自动更新器
   initAutoUpdater(() => mainWindow, {
