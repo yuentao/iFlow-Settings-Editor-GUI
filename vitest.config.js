@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
+import path from 'path';
 
 export default defineConfig({
   plugins: [vue()],
@@ -21,6 +22,11 @@ export default defineConfig({
         'main.js',
         'preload.js'
       ]
+    }
+  },
+  resolve: {
+    alias: {
+      '/icon.png': path.resolve(__dirname, 'public/icon.png')
     }
   },
   server: {

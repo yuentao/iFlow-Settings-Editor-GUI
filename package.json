@@ -1,11 +1,11 @@
 {
   "name": "iflow-settings-editor",
-  "version": "1.8.9",
+  "version": "1.9.0",
   "description": "一个用于编辑 iFlow CLI 配置文件的桌面应用程序。",
   "main": "main.js",
   "author": "上海潘哆呐科技有限公司",
   "repository": {
-    "url": "https://git.pandorastudio.cn/product/iFlow-Settings-Editor-GUI.git"
+    "url": "https://github.com/yuentao/iFlow-Settings-Editor-GUI.git"
   },
   "license": "MIT",
   "scripts": {
@@ -54,7 +54,9 @@
       "dist/**/*",
       "main.js",
       "preload.js",
-      "package.json"
+      "package.json",
+      "updateChecker.js",
+      "autoUpdater.js"
     ],
     "win": {
       "target": [
@@ -128,6 +130,8 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.17",
+    "electron-updater": "^6.8.3",
+    "marked": "^18.0.2",
     "vue-i18n": "^9.14.5"
   }
 }

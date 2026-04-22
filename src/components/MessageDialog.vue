@@ -21,8 +21,8 @@
           <line x1="9" y1="9" x2="15" y2="15" />
         </svg>
       </div>
-      <div class="message-dialog-title">{{ dialog.title }}</div>
-      <div class="message-dialog-message">{{ dialog.message }}</div>
+      <div class="message-dialog-title">{{ $t(dialog.title) }}</div>
+      <div class="message-dialog-message">{{ $t(dialog.message, dialog.messageParams) }}</div>
       <div class="dialog-actions">
         <button class="btn btn-primary" @click="handleConfirm">{{ $t('dialog.confirm') }}</button>
       </div>
@@ -34,14 +34,13 @@
 const props = defineProps({
   dialog: {
     type: Object,
-    default: () => ({ show: false, type: 'info', title: '', message: '', callback: null })
-  }
+    default: () => ({ show: false, type: 'info', title: '', message: '' }),
+  },
 })
 
-const emit = defineEmits(['close', 'confirm'])
+const emit = defineEmits(['close'])
 
 const handleConfirm = () => {
-  emit('confirm', true)
   emit('close')
 }
 </script>
@@ -64,8 +63,12 @@ const handleConfirm = () => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .message-dialog {
@@ -83,7 +86,7 @@ const handleConfirm = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   svg {
     width: 24px;
     height: 24px;
@@ -126,14 +129,20 @@ const handleConfirm = () => {
 .message-dialog .dialog-actions {
   justify-content: center;
   margin-top: var(--space-xl);
-  
+
   .btn {
     min-width: 100px;
   }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>

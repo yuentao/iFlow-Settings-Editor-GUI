@@ -4,6 +4,12 @@ import { nextTick } from 'vue';
 import GeneralSettings from './GeneralSettings.vue';
 
 describe('GeneralSettings.vue', () => {
+  // Stub img elements to avoid icon.png loading issues in tests
+  const imgStub = {
+    template: '<img />',
+    props: ['src', 'alt']
+  }
+
   const mockSettings = {
     language: 'zh-CN',
     uiTheme: 'Light',
@@ -21,12 +27,15 @@ describe('GeneralSettings.vue', () => {
         mocks: {
           $t: (key) => key,
         },
+        stubs: {
+          img: imgStub
+        }
       },
     });
 
     expect(wrapper.exists()).toBe(true);
     expect(wrapper.find('.content-title').exists()).toBe(true);
-    expect(wrapper.findAll('.card').length).toBe(3);
+    expect(wrapper.findAll('.card').length).toBe(4);
   });
 
   it('displays language options correctly', () => {
@@ -38,6 +47,9 @@ describe('GeneralSettings.vue', () => {
         mocks: {
           $t: (key) => key,
         },
+        stubs: {
+          img: imgStub
+        }
       },
     });
 
@@ -57,6 +69,9 @@ describe('GeneralSettings.vue', () => {
         mocks: {
           $t: (key) => key,
         },
+        stubs: {
+          img: imgStub
+        }
       },
     });
 
@@ -76,6 +91,9 @@ describe('GeneralSettings.vue', () => {
         mocks: {
           $t: (key) => key,
         },
+        stubs: {
+          img: imgStub
+        }
       },
     });
 
@@ -96,6 +114,9 @@ describe('GeneralSettings.vue', () => {
         mocks: {
           $t: (key) => `translated-${key}`,
         },
+        stubs: {
+          img: imgStub
+        }
       },
     });
 
@@ -112,11 +133,14 @@ describe('GeneralSettings.vue', () => {
         mocks: {
           $t: (key) => key,
         },
+        stubs: {
+          img: imgStub
+        }
       },
     });
 
     const cards = wrapper.findAll('.card');
-    expect(cards.length).toBe(3);
+    expect(cards.length).toBe(4);
   });
 
   it('displays card titles with icons', () => {
@@ -128,14 +152,18 @@ describe('GeneralSettings.vue', () => {
         mocks: {
           $t: (key) => key,
         },
+        stubs: {
+          img: imgStub
+        }
       },
     });
 
     const cardTitles = wrapper.findAll('.card-title');
-    expect(cardTitles.length).toBe(3);
+    expect(cardTitles.length).toBe(4);
     expect(cardTitles[0].text()).toContain('general.languageInterface');
     expect(cardTitles[1].text()).toContain('general.autoLaunchSettings');
     expect(cardTitles[2].text()).toContain('general.otherSettings');
+    expect(cardTitles[3].text()).toContain('update.menu.about');
   });
 
   it('shows all form controls with proper structure', () => {
@@ -147,6 +175,9 @@ describe('GeneralSettings.vue', () => {
         mocks: {
           $t: (key) => key,
         },
+        stubs: {
+          img: imgStub
+        }
       },
     });
 

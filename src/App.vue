@@ -42,8 +42,30 @@
     <ServerPanel :show="showServerPanel" :is-editing="isEditingServer" :data="editingServerData" @close="closeServerPanel" @save="saveServerFromPanel" @delete="deleteServer" />
 
     <InputDialog :dialog="showInputDialog" @confirm="handleInputConfirm" @cancel="closeInputDialog" />
-    
-    <MessageDialog :dialog="showMessageDialog" @close="closeMessageDialog" @confirm="handleMessageConfirm" style="z-index: 1500" />
+
+    <MessageDialog :dialog="showMessageDialog" @close="closeMessageDialog" style="z-index: 1500" />
+
+    <ConfirmDialog
+      v-if="pendingConfirmRequest"
+      :title-key="pendingConfirmRequest.titleKey"
+      :message-key="pendingConfirmRequest.messageKey"
+      :message-params="pendingConfirmRequest.messageParams"
+      @confirm="handleConfirmDialogConfirm"
+      @cancel="handleConfirmDialogCancel"
+      style="z-index: 1600"
+    />
+
+    <UpdateNotification :show="showUpdateNotification" :current-version="currentAppVersion" :latest-version="latestUpdateVersion" :release-notes="updateReleaseNotes" @update="handleUpdateNow" @later="handleUpdateLater" @close="handleUpdateLater" />
+
+    <UpdateProgress
+      :show="showUpdateProgress"
+      :status="updateProgressStatus"
+      :progress="updateDownloadProgress"
+      :version="latestUpdateVersion"
+      :speed="updateDownloadSpeed"
+      @cancel="handleUpdateCancel"
+      @install="handleInstallNow"
+      @later="handleUpdateLater" />
   </div>
 </template>
 
@@ -51,10 +73,21 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import locales from './locales/index.js'
+import enUS from './locales/en-US.js'
+import jaJP from './locales/ja-JP.js'
+
+const localeMap = {
+  'zh-CN': locales,
+  'en-US': enUS,
+  'ja-JP': jaJP,
+}
+
 import TitleBar from './components/TitleBar.vue'
 import SideBar from './components/SideBar.vue'
 import InputDialog from './components/InputDialog.vue'
 import MessageDialog from './components/MessageDialog.vue'
+import ConfirmDialog from './components/ConfirmDialog.vue'
 import ApiProfileDialog from './components/ApiProfileDialog.vue'
 import ServerPanel from './components/ServerPanel.vue'
 import GeneralSettings from './views/GeneralSettings.vue'
@@ -62,6 +95,8 @@ import ApiConfig from './views/ApiConfig.vue'
 import McpServers from './views/McpServers.vue'
 import SkillsView from './views/SkillsView.vue'
 import Dashboard from './views/Dashboard.vue'
+import UpdateNotification from './components/UpdateNotification.vue'
+import UpdateProgress from './components/UpdateProgress.vue'
 
 const { locale, t } = useI18n()
 
@@ -90,7 +125,9 @@ const currentApiProfile = ref('default')
 const systemTheme = ref('Light')
 
 const showInputDialog = ref({ show: false, title: '', placeholder: '', callback: null, isConfirm: false, defaultValue: '' })
-const showMessageDialog = ref({ show: false, type: 'info', title: '', message: '', callback: null })
+const showMessageDialog = ref({ show: false, type: 'info', title: '', message: '' })
+const pendingConfirmRequest = ref(null)
+const pendingConfirmResolve = ref(null)
 const showServerPanel = ref(false)
 const isEditingServer = ref(false)
 const editingServerData = ref({ name: '', description: '', command: 'npx', cwd: '.', args: '', env: '' })
@@ -171,7 +208,7 @@ const deleteApiProfile = async name => {
     return
   }
   const confirmed = await new Promise(resolve => {
-    showInputDialog.value = { show: true, title: t('api.delete'), placeholder: t('messages.confirmDeleteConfig', { name: profileName }), callback: resolve, isConfirm: true }
+    showInputDialog.value = { show: true, title: t('api.delete'), placeholder: 'messages.confirmDeleteConfig', name: profileName, callback: resolve, isConfirm: true }
   })
   if (!confirmed) return
   const result = await window.electronAPI.deleteApiProfile(profileName)
@@ -334,6 +371,9 @@ watch(
   newLang => {
     locale.value = newLang
     window.electronAPI.notifyLanguageChanged()
+    // 发送翻译数据给主进程
+    const translations = localeMap[newLang] || locales
+    window.electronAPI.sendTranslation(translations)
   },
 )
 
@@ -359,6 +399,16 @@ const loadSkillCount = async () => {
 const onSkillsChanged = count => {
   skillCount.value = count
 }
+
+// 更新相关状态
+const showUpdateNotification = ref(false)
+const showUpdateProgress = ref(false)
+const currentAppVersion = ref('')
+const latestUpdateVersion = ref('')
+const updateReleaseNotes = ref('')
+const updateProgressStatus = ref('downloading')
+const updateDownloadProgress = ref(0)
+const updateDownloadSpeed = ref('')
 
 const getEffectiveTheme = () => {
   const theme = settings.value.uiTheme
@@ -454,7 +504,7 @@ const deleteServer = async () => {
   const serverName = isEditingServer.value ? editingServerData.value.name : currentServerName.value
   if (!serverName) return
   const confirmed = await new Promise(resolve => {
-    showInputDialog.value = { show: true, title: t('mcp.delete'), placeholder: t('messages.confirmDeleteServer', { name: serverName }), callback: resolve, isConfirm: true }
+    showInputDialog.value = { show: true, title: t('mcp.delete'), placeholder: 'messages.confirmDeleteServer', name: serverName, callback: resolve, isConfirm: true }
   })
   if (!confirmed) return
   delete settings.value.mcpServers[serverName]
@@ -471,6 +521,96 @@ const deleteServer = async () => {
 const minimize = () => window.electronAPI.minimize()
 const maximize = () => window.electronAPI.maximize()
 const close = () => window.electronAPI.close()
+
+// 更新相关处理函数
+const initUpdateListeners = () => {
+  // 获取当前应用版本
+  window.electronAPI.getAppVersion().then(result => {
+    currentAppVersion.value = result?.version || '1.0.0'
+  })
+
+  // 监听更新状态变化
+  window.electronAPI.onUpdateStatusChanged(state => {
+    if (state.status === 'available' && state.info) {
+      latestUpdateVersion.value = state.info.version || ''
+      updateReleaseNotes.value = state.info.releaseNotes || ''
+      showUpdateNotification.value = true
+      showUpdateProgress.value = false
+    }
+  })
+
+  // 监听发现新版本
+  window.electronAPI.onUpdateAvailable(info => {
+    latestUpdateVersion.value = info.version || ''
+    updateReleaseNotes.value = info.releaseNotes || ''
+    showUpdateNotification.value = true
+    showUpdateProgress.value = false
+  })
+
+  // 监听下载进度
+  window.electronAPI.onUpdateDownloadProgress(progress => {
+    updateDownloadProgress.value = progress
+    showUpdateProgress.value = true
+    showUpdateNotification.value = false
+    updateProgressStatus.value = 'downloading'
+  })
+
+  // 监听下载完成
+  window.electronAPI.onUpdateDownloaded(() => {
+    updateProgressStatus.value = 'downloaded'
+    updateDownloadProgress.value = 100
+  })
+
+  // 监听自动检查更新
+  window.electronAPI.onAutoCheckUpdate(() => {
+    checkForUpdatesManual()
+  })
+
+  // 监听安装更新
+  window.electronAPI.onInstallUpdate(() => {
+    window.electronAPI.installUpdate()
+  })
+}
+
+const checkForUpdatesManual = async () => {
+  try {
+    const result = await window.electronAPI.checkForUpdates()
+    if (result.success && result.hasUpdate) {
+      latestUpdateVersion.value = result.version || ''
+      updateReleaseNotes.value = result.releaseNotes || ''
+      showUpdateNotification.value = true
+    } else if (result.success) {
+      await showMessage({ type: 'info', title: t('update.title'), message: t('update.noUpdate') })
+    }
+  } catch (error) {
+    console.error('Check for updates failed:', error)
+    await showMessage({ type: 'error', title: t('update.title'), message: t('update.checkFailed') })
+  }
+}
+
+const handleUpdateNow = async () => {
+  showUpdateNotification.value = false
+  showUpdateProgress.value = true
+  updateProgressStatus.value = 'downloading'
+  updateDownloadProgress.value = 0
+  await window.electronAPI.downloadUpdate()
+}
+
+const handleUpdateLater = () => {
+  showUpdateNotification.value = false
+  showUpdateProgress.value = false
+}
+
+const handleUpdateCancel = async () => {
+  await window.electronAPI.cancelDownload()
+  showUpdateProgress.value = false
+  await showMessage({ type: 'info', title: t('update.title'), message: t('update.updateCancelled') })
+}
+
+const handleInstallNow = () => {
+  showUpdateProgress.value = false
+  window.electronAPI.installUpdate()
+}
 
 const handleInputConfirm = result => {
   if (showInputDialog.value.callback) {
@@ -490,24 +630,34 @@ const closeInputDialog = () => {
   showInputDialog.value.defaultValue = ''
 }
 
-const showMessage = ({ type = 'info', title, message }) => {
+const showMessage = ({ type = 'info', title, message, messageParams }) => {
   return new Promise(resolve => {
-    showMessageDialog.value = { show: true, type, title, message, callback: resolve }
+    showMessageDialog.value = { show: true, type, title, message, messageParams }
   })
 }
 
-const showInput = ({ type, title, placeholder, callback, isConfirm, defaultValue }) => {
-  showInputDialog.value = { show: true, title, placeholder, callback, isConfirm, defaultValue }
+const showInput = ({ type, title, placeholder, callback, isConfirm, defaultValue, name }) => {
+  showInputDialog.value = { show: true, title, placeholder, callback, isConfirm, defaultValue, name }
+}
+
+const handleConfirmDialogConfirm = () => {
+  if (pendingConfirmRequest.value?.requestId) {
+    window.electronAPI.confirmDialogResult(pendingConfirmRequest.value.requestId, true)
+  }
+  pendingConfirmRequest.value = null
+  pendingConfirmResolve.value = null
+}
+
+const handleConfirmDialogCancel = () => {
+  if (pendingConfirmRequest.value?.requestId) {
+    window.electronAPI.confirmDialogResult(pendingConfirmRequest.value.requestId, false)
+  }
+  pendingConfirmRequest.value = null
+  pendingConfirmResolve.value = null
 }
 
 const closeMessageDialog = () => {
   showMessageDialog.value.show = false
-}
-
-const handleMessageConfirm = result => {
-  if (showMessageDialog.value.callback) {
-    showMessageDialog.value.callback(result)
-  }
 }
 
 watch(
@@ -562,6 +712,10 @@ onMounted(async () => {
   // 初始化系统主题
   updateSystemTheme()
 
+  // 发送翻译数据给主进程
+  const translations = localeMap[settings.value.language] || locales
+  window.electronAPI.sendTranslation(translations)
+
   // 监听系统主题变化
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateSystemTheme)
 
@@ -570,6 +724,15 @@ onMounted(async () => {
     document.body.classList.add(cls)
   }
   applyAcrylicStyle()
+
+  // 初始化更新监听
+  initUpdateListeners()
+
+  // 监听主进程的确认对话框请求
+  window.electronAPI.onShowConfirmRequest(request => {
+    pendingConfirmRequest.value = request
+  })
+
   window.electronAPI.onApiProfileSwitched(async profileName => {
     currentApiProfile.value = profileName
     await loadSettings()

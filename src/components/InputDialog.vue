@@ -1,8 +1,8 @@
 <template>
   <div v-if="dialog.show" class="dialog-overlay dialog-overlay-top">
     <div class="dialog" @click.stop>
-      <div class="dialog-title">{{ dialog.title }}</div>
-      <div v-if="dialog.isConfirm" class="dialog-confirm-text">{{ dialog.placeholder }}</div>
+      <div class="dialog-title">{{ $t(dialog.title) }}</div>
+      <div v-if="dialog.isConfirm" class="dialog-confirm-text">{{ $t(dialog.placeholder, { name: dialog.name }) }}</div>
       <input
         v-else
         type="text"
