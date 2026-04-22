@@ -581,9 +581,9 @@ const initUpdateListeners = () => {
     updateDownloadProgress.value = 100
   })
 
-  // 监听自动检查更新
+  // 监听自动检查更新（自动触发，不显示"已是最新"提示）
   window.electronAPI.onAutoCheckUpdate(() => {
-    checkForUpdatesManual()
+    checkForUpdatesAuto()
   })
 
   // 监听安装更新
@@ -605,6 +605,21 @@ const checkForUpdatesManual = async () => {
   } catch (error) {
     console.error('Check for updates failed:', error)
     await showMessage({ type: 'error', title: t('update.title'), message: t('update.checkFailed') })
+  }
+}
+
+// 自动检查更新（不显示"已是最新"提示）
+const checkForUpdatesAuto = async () => {
+  try {
+    const result = await window.electronAPI.checkForUpdates()
+    if (result.success && result.hasUpdate) {
+      latestUpdateVersion.value = result.version || ''
+      updateReleaseNotes.value = result.releaseNotes || ''
+      showUpdateNotification.value = true
+    }
+    // 自动检查不显示"已是最新"提示，静默完成
+  } catch (error) {
+    console.error('Auto check for updates failed:', error)
   }
 }
 

@@ -20,6 +20,25 @@ const UPDATE_STATES = {
 
 let checkInterval = null
 let mainWindowRef = null
+let autoCheckEnabled = true // 默认开启自动检查
+
+/**
+ * 启用自动检查更新
+ */
+function enableAutoCheck() {
+  autoCheckEnabled = true
+  if (app.isPackaged) {
+    startAutoCheck(DEFAULT_CHECK_INTERVAL)
+  }
+}
+
+/**
+ * 禁用自动检查更新
+ */
+function disableAutoCheck() {
+  autoCheckEnabled = false
+  stopAutoCheck()
+}
 
 /**
  * 初始化自动更新模块
@@ -30,9 +49,9 @@ function initAutoUpdater(getMainWindow, options = {}) {
   mainWindowRef = getMainWindow
 
   const interval = options.checkInterval || DEFAULT_CHECK_INTERVAL
-  const autoCheck = options.autoCheck !== false // 默认开启自动检查
+  autoCheckEnabled = options.autoCheck !== false // 默认开启自动检查
 
-  if (autoCheck && app.isPackaged) {
+  if (autoCheckEnabled && app.isPackaged) {
     // 仅在打包后的应用中自动检查更新
     startAutoCheck(interval)
   }
@@ -48,6 +67,16 @@ function initAutoUpdater(getMainWindow, options = {}) {
  * @param {number} interval - 检查间隔（毫秒）
  */
 function startAutoCheck(interval = DEFAULT_CHECK_INTERVAL) {
+  // 检查是否启用自动检查
+  if (!autoCheckEnabled) {
+    return
+  }
+
+  // 如果已有定时器，先清除
+  if (checkInterval) {
+    clearInterval(checkInterval)
+  }
+
   // 立即执行一次检查
   checkForUpdates()
 
@@ -71,6 +100,11 @@ function stopAutoCheck() {
  * 执行更新检查
  */
 async function checkForUpdates() {
+  // 检查是否启用自动检查
+  if (!autoCheckEnabled) {
+    return
+  }
+
   const mainWindow = mainWindowRef?.()
   if (!mainWindow) return
 
@@ -155,6 +189,8 @@ module.exports = {
   initAutoUpdater,
   startAutoCheck,
   stopAutoCheck,
+  enableAutoCheck,
+  disableAutoCheck,
   checkForUpdates,
   notifyUpdateState,
   showUpdateNotification,

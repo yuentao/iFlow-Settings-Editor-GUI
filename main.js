@@ -6,7 +6,7 @@ console.log('app.getPath("home"):', app.getPath('home'))
 
 // 导入更新模块
 const { setupIpcHandlers: setupUpdateIpcHandlers } = require('./updateChecker')
-const { initAutoUpdater } = require('./autoUpdater')
+const { initAutoUpdater, enableAutoCheck, disableAutoCheck } = require('./autoUpdater')
 const SETTINGS_FILE = path.join(app.getPath('home'), '.iflow', 'settings.json')
 console.log('SETTINGS_FILE:', SETTINGS_FILE)
 let mainWindow
@@ -323,8 +323,10 @@ app.whenReady().then(() => {
   setupUpdateIpcHandlers(() => mainWindow, (key, params) => t(key, params))
 
   // 初始化自动更新器
+  const currentSettings = readSettings()
+  const autoUpdateSetting = currentSettings?.autoUpdate !== undefined ? currentSettings.autoUpdate : true
   initAutoUpdater(() => mainWindow, {
-    autoCheck: true,
+    autoCheck: autoUpdateSetting,
     checkInterval: 60 * 60 * 1000, // 1小时检查一次
   })
 
@@ -419,6 +421,14 @@ ipcMain.handle('set-auto-update', async (event, enabled) => {
     const settings = readSettings() || {}
     settings.autoUpdate = enabled
     writeSettings(settings)
+
+    // 根据设置启用或禁用自动检查
+    if (enabled) {
+      enableAutoCheck()
+    } else {
+      disableAutoCheck()
+    }
+
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }
