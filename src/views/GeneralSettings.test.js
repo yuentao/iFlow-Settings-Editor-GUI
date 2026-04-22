@@ -1,14 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import GeneralSettings from './GeneralSettings.vue';
 
+// Helper to wait for all pending promises to resolve
+const flushPromises = () => new Promise(setImmediate);
+
 describe('GeneralSettings.vue', () => {
   // Stub img elements to avoid icon.png loading issues in tests
-  const imgStub = {
-    template: '<img />',
-    props: ['src', 'alt']
-  }
+  const imgStub = true;
 
   const mockSettings = {
     language: 'zh-CN',
@@ -17,6 +17,27 @@ describe('GeneralSettings.vue', () => {
     checkpointing: { enabled: true },
     acrylicIntensity: 50,
   };
+
+  beforeEach(() => {
+    // Mock window.electronAPI
+    global.window.electronAPI = {
+      getAutoLaunch: vi.fn().mockResolvedValue({ success: true, enabled: false }),
+      setAutoLaunch: vi.fn().mockResolvedValue({}),
+      getAppVersion: vi.fn().mockResolvedValue({ version: '1.0.0' }),
+      getAutoUpdate: vi.fn().mockResolvedValue({ success: true, enabled: true }),
+      getUpdateStatus: vi.fn().mockResolvedValue({ success: true, status: 'idle' }),
+      onUpdateStatusChanged: vi.fn(),
+      onUpdateDownloadProgress: vi.fn(),
+      onUpdateBackgroundComplete: vi.fn(),
+      removeUpdateListener: vi.fn(),
+      installUpdate: vi.fn().mockResolvedValue({}),
+      checkForUpdates: vi.fn().mockResolvedValue({ success: true, hasUpdate: false }),
+    };
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('renders correctly with props', () => {
     const wrapper = mount(GeneralSettings, {
@@ -185,5 +206,181 @@ describe('GeneralSettings.vue', () => {
     expect(wrapper.findAll('.setting-label').length).toBe(6);
     expect(wrapper.findAll('.form-select').length).toBe(4);
     expect(wrapper.find('.switch').exists()).toBe(true);
+  });
+
+  it('does not show install button when updateReady is false', async () => {
+    // Mock getUpdateStatus to return idle (no update ready)
+    window.electronAPI.getUpdateStatus.mockResolvedValueOnce({
+      success: true,
+      status: 'idle'
+    });
+
+    const wrapper = mount(GeneralSettings, {
+      props: {
+        settings: mockSettings,
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          img: imgStub
+        }
+      },
+    });
+
+    await nextTick();
+    await nextTick(); // Wait for onMounted async operations
+
+    const installButton = wrapper.find('.btn-primary');
+    expect(installButton.exists()).toBe(false);
+  });
+
+  it('shows install button when updateReady is true', async () => {
+    // Mock getUpdateStatus to return downloaded state
+    window.electronAPI.getUpdateStatus.mockResolvedValueOnce({
+      success: true,
+      status: 'downloaded',
+      info: { version: '2.0.0' }
+    });
+
+    const wrapper = mount(GeneralSettings, {
+      props: {
+        settings: mockSettings,
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          img: imgStub
+        }
+      },
+    });
+
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    const installButton = wrapper.find('.btn-primary');
+    expect(installButton.exists()).toBe(true);
+    expect(installButton.text()).toBe('update.installNow');
+  });
+
+  it('calls installUpdate when install button is clicked', async () => {
+    // Mock getUpdateStatus to return downloaded state
+    window.electronAPI.getUpdateStatus.mockResolvedValueOnce({
+      success: true,
+      status: 'downloaded',
+      info: { version: '2.0.0' }
+    });
+
+    const wrapper = mount(GeneralSettings, {
+      props: {
+        settings: mockSettings,
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          img: imgStub
+        }
+      },
+    });
+
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    const installButton = wrapper.find('.btn-primary');
+    await installButton.trigger('click');
+
+    expect(window.electronAPI.installUpdate).toHaveBeenCalledOnce();
+  });
+
+  it('shows error message when installUpdate fails', async () => {
+    // Mock getUpdateStatus to return downloaded state
+    window.electronAPI.getUpdateStatus.mockResolvedValueOnce({
+      success: true,
+      status: 'downloaded',
+      info: { version: '2.0.0' }
+    });
+
+    // Mock installUpdate to throw an error
+    window.electronAPI.installUpdate.mockRejectedValueOnce(new Error('Install failed'));
+
+    const wrapper = mount(GeneralSettings, {
+      props: {
+        settings: mockSettings,
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          img: imgStub
+        }
+      },
+    });
+
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    const installButton = wrapper.find('.btn-primary');
+    await installButton.trigger('click');
+
+    expect(window.electronAPI.installUpdate).toHaveBeenCalledOnce();
+    // The error is caught and a message dialog is shown
+    expect(wrapper.vm.messageDialog.show).toBe(true);
+    expect(wrapper.vm.messageDialog.type).toBe('error');
+    expect(wrapper.vm.messageDialog.message).toBe('update.installFailed');
+  });
+
+  it('registers update status listener on mount', async () => {
+    const wrapper = mount(GeneralSettings, {
+      props: {
+        settings: mockSettings,
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          img: imgStub
+        }
+      },
+    });
+
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(window.electronAPI.onUpdateStatusChanged).toHaveBeenCalledWith(
+      expect.any(Function)
+    );
+  });
+
+  it('removes update listener on unmount', async () => {
+    const wrapper = mount(GeneralSettings, {
+      props: {
+        settings: mockSettings,
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          img: imgStub
+        }
+      },
+    });
+
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    wrapper.unmount();
+
+    expect(window.electronAPI.removeUpdateListener).toHaveBeenCalledWith(
+      'update-status-changed',
+      expect.any(Function)
+    );
   });
 });
