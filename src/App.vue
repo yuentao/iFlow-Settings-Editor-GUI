@@ -531,7 +531,12 @@ const initUpdateListeners = () => {
 
   // 监听更新状态变化
   window.electronAPI.onUpdateStatusChanged(state => {
-    console.log('Update status changed:', state)
+    if (state.status === 'available' && state.info) {
+      latestUpdateVersion.value = state.info.version || ''
+      updateReleaseNotes.value = state.info.releaseNotes || ''
+      showUpdateNotification.value = true
+      showUpdateProgress.value = false
+    }
   })
 
   // 监听发现新版本
@@ -570,14 +575,12 @@ const initUpdateListeners = () => {
 const checkForUpdatesManual = async () => {
   try {
     const result = await window.electronAPI.checkForUpdates()
-    if (result.success) {
-      if (result.updateAvailable) {
-        latestUpdateVersion.value = result.version || ''
-        updateReleaseNotes.value = result.releaseNotes || ''
-        showUpdateNotification.value = true
-      } else {
-        await showMessage({ type: 'info', title: t('update.title'), message: t('update.noUpdate') })
-      }
+    if (result.success && result.hasUpdate) {
+      latestUpdateVersion.value = result.version || ''
+      updateReleaseNotes.value = result.releaseNotes || ''
+      showUpdateNotification.value = true
+    } else if (result.success) {
+      await showMessage({ type: 'info', title: t('update.title'), message: t('update.noUpdate') })
     }
   } catch (error) {
     console.error('Check for updates failed:', error)
@@ -599,9 +602,9 @@ const handleUpdateLater = () => {
 }
 
 const handleUpdateCancel = async () => {
-  // 取消下载（如果支持）
+  await window.electronAPI.cancelDownload()
   showUpdateProgress.value = false
-  await showMessage({ type: 'info', title: t('update.title'), message: '更新已取消' })
+  await showMessage({ type: 'info', title: t('update.title'), message: t('update.updateCancelled') })
 }
 
 const handleInstallNow = () => {
