@@ -173,7 +173,7 @@ function getDownloadAsset(release) {
 }
 
 // 下载文件到临时目录
-async function downloadFile(url, destPath, onProgress) {
+async function downloadFile(url, destPath, onProgress, options = {}) {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url)
     const protocol = parsedUrl.protocol === 'https:' ? https : http
@@ -182,7 +182,7 @@ async function downloadFile(url, destPath, onProgress) {
       // 处理重定向
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         const redirectUrl = new URL(res.headers.location, url)
-        downloadFile(redirectUrl.toString(), destPath, onProgress).then(resolve).catch(reject)
+        downloadFile(redirectUrl.toString(), destPath, onProgress, options).then(resolve).catch(reject)
         return
       }
 
@@ -196,6 +196,11 @@ async function downloadFile(url, destPath, onProgress) {
       const chunks = []
 
       res.on('data', chunk => {
+        // 检查是否已取消
+        if (options.cancelled) {
+          reject(new Error('Download cancelled'))
+          return
+        }
         chunks.push(chunk)
         downloaded += chunk.length
         if (onProgress && totalSize > 0) {
@@ -204,6 +209,10 @@ async function downloadFile(url, destPath, onProgress) {
       })
 
       res.on('end', () => {
+        if (options.cancelled) {
+          reject(new Error('Download cancelled'))
+          return
+        }
         try {
           fs.writeFileSync(destPath, Buffer.concat(chunks))
           resolve()
@@ -211,15 +220,34 @@ async function downloadFile(url, destPath, onProgress) {
           reject(error)
         }
       })
+
+      res.on('error', err => {
+        if (!options.cancelled) {
+          reject(err)
+        }
+      })
     })
 
-    req.on('error', reject)
+    req.on('error', err => {
+      if (!options.cancelled) {
+        reject(err)
+      }
+    })
+
     req.setTimeout(30000, () => {
       req.destroy()
-      reject(new Error(t('update.error.downloadTimeout')))
+      if (!options.cancelled) {
+        reject(new Error(t('update.error.downloadTimeout')))
+      }
     })
+
+    // 保存 req 以便取消
+    options._req = req
   })
 }
+
+// 取消下载标记
+let downloadCancelled = false
 
 // 更新检查状态
 let updateState = {
@@ -295,6 +323,8 @@ function setupIpcHandlers(mainWindowRef, translateFn) {
   })
 
   // 下载更新
+  let currentDownloadOptions = null
+
   ipcMain.handle('download-update', async () => {
     try {
       if (!updateState.info?.downloadUrl) {
@@ -302,14 +332,18 @@ function setupIpcHandlers(mainWindowRef, translateFn) {
       }
 
       setUpdateState({ status: 'downloading', progress: 0 }, mainWindowRef())
+      downloadCancelled = false
 
       const tmpDir = app.getPath('temp')
       const destPath = path.join(tmpDir, updateState.info.downloadName)
 
+      currentDownloadOptions = { cancelled: false }
+
       await downloadFile(updateState.info.downloadUrl, destPath, (downloaded, total) => {
         const progress = Math.round((downloaded / total) * 100)
         setUpdateState({ progress }, mainWindowRef())
-      })
+        mainWindowRef().webContents.send('update-download-progress', progress)
+      }, currentDownloadOptions)
 
       setUpdateState(
         {
@@ -322,9 +356,26 @@ function setupIpcHandlers(mainWindowRef, translateFn) {
 
       return { success: true, downloadPath: destPath }
     } catch (error) {
+      if (error.message === 'Download cancelled') {
+        setUpdateState({ status: 'idle', error: null }, mainWindowRef())
+        return { success: false, cancelled: true }
+      }
       setUpdateState({ status: 'error', error: error.message }, mainWindowRef())
       return { success: false, error: error.message }
     }
+  })
+
+  // 取消下载
+  ipcMain.handle('cancel-download', async () => {
+    if (currentDownloadOptions) {
+      currentDownloadOptions.cancelled = true
+      if (currentDownloadOptions._req) {
+        currentDownloadOptions._req.destroy()
+      }
+    }
+    downloadCancelled = true
+    setUpdateState({ status: 'idle' }, mainWindowRef())
+    return { success: true }
   })
 
   // 安装更新
