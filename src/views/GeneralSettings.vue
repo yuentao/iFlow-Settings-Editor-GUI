@@ -234,7 +234,7 @@ const checkForUpdates = async () => {
     if (window.electronAPI && window.electronAPI.checkForUpdates) {
       const result = await window.electronAPI.checkForUpdates()
       if (result.success) {
-        if (result.updateAvailable) {
+        if (result.hasUpdate) {
           // 更新可用，会通过 onUpdateAvailable 事件触发显示通知
         } else {
           // 已是最新版本
