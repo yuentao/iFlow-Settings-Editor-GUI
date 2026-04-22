@@ -33,6 +33,9 @@
         <button class="btn btn-secondary" @click="handleLater">
           {{ $t('update.later') }}
         </button>
+        <button class="btn btn-secondary" @click="handleBackground">
+          {{ $t('update.background') }}
+        </button>
         <button class="btn btn-primary" @click="handleUpdate">
           {{ $t('update.updateNow') }}
         </button>
@@ -68,7 +71,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update', 'later', 'close'])
+const emit = defineEmits(['update', 'later', 'background', 'close'])
 
 // 格式化 Markdown 格式的更新日志
 const formattedReleaseNotes = computed(() => {
@@ -87,6 +90,11 @@ const handleUpdate = () => {
 
 const handleLater = () => {
   emit('later')
+  emit('close')
+}
+
+const handleBackground = () => {
+  emit('background')
   emit('close')
 }
 </script>
