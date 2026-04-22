@@ -165,6 +165,9 @@ export default {
     skillExportSuccess: 'スキル "{name}" のエクスポートが成功しました',
     skillDeleteSuccess: 'スキル "{name}" が削除されました',
     skillImportSuccess: 'スキル "{name}" のインポートが成功しました',
+    skillOnlineImportSuccess: 'スキル "{name}" のオンラインインポートが成功しました',
+    skillArchiveInvalid: 'アーカイブに有効なスキルフォルダーが見つかりません（SKILL.md がありません）\nアーカイブ内容:\n{content}',
+    downloadFailed: 'ダウンロードに失敗しました: HTTP {code}',
     overwriteConfirm: 'スキル "{name}" は既に存在します。上書きしますか？'
   },
   dialog: {
@@ -208,5 +211,28 @@ export default {
     'zh-CN': '简体中文',
     'en-US': 'English',
     'ja-JP': '日本語'
-  }
+  },
+  main: {
+    tray: {
+      showWindow: 'メインウィンドウを表示',
+      switchApiConfig: 'API 設定切替',
+      exit: '終了',
+      tooltip: 'iFlow 設定エディタ',
+    },
+    errors: {
+      configNotFound: '設定ファイルが存在しません',
+      configNotExist: 'プロファイル "{name}" が存在しません',
+      configAlreadyExists: 'プロファイル "{name}" が既に存在します',
+      cannotDeleteDefault: 'デフォルトプロファイルは削除できません',
+      cannotRenameDefault: 'デフォルトプロファイルは名前変更できません',
+      switchFailed: 'API 設定の切替に失敗しました',
+    },
+    dialogs: {
+      importSkill: 'スキルを取込む',
+      exportSkill: 'スキルをエクスポート',
+      selectExportLocation: 'エクスポート場所を選択',
+      skillArchive: 'スキルアーカイブ',
+      allFiles: 'すべてのファイル',
+    },
+  },
 }

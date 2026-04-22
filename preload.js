@@ -91,4 +91,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('auto-check-update')
     ipcRenderer.removeAllListeners('install-update')
   },
+
+  // 获取翻译文本（供主进程使用）
+  getTranslation: (localeData) => {
+    return localeData
+  },
+
+  // 发送翻译数据给主进程
+  sendTranslation: (translations) => {
+    ipcRenderer.send('set-main-translations', translations)
+  },
 })

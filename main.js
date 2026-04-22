@@ -42,66 +42,52 @@ function setAutoLaunchEnabled(enabled) {
   }
 }
 
-// 主进程翻译
-const trayTranslations = {
-  'zh-CN': {
+// 主进程翻译对象（从渲染进程获取）
+let mainTranslations = {
+  tray: {
     showWindow: '显示主窗口',
     switchApiConfig: '切换 API 配置',
     exit: '退出',
     tooltip: 'iFlow 设置编辑器',
   },
-  'en-US': {
-    showWindow: 'Show Window',
-    switchApiConfig: 'Switch API Config',
-    exit: 'Exit',
-    tooltip: 'iFlow Settings Editor',
-  },
-  'ja-JP': {
-    showWindow: 'メインウィンドウを表示',
-    switchApiConfig: 'API 設定切替',
-    exit: '終了',
-    tooltip: 'iFlow 設定エディタ',
-  },
-}
-
-function getTrayTranslation() {
-  const settings = readSettings()
-  const lang = settings?.language || 'zh-CN'
-  return trayTranslations[lang] || trayTranslations['zh-CN']
-}
-
-// 错误消息翻译
-const errorTranslations = {
-  'zh-CN': {
+  errors: {
     configNotFound: '配置文件不存在',
     configNotExist: '配置 "{name}" 不存在',
     configAlreadyExists: '配置 "{name}" 已存在',
     cannotDeleteDefault: '不能删除默认配置',
     cannotRenameDefault: '不能重命名默认配置',
-    switchFailed: '切换API配置失败',
+    switchFailed: '切换 API 配置失败',
   },
-  'en-US': {
-    configNotFound: 'Configuration file not found',
-    configNotExist: 'Configuration "{name}" does not exist',
-    configAlreadyExists: 'Configuration "{name}" already exists',
-    cannotDeleteDefault: 'Cannot delete default configuration',
-    cannotRenameDefault: 'Cannot rename default configuration',
-    switchFailed: 'Failed to switch API configuration',
-  },
-  'ja-JP': {
-    configNotFound: '設定ファイルが存在しません',
-    configNotExist: 'プロファイル "{name}" が存在しません',
-    configAlreadyExists: 'プロファイル "{name}" が既に存在します',
-    cannotDeleteDefault: 'デフォルトプロファイルは削除できません',
-    cannotRenameDefault: 'デフォルトプロファイルは名前変更できません',
-    switchFailed: 'API 設定の切替に失敗しました',
+  dialogs: {
+    importSkill: '导入技能',
+    exportSkill: '导出技能到',
+    selectExportLocation: '选择导出位置',
   },
 }
 
-function getErrorTranslation() {
-  const settings = readSettings()
-  const lang = settings?.language || 'zh-CN'
-  return errorTranslations[lang] || errorTranslations['zh-CN']
+// 更新主进程翻译
+function updateMainTranslations(localeData) {
+  if (localeData && localeData.main) {
+    mainTranslations = localeData.main
+  }
+}
+
+// 获取翻译的辅助函数
+function t(key, params = {}) {
+  const keys = key.split('.')
+  let value = mainTranslations
+  for (const k of keys) {
+    value = value?.[k]
+    if (value === undefined) break
+  }
+  if (typeof value === 'string') {
+    // 替换参数
+    for (const [paramKey, paramValue] of Object.entries(params)) {
+      value = value.replace(`{${paramKey}}`, paramValue)
+    }
+    return value
+  }
+  return key // 默认返回 key
 }
 
 // 创建系统托盘
@@ -143,7 +129,7 @@ function createTray() {
   trayIcon = trayIcon.resize({ width: 16, height: 16 })
 
   tray = new Tray(trayIcon)
-  tray.setToolTip(getTrayTranslation().tooltip)
+  tray.setToolTip(t('tray.tooltip'))
 
   updateTrayMenu()
 
@@ -170,10 +156,9 @@ function updateTrayMenu() {
     click: () => switchApiProfileFromTray(name),
   }))
 
-  const t = getTrayTranslation()
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: t.showWindow,
+      label: t('tray.showWindow'),
       click: () => {
         if (mainWindow) {
           mainWindow.show()
@@ -183,12 +168,12 @@ function updateTrayMenu() {
     },
     { type: 'separator' },
     {
-      label: t.switchApiConfig,
+      label: t('tray.switchApiConfig'),
       submenu: profileMenuItems,
     },
     { type: 'separator' },
     {
-      label: t.exit,
+      label: t('tray.exit'),
       click: () => {
         app.isQuitting = true
         app.quit()
@@ -369,8 +354,14 @@ ipcMain.on('window-close', () => {
   }
 })
 ipcMain.handle('is-maximized', () => mainWindow.isMaximized())
-// 监听语言切换以更新托盘菜单
+// 监听语言切换以更新托盘菜单和翻译
 ipcMain.on('language-changed', () => {
+  updateTrayMenu()
+})
+
+// 接收翻译数据（渲染进程初始化时发送）
+ipcMain.on('set-main-translations', (event, translations) => {
+  updateMainTranslations(translations)
   updateTrayMenu()
 })
 
@@ -379,7 +370,7 @@ const pendingConfirmDialogs = new Map()
 
 // 共享函数：在主进程内部显示确认对话框并等待结果
 function callConfirmDialog(titleKey, messageKey, messageParams) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const requestId = `confirm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     pendingConfirmDialogs.set(requestId, resolve)
     mainWindow.webContents.send('show-confirm-request', { requestId, titleKey, messageKey, messageParams })
@@ -477,13 +468,12 @@ ipcMain.handle('list-api-profiles', async () => {
 ipcMain.handle('switch-api-profile', async (event, profileName) => {
   try {
     const settings = readSettings()
-    const t = getErrorTranslation()
     if (!settings) {
-      return { success: false, error: t.configNotFound }
+      return { success: false, error: t('errors.configNotFound') }
     }
     const profiles = settings.apiProfiles || {}
     if (!profiles[profileName]) {
-      return { success: false, error: t.configNotExist.replace('{name}', profileName) }
+      return { success: false, error: t('errors.configNotExist', { name: profileName }) }
     }
     // 保存当前配置到 apiProfiles（如果当前配置存在）
     const currentProfile = settings.currentApiProfile || 'default'
@@ -517,9 +507,8 @@ ipcMain.handle('switch-api-profile', async (event, profileName) => {
 ipcMain.handle('create-api-profile', async (event, name) => {
   try {
     const settings = readSettings()
-    const t = getErrorTranslation()
     if (!settings) {
-      return { success: false, error: t.configNotFound }
+      return { success: false, error: t('errors.configNotFound') }
     }
     if (!settings.apiProfiles) {
       settings.apiProfiles = { default: {} }
@@ -531,7 +520,7 @@ ipcMain.handle('create-api-profile', async (event, name) => {
       }
     }
     if (settings.apiProfiles[name]) {
-      return { success: false, error: t.configAlreadyExists.replace('{name}', name) }
+      return { success: false, error: t('errors.configAlreadyExists', { name }) }
     }
     // 复制当前配置到新配置
     const newConfig = {}
@@ -553,16 +542,15 @@ ipcMain.handle('create-api-profile', async (event, name) => {
 ipcMain.handle('delete-api-profile', async (event, name) => {
   try {
     const settings = readSettings()
-    const t = getErrorTranslation()
     if (!settings) {
-      return { success: false, error: t.configNotFound }
+      return { success: false, error: t('errors.configNotFound') }
     }
     if (name === 'default') {
-      return { success: false, error: t.cannotDeleteDefault }
+      return { success: false, error: t('errors.cannotDeleteDefault') }
     }
     const profiles = settings.apiProfiles || {}
     if (!profiles[name]) {
-      return { success: false, error: t.configNotExist.replace('{name}', name) }
+      return { success: false, error: t('errors.configNotExist', { name }) }
     }
     delete profiles[name]
     settings.apiProfiles = profiles
@@ -589,19 +577,18 @@ ipcMain.handle('delete-api-profile', async (event, name) => {
 ipcMain.handle('rename-api-profile', async (event, oldName, newName) => {
   try {
     const settings = readSettings()
-    const t = getErrorTranslation()
     if (!settings) {
-      return { success: false, error: t.configNotFound }
+      return { success: false, error: t('errors.configNotFound') }
     }
     if (oldName === 'default') {
-      return { success: false, error: t.cannotRenameDefault }
+      return { success: false, error: t('errors.cannotRenameDefault') }
     }
     const profiles = settings.apiProfiles || {}
     if (!profiles[oldName]) {
-      return { success: false, error: t.configNotExist.replace('{name}', oldName) }
+      return { success: false, error: t('errors.configNotExist', { name: oldName }) }
     }
     if (profiles[newName]) {
-      return { success: false, error: t.configAlreadyExists.replace('{name}', newName) }
+      return { success: false, error: t('errors.configAlreadyExists', { name: newName }) }
     }
     profiles[newName] = profiles[oldName]
     delete profiles[oldName]
@@ -621,16 +608,15 @@ ipcMain.handle('rename-api-profile', async (event, oldName, newName) => {
 ipcMain.handle('duplicate-api-profile', async (event, sourceName, newName) => {
   try {
     const settings = readSettings()
-    const t = getErrorTranslation()
     if (!settings) {
-      return { success: false, error: t.configNotFound }
+      return { success: false, error: t('errors.configNotFound') }
     }
     const profiles = settings.apiProfiles || {}
     if (!profiles[sourceName]) {
-      return { success: false, error: t.configNotExist.replace('{name}', sourceName) }
+      return { success: false, error: t('errors.configNotExist', { name: sourceName }) }
     }
     if (profiles[newName]) {
-      return { success: false, error: t.configAlreadyExists.replace('{name}', newName) }
+      return { success: false, error: t('errors.configAlreadyExists', { name: newName }) }
     }
     // 深拷贝配置
     profiles[newName] = JSON.parse(JSON.stringify(profiles[sourceName]))
@@ -647,7 +633,7 @@ ipcMain.handle('duplicate-api-profile', async (event, sourceName, newName) => {
 ipcMain.handle('load-settings', async () => {
   try {
     if (!fs.existsSync(SETTINGS_FILE)) {
-      return { success: false, error: 'File not found', data: null }
+      return { success: false, error: t('errors.configNotFound'), data: null }
     }
     const data = fs.readFileSync(SETTINGS_FILE, 'utf-8')
     const json = JSON.parse(data)
@@ -768,10 +754,10 @@ ipcMain.handle('list-skills', async () => {
 ipcMain.handle('import-skill-local', async () => {
   try {
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: '导入技能',
+      title: t('dialogs.importSkill'),
       filters: [
-        { name: '技能压缩包', extensions: ['zip'] },
-        { name: '所有文件', extensions: ['*'] },
+        { name: t('dialogs.skillArchive'), extensions: ['zip'] },
+        { name: t('dialogs.allFiles'), extensions: ['*'] },
       ],
       properties: ['openFile'],
     })
@@ -874,7 +860,7 @@ ipcMain.handle('import-skill-local', async () => {
         }
         const allFiles = listAllFiles(tmpDir)
         console.error('解压后文件列表:', allFiles.join('\n'))
-        return { success: false, error: `压缩包中未找到有效的技能文件夹（缺少 SKILL.md）\n解压内容:\n${allFiles.slice(0, 20).join('\n')}` }
+        return { success: false, error: t('messages.skillArchiveInvalid', { content: allFiles.slice(0, 20).join('\n') }) }
       }
 
       const destPath = path.join(SKILLS_FOLDER, skillName)
@@ -892,7 +878,7 @@ ipcMain.handle('import-skill-local', async () => {
 
       // 复制技能文件夹
       fs.cpSync(skillFolder, destPath, { recursive: true })
-      return { success: true, message: `技能 "${skillName}" 导入成功` }
+      return { success: true, message: t('messages.skillImportSuccess', { name: skillName }) }
     } finally {
       // 清理临时目录
       if (fs.existsSync(tmpDir)) {
@@ -950,7 +936,7 @@ ipcMain.handle('import-skill-online', async (event, url, name) => {
           }
 
           if (response.statusCode !== 200) {
-            resolve({ success: false, error: `下载失败: HTTP ${response.statusCode}` })
+            resolve({ success: false, error: t('messages.downloadFailed', { code: response.statusCode }) })
             return
           }
 
@@ -1024,7 +1010,7 @@ function handleDownload(response, destPath, name) {
             }
           }
 
-          resolve({ success: true, message: `技能 "${name}" 在线导入成功` })
+          resolve({ success: true, message: t('messages.skillOnlineImportSuccess', { name }) })
         } catch (writeError) {
           resolve({ success: false, error: writeError.message })
         }
@@ -1039,7 +1025,7 @@ function handleDownload(response, destPath, name) {
           // 假设下载的是 SKILL.md 内容
           const skillMdPath = path.join(destPath, 'SKILL.md')
           fs.writeFileSync(skillMdPath, content)
-          resolve({ success: true, message: `技能 "${name}" 在线导入成功` })
+          resolve({ success: true, message: t('messages.skillOnlineImportSuccess', { name }) })
         } catch (writeError) {
           resolve({ success: false, error: writeError.message })
         }
@@ -1058,8 +1044,8 @@ ipcMain.handle('export-skill', async (event, name, folderName) => {
     }
 
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: '导出技能到',
-      buttonLabel: '选择导出位置',
+      title: t('dialogs.exportSkill'),
+      buttonLabel: t('dialogs.selectExportLocation'),
       properties: ['openDirectory', 'createDirectory'],
     })
 

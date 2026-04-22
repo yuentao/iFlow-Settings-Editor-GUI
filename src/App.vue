@@ -73,6 +73,16 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import locales from './locales/index.js'
+import enUS from './locales/en-US.js'
+import jaJP from './locales/ja-JP.js'
+
+const localeMap = {
+  'zh-CN': locales,
+  'en-US': enUS,
+  'ja-JP': jaJP,
+}
+
 import TitleBar from './components/TitleBar.vue'
 import SideBar from './components/SideBar.vue'
 import InputDialog from './components/InputDialog.vue'
@@ -361,6 +371,9 @@ watch(
   newLang => {
     locale.value = newLang
     window.electronAPI.notifyLanguageChanged()
+    // 发送翻译数据给主进程
+    const translations = localeMap[newLang] || locales
+    window.electronAPI.sendTranslation(translations)
   },
 )
 
@@ -695,6 +708,10 @@ onMounted(async () => {
 
   // 初始化系统主题
   updateSystemTheme()
+
+  // 发送翻译数据给主进程
+  const translations = localeMap[settings.value.language] || locales
+  window.electronAPI.sendTranslation(translations)
 
   // 监听系统主题变化
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateSystemTheme)

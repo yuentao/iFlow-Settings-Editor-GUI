@@ -173,6 +173,9 @@ export default {
     skillExportSuccess: '技能 "{name}" 导出成功',
     skillDeleteSuccess: '技能 "{name}" 已删除',
     skillImportSuccess: '技能 "{name}" 导入成功',
+    skillOnlineImportSuccess: '技能 "{name}" 在线导入成功',
+    skillArchiveInvalid: '压缩包中未找到有效的技能文件夹（缺少 SKILL.md）\n解压内容:\n{content}',
+    downloadFailed: '下载失败: HTTP {code}',
     overwriteConfirm: '技能 "{name}" 已存在，是否覆盖？'
   },
   dialog: {
@@ -216,5 +219,28 @@ export default {
     'zh-CN': '简体中文',
     'en-US': 'English',
     'ja-JP': '日本語'
-  }
+  },
+  main: {
+    tray: {
+      showWindow: '显示主窗口',
+      switchApiConfig: '切换 API 配置',
+      exit: '退出',
+      tooltip: 'iFlow 设置编辑器',
+    },
+    errors: {
+      configNotFound: '配置文件不存在',
+      configNotExist: '配置 "{name}" 不存在',
+      configAlreadyExists: '配置 "{name}" 已存在',
+      cannotDeleteDefault: '不能删除默认配置',
+      cannotRenameDefault: '不能重命名默认配置',
+      switchFailed: '切换 API 配置失败',
+    },
+    dialogs: {
+      importSkill: '导入技能',
+      exportSkill: '导出技能到',
+      selectExportLocation: '选择导出位置',
+      skillArchive: '技能压缩包',
+      allFiles: '所有文件',
+    },
+  },
 }

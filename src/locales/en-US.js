@@ -173,6 +173,9 @@ export default {
     skillExportSuccess: 'Skill "{name}" exported successfully',
     skillDeleteSuccess: 'Skill "{name}" deleted successfully',
     skillImportSuccess: 'Skill "{name}" imported successfully',
+    skillOnlineImportSuccess: 'Skill "{name}" imported online successfully',
+    skillArchiveInvalid: 'No valid skill folder found in archive (missing SKILL.md)\nArchive contents:\n{content}',
+    downloadFailed: 'Download failed: HTTP {code}',
     overwriteConfirm: 'Skill "{name}" already exists. Do you want to overwrite it?'
   },
   dialog: {
@@ -216,5 +219,28 @@ export default {
     'zh-CN': '简体中文',
     'en-US': 'English',
     'ja-JP': '日本語'
-  }
+  },
+  main: {
+    tray: {
+      showWindow: 'Show Window',
+      switchApiConfig: 'Switch API Config',
+      exit: 'Exit',
+      tooltip: 'iFlow Settings Editor',
+    },
+    errors: {
+      configNotFound: 'Configuration file not found',
+      configNotExist: 'Configuration "{name}" does not exist',
+      configAlreadyExists: 'Configuration "{name}" already exists',
+      cannotDeleteDefault: 'Cannot delete default configuration',
+      cannotRenameDefault: 'Cannot rename default configuration',
+      switchFailed: 'Failed to switch API configuration',
+    },
+    dialogs: {
+      importSkill: 'Import Skill',
+      exportSkill: 'Export Skill To',
+      selectExportLocation: 'Select Export Location',
+      skillArchive: 'Skill Archive',
+      allFiles: 'All Files',
+    },
+  },
 }
