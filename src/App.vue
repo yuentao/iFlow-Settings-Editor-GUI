@@ -3,7 +3,7 @@
     <TitleBar @minimize="minimize" @maximize="maximize" @close="close" />
 
     <main class="main">
-      <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" @navigate="showSection" />
+      <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" @navigate="showSection" />
 
       <div class="content">
         <Dashboard v-if="currentSection === 'dashboard'" :settings="settings" :current-api-profile="currentApiProfile" :server-count="serverCount" :skill-count="skillCount" @navigate="showSection" />
@@ -25,6 +25,8 @@
         <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :selected-server="currentServerName" :server-count="serverCount" @add-server="addServer" @select-server="selectServer" />
 
         <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
+
+        <CommandsView v-if="currentSection === 'commands'" @show-message="showMessage" @show-input-dialog="showInput" @commands-changed="onCommandsChanged" />
       </div>
     </main>
 
@@ -94,6 +96,7 @@ import GeneralSettings from './views/GeneralSettings.vue'
 import ApiConfig from './views/ApiConfig.vue'
 import McpServers from './views/McpServers.vue'
 import SkillsView from './views/SkillsView.vue'
+import CommandsView from './views/CommandsView.vue'
 import Dashboard from './views/Dashboard.vue'
 import UpdateNotification from './components/UpdateNotification.vue'
 import UpdateProgress from './components/UpdateProgress.vue'
@@ -385,6 +388,8 @@ const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(sett
 
 const skillCount = ref(0)
 
+const commandCount = ref(0)
+
 const loadSkillCount = async () => {
   try {
     const result = await window.electronAPI.listSkills()
@@ -398,6 +403,21 @@ const loadSkillCount = async () => {
 
 const onSkillsChanged = count => {
   skillCount.value = count
+}
+
+const onCommandsChanged = count => {
+  commandCount.value = count
+}
+
+const loadCommandCount = async () => {
+  try {
+    const result = await window.electronAPI.listCommands()
+    if (result.success) {
+      commandCount.value = result.commands ? result.commands.length : 0
+    }
+  } catch (error) {
+    console.error('Failed to load command count:', error)
+  }
 }
 
 // 更新相关状态
@@ -707,6 +727,7 @@ onMounted(async () => {
   await loadApiProfiles()
   await loadSettings()
   await loadSkillCount()
+  await loadCommandCount()
   locale.value = settings.value.language
 
   // 初始化系统主题
