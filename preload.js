@@ -54,6 +54,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportSkill: (name, fileName) => ipcRenderer.invoke('export-skill', name, fileName),
   deleteSkill: (name) => ipcRenderer.invoke('delete-skill', name),
 
+  // Commands 管理
+  listCommands: () => ipcRenderer.invoke('list-commands'),
+  readCommand: (name) => ipcRenderer.invoke('read-command', name),
+  createCommand: (name, data) => ipcRenderer.invoke('create-command', name, data),
+  updateCommand: (name, data) => ipcRenderer.invoke('update-command', name, data),
+  deleteCommand: (name) => ipcRenderer.invoke('delete-command', name),
+  exportCommand: (name) => ipcRenderer.invoke('export-command', name),
+  importCommand: () => ipcRenderer.invoke('import-command'),
+
   // 更新相关 API
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),

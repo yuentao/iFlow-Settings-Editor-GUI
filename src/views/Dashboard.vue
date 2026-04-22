@@ -56,15 +56,15 @@
         </div>
       </div>
 
-      <!-- 主题 -->
-      <div class="stat-card card-appear" style="animation-delay: 0.08s" @click="$emit('navigate', 'general')">
-        <div class="stat-icon stat-icon-info">
-          <Setting size="28" />
+      <!-- 命令管理 -->
+      <div class="stat-card card-appear" style="animation-delay: 0.08s" @click="$emit('navigate', 'commands')">
+        <div class="stat-icon stat-icon-accent">
+          <Command size="28" />
         </div>
         <div class="stat-content">
-          <div class="stat-label">{{ $t('dashboard.theme') }}</div>
-          <div class="stat-value">{{ themeLabel }}</div>
-          <div class="stat-sub">{{ themeDescription }}</div>
+          <div class="stat-label">{{ $t('dashboard.commands') }}</div>
+          <div class="stat-value">{{ commandCount }}</div>
+          <div class="stat-sub">{{ $t('dashboard.installed') }}</div>
         </div>
       </div>
     </div>
@@ -74,7 +74,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Key, Server, Star, Setting } from '@icon-park/vue-next'
+import { Key, Server, Star, Command } from '@icon-park/vue-next'
 
 const { t } = useI18n()
 
@@ -95,21 +95,13 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  commandCount: {
+    type: Number,
+    default: 0,
+  },
 })
 
 defineEmits(['navigate'])
-
-const themeLabel = computed(() => {
-  const theme = props.settings.uiTheme
-  if (theme === 'Light') return t('theme.light')
-  if (theme === 'Dark') return t('theme.dark')
-  return t('theme.system')
-})
-
-const themeDescription = computed(() => {
-  if (props.settings.uiTheme === 'System') return t('dashboard.followSystem')
-  return t('dashboard.manual')
-})
 
 const currentApiProfileData = computed(() => {
   if (props.settings.apiProfiles && props.settings.apiProfiles[props.currentApiProfile]) {

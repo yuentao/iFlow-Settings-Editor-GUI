@@ -3,10 +3,10 @@
     <TitleBar @minimize="minimize" @maximize="maximize" @close="close" />
 
     <main class="main">
-      <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" @navigate="showSection" />
+      <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" @navigate="showSection" />
 
       <div class="content">
-        <Dashboard v-if="currentSection === 'dashboard'" :settings="settings" :current-api-profile="currentApiProfile" :server-count="serverCount" :skill-count="skillCount" @navigate="showSection" />
+        <Dashboard v-if="currentSection === 'dashboard'" :settings="settings" :current-api-profile="currentApiProfile" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" @navigate="showSection" />
 
         <GeneralSettings v-if="currentSection === 'general'" :settings="settings" @update:settings="updateSettings" />
 
@@ -25,6 +25,8 @@
         <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :selected-server="currentServerName" :server-count="serverCount" @add-server="addServer" @select-server="selectServer" />
 
         <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
+
+        <CommandsView v-if="currentSection === 'commands'" @show-message="showMessage" @show-input-dialog="showInput" @commands-changed="onCommandsChanged" />
       </div>
     </main>
 
@@ -94,6 +96,7 @@ import GeneralSettings from './views/GeneralSettings.vue'
 import ApiConfig from './views/ApiConfig.vue'
 import McpServers from './views/McpServers.vue'
 import SkillsView from './views/SkillsView.vue'
+import CommandsView from './views/CommandsView.vue'
 import Dashboard from './views/Dashboard.vue'
 import UpdateNotification from './components/UpdateNotification.vue'
 import UpdateProgress from './components/UpdateProgress.vue'
@@ -385,6 +388,8 @@ const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(sett
 
 const skillCount = ref(0)
 
+const commandCount = ref(0)
+
 const loadSkillCount = async () => {
   try {
     const result = await window.electronAPI.listSkills()
@@ -398,6 +403,21 @@ const loadSkillCount = async () => {
 
 const onSkillsChanged = count => {
   skillCount.value = count
+}
+
+const onCommandsChanged = count => {
+  commandCount.value = count
+}
+
+const loadCommandCount = async () => {
+  try {
+    const result = await window.electronAPI.listCommands()
+    if (result.success) {
+      commandCount.value = result.commands ? result.commands.length : 0
+    }
+  } catch (error) {
+    console.error('Failed to load command count:', error)
+  }
 }
 
 // 更新相关状态
@@ -561,9 +581,9 @@ const initUpdateListeners = () => {
     updateDownloadProgress.value = 100
   })
 
-  // 监听自动检查更新
+  // 监听自动检查更新（自动触发，不显示"已是最新"提示）
   window.electronAPI.onAutoCheckUpdate(() => {
-    checkForUpdatesManual()
+    checkForUpdatesAuto()
   })
 
   // 监听安装更新
@@ -585,6 +605,21 @@ const checkForUpdatesManual = async () => {
   } catch (error) {
     console.error('Check for updates failed:', error)
     await showMessage({ type: 'error', title: t('update.title'), message: t('update.checkFailed') })
+  }
+}
+
+// 自动检查更新（不显示"已是最新"提示）
+const checkForUpdatesAuto = async () => {
+  try {
+    const result = await window.electronAPI.checkForUpdates()
+    if (result.success && result.hasUpdate) {
+      latestUpdateVersion.value = result.version || ''
+      updateReleaseNotes.value = result.releaseNotes || ''
+      showUpdateNotification.value = true
+    }
+    // 自动检查不显示"已是最新"提示，静默完成
+  } catch (error) {
+    console.error('Auto check for updates failed:', error)
   }
 }
 
@@ -707,6 +742,7 @@ onMounted(async () => {
   await loadApiProfiles()
   await loadSettings()
   await loadSkillCount()
+  await loadCommandCount()
   locale.value = settings.value.language
 
   // 初始化系统主题

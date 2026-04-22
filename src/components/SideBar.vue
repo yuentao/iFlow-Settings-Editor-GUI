@@ -28,6 +28,11 @@
           <span class="nav-item-text">{{ $t('sidebar.skills') }}</span>
           <span class="nav-item-badge" v-show="!collapsed">{{ skillCount }}</span>
         </div>
+        <div class="nav-item" :class="{ active: currentSection === 'commands' }" @click="$emit('navigate', 'commands')">
+          <Command size="16" />
+          <span class="nav-item-text">{{ $t('sidebar.commands') }}</span>
+          <span class="nav-item-badge" v-show="!collapsed">{{ commandCount }}</span>
+        </div>
       </div>
     </div>
     <div class="collapse-btn" @click="toggleCollapse">
@@ -38,7 +43,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { Config, Key, Server, Star, Dashboard } from '@icon-park/vue-next'
+import { Config, Key, Server, Star, Dashboard, Command } from '@icon-park/vue-next'
 
 defineProps({
   currentSection: {
@@ -50,6 +55,10 @@ defineProps({
     default: 0,
   },
   skillCount: {
+    type: Number,
+    default: 0,
+  },
+  commandCount: {
     type: Number,
     default: 0,
   },

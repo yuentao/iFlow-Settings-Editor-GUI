@@ -16,7 +16,7 @@ describe('SideBar.vue', () => {
     expect(wrapper.find('.sidebar').exists()).toBe(true);
   });
 
-  it('has five nav items', () => {
+  it('has six nav items', () => {
     const wrapper = mount(SideBar, {
       global: {
         mocks: {
@@ -26,7 +26,7 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item');
-    expect(navItems.length).toBe(5);
+    expect(navItems.length).toBe(6); // Dashboard, API Config, Basic Settings, MCP, Skills, Commands
   });
 
   it('has two sections', () => {
@@ -55,7 +55,7 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item');
-    // Order: Dashboard(0), API Config(1), Basic Settings(2), MCP(3), Skills(4)
+    // Order: Dashboard(0), API Config(1), Basic Settings(2), MCP(3), Skills(4), Commands(5)
     expect(navItems[0].classes('active')).toBe(false); // Dashboard
     expect(navItems[1].classes('active')).toBe(true);  // API Config
     expect(navItems[2].classes('active')).toBe(false);  // Basic Settings
@@ -75,7 +75,7 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item');
-    // Order: Dashboard(0), API Config(1), Basic Settings(2), MCP(3), Skills(4)
+    // Order: Dashboard(0), API Config(1), Basic Settings(2), MCP(3), Skills(4), Commands(5)
     await navItems[2].trigger('click'); // Click Basic Settings
 
     expect(wrapper.emitted('navigate')).toBeTruthy();
@@ -96,7 +96,7 @@ describe('SideBar.vue', () => {
     });
 
     const badges = wrapper.findAll('.nav-item-badge');
-    expect(badges.length).toBe(2); // MCP and Skills both show badges
+    expect(badges.length).toBe(3); // MCP, Skills and Commands all show badges
     expect(badges[0].text()).toBe('5');
   });
 
@@ -114,7 +114,7 @@ describe('SideBar.vue', () => {
     });
 
     const badges = wrapper.findAll('.nav-item-badge');
-    expect(badges.length).toBe(2); // MCP and Skills both show badges
+    expect(badges.length).toBe(3); // MCP, Skills and Commands all show badges
     expect(badges[0].text()).toBe('0');
   });
 
@@ -142,11 +142,12 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item-text');
-    // Order: Dashboard(0), API Config(1), Basic Settings(2), MCP(3), Skills(4)
+    // Order: Dashboard(0), API Config(1), Basic Settings(2), MCP(3), Skills(4), Commands(5)
     expect(navItems[0].text()).toBe('translated-sidebar.dashboard');
     expect(navItems[1].text()).toBe('translated-sidebar.apiConfig');
     expect(navItems[2].text()).toBe('translated-sidebar.basicSettings');
     expect(navItems[3].text()).toBe('translated-sidebar.mcpServers');
+    expect(navItems[4].text()).toBe('translated-sidebar.skills');
   });
 
   it('handles null currentSection', () => {

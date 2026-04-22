@@ -16,7 +16,8 @@ export default {
     apiConfig: 'API Config',
     advanced: 'Advanced',
     mcpServers: 'MCP Servers',
-    skills: 'Skills'
+    skills: 'Skills',
+    commands: 'Commands'
   },
   dashboard: {
     title: 'Dashboard',
@@ -24,6 +25,7 @@ export default {
     currentApiConfig: 'Current API Config',
     mcpServers: 'MCP Servers',
     skills: 'Skills',
+    commands: 'Commands',
     theme: 'Theme',
     profiles: 'profiles',
     configured: 'Configured',
@@ -43,9 +45,9 @@ export default {
     addServer: 'Add Server',
     importSkill: 'Import Skill',
     recentServers: 'Recent Servers',
-    viewAll: 'View All'
-  },
-  general: {
+    viewAll: 'View All',
+    manageCommands: 'Manage Commands'
+  },  general: {
     title: 'Basic Settings',
     description: 'Configure general application options',
     language: 'Language',
@@ -158,6 +160,53 @@ export default {
     cancel: 'Cancel',
     import: 'Import'
   },
+  commands: {
+    title: 'Commands',
+    description: 'Manage iFlow CLI command configurations',
+    create: 'New Command',
+    importLocal: 'Import Local',
+    category: {
+      all: 'All',
+      utility: 'Utility',
+      documentation: 'Documentation',
+      other: 'Other'
+    },
+    noCommands: 'No Commands',
+    addFirstCommand: 'Click the button above to add your first command',
+    edit: 'Edit',
+    export: 'Export',
+    delete: 'Delete',
+    editor: {
+      createTitle: 'New Command',
+      editTitle: 'Edit Command',
+      name: 'Command Name',
+      namePlaceholder: 'my-command',
+      nameHint: 'Only letters, numbers, hyphens and underscores allowed',
+      description: 'Description',
+      descriptionPlaceholder: 'What this command does',
+      category: 'Category',
+      version: 'Version',
+      author: 'Author',
+      authorPlaceholder: 'Your name',
+      prompt: 'Prompt',
+      promptPlaceholder: 'Enter the command prompt...',
+      promptHint: 'The prompt content sent to AI',
+      cancel: 'Cancel',
+      save: 'Save'
+    },
+    commandSaved: 'Command saved',
+    commandCreated: 'Command "{name}" created',
+    commandDeleted: 'Command "{name}" deleted',
+    commandExported: 'Command "{name}" exported',
+    commandsImported: '{count} command(s) imported',
+    confirmDelete: 'Are you sure you want to delete command "{name}"?',
+    anonymous: 'Anonymous',
+    errors: {
+      notFound: 'Command not found',
+      alreadyExists: 'Command already exists',
+      invalidName: 'Command name can only contain letters, numbers, hyphens, and underscores'
+    }
+  },
   messages: {
     error: 'Error',
     warning: 'Warning',
@@ -242,10 +291,14 @@ export default {
       cannotDeleteDefault: 'Cannot delete default configuration',
       cannotRenameDefault: 'Cannot rename default configuration',
       switchFailed: 'Failed to switch API configuration',
+      commandNotFound: 'Command not found',
+      commandAlreadyExists: 'Command already exists',
+      commandInvalidName: 'Command name can only contain letters, numbers, hyphens, and underscores',
     },
     dialogs: {
       importSkill: 'Import Skill',
       exportSkill: 'Export Skill To',
+      exportCommand: 'Export Command',
       selectExportLocation: 'Select Export Location',
       skillArchive: 'Skill Archive',
       allFiles: 'All Files',

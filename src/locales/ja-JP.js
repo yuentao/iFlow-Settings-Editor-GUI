@@ -16,7 +16,8 @@ export default {
     apiConfig: 'API 設定',
     advanced: '詳細',
     mcpServers: 'MCP サーバー',
-    skills: 'スキル'
+    skills: 'スキル',
+    commands: 'コマンド'
   },
   dashboard: {
     title: 'ダッシュボード',
@@ -24,6 +25,7 @@ export default {
     currentApiConfig: '現在の API 設定',
     mcpServers: 'MCP サーバー',
     skills: 'スキル',
+    commands: 'コマンド',
     theme: 'テーマ',
     profiles: 'プロファイル',
     configured: '設定済み',
@@ -35,7 +37,8 @@ export default {
     shown: '表示済み',
     hidden: '非表示',
     followSystem: 'システムに従う',
-    manual: '手動'
+    manual: '手動',
+    manageCommands: 'コマンド管理'
   },
   general: {
     title: '基本設定',
@@ -150,6 +153,53 @@ export default {
     cancel: 'キャンセル',
     import: '取込'
   },
+  commands: {
+    title: 'コマンド',
+    description: 'iFlow CLI コマンド設定を管理',
+    create: '新規コマンド',
+    importLocal: 'ローカル取込',
+    category: {
+      all: 'すべて',
+      utility: 'ユーティリティ',
+      documentation: 'ドキュメント',
+      other: 'その他'
+    },
+    noCommands: 'コマンドがありません',
+    addFirstCommand: '上のボタンをクリックして最初のコマンドを追加',
+    edit: '編集',
+    export: 'エクスポート',
+    delete: '削除',
+    editor: {
+      createTitle: '新規コマンド',
+      editTitle: 'コマンドを編集',
+      name: 'コマンド名',
+      namePlaceholder: 'my-command',
+      nameHint: '英数字、ハイフン、アンダースコアのみ使用可能',
+      description: '説明',
+      descriptionPlaceholder: 'このコマンドの説明',
+      category: 'カテゴリー',
+      version: 'バージョン',
+      author: '作成者',
+      authorPlaceholder: 'あなたの名前',
+      prompt: 'プロンプト',
+      promptPlaceholder: 'プロンプトを入力...',
+      promptHint: 'AIに送信されるプロンプト内容',
+      cancel: 'キャンセル',
+      save: '保存'
+    },
+    commandSaved: 'コマンドを保存しました',
+    commandCreated: 'コマンド "{name}" を作成しました',
+    commandDeleted: 'コマンド "{name}" を削除しました',
+    commandExported: 'コマンド "{name}" をエクスポートしました',
+    commandsImported: '{count} 件のコマンドをインポートしました',
+    confirmDelete: 'コマンド "{name}" を削除してもよろしいですか？',
+    anonymous: '匿名',
+    errors: {
+      notFound: 'コマンドが見つかりません',
+      alreadyExists: 'コマンドは既に存在します',
+      invalidName: 'コマンド名には英数字、ハイフン、アンダースコアのみ使用できます'
+    }
+  },
   messages: {
     error: 'エラー',
     warning: '警告',
@@ -234,10 +284,14 @@ export default {
       cannotDeleteDefault: 'デフォルトプロファイルは削除できません',
       cannotRenameDefault: 'デフォルトプロファイルは名前変更できません',
       switchFailed: 'API 設定の切替に失敗しました',
+      commandNotFound: 'コマンドが見つかりません',
+      commandAlreadyExists: 'コマンドは既に存在します',
+      commandInvalidName: 'コマンド名には英数字、ハイフン、アンダースコアのみ使用できます',
     },
     dialogs: {
       importSkill: 'スキルを取込む',
       exportSkill: 'スキルをエクスポート',
+      exportCommand: 'コマンドをエクスポート',
       selectExportLocation: 'エクスポート場所を選択',
       skillArchive: 'スキルアーカイブ',
       allFiles: 'すべてのファイル',

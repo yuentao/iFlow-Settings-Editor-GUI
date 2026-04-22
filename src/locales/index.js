@@ -16,7 +16,8 @@ export default {
     apiConfig: 'API 配置',
     advanced: '高级',
     mcpServers: 'MCP 服务器',
-    skills: '技能'
+    skills: '技能',
+    commands: '命令'
   },
   dashboard: {
     title: '仪表盘',
@@ -24,6 +25,7 @@ export default {
     currentApiConfig: '当前 API 配置',
     mcpServers: 'MCP 服务器',
     skills: '技能',
+    commands: '命令',
     theme: '主题',
     edit: '编辑',
     notConfigured: '未配置',
@@ -43,7 +45,8 @@ export default {
     shown: '已显示',
     hidden: '已隐藏',
     followSystem: '跟随系统',
-    manual: '手动设置'
+    manual: '手动设置',
+    manageCommands: '管理命令'
   },
   general: {
     title: '基本设置',
@@ -158,6 +161,55 @@ export default {
     cancel: '取消',
     import: '导入'
   },
+  commands: {
+    title: '命令管理',
+    description: '管理 iFlow CLI 自定义命令',
+    create: '新建命令',
+    importLocal: '本地导入',
+    export: '导出',
+    delete: '删除',
+    edit: '编辑',
+    noCommands: '暂无命令',
+    addFirstCommand: '点击上方按钮添加第一个命令',
+    noDescription: '无描述',
+    noName: '命令名称',
+    category: {
+      all: '全部',
+      utility: '工具类',
+      documentation: '文档类',
+      other: '其他'
+    },
+    editor: {
+      createTitle: '新建命令',
+      editTitle: '编辑命令',
+      name: '命令名称',
+      namePlaceholder: '命令标识符',
+      nameHint: '只能包含字母、数字、中划线和下划线',
+      description: '描述',
+      descriptionPlaceholder: '命令简短描述',
+      category: '分类',
+      version: '版本',
+      author: '作者',
+      authorPlaceholder: '作者名称',
+      prompt: 'Prompt',
+      promptPlaceholder: '输入命令的详细提示词...',
+      promptHint: '支持多行文本，这将作为命令执行时的系统提示词',
+      cancel: '取消',
+      save: '保存'
+    },
+    commandCreated: '命令 "{name}" 已创建',
+    commandSaved: '命令已保存',
+    commandDeleted: '命令 "{name}" 已删除',
+    commandExported: '命令 "{name}" 已导出',
+    commandsImported: '已成功导入 {count} 个命令',
+    confirmDelete: '确定要删除命令 "{name}" 吗？',
+    anonymous: '匿名',
+    errors: {
+      notFound: '命令不存在',
+      alreadyExists: '命令已存在',
+      invalidName: '命令名只能包含字母、数字、中划线和下划线'
+    }
+  },
   messages: {
     error: '错误',
     warning: '警告',
@@ -242,6 +294,9 @@ export default {
       cannotDeleteDefault: '不能删除默认配置',
       cannotRenameDefault: '不能重命名默认配置',
       switchFailed: '切换 API 配置失败',
+      commandNotFound: '命令不存在',
+      commandAlreadyExists: '命令已存在',
+      commandInvalidName: '命令名只能包含字母、数字、中划线和下划线',
     },
     dialogs: {
       importSkill: '导入技能',
