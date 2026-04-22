@@ -179,7 +179,9 @@ export default {
   },
   update: {
     title: 'アップデートを確認',
+    checkForUpdates: 'アップデートを確認',
     available: '新しいバージョンがあります',
+    updateCancelled: 'アップデートがキャンセルされました',
     currentVersion: '現在のバージョン',
     newVersion: '最新バージョン',
     releaseNotes: 'リリースノート',

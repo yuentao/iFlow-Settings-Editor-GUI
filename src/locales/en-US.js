@@ -187,7 +187,9 @@ export default {
   },
   update: {
     title: 'Check for Updates',
+    checkForUpdates: 'Check for Updates',
     available: 'Update Available',
+    updateCancelled: 'Update cancelled',
     currentVersion: 'Current Version',
     newVersion: 'Latest Version',
     releaseNotes: 'Release Notes',

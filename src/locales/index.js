@@ -187,7 +187,9 @@ export default {
   },
   update: {
     title: '检查更新',
+    checkForUpdates: '检查更新',
     available: '发现新版本',
+    updateCancelled: '更新已取消',
     currentVersion: '当前版本',
     newVersion: '最新版本',
     releaseNotes: '更新说明',
