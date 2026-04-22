@@ -25,6 +25,7 @@ export default {
     currentApiConfig: '現在の API 設定',
     mcpServers: 'MCP サーバー',
     skills: 'スキル',
+    commands: 'コマンド',
     theme: 'テーマ',
     profiles: 'プロファイル',
     configured: '設定済み',
@@ -36,7 +37,8 @@ export default {
     shown: '表示済み',
     hidden: '非表示',
     followSystem: 'システムに従う',
-    manual: '手動'
+    manual: '手動',
+    manageCommands: 'コマンド管理'
   },
   general: {
     title: '基本設定',

@@ -25,6 +25,7 @@ export default {
     currentApiConfig: 'Current API Config',
     mcpServers: 'MCP Servers',
     skills: 'Skills',
+    commands: 'Commands',
     theme: 'Theme',
     profiles: 'profiles',
     configured: 'Configured',
@@ -44,9 +45,9 @@ export default {
     addServer: 'Add Server',
     importSkill: 'Import Skill',
     recentServers: 'Recent Servers',
-    viewAll: 'View All'
-  },
-  general: {
+    viewAll: 'View All',
+    manageCommands: 'Manage Commands'
+  },  general: {
     title: 'Basic Settings',
     description: 'Configure general application options',
     language: 'Language',

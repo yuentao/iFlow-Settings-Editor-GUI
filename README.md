@@ -9,6 +9,7 @@
 - 📝 **API 配置管理** - 支持多环境配置文件切换、创建、编辑、重命名、复制、删除和拖动排序
 - 🔄 **自动更新检查** - 启动时自动检查更新，支持手动检查，下载进度实时显示，可随时取消
 - 🖥️ **MCP 服务器管理** - 便捷的 Model Context Protocol 服务器配置界面
+- ⚡ **Commands 命令管理** - 可视化管理 iFlow 命令，支持查看、执行和命令配置
 - 🎨 **Windows 11 设计风格** - 采用 Fluent Design 设计规范
 - 🌈 **多主题支持** - Light / Dark / System (跟随系统) 三种主题
 - 🌍 **国际化** - 支持简体中文、English、日語
@@ -152,6 +153,14 @@ git push origin v1.9.0
 - **导出技能** - 将技能导出到指定目录
 - **删除技能** - 移除不需要的技能
 
+### Commands 命令管理
+
+在「Commands」页面可以：
+
+- **命令列表** - 查看所有可用的 iFlow 命令
+- **执行命令** - 快速执行常用命令
+- **命令配置** - 管理命令参数和选项
+
 ### 系统托盘
 
 ![托盘图标](./screenshots/托盘图标.png)
@@ -208,12 +217,14 @@ iFlow-Settings-Editor-GUI/
     │   ├── InputDialog.vue     # 输入对话框
     │   ├── MessageDialog.vue   # 消息对话框
     │   ├── ApiProfileDialog.vue # API 配置弹窗
-    │   └── ServerPanel.vue     # 服务器编辑面板
+    │   ├── ServerPanel.vue     # 服务器编辑面板
+    │   └── CommandEditorDialog.vue # 命令编辑对话框
     ├── views/           # 页面视图
     │   ├── GeneralSettings.vue # 常规设置
     │   ├── ApiConfig.vue      # API 配置管理
     │   ├── McpServers.vue     # MCP 服务器管理
     │   ├── SkillsView.vue     # 技能管理
+    │   ├── CommandsView.vue   # 命令管理
     │   └── Dashboard.vue     # 仪表盘
     ├── locales/         # 国际化语言包
     └── styles/          # 全局样式

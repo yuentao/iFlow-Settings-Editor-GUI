@@ -25,6 +25,7 @@ export default {
     currentApiConfig: '当前 API 配置',
     mcpServers: 'MCP 服务器',
     skills: '技能',
+    commands: '命令',
     theme: '主题',
     edit: '编辑',
     notConfigured: '未配置',
@@ -44,7 +45,8 @@ export default {
     shown: '已显示',
     hidden: '已隐藏',
     followSystem: '跟随系统',
-    manual: '手动设置'
+    manual: '手动设置',
+    manageCommands: '管理命令'
   },
   general: {
     title: '基本设置',
