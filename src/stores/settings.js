@@ -1,10 +1,11 @@
 /**
  * 设置 Store
- * 管理全局设置状态
+ * 管理全局设置状态，包含防抖保存功能
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 
 export const useSettingsStore = defineStore('settings', () => {
   // State
@@ -25,6 +26,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const isLoading = ref(true)
   const isSaving = ref(false)
   const modified = ref(false)
+  const lastSaved = ref(null)
 
   // Getters
   const theme = computed(() => settings.value.uiTheme || 'system')
@@ -54,6 +56,7 @@ export const useSettingsStore = defineStore('settings', () => {
     try {
       await window.electronAPI.saveSettings(settings.value)
       modified.value = false
+      lastSaved.value = new Date()
     } catch (error) {
       console.error('Failed to save settings:', error)
     } finally {
@@ -61,9 +64,15 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
+  // 防抖保存函数，延迟 1 秒
+  const debouncedSave = useDebounceFn(saveSettings, 1000)
+
   function updateSetting(key, value) {
     settings.value[key] = value
     modified.value = true
+    if (!isLoading.value) {
+      debouncedSave()
+    }
   }
 
   function updateNestedSetting(path, value) {
@@ -77,15 +86,16 @@ export const useSettingsStore = defineStore('settings', () => {
     }
     target[keys[keys.length - 1]] = value
     modified.value = true
+    if (!isLoading.value) {
+      debouncedSave()
+    }
   }
 
-  // Auto-save with debounce
-  let saveTimer = null
+  // 监听 settings 变化，自动防抖保存
   watch(settings, () => {
     if (!isLoading.value) {
       modified.value = true
-      if (saveTimer) clearTimeout(saveTimer)
-      saveTimer = setTimeout(saveSettings, 1000) // 1秒防抖
+      debouncedSave()
     }
   }, { deep: true })
 
@@ -94,6 +104,7 @@ export const useSettingsStore = defineStore('settings', () => {
     isLoading,
     isSaving,
     modified,
+    lastSaved,
     theme,
     language,
     acrylicEnabled,
