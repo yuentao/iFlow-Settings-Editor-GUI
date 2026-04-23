@@ -132,6 +132,7 @@
     "@iarna/toml": "^2.2.5",
     "@vueuse/core": "^14.2.1",
     "adm-zip": "^0.5.17",
+    "electron-log": "^5.4.3",
     "electron-updater": "^6.8.3",
     "marked": "^18.0.2",
     "pinia": "^3.0.4",

@@ -13,6 +13,7 @@ const { registerIpcHandlers } = require('./ipc')
 const { initAutoLaunch } = require('./services/autoLaunchService')
 const { readSettings } = require('./services/configService')
 const { t, defaultTranslations, updateTranslations } = require('./utils/translations')
+const { logger } = require('./utils/logger')
 
 // 是否是开发模式
 const isDev = process.argv.includes('--dev')
@@ -61,7 +62,7 @@ function createMainWindow() {
  * 初始化应用
  */
 async function initializeApp() {
-  console.log('Initializing iFlow Settings Editor...')
+  logger.info('Initializing iFlow Settings Editor...')
 
   // 设置应用路径
   app.setAppUserModelId('com.pandorastudio.iflow-settings-editor')
@@ -70,14 +71,14 @@ async function initializeApp() {
   const gotTheLock = app.requestSingleInstanceLock()
 
   if (!gotTheLock) {
-    console.log('Another instance is running, quitting...')
+    logger.info('Another instance is running, quitting...')
     app.quit()
     return
   }
 
   // 监听第二个实例
   app.on('second-instance', (event, commandLine, workingDirectory) => {
-    console.log('Second instance detected, focusing main window...')
+    logger.info('Second instance detected, focusing main window...')
     const mainWindow = getMainWindow()
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore()
@@ -110,10 +111,10 @@ async function initializeApp() {
       }, 5000)
     }
   } catch (e) {
-    console.error('Failed to read settings for auto-update check:', e)
+    logger.error('Failed to read settings for auto-update check:', e)
   }
 
-  console.log('App initialization complete')
+  logger.info('App initialization complete')
 }
 
 /**
@@ -128,7 +129,7 @@ function checkForUpdates() {
       mainWindow.webContents.send('check-for-updates')
     }
   } catch (e) {
-    console.error('Failed to check for updates:', e)
+    logger.error('Failed to check for updates:', e)
   }
 }
 
@@ -136,7 +137,7 @@ function checkForUpdates() {
  * 应用准备就绪
  */
 app.whenReady().then(() => {
-  console.log('App ready event fired')
+  logger.info('App ready event fired')
 
   // 检查是否是静默启动参数
   if (process.argv.includes('--hidden') || process.argv.includes('--silent')) {
@@ -178,7 +179,7 @@ app.on('window-all-closed', () => {
  * 应用即将退出
  */
 app.on('before-quit', () => {
-  console.log('App is about to quit...')
+  logger.info('App is about to quit...')
   setIsQuitting(true)
 })
 
@@ -186,7 +187,7 @@ app.on('before-quit', () => {
  * 应用确实要退出
  */
 app.on('will-quit', () => {
-  console.log('App will quit, cleaning up...')
+  logger.info('App will quit, cleaning up...')
   // 销毁托盘
   destroyTray()
 })
