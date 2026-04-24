@@ -6,27 +6,41 @@
       <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" @navigate="showSection" />
 
       <div class="content">
-        <Dashboard v-if="currentSection === 'dashboard'" :settings="settings" :current-api-profile="currentApiProfile" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" @navigate="showSection" />
+        <template v-if="isLoading">
+          <div class="content-header">
+            <div class="skeleton-header-title"></div>
+            <div class="skeleton-header-desc"></div>
+          </div>
+          <SkeletonLoader v-if="currentSection === 'dashboard'" type="card" :count="4" :columns="2" />
+          <SkeletonLoader v-else-if="currentSection === 'api'" type="profile" :count="3" />
+          <SkeletonLoader v-else-if="currentSection === 'mcp'" type="list" :count="3" />
+          <SkeletonLoader v-else-if="currentSection === 'skills'" type="list" :count="3" />
+          <SkeletonLoader v-else-if="currentSection === 'commands'" type="command" :count="3" />
+          <SkeletonLoader v-else type="form" :count="4" />
+        </template>
+        <template v-else>
+          <Dashboard v-if="currentSection === 'dashboard'" :settings="settings" :current-api-profile="currentApiProfile" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" @navigate="showSection" />
 
-        <GeneralSettings v-if="currentSection === 'general'" :settings="settings" @update:settings="updateSettings" />
+          <GeneralSettings v-if="currentSection === 'general'" :settings="settings" @update:settings="updateSettings" />
 
-        <ApiConfig
-          v-if="currentSection === 'api'"
-          :profiles="apiProfiles"
-          :current-profile="currentApiProfile"
-          :settings="settings"
-          @create-profile="createNewApiProfile"
-          @select-profile="selectApiProfile"
-          @edit-profile="openApiEditDialog"
-          @duplicate-profile="duplicateApiProfile"
-          @delete-profile="deleteApiProfile"
-          @reorder-profiles="reorderApiProfiles" />
+          <ApiConfig
+            v-if="currentSection === 'api'"
+            :profiles="apiProfiles"
+            :current-profile="currentApiProfile"
+            :settings="settings"
+            @create-profile="createNewApiProfile"
+            @select-profile="selectApiProfile"
+            @edit-profile="openApiEditDialog"
+            @duplicate-profile="duplicateApiProfile"
+            @delete-profile="deleteApiProfile"
+            @reorder-profiles="reorderApiProfiles" />
 
-        <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :selected-server="currentServerName" :server-count="serverCount" @add-server="addServer" @select-server="selectServer" />
+          <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :selected-server="currentServerName" :server-count="serverCount" @add-server="addServer" @select-server="selectServer" />
 
-        <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
+          <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
 
-        <CommandsView v-if="currentSection === 'commands'" @show-message="showMessage" @show-input-dialog="showInput" @commands-changed="onCommandsChanged" />
+          <CommandsView v-if="currentSection === 'commands'" @show-message="showMessage" @show-input-dialog="showInput" @commands-changed="onCommandsChanged" />
+        </template>
       </div>
     </main>
 
@@ -100,6 +114,7 @@ import CommandsView from './views/CommandsView.vue'
 import Dashboard from './views/Dashboard.vue'
 import UpdateNotification from './components/UpdateNotification.vue'
 import UpdateProgress from './components/UpdateProgress.vue'
+import SkeletonLoader from './components/SkeletonLoader.vue'
 
 const { locale, t } = useI18n()
 
@@ -821,4 +836,28 @@ onUnmounted(() => {})
 
 <style lang="less">
 @import './styles/global.less';
+
+.skeleton-header-title {
+  width: 120px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  background: linear-gradient(90deg, var(--control-fill) 25%, var(--control-fill-hover) 37%, var(--control-fill) 63%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-header-desc {
+  width: 200px;
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--control-fill) 25%, var(--control-fill-hover) 37%, var(--control-fill) 63%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
 </style>

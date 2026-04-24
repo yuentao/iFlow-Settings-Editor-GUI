@@ -18,7 +18,7 @@
       </div>
 
       <!-- Category Filter -->
-      <div class="category-filter">
+      <div v-if="!isLoading" class="category-filter">
         <button
           v-for="cat in categories"
           :key="cat.value"
@@ -32,7 +32,8 @@
       </div>
 
       <!-- Command List -->
-      <div class="command-list">
+      <SkeletonLoader v-if="isLoading" type="command" :count="3" />
+      <div class="command-list" v-else>
         <template v-if="filteredCommands.length > 0">
           <div
             v-for="(cmd, index) in filteredCommands"
@@ -95,6 +96,7 @@ import { useI18n } from 'vue-i18n'
 import { Command, Plus, FolderOpen, Edit, Upload, Delete, Tag } from '@icon-park/vue-next'
 import CommandEditorDialog from '@/components/CommandEditorDialog.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const { t } = useI18n()
 
@@ -105,6 +107,7 @@ const selectedCommand = ref(null)
 const selectedCategory = ref('all')
 const showEditor = ref(false)
 const editingCommand = ref(null)
+const isLoading = ref(true)
 
 const categories = computed(() => [
   { value: 'all', label: 'commands.category.all' },
@@ -140,6 +143,7 @@ const displayAuthor = (author) => {
 }
 
 const loadCommands = async () => {
+  isLoading.value = true
   try {
     const result = await window.electronAPI.listCommands()
     if (result.success) {
@@ -150,6 +154,8 @@ const loadCommands = async () => {
     }
   } catch (error) {
     console.error('Failed to load commands:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
