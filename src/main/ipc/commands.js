@@ -109,7 +109,7 @@ function registerCommandsIpcHandlers() {
       }
     }
 
-    return successResult({ commands })
+    return { success: true, commands }
   }, 'list-commands'))
 
   // 读取单个命令
@@ -119,7 +119,7 @@ function registerCommandsIpcHandlers() {
       return { success: false, error: t('errors.commandNotFound'), code: ErrorCodes.COMMAND_NOT_FOUND }
     }
     const cmd = parseCommandFile(filePath)
-    return successResult({ command: cmd })
+    return { success: true, command: cmd }
   }, 'read-command'))
 
   // 创建新命令
@@ -180,7 +180,7 @@ function registerCommandsIpcHandlers() {
 
     const destPath = path.join(result.filePaths[0], `${name}.toml`)
     fs.copyFileSync(filePath, destPath)
-    return successResult({ message: t('messages.commandExported', { name }) })
+    return { success: true, message: t('messages.commandExported', { name }) }
   }, 'export-command'))
 
   // 导入命令
@@ -222,7 +222,7 @@ function registerCommandsIpcHandlers() {
       }
     }
 
-    return successResult({ imported })
+    return { success: true, imported }
   }, 'import-command'))
 }
 

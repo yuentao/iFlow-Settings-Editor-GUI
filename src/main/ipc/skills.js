@@ -100,7 +100,7 @@ function registerSkillsIpcHandlers() {
       }
     }
 
-    return successResult({ skills })
+    return { success: true, skills }
   }, 'list-skills'))
 
   // 本地导入技能
@@ -221,7 +221,7 @@ function registerSkillsIpcHandlers() {
       }
 
       fs.cpSync(skillFolder, destPath, { recursive: true })
-      return successResult({ message: t('messages.skillImportSuccess', { name: skillName }) })
+      return { success: true, message: t('messages.skillImportSuccess', { name: skillName }) }
     } finally {
       if (fs.existsSync(tmpDir)) {
         fs.rmSync(tmpDir, { recursive: true, force: true })
@@ -299,7 +299,7 @@ function registerSkillsIpcHandlers() {
     }
 
     fs.cpSync(skillPath, destPath, { recursive: true })
-    return successResult({ message: t('messages.skillExportSuccess', { name }) })
+    return { success: true, message: t('messages.skillExportSuccess', { name }) }
   }, 'export-skill'))
 
   // 删除技能
@@ -310,7 +310,7 @@ function registerSkillsIpcHandlers() {
     }
 
     fs.rmSync(skillPath, { recursive: true })
-    return successResult({ message: t('messages.skillDeleteSuccess', { name }) })
+    return { success: true, message: t('messages.skillDeleteSuccess', { name }) }
   }, 'delete-skill'))
 }
 
