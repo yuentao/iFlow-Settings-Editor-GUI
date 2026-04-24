@@ -115,11 +115,18 @@ describe('ApiProfileDialog.vue', () => {
     });
 
     it('emits save-create with data when save button is clicked', async () => {
+      const validCreateData = {
+        name: 'new-config',
+        selectedAuthType: 'openai-compatible',
+        apiKey: 'test-key',
+        baseUrl: 'https://api.test.com',
+        modelName: 'gpt-4'
+      };
       const wrapper = mount(ApiProfileDialog, {
         props: {
           showCreate: true,
           showEdit: false,
-          createData: { ...mockCreateData, name: 'new-config' },
+          createData: validCreateData,
           editData: {}
         },
         global: {

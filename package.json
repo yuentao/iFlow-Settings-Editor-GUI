@@ -10,6 +10,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
+    "type-check": "vue-tsc --noEmit",
     "build": "vite build",
     "start": "electron .",
     "electron:dev": "concurrently \"vite\" \"electron . --dev\"",
@@ -124,9 +125,11 @@
     "happy-dom": "^20.9.0",
     "less": "^4.6.4",
     "less-loader": "^12.3.2",
+    "typescript": "^6.0.3",
     "vite": "^8.0.8",
     "vitest": "^4.1.4",
-    "vue": "^3.4.0"
+    "vue": "^3.4.0",
+    "vue-tsc": "^3.2.7"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",

@@ -26,6 +26,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@': path.resolve(__dirname, 'src'),
       '/icon.png': path.resolve(__dirname, 'public/icon.png')
     }
   },
