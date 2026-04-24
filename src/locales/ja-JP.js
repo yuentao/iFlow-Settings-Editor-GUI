@@ -108,6 +108,12 @@ export default {
       iflow: 'iFlow',
       api: 'API Key',
       openaiCompatible: 'OpenAI 互換'
+    },
+    validation: {
+      nameNoSpecial: '名前には英字、数字、漢字、ハイフン、アンダースコアのみ使用でき、数字で始めることはできません',
+      nameNoDigitStart: '名前を数字で始めることはできません',
+      urlFormat: '有効な URL 形式を入力してください（例: https://api.example.com）',
+      modelNoSpecial: 'モデル名には英字、数字、ピリオド、ハイフン、アンダースコア、コロン、スラッシュのみ使用できます'
     }
   },
   mcp: {

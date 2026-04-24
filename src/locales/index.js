@@ -116,6 +116,12 @@ export default {
       iflow: 'iFlow',
       api: 'API Key',
       openaiCompatible: 'OpenAI 兼容'
+    },
+    validation: {
+      nameNoSpecial: '配置名称只能包含字母、数字、中文、中划线和下划线，且不能以数字开头',
+      nameNoDigitStart: '配置名称不能以数字开头',
+      urlFormat: '请输入有效的 URL 格式，如 https://api.example.com',
+      modelNoSpecial: '模型名称只能包含字母、数字、点号、中划线、下划线、冒号和斜杠'
     }
   },
   mcp: {

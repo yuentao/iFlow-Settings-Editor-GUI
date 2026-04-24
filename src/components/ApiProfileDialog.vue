@@ -17,7 +17,8 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" v-model="createData.name" :placeholder="$t('api.configNamePlaceholder')" />
+          <input type="text" class="form-input" :class="{ 'form-input--error': createNameError }" v-model="createData.name" :placeholder="$t('api.configNamePlaceholder')" />
+          <div v-if="createNameError" class="form-error">{{ $t(createNameError) }}</div>
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
@@ -28,17 +29,19 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
-          <input type="password" class="form-input" v-model="createData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
+          <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
+          <input type="text" class="form-input" :class="{ 'form-input--error': createBaseUrlError }" v-model="createData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
+          <div v-if="createBaseUrlError" class="form-error">{{ $t(createBaseUrlError) }}</div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
-            <input type="text" class="form-input" v-model="createData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
+            <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
+            <input type="password" class="form-input" v-model="createData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
-            <input type="text" class="form-input" v-model="createData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
+            <input type="text" class="form-input" :class="{ 'form-input--error': createModelError }" v-model="createData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
+            <div v-if="createModelError" class="form-error">{{ $t(createModelError) }}</div>
           </div>
         </div>
       </div>
@@ -70,7 +73,8 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" v-model="editData.name" :disabled="editData.name === currentProfileName" />
+          <input type="text" class="form-input" :class="{ 'form-input--error': editNameError }" v-model="editData.name" :disabled="editData.name === currentProfileName" />
+          <div v-if="editNameError" class="form-error">{{ $t(editNameError) }}</div>
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
@@ -81,17 +85,19 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
-          <input type="password" class="form-input" v-model="editData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
+          <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
+          <input type="text" class="form-input" :class="{ 'form-input--error': editBaseUrlError }" v-model="editData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
+          <div v-if="editBaseUrlError" class="form-error">{{ $t(editBaseUrlError) }}</div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
-            <input type="text" class="form-input" v-model="editData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
+            <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
+            <input type="password" class="form-input" v-model="editData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
-            <input type="text" class="form-input" v-model="editData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
+            <input type="text" class="form-input" :class="{ 'form-input--error': editModelError }" v-model="editData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
+            <div v-if="editModelError" class="form-error">{{ $t(editModelError) }}</div>
           </div>
         </div>
       </div>
@@ -123,22 +129,92 @@ defineEmits([
   'close-edit', 'save-edit'
 ])
 
+// Validation rules
+const isNameValid = name => {
+  if (!name || !name.trim()) return false
+  return /^[a-zA-Z\u4e00-\u9fff][a-zA-Z0-9\u4e00-\u9fff_-]*$/.test(name.trim())
+}
+
+const isUrlValid = url => {
+  if (!url || !url.trim()) return false
+  try { new URL(url.trim()); return true } catch { return false }
+}
+
+const isModelNameValid = name => {
+  if (!name || !name.trim()) return false
+  return /^[a-zA-Z0-9][a-zA-Z0-9_.\-:/]*$/.test(name.trim())
+}
+
+// Create form errors
+const createNameError = computed(() => {
+  const d = props.createData
+  if (!d || !d.name || !d.name.trim()) return ''
+  if (/^\d/.test(d.name.trim())) return 'api.validation.nameNoDigitStart'
+  if (!isNameValid(d.name)) return 'api.validation.nameNoSpecial'
+  return ''
+})
+
+const createBaseUrlError = computed(() => {
+  const d = props.createData
+  if (!d || !d.baseUrl || !d.baseUrl.trim()) return ''
+  if (!isUrlValid(d.baseUrl)) return 'api.validation.urlFormat'
+  return ''
+})
+
+const createModelError = computed(() => {
+  const d = props.createData
+  if (!d || !d.modelName || !d.modelName.trim()) return ''
+  if (!isModelNameValid(d.modelName)) return 'api.validation.modelNoSpecial'
+  return ''
+})
+
+// Edit form errors
+const editNameError = computed(() => {
+  const d = props.editData
+  if (!d || !d.name || !d.name.trim()) return ''
+  if (d.name === props.currentProfileName) return ''
+  if (/^\d/.test(d.name.trim())) return 'api.validation.nameNoDigitStart'
+  if (!isNameValid(d.name)) return 'api.validation.nameNoSpecial'
+  return ''
+})
+
+const editBaseUrlError = computed(() => {
+  const d = props.editData
+  if (!d || !d.baseUrl || !d.baseUrl.trim()) return ''
+  if (!isUrlValid(d.baseUrl)) return 'api.validation.urlFormat'
+  return ''
+})
+
+const editModelError = computed(() => {
+  const d = props.editData
+  if (!d || !d.modelName || !d.modelName.trim()) return ''
+  if (!isModelNameValid(d.modelName)) return 'api.validation.modelNoSpecial'
+  return ''
+})
+
 const isCreateValid = computed(() => {
   const d = props.createData
-  return d && d.name && d.name.trim() && d.apiKey && d.apiKey.trim() && d.baseUrl && d.baseUrl.trim() && d.modelName && d.modelName.trim()
+  return d && d.name && d.name.trim() && isNameValid(d.name)
+    && d.apiKey && d.apiKey.trim()
+    && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
+    && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName)
 })
 
 const isEditValid = computed(() => {
   const d = props.editData
-  return d && d.apiKey && d.apiKey.trim() && d.baseUrl && d.baseUrl.trim() && d.modelName && d.modelName.trim()
+  if (!d) return false
+  const nameOk = d.name === props.currentProfileName || (d.name && d.name.trim() && isNameValid(d.name))
+  return nameOk
+    && d.apiKey && d.apiKey.trim()
+    && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
+    && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName)
 })
 </script>
 
 <style lang="less" scoped>
 // Windows 11 Style API Edit Dialog - Fluent Design
 .api-edit-dialog {
-  min-width: 480px;
-  max-width: 520px;
+  width: 520px;
   padding: 0;
   overflow: hidden;
   border-radius: var(--radius-xl);
@@ -174,6 +250,7 @@ const isEditValid = computed(() => {
   
   .form-group {
     margin-bottom: var(--space-lg);
+    min-width: 0;
     
     &:last-child {
       margin-bottom: 0;
@@ -186,5 +263,16 @@ const isEditValid = computed(() => {
   border-top: 1px solid var(--border-light);
   background: var(--control-fill);
   margin-top: 0;
+}
+
+.form-error {
+  font-size: 11px;
+  color: var(--danger);
+  margin-top: 4px;
+  word-break: break-all;
+}
+
+.form-input--error {
+  border-color: var(--danger) !important;
 }
 </style>

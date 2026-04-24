@@ -115,6 +115,12 @@ export default {
       iflow: 'iFlow',
       api: 'API Key',
       openaiCompatible: 'OpenAI Compatible'
+    },
+    validation: {
+      nameNoSpecial: 'Name can only contain letters, numbers, Chinese, hyphens, and underscores, and cannot start with a digit',
+      nameNoDigitStart: 'Name cannot start with a digit',
+      urlFormat: 'Please enter a valid URL format, e.g. https://api.example.com',
+      modelNoSpecial: 'Model name can only contain letters, digits, dots, hyphens, underscores, colons, and slashes'
     }
   },
   mcp: {
