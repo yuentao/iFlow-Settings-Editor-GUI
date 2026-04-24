@@ -261,9 +261,7 @@ const reorderApiProfiles = async newProfiles => {
 const selectApiProfile = async name => {
   if (name === currentApiProfile.value) return
   currentApiProfile.value = name
-  isLoading.value = true
   await switchApiProfile()
-  isLoading.value = false
 }
 
 const duplicateApiProfile = async name => {
