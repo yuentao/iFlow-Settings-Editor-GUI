@@ -64,7 +64,12 @@
         <div class="stat-content">
           <div class="stat-label">{{ $t('dashboard.commands') }}</div>
           <div class="stat-value">{{ commandCount }}</div>
-          <div class="stat-sub">{{ $t('dashboard.installed') }}</div>
+          <div class="stat-sub" v-if="commandCount > 0">
+            {{ $t('dashboard.installed') }}
+          </div>
+          <div class="stat-sub stat-sub-empty" v-else>
+            {{ $t('dashboard.noCommands') }}
+          </div>
         </div>
       </div>
     </div>

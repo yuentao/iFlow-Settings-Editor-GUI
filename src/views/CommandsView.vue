@@ -67,11 +67,15 @@
             </button>
           </div>
         </template>
-        <div v-else class="empty-state">
-          <Command size="48" class="empty-state-icon" />
-          <div class="empty-state-title">{{ $t('commands.noCommands') }}</div>
-          <div class="empty-state-desc">{{ $t('commands.addFirstCommand') }}</div>
-        </div>
+        <EmptyState
+          v-else
+          :icon="Command"
+          :title="$t('commands.noCommands')"
+          :description="emptyDescription"
+          :actionText="selectedCategory === 'all' ? $t('commands.create') : ''"
+          embedded
+          @action="createCommand"
+        />
       </div>
     </div>
 
@@ -90,6 +94,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Command, Plus, FolderOpen, Edit, Upload, Delete, Tag } from '@icon-park/vue-next'
 import CommandEditorDialog from '@/components/CommandEditorDialog.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const { t } = useI18n()
 
@@ -113,6 +118,13 @@ const filteredCommands = computed(() => {
     return commands.value
   }
   return commands.value.filter(cmd => cmd.category === selectedCategory.value)
+})
+
+const emptyDescription = computed(() => {
+  if (commands.value.length === 0) {
+    return t('commands.addFirstCommand')
+  }
+  return t('commands.noCommandsInCategory')
 })
 
 const getCategoryCount = (category) => {

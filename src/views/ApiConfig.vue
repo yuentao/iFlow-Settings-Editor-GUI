@@ -12,7 +12,7 @@
         </button>
       </div>
     </div>
-    <div class="card">
+    <div class="card" v-if="profiles.length > 0">
       <div class="profile-list">
         <div
           v-for="(profile, index) in profiles"
@@ -57,12 +57,21 @@
         </div>
       </div>
     </div>
+    <EmptyState
+      v-else
+      :icon="Exchange"
+      :title="$t('api.noProfiles')"
+      :description="$t('api.addFirstProfile')"
+      :actionText="$t('api.newProfile')"
+      @action="$emit('create-profile')"
+    />
   </section>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { Add, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
+import EmptyState from '@/components/EmptyState.vue'
 
 const props = defineProps({
   profiles: {

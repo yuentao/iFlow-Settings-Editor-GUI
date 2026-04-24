@@ -40,6 +40,7 @@ export default {
     installed: '已安装',
     noServers: '暂未配置',
     noSkills: '暂未安装',
+    noCommands: '暂无命令',
     enabled: '已启用',
     disabled: '已禁用',
     shown: '已显示',
@@ -109,6 +110,8 @@ export default {
     configCopied: '配置已复制为 "{name}"',
     switchFailed: '切换失败',
     dragToSort: '拖动排序',
+    noProfiles: '暂无 API 配置',
+    addFirstProfile: '创建第一个 API 配置来开始使用',
     auth: {
       iflow: 'iFlow',
       api: 'API Key',
@@ -171,6 +174,7 @@ export default {
     edit: '编辑',
     noCommands: '暂无命令',
     addFirstCommand: '点击上方按钮添加第一个命令',
+    noCommandsInCategory: '当前分类下没有匹配的命令',
     noDescription: '无描述',
     noName: '命令名称',
     category: {

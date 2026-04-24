@@ -39,11 +39,16 @@
             </button>
           </div>
         </template>
-        <div v-else class="empty-state">
-          <Star size="48" class="empty-state-icon" />
-          <div class="empty-state-title">{{ $t('skills.noSkills') }}</div>
-          <div class="empty-state-desc">{{ $t('skills.addFirstSkill') }}</div>
-        </div>
+        <EmptyState
+          v-else
+          :icon="Star"
+          :title="$t('skills.noSkills')"
+          :description="$t('skills.addFirstSkill')"
+          :actionText="$t('skills.importLocal')"
+          :showPlusIcon="false"
+          embedded
+          @action="importLocal"
+        />
       </div>
     </div>
 
@@ -73,6 +78,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Star, FolderOpen, Download, Upload, Delete } from '@icon-park/vue-next'
+import EmptyState from '@/components/EmptyState.vue'
 
 const emit = defineEmits(['show-message', 'skills-changed', 'show-input-dialog'])
 
