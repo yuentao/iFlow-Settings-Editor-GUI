@@ -357,11 +357,19 @@ const checkForUpdates = async () => {
 }
 
 const onAutoLaunchChange = async () => {
+  const newValue = autoLaunchEnabled.value
   try {
     if (window.electronAPI && window.electronAPI.setAutoLaunch) {
-      await window.electronAPI.setAutoLaunch(autoLaunchEnabled.value)
+      const result = await window.electronAPI.setAutoLaunch(newValue)
+      if (!result?.success) {
+        // 设置失败，回滚开关状态
+        autoLaunchEnabled.value = !newValue
+        console.error('Failed to set auto launch:', result?.error || 'Unknown error')
+      }
     }
   } catch (error) {
+    // 异常时回滚开关状态
+    autoLaunchEnabled.value = !newValue
     console.error('Failed to set auto launch:', error)
   }
 }
