@@ -206,11 +206,12 @@ const saveApiCreate = async data => {
     }
     const loadResult = await window.electronAPI.loadSettings()
     if (loadResult.success) {
-      const data = loadResult.data
-      if (!data.apiProfiles) data.apiProfiles = {}
-      data.apiProfiles[name] = profileData
-      await window.electronAPI.saveSettings(data)
+      const loadedData = loadResult.data
+      if (!loadedData.apiProfiles) loadedData.apiProfiles = {}
+      loadedData.apiProfiles[name] = profileData
+      await window.electronAPI.saveSettings(loadedData)
       showApiCreateDialog.value = false
+      await loadSettings()
       await loadApiProfiles()
       await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configCreated', { name }) })
     }
@@ -343,8 +344,7 @@ const saveApiEdit = async data => {
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
-    modified.value = false
+    await loadSettings()
     await showMessage({ type: 'success', title: t('messages.success'), message: t('api.configSaved') })
   }
 }

@@ -28,23 +28,23 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">{{ $t('api.apiKey') }}</label>
+          <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
           <input type="password" class="form-input" v-model="createData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">{{ $t('api.baseUrl') }}</label>
+            <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
             <input type="text" class="form-input" v-model="createData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
           </div>
           <div class="form-group">
-            <label class="form-label">{{ $t('api.modelName') }}</label>
+            <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
             <input type="text" class="form-input" v-model="createData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
           </div>
         </div>
       </div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('close-create')">{{ $t('dialog.cancel') }}</button>
-        <button class="btn btn-primary" @click="$emit('save-create', createData)">
+        <button class="btn btn-primary" :disabled="!isCreateValid" @click="$emit('save-create', createData)">
           <Save size="14" />
           {{ $t('api.create') }}
         </button>
@@ -69,7 +69,7 @@
       </div>
       <div class="dialog-body">
         <div class="form-group">
-          <label class="form-label">{{ $t('api.configName') }}</label>
+          <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
           <input type="text" class="form-input" v-model="editData.name" :disabled="editData.name === currentProfileName" />
         </div>
         <div class="form-group">
@@ -81,23 +81,23 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">{{ $t('api.apiKey') }}</label>
+          <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
           <input type="password" class="form-input" v-model="editData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">{{ $t('api.baseUrl') }}</label>
+            <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
             <input type="text" class="form-input" v-model="editData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
           </div>
           <div class="form-group">
-            <label class="form-label">{{ $t('api.modelName') }}</label>
+            <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
             <input type="text" class="form-input" v-model="editData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
           </div>
         </div>
       </div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('close-edit')">{{ $t('dialog.cancel') }}</button>
-        <button class="btn btn-primary" @click="$emit('save-edit', editData)">
+        <button class="btn btn-primary" :disabled="!isEditValid" @click="$emit('save-edit', editData)">
           <Save size="14" />
           {{ $t('api.save') }}
         </button>
@@ -107,9 +107,10 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { Key, Save } from '@icon-park/vue-next'
 
-defineProps({
+const props = defineProps({
   showCreate: Boolean,
   showEdit: Boolean,
   createData: Object,
@@ -121,6 +122,16 @@ defineEmits([
   'close-create', 'save-create',
   'close-edit', 'save-edit'
 ])
+
+const isCreateValid = computed(() => {
+  const d = props.createData
+  return d && d.name && d.name.trim() && d.apiKey && d.apiKey.trim() && d.baseUrl && d.baseUrl.trim() && d.modelName && d.modelName.trim()
+})
+
+const isEditValid = computed(() => {
+  const d = props.editData
+  return d && d.apiKey && d.apiKey.trim() && d.baseUrl && d.baseUrl.trim() && d.modelName && d.modelName.trim()
+})
 </script>
 
 <style lang="less" scoped>
