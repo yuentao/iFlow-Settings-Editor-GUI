@@ -67,7 +67,7 @@ function registerIpcHandlers(getMainWindow, t) {
   // 开机自启动
   const { getAutoLaunch, setAutoLaunch } = require('../services/autoLaunchService')
   ipcMain.handle('get-auto-launch', getAutoLaunch)
-  ipcMain.handle('set-auto-launch', setAutoLaunch)
+  ipcMain.handle('set-auto-launch', (event, enabled) => setAutoLaunch(enabled))
 
   // 自动更新设置
   const { readSettings, writeSettings } = require('../services/configService')
