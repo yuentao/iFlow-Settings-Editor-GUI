@@ -8,6 +8,7 @@ const path = require('path')
 const fs = require('fs')
 const { t } = require('../utils/translations')
 const { readSettings } = require('../services/configService')
+const { wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 
 // 技能文件夹路径
 const SKILLS_FOLDER = path.join(app.getPath('home'), '.iflow', 'skills')
@@ -85,65 +86,93 @@ function parseSkillInfo(skillPath, folderName) {
  */
 function registerSkillsIpcHandlers() {
   // 获取技能列表
-  ipcMain.handle('list-skills', async () => {
-    try {
-      ensureSkillsFolder()
-      const files = fs.readdirSync(SKILLS_FOLDER)
-      const skills = []
+  ipcMain.handle('list-skills', wrapIpcHandler(async () => {
+    ensureSkillsFolder()
+    const files = fs.readdirSync(SKILLS_FOLDER)
+    const skills = []
 
-      for (const file of files) {
-        const skillPath = path.join(SKILLS_FOLDER, file)
-        const stat = fs.statSync(skillPath)
+    for (const file of files) {
+      const skillPath = path.join(SKILLS_FOLDER, file)
+      const stat = fs.statSync(skillPath)
 
-        if (stat.isDirectory()) {
-          skills.push(parseSkillInfo(skillPath, file))
-        }
+      if (stat.isDirectory()) {
+        skills.push(parseSkillInfo(skillPath, file))
       }
-
-      return { success: true, skills }
-    } catch (error) {
-      return { success: false, error: error.message, skills: [] }
     }
-  })
+
+    return successResult({ skills })
+  }, 'list-skills'))
 
   // 本地导入技能
-  ipcMain.handle('import-skill-local', async () => {
+  ipcMain.handle('import-skill-local', wrapIpcHandler(async () => {
+    const { getMainWindow } = require('../window')
+    const mainWindow = getMainWindow()
+
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: t('dialogs.importSkill'),
+      filters: [
+        { name: 'Skill Archives', extensions: ['zip'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+      properties: ['openFile'],
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, cancelled: true }
+    }
+
+    const sourcePath = result.filePaths[0]
+    const tmpDir = path.join(app.getPath('temp'), `skill-import-${Date.now()}`)
+
+    ensureSkillsFolder()
+
     try {
-      const { getMainWindow } = require('../window')
-      const mainWindow = getMainWindow()
+      fs.mkdirSync(tmpDir, { recursive: true })
 
-      const result = await dialog.showOpenDialog(mainWindow, {
-        title: t('dialogs.importSkill'),
-        filters: [
-          { name: 'Skill Archives', extensions: ['zip'] },
-          { name: 'All Files', extensions: ['*'] },
-        ],
-        properties: ['openFile'],
-      })
+      const admzip = require('adm-zip')
+      const zip = new admzip(sourcePath)
+      zip.extractAllTo(tmpDir, true)
 
-      if (result.canceled || result.filePaths.length === 0) {
-        return { success: false, cancelled: true }
-      }
+      const directSkillMdPath = path.join(tmpDir, 'SKILL.md')
+      let skillFolder = null
+      let skillName = ''
 
-      const sourcePath = result.filePaths[0]
-      const tmpDir = path.join(app.getPath('temp'), `skill-import-${Date.now()}`)
+      if (fs.existsSync(directSkillMdPath)) {
+        skillFolder = tmpDir
+        const content = fs.readFileSync(directSkillMdPath, 'utf-8')
+        const nameMatch = content.match(/^---\n([\s\S]*?)\n---/)
+        if (nameMatch) {
+          const frontMatter = nameMatch[1]
+          const nMatch = frontMatter.match(/name:\s*(.+)/)
+          if (nMatch) skillName = nMatch[1].trim()
+        }
+        if (!skillName) {
+          skillName = path.basename(sourcePath, '.zip')
+        }
+      } else {
+        const findSkillFolder = (dirPath, depth = 0) => {
+          if (depth > 3) return null
+          const entries = fs.readdirSync(dirPath)
+          for (const entry of entries) {
+            const entryPath = path.join(dirPath, entry)
+            const stat = fs.statSync(entryPath)
+            if (stat.isDirectory()) {
+              const skillMdPath = path.join(entryPath, 'SKILL.md')
+              if (fs.existsSync(skillMdPath)) {
+                return entryPath
+              }
+              const found = findSkillFolder(entryPath, depth + 1)
+              if (found) return found
+            }
+          }
+          return null
+        }
 
-      ensureSkillsFolder()
+        skillFolder = findSkillFolder(tmpDir)
 
-      try {
-        fs.mkdirSync(tmpDir, { recursive: true })
-
-        const admzip = require('adm-zip')
-        const zip = new admzip(sourcePath)
-        zip.extractAllTo(tmpDir, true)
-
-        const directSkillMdPath = path.join(tmpDir, 'SKILL.md')
-        let skillFolder = null
-        let skillName = ''
-
-        if (fs.existsSync(directSkillMdPath)) {
-          skillFolder = tmpDir
-          const content = fs.readFileSync(directSkillMdPath, 'utf-8')
+        if (skillFolder) {
+          const skillMdPath = path.join(skillFolder, 'SKILL.md')
+          const content = fs.readFileSync(skillMdPath, 'utf-8')
           const nameMatch = content.match(/^---\n([\s\S]*?)\n---/)
           if (nameMatch) {
             const frontMatter = nameMatch[1]
@@ -151,185 +180,138 @@ function registerSkillsIpcHandlers() {
             if (nMatch) skillName = nMatch[1].trim()
           }
           if (!skillName) {
-            skillName = path.basename(sourcePath, '.zip')
+            skillName = path.basename(skillFolder)
           }
-        } else {
-          const findSkillFolder = (dirPath, depth = 0) => {
-            if (depth > 3) return null
+        }
+      }
+
+      if (!skillFolder) {
+        const listAllFiles = (dirPath, files = [], baseDepth = 0) => {
+          try {
             const entries = fs.readdirSync(dirPath)
             for (const entry of entries) {
               const entryPath = path.join(dirPath, entry)
               const stat = fs.statSync(entryPath)
               if (stat.isDirectory()) {
-                const skillMdPath = path.join(entryPath, 'SKILL.md')
-                if (fs.existsSync(skillMdPath)) {
-                  return entryPath
-                }
-                const found = findSkillFolder(entryPath, depth + 1)
-                if (found) return found
+                listAllFiles(entryPath, files, baseDepth + 1)
+              } else {
+                files.push(`${'  '.repeat(baseDepth)}${entry}`)
               }
             }
-            return null
-          }
-
-          skillFolder = findSkillFolder(tmpDir)
-
-          if (skillFolder) {
-            const skillMdPath = path.join(skillFolder, 'SKILL.md')
-            const content = fs.readFileSync(skillMdPath, 'utf-8')
-            const nameMatch = content.match(/^---\n([\s\S]*?)\n---/)
-            if (nameMatch) {
-              const frontMatter = nameMatch[1]
-              const nMatch = frontMatter.match(/name:\s*(.+)/)
-              if (nMatch) skillName = nMatch[1].trim()
-            }
-            if (!skillName) {
-              skillName = path.basename(skillFolder)
-            }
-          }
+          } catch (e) {}
+          return files
         }
-
-        if (!skillFolder) {
-          const listAllFiles = (dirPath, files = [], baseDepth = 0) => {
-            try {
-              const entries = fs.readdirSync(dirPath)
-              for (const entry of entries) {
-                const entryPath = path.join(dirPath, entry)
-                const stat = fs.statSync(entryPath)
-                if (stat.isDirectory()) {
-                  listAllFiles(entryPath, files, baseDepth + 1)
-                } else {
-                  files.push(`${'  '.repeat(baseDepth)}${entry}`)
-                }
-              }
-            } catch (e) {}
-            return files
-          }
-          const allFiles = listAllFiles(tmpDir)
-          return {
-            success: false,
-            error: t('messages.skillArchiveInvalid', { content: allFiles.slice(0, 20).join('\n') })
-          }
-        }
-
-        const destPath = path.join(SKILLS_FOLDER, skillName)
-
-        if (fs.existsSync(destPath)) {
-          const { callConfirmDialog } = require('./dialogs')
-          const confirmed = await callConfirmDialog('messages.warning', 'messages.overwriteConfirm', { name: skillName })
-          if (!confirmed) {
-            return { success: false, cancelled: true }
-          }
-          fs.rmSync(destPath, { recursive: true })
-        }
-
-        fs.cpSync(skillFolder, destPath, { recursive: true })
-        return { success: true, message: t('messages.skillImportSuccess', { name: skillName }) }
-      } finally {
-        if (fs.existsSync(tmpDir)) {
-          fs.rmSync(tmpDir, { recursive: true, force: true })
+        const allFiles = listAllFiles(tmpDir)
+        return {
+          success: false,
+          error: t('messages.skillArchiveInvalid', { content: allFiles.slice(0, 20).join('\n') }),
+          code: ErrorCodes.SKILL_IMPORT_ERROR
         }
       }
-    } catch (error) {
-      return { success: false, error: error.message }
-    }
-  })
 
-  // 在线导入技能
-  ipcMain.handle('import-skill-online', async (event, url, name) => {
-    try {
-      const https = require('https')
-      const http = require('http')
-      const { URL } = require('url')
-
-      ensureSkillsFolder()
-      const destPath = path.join(SKILLS_FOLDER, name)
+      const destPath = path.join(SKILLS_FOLDER, skillName)
 
       if (fs.existsSync(destPath)) {
         const { callConfirmDialog } = require('./dialogs')
-        const confirmed = await callConfirmDialog('messages.warning', 'messages.overwriteConfirm', { name })
+        const confirmed = await callConfirmDialog('messages.warning', 'messages.overwriteConfirm', { name: skillName })
         if (!confirmed) {
           return { success: false, cancelled: true }
         }
         fs.rmSync(destPath, { recursive: true })
       }
 
-      fs.mkdirSync(destPath, { recursive: true })
-
-      const parsedUrl = new URL(url)
-      const protocol = parsedUrl.protocol === 'https:' ? https : http
-
-      return new Promise(resolve => {
-        protocol.get(url, response => {
-          if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-            const redirectUrl = new URL(response.headers.location, url)
-            protocol.get(redirectUrl.toString(), redirectResponse => {
-              handleDownload(redirectResponse, destPath, name).then(resolve)
-            }).on('error', err => resolve({ success: false, error: err.message }))
-            return
-          }
-
-          if (response.statusCode !== 200) {
-            resolve({ success: false, error: t('messages.downloadFailed', { code: response.statusCode }) })
-            return
-          }
-
-          handleDownload(response, destPath, name).then(resolve)
-        }).on('error', err => resolve({ success: false, error: err.message }))
-      })
-    } catch (error) {
-      return { success: false, error: error.message }
-    }
-  })
-
-  // 导出技能
-  ipcMain.handle('export-skill', async (event, name, folderName) => {
-    try {
-      const { getMainWindow } = require('../window')
-      const mainWindow = getMainWindow()
-
-
-      const skillPath = path.join(SKILLS_FOLDER, folderName)
-      if (!fs.existsSync(skillPath)) {
-        return { success: false, error: 'messages.skillNotFound', name }
+      fs.cpSync(skillFolder, destPath, { recursive: true })
+      return successResult({ message: t('messages.skillImportSuccess', { name: skillName }) })
+    } finally {
+      if (fs.existsSync(tmpDir)) {
+        fs.rmSync(tmpDir, { recursive: true, force: true })
       }
+    }
+  }, 'import-skill-local'))
 
-      const result = await dialog.showOpenDialog(mainWindow, {
-        title: t('dialogs.exportSkill'),
-        buttonLabel: t('dialogs.selectExportLocation'),
-        properties: ['openDirectory', 'createDirectory'],
-      })
+  // 在线导入技能
+  ipcMain.handle('import-skill-online', wrapIpcHandler(async (event, url, name) => {
+    const https = require('https')
+    const http = require('http')
+    const { URL } = require('url')
 
-      if (result.canceled || result.filePaths.length === 0) {
+    ensureSkillsFolder()
+    const destPath = path.join(SKILLS_FOLDER, name)
+
+    if (fs.existsSync(destPath)) {
+      const { callConfirmDialog } = require('./dialogs')
+      const confirmed = await callConfirmDialog('messages.warning', 'messages.overwriteConfirm', { name })
+      if (!confirmed) {
         return { success: false, cancelled: true }
       }
-
-      const destPath = path.join(result.filePaths[0], folderName)
-      if (fs.existsSync(destPath)) {
-        fs.rmSync(destPath, { recursive: true })
-      }
-
-      fs.cpSync(skillPath, destPath, { recursive: true })
-      return { success: true, message: 'messages.skillExportSuccess', name }
-    } catch (error) {
-      return { success: false, error: error.message }
+      fs.rmSync(destPath, { recursive: true })
     }
-  })
+
+    fs.mkdirSync(destPath, { recursive: true })
+
+    const parsedUrl = new URL(url)
+    const protocol = parsedUrl.protocol === 'https:' ? https : http
+
+    return new Promise(resolve => {
+      protocol.get(url, response => {
+        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          const redirectUrl = new URL(response.headers.location, url)
+          protocol.get(redirectUrl.toString(), redirectResponse => {
+            handleDownload(redirectResponse, destPath, name).then(resolve)
+          }).on('error', err => resolve({ success: false, error: err.message, code: ErrorCodes.NETWORK_ERROR }))
+          return
+        }
+
+        if (response.statusCode !== 200) {
+          resolve({ success: false, error: t('messages.downloadFailed', { code: response.statusCode }), code: ErrorCodes.DOWNLOAD_FAILED })
+          return
+        }
+
+        handleDownload(response, destPath, name).then(resolve)
+      }).on('error', err => resolve({ success: false, error: err.message, code: ErrorCodes.NETWORK_ERROR }))
+    })
+  }, 'import-skill-online'))
+
+  // 导出技能
+  ipcMain.handle('export-skill', wrapIpcHandler(async (event, name, folderName) => {
+    const { getMainWindow } = require('../window')
+    const mainWindow = getMainWindow()
+
+
+    const skillPath = path.join(SKILLS_FOLDER, folderName)
+    if (!fs.existsSync(skillPath)) {
+      return { success: false, error: t('messages.skillNotFound', { name }), code: ErrorCodes.SKILL_NOT_FOUND }
+    }
+
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: t('dialogs.exportSkill'),
+      buttonLabel: t('dialogs.selectExportLocation'),
+      properties: ['openDirectory', 'createDirectory'],
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, cancelled: true }
+    }
+
+    const destPath = path.join(result.filePaths[0], folderName)
+    if (fs.existsSync(destPath)) {
+      fs.rmSync(destPath, { recursive: true })
+    }
+
+    fs.cpSync(skillPath, destPath, { recursive: true })
+    return successResult({ message: t('messages.skillExportSuccess', { name }) })
+  }, 'export-skill'))
 
   // 删除技能
-  ipcMain.handle('delete-skill', async (event, name) => {
-    try {
-      const skillPath = path.join(SKILLS_FOLDER, name)
-      if (!fs.existsSync(skillPath)) {
-        return { success: false, error: 'messages.skillNotFound', name }
-      }
-
-      fs.rmSync(skillPath, { recursive: true })
-      return { success: true, message: 'messages.skillDeleteSuccess', name }
-    } catch (error) {
-      return { success: false, error: error.message }
+  ipcMain.handle('delete-skill', wrapIpcHandler(async (event, name) => {
+    const skillPath = path.join(SKILLS_FOLDER, name)
+    if (!fs.existsSync(skillPath)) {
+      return { success: false, error: t('messages.skillNotFound', { name }), code: ErrorCodes.SKILL_NOT_FOUND }
     }
-  })
+
+    fs.rmSync(skillPath, { recursive: true })
+    return successResult({ message: t('messages.skillDeleteSuccess', { name }) })
+  }, 'delete-skill'))
 }
 
 // 处理下载内容
