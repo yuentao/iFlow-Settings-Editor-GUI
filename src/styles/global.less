@@ -92,48 +92,186 @@
 
 // =============================================================================
 // Dark Mode ( Windows 11 Dark Theme )
+// Enhanced with deeper contrast and refined shadows
 // =============================================================================
 
 .dark {
-  --bg-primary: #1f1f1f;
-  --bg-secondary: #2d2d2d;
-  --bg-tertiary: #383838;
-  --bg-elevated: #333333;
-  --bg-mica: rgba(31, 31, 31, 0.85);
+  // Windows 11 Dark - Background layers
+  // Mica-inspired depth with subtle transparency
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #242424;
+  --bg-elevated: #2d2d2d;
+  --bg-overlay: #383838;
+  --bg-mica: rgba(13, 13, 13, 0.85);
 
+  // Mica glass effect for elevated surfaces
+  --bg-glass: rgba(45, 45, 45, 0.72);
+  --bg-glass-border: rgba(255, 255, 255, 0.06);
+  --bg-glass-highlight: rgba(255, 255, 255, 0.03);
+
+  // Text colors - refined contrast ratios
   --text-primary: #ffffff;
-  --text-secondary: #b8b8b8;
-  --text-tertiary: #787878;
-  --text-disabled: #555555;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #808080;
+  --text-disabled: #4d4d4d;
+  --text-inverse: #0d0d0d;
 
+  // Accent colors - Windows 11 Dark accent
   --accent: #60cdff;
-  --accent-hover: #82d1ff;
-  --accent-pressed: #4ab3ff;
-  --accent-light: rgba(96, 205, 255, 0.15);
+  --accent-hover: #82d4ff;
+  --accent-pressed: #4cc2ff;
+  --accent-light: rgba(96, 205, 255, 0.12);
   --accent-text: #60cdff;
+  --accent-glow: rgba(96, 205, 255, 0.24);
 
-  --border: #404040;
-  --border-light: #333333;
-  --border-strong: #555555;
+  // Border colors - subtle separation
+  --border: #3d3d3d;
+  --border-light: #2d2d2d;
+  --border-strong: #525252;
+  --border-subtle: rgba(255, 255, 255, 0.04);
 
+  // Status colors - optimized for dark mode
   --success: #6ccb5f;
-  --success-bg: rgba(108, 203, 95, 0.15);
+  --success-bg: rgba(108, 203, 95, 0.12);
+  --success-border: rgba(108, 203, 95, 0.3);
   --danger: #ff6b6b;
-  --danger-bg: rgba(255, 107, 107, 0.15);
+  --danger-bg: rgba(255, 107, 107, 0.12);
+  --danger-border: rgba(255, 107, 107, 0.3);
   --warning: #fce100;
-  --warning-bg: rgba(252, 225, 0, 0.15);
+  --warning-bg: rgba(252, 225, 0, 0.12);
+  --warning-border: rgba(252, 225, 0, 0.3);
   --info: #60cdff;
-  --info-bg: rgba(96, 205, 255, 0.15);
+  --info-bg: rgba(96, 205, 255, 0.12);
+  --info-border: rgba(96, 205, 255, 0.3);
 
-  --control-fill: #333333;
-  --control-fill-hover: #3d3d3d;
-  --control-fill-pressed: #474747;
-  --control-fill-disabled: #2d2d2d;
+  // Control colors - dark mode surface
+  --control-fill: #2d2d2d;
+  --control-fill-hover: #383838;
+  --control-fill-pressed: #454545;
+  --control-fill-disabled: #1f1f1f;
+  --control-fill-secondary: #242424;
 
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.25);
-  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(0, 0, 0, 0.3);
+  // Shadow system - enhanced for dark mode depth
+  --shadow-color: rgba(0, 0, 0, 0.48);
+  --shadow-sm: 0 1.5px 3px rgba(0, 0, 0, 0.28);
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.36), 0 1px 3px rgba(0, 0, 0, 0.24);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.44), 0 4px 8px rgba(0, 0, 0, 0.32);
+  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.52), 0 8px 16px rgba(0, 0, 0, 0.4);
+  --shadow-inner: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  // Focus ring - accent glow
+  --focus-ring: 0 0 0 2px var(--accent-glow);
+  --focus-ring-offset: 2px;
+
+  // Scrollbar - dark mode
+  scrollbar-color: #4d4d4d transparent;
+
+  // Form inputs - dark mode
+  .form-input,
+  .form-select,
+  .form-textarea {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+
+    &::placeholder {
+      color: var(--text-tertiary);
+      opacity: 0.7;
+    }
+
+    &:hover:not(:disabled) {
+      border-color: var(--border-strong);
+      background: var(--control-fill);
+    }
+
+    &:focus {
+      background: var(--bg-tertiary);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+  }
+
+  // Card - enhanced dark mode
+  .card {
+    background: var(--bg-secondary);
+    border-color: var(--border-subtle);
+
+    &:hover {
+      box-shadow: var(--shadow);
+      border-color: var(--border);
+    }
+  }
+
+  // Server list - dark mode
+  .server-list {
+    background: var(--bg-secondary);
+    border-color: var(--border-subtle);
+  }
+
+  .server-item {
+    border-bottom-color: var(--border-subtle);
+
+    &:hover {
+      background: var(--control-fill);
+    }
+
+    &.selected {
+      background: var(--accent-light);
+      border-left-color: var(--accent);
+    }
+  }
+
+  // Dialog - enhanced dark mode
+  .dialog {
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-xl);
+  }
+
+  .dialog-overlay {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+  }
+
+  // Empty state - dark mode
+  .empty-state {
+    background: var(--control-fill);
+    border-color: var(--border);
+  }
+
+  // Button secondary - dark mode
+  .btn-secondary {
+    background: var(--control-fill);
+    color: var(--text-primary);
+    border-color: var(--border);
+
+    &:hover:not(:disabled) {
+      background: var(--control-fill-hover);
+      border-color: var(--border-strong);
+    }
+
+    &:active:not(:disabled) {
+      background: var(--control-fill-pressed);
+    }
+  }
+
+  // Side panel - dark mode
+  .side-panel-close {
+    &:hover {
+      background: var(--control-fill-hover);
+      color: var(--text-primary);
+    }
+  }
+
+  // Sidebar - dark mode specific
+  .sidebar {
+    background: var(--bg-secondary);
+    border-right-color: var(--border-subtle);
+  }
+
+  // Title bar - dark mode
+  .title-bar {
+    background: var(--bg-secondary);
+    border-bottom-color: var(--border-subtle);
+  }
 }
 
 // =============================================================================
