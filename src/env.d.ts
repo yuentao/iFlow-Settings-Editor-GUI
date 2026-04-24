@@ -8,82 +8,82 @@ declare module '*.vue' {
 
 interface Window {
   electronAPI: {
-    // 设置操作
+    // ─── 设置操作 ─────────────────────────────────────────
     loadSettings: () => Promise<import('./shared/types').IpcResult<import('./shared/types').Settings>>
     saveSettings: (data: import('./shared/types').Settings) => Promise<import('./shared/types').IpcResult>
     showMessage: (options: import('./shared/types').MessageBoxOptions) => Promise<import('./shared/types').IpcResult>
-    showConfirmDialog: (options: import('./shared/types').ConfirmDialogOptions) => Promise<import('./shared/types').IpcResult>
+    showConfirmDialog: (options: import('./shared/types').ConfirmDialogOptions) => Promise<import('./shared/types').IpcResult<boolean>>
 
-    // 确认对话框
+    // ─── 确认对话框 ───────────────────────────────────────
     confirmDialogResult: (requestId: string, confirmed: boolean) => void
     onShowConfirmRequest: (callback: (request: import('./shared/types').ConfirmDialogRequest) => void) => void
 
-    // 开机自启动
+    // ─── 开机自启动 ───────────────────────────────────────
     getAutoLaunch: () => Promise<import('./shared/types').IpcResult<boolean>>
     setAutoLaunch: (enabled: boolean) => Promise<import('./shared/types').IpcResult>
 
-    // 自动更新设置
+    // ─── 自动更新设置 ─────────────────────────────────────
     getAutoUpdate: () => Promise<import('./shared/types').IpcResult<boolean>>
     setAutoUpdate: (enabled: boolean) => Promise<import('./shared/types').IpcResult>
 
-    // 窗口控制
+    // ─── 窗口控制 ─────────────────────────────────────────
     isMaximized: () => Promise<import('./shared/types').IpcResult<boolean>>
     minimize: () => void
     maximize: () => void
     close: () => void
 
-    // API 配置管理
-    listApiProfiles: () => Promise<import('./shared/types').IpcResult & { profiles?: import('./shared/types').ApiProfile[]; currentProfile?: string }>
-    switchApiProfile: (profileName: string) => Promise<import('./shared/types').IpcResult>
+    // ─── API 配置管理 ─────────────────────────────────────
+    listApiProfiles: () => Promise<import('./shared/types').ListApiProfilesResult>
+    switchApiProfile: (profileName: string) => Promise<import('./shared/types').SwitchApiProfileResult>
     createApiProfile: (name: string) => Promise<import('./shared/types').IpcResult>
-    deleteApiProfile: (name: string) => Promise<import('./shared/types').IpcResult>
+    deleteApiProfile: (name: string) => Promise<import('./shared/types').DeleteApiProfileResult>
     renameApiProfile: (oldName: string, newName: string) => Promise<import('./shared/types').IpcResult>
     duplicateApiProfile: (sourceName: string, newName: string) => Promise<import('./shared/types').IpcResult>
 
-    // 托盘事件
+    // ─── 托盘事件 ─────────────────────────────────────────
     onApiProfileSwitched: (callback: (profileName: string) => void) => void
 
-    // 语言
+    // ─── 语言 ─────────────────────────────────────────────
     notifyLanguageChanged: () => void
 
-    // 技能管理
-    listSkills: () => Promise<import('./shared/types').IpcResult & { skills?: import('./shared/types').Skill[] }>
-    importSkillLocal: () => Promise<import('./shared/types').IpcResult>
-    importSkillOnline: (url: string, name: string) => Promise<import('./shared/types').IpcResult>
-    exportSkill: (name: string, fileName: string) => Promise<import('./shared/types').IpcResult>
+    // ─── 技能管理 ─────────────────────────────────────────
+    listSkills: () => Promise<import('./shared/types').ListSkillsResult>
+    importSkillLocal: () => Promise<import('./shared/types').IpcCancelResult>
+    importSkillOnline: (url: string, name: string) => Promise<import('./shared/types').IpcCancelResult>
+    exportSkill: (name: string, folderName: string) => Promise<import('./shared/types').IpcCancelResult>
     deleteSkill: (name: string) => Promise<import('./shared/types').IpcResult>
 
-    // 命令管理
-    listCommands: () => Promise<import('./shared/types').IpcResult & { commands?: import('./shared/types').Command[] }>
-    readCommand: (name: string) => Promise<import('./shared/types').IpcResult<import('./shared/types').Command>>
-    createCommand: (name: string, data: import('./shared/types').Command) => Promise<import('./shared/types').IpcResult>
-    updateCommand: (name: string, data: import('./shared/types').Command) => Promise<import('./shared/types').IpcResult>
+    // ─── 命令管理 ─────────────────────────────────────────
+    listCommands: () => Promise<import('./shared/types').ListCommandsResult>
+    readCommand: (name: string) => Promise<import('./shared/types').ReadCommandResult>
+    createCommand: (name: string, data: import('./shared/types').CommandFormData) => Promise<import('./shared/types').IpcResult>
+    updateCommand: (name: string, data: import('./shared/types').CommandFormData) => Promise<import('./shared/types').IpcResult>
     deleteCommand: (name: string) => Promise<import('./shared/types').IpcResult>
-    exportCommand: (name: string) => Promise<import('./shared/types').IpcResult>
-    importCommand: () => Promise<import('./shared/types').IpcResult>
+    exportCommand: (name: string) => Promise<import('./shared/types').IpcCancelResult>
+    importCommand: () => Promise<import('./shared/types').ImportCommandResult>
 
-    // 更新相关
-    checkForUpdates: () => Promise<import('./shared/types').IpcResult>
-    downloadUpdate: () => Promise<import('./shared/types').IpcResult>
-    downloadUpdateBackground: () => Promise<import('./shared/types').IpcResult>
+    // ─── 更新相关 ─────────────────────────────────────────
+    checkForUpdates: () => Promise<import('./shared/types').CheckUpdateResult>
+    downloadUpdate: () => Promise<import('./shared/types').IpcCancelResult>
+    downloadUpdateBackground: () => Promise<import('./shared/types').IpcCancelResult>
     cancelDownload: () => Promise<import('./shared/types').IpcResult>
     installUpdate: () => Promise<import('./shared/types').IpcResult>
     getUpdateStatus: () => Promise<import('./shared/types').IpcResult<import('./shared/types').UpdateState>>
-    getAppVersion: () => Promise<import('./shared/types').IpcResult<string>>
+    getAppVersion: () => Promise<import('./shared/types').AppVersionResult>
     openReleasePage: () => Promise<import('./shared/types').IpcResult>
 
-    // 更新事件监听
+    // ─── 更新事件监听 ─────────────────────────────────────
     onUpdateStatusChanged: (callback: (state: import('./shared/types').UpdateState) => void) => void
     onUpdateAvailable: (callback: (info: import('./shared/types').UpdateInfo) => void) => void
-    onUpdateDownloadProgress: (callback: (progress: import('./shared/types').DownloadProgress) => void) => void
+    onUpdateDownloadProgress: (callback: (progress: number) => void) => void
     onUpdateDownloaded: (callback: () => void) => void
-    onUpdateBackgroundComplete: (callback: (info: import('./shared/types').UpdateInfo) => void) => void
+    onUpdateBackgroundComplete: (callback: (info: { version: string; downloadPath: string }) => void) => void
     removeUpdateListener: (channel: string, callback: (...args: any[]) => void) => void
     onAutoCheckUpdate: (callback: () => void) => void
     onInstallUpdate: (callback: () => void) => void
     removeAllUpdateListeners: () => void
 
-    // 翻译
+    // ─── 翻译 ─────────────────────────────────────────────
     getTranslation: (localeData: any) => any
     sendTranslation: (translations: any) => void
   }
