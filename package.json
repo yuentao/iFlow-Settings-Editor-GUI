@@ -53,6 +53,7 @@
     ],
     "files": [
       "dist/**/*",
+      "src/main/**/*",
       "main.js",
       "preload.js",
       "package.json",

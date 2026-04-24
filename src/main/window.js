@@ -77,7 +77,7 @@ function createWindow() {
       preload: getPreloadPath(),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: false,
+      webSecurity: process.env.NODE_ENV === 'production',
     },
   })
 
