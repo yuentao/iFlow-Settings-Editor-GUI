@@ -13,32 +13,61 @@
         autofocus
       />
       <div class="dialog-actions">
-        <button class="btn btn-secondary" @click="$emit('cancel')">{{ $t('dialog.cancel') }}</button>
-        <button class="btn btn-primary" @click="$emit('confirm', dialog.isConfirm ? true : inputValue)">{{ $t('dialog.confirm') }}</button>
+        <button class="btn btn-secondary" @click="handleCancel">{{ $t('dialog.cancel') }}</button>
+        <button class="btn btn-primary" @click="handleConfirm">{{ $t('dialog.confirm') }}</button>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+/**
+ * InputDialog - 输入对话框组件
+ */
 import { ref, watch } from 'vue'
 
-const props = defineProps({
-  dialog: {
-    type: Object,
-    default: () => ({ show: false, title: '', placeholder: '', isConfirm: false })
-  }
+interface DialogState {
+  show: boolean
+  title: string
+  placeholder: string
+  isConfirm: boolean
+  defaultValue?: string
+  name?: string
+}
+
+interface Props {
+  dialog: DialogState
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  dialog: () => ({
+    show: false,
+    title: '',
+    placeholder: '',
+    isConfirm: false,
+  }),
 })
 
-defineEmits(['confirm', 'cancel'])
+const emit = defineEmits<{
+  confirm: [value: string | boolean]
+  cancel: []
+}>()
 
 const inputValue = ref('')
 
-watch(() => props.dialog.show, (show) => {
+watch(() => props.dialog.show, (show: boolean) => {
   if (show) {
     inputValue.value = props.dialog.defaultValue || ''
   }
 })
+
+const handleConfirm = (): void => {
+  emit('confirm', props.dialog.isConfirm ? true : inputValue.value)
+}
+
+const handleCancel = (): void => {
+  emit('cancel')
+}
 </script>
 
 <style lang="less" scoped>

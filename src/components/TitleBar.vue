@@ -20,10 +20,23 @@
   </div>
 </template>
 
-<script setup>
-const minimize = () => window.electronAPI.minimize()
-const maximize = () => window.electronAPI.maximize()
-const close = () => window.electronAPI.close()
+<script setup lang="ts">
+/**
+ * TitleBar - 窗口标题栏组件
+ * 提供最小化、最大化、关闭按钮
+ */
+
+const minimize = (): void => {
+  window.electronAPI.minimize()
+}
+
+const maximize = (): void => {
+  window.electronAPI.maximize()
+}
+
+const close = (): void => {
+  window.electronAPI.close()
+}
 </script>
 
 <style lang="less" scoped>

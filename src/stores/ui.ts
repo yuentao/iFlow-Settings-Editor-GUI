@@ -1,18 +1,63 @@
 /**
- * UI Store
+ * UI Store - TypeScript 版本
  * 管理 UI 状态：当前分区、对话框、主题等
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
+// ─── Dialog Types ────────────────────────────────────────
+
+export interface InputDialogOptions {
+  title: string
+  placeholder?: string
+  callback?: (result: string) => void
+  isConfirm?: boolean
+  defaultValue?: string
+  name?: string
+}
+
+export interface MessageDialogOptions {
+  type?: 'info' | 'warning' | 'error' | 'success'
+  title?: string
+  message: string
+  messageParams?: Record<string, string>
+}
+
+export interface ServerPanelData {
+  name: string
+  description: string
+  command: string
+  cwd: string
+  args: string
+  env: string
+}
+
+export interface ApiProfileFormData {
+  name: string
+  selectedAuthType: string
+  apiKey: string
+  baseUrl: string
+  modelName: string
+}
+
+// ─── Store ────────────────────────────────────────────────
+
 export const useUiStore = defineStore('ui', () => {
   // State
-  const currentSection = ref('dashboard')
-  const systemTheme = ref('Light')
+  const currentSection = ref<string>('dashboard')
+  const systemTheme = ref<'Light' | 'Dark'>('Light')
 
   // Input Dialog
-  const inputDialog = ref({
+  const inputDialog = ref<{
+    show: boolean
+    title: string
+    placeholder: string
+    callback: ((result: string) => void) | null
+    isConfirm: boolean
+    defaultValue: string
+    name: string
+  }>({
     show: false,
     title: '',
     placeholder: '',
@@ -23,7 +68,13 @@ export const useUiStore = defineStore('ui', () => {
   })
 
   // Message Dialog
-  const messageDialog = ref({
+  const messageDialog = ref<{
+    show: boolean
+    type: 'info' | 'warning' | 'error' | 'success'
+    title: string
+    message: string
+    messageParams: Record<string, string>
+  }>({
     show: false,
     type: 'info',
     title: '',
@@ -32,11 +83,15 @@ export const useUiStore = defineStore('ui', () => {
   })
 
   // Confirm Dialog
-  const pendingConfirmRequest = ref(null)
-  const pendingConfirmResolve = ref(null)
+  const pendingConfirmRequest = ref<unknown>(null)
+  const pendingConfirmResolve = ref<((value: boolean) => void) | null>(null)
 
   // Server Panel
-  const serverPanel = ref({
+  const serverPanel = ref<{
+    show: boolean
+    isEditing: boolean
+    data: ServerPanelData
+  }>({
     show: false,
     isEditing: false,
     data: {
@@ -50,7 +105,11 @@ export const useUiStore = defineStore('ui', () => {
   })
 
   // API Edit Dialog
-  const apiEditDialog = ref({
+  const apiEditDialog = ref<{
+    show: boolean
+    profileName: string
+    data: ApiProfileFormData
+  }>({
     show: false,
     profileName: '',
     data: {
@@ -63,7 +122,10 @@ export const useUiStore = defineStore('ui', () => {
   })
 
   // API Create Dialog
-  const apiCreateDialog = ref({
+  const apiCreateDialog = ref<{
+    show: boolean
+    data: ApiProfileFormData
+  }>({
     show: false,
     data: {
       name: '',
@@ -75,28 +137,28 @@ export const useUiStore = defineStore('ui', () => {
   })
 
   // Getters
-  const themeClass = computed(() => {
+  const themeClass = computed<string>(() => {
     return systemTheme.value === 'Dark' ? 'dark' : ''
   })
 
   // Actions
-  function showSection(section) {
+  function showSection(section: string): void {
     currentSection.value = section
   }
 
-  function showInputDialog({ title, placeholder, callback, isConfirm, defaultValue, name }) {
+  function showInputDialog(options: InputDialogOptions): void {
     inputDialog.value = {
       show: true,
-      title,
-      placeholder,
-      callback,
-      isConfirm: isConfirm || false,
-      defaultValue: defaultValue || '',
-      name: name || '',
+      title: options.title,
+      placeholder: options.placeholder || '',
+      callback: options.callback || null,
+      isConfirm: options.isConfirm || false,
+      defaultValue: options.defaultValue || '',
+      name: options.name || '',
     }
   }
 
-  function closeInputDialog(result) {
+  function closeInputDialog(result: string): void {
     if (inputDialog.value.callback) {
       inputDialog.value.callback(result)
     }
@@ -105,15 +167,15 @@ export const useUiStore = defineStore('ui', () => {
     inputDialog.value.defaultValue = ''
   }
 
-  function showMessage({ type = 'info', title, message, messageParams }) {
+  function showMessage(options: MessageDialogOptions): Promise<void> {
     messageDialog.value = {
       show: true,
-      type,
-      title,
-      message,
-      messageParams: messageParams || {},
+      type: options.type || 'info',
+      title: options.title || '',
+      message: options.message,
+      messageParams: options.messageParams || {},
     }
-    return new Promise(resolve => {
+    return new Promise<void>(resolve => {
       // 消息对话框关闭后调用 resolve
       const checkClose = setInterval(() => {
         if (!messageDialog.value.show) {
@@ -124,11 +186,11 @@ export const useUiStore = defineStore('ui', () => {
     })
   }
 
-  function closeMessageDialog() {
+  function closeMessageDialog(): void {
     messageDialog.value.show = false
   }
 
-  function openServerPanel(isEditing, data) {
+  function openServerPanel(isEditing: boolean, data?: ServerPanelData): void {
     serverPanel.value = {
       show: true,
       isEditing,
@@ -143,11 +205,11 @@ export const useUiStore = defineStore('ui', () => {
     }
   }
 
-  function closeServerPanel() {
+  function closeServerPanel(): void {
     serverPanel.value.show = false
   }
 
-  function openApiEditDialog(profileName, data) {
+  function openApiEditDialog(profileName: string, data?: Partial<ApiProfileFormData>): void {
     apiEditDialog.value = {
       show: true,
       profileName,
@@ -161,11 +223,11 @@ export const useUiStore = defineStore('ui', () => {
     }
   }
 
-  function closeApiEditDialog() {
+  function closeApiEditDialog(): void {
     apiEditDialog.value.show = false
   }
 
-  function openApiCreateDialog() {
+  function openApiCreateDialog(): void {
     apiCreateDialog.value = {
       show: true,
       data: {
@@ -178,11 +240,11 @@ export const useUiStore = defineStore('ui', () => {
     }
   }
 
-  function closeApiCreateDialog() {
+  function closeApiCreateDialog(): void {
     apiCreateDialog.value.show = false
   }
 
-  function updateSystemTheme(isDark) {
+  function updateSystemTheme(isDark: boolean): void {
     systemTheme.value = isDark ? 'Dark' : 'Light'
   }
 

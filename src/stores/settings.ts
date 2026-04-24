@@ -1,15 +1,16 @@
 /**
- * 设置 Store
+ * 设置 Store - TypeScript 版本
  * 管理全局设置状态，包含防抖保存功能
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
+import type { Settings, UiTheme } from '@/shared/types'
 
 export const useSettingsStore = defineStore('settings', () => {
   // State
-  const settings = ref({
+  const settings = ref<Settings>({
     language: 'zh-CN',
     uiTheme: 'system',
     acrylicEnabled: true,
@@ -23,25 +24,26 @@ export const useSettingsStore = defineStore('settings', () => {
     mcpServers: [],
     autoUpdate: true,
   })
+
   const isLoading = ref(true)
   const isSaving = ref(false)
   const modified = ref(false)
-  const lastSaved = ref(null)
+  const lastSaved = ref<Date | null>(null)
 
   // Getters
-  const theme = computed(() => settings.value.uiTheme || 'system')
-  const language = computed(() => settings.value.language || 'zh-CN')
-  const acrylicEnabled = computed(() => settings.value.acrylicEnabled ?? true)
-  const acrylicIntensity = computed(() => settings.value.acrylicIntensity ?? 50)
-  const currentApiProfile = computed(() => settings.value.currentApiProfile || 'default')
-  const autoUpdate = computed(() => settings.value.autoUpdate ?? true)
+  const theme = computed<UiTheme>(() => (settings.value.uiTheme as UiTheme) || 'system')
+  const language = computed<string>(() => settings.value.language || 'zh-CN')
+  const acrylicEnabled = computed<boolean>(() => settings.value.acrylicEnabled ?? true)
+  const acrylicIntensity = computed<number>(() => settings.value.acrylicIntensity ?? 50)
+  const currentApiProfile = computed<string>(() => settings.value.currentApiProfile || 'default')
+  const autoUpdate = computed<boolean>(() => settings.value.autoUpdate ?? true)
 
   // Actions
-  async function loadSettings() {
+  async function loadSettings(): Promise<void> {
     isLoading.value = true
     try {
       const result = await window.electronAPI.loadSettings()
-      if (result.success) {
+      if (result.success && result.data) {
         settings.value = { ...settings.value, ...result.data }
       }
     } catch (error) {
@@ -51,12 +53,14 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  async function saveSettings() {
+  async function saveSettings(): Promise<void> {
     isSaving.value = true
     try {
-      await window.electronAPI.saveSettings(settings.value)
-      modified.value = false
-      lastSaved.value = new Date()
+      const result = await window.electronAPI.saveSettings(settings.value)
+      if (result.success) {
+        modified.value = false
+        lastSaved.value = new Date()
+      }
     } catch (error) {
       console.error('Failed to save settings:', error)
     } finally {
@@ -67,7 +71,7 @@ export const useSettingsStore = defineStore('settings', () => {
   // 防抖保存函数，延迟 1 秒
   const debouncedSave = useDebounceFn(saveSettings, 1000)
 
-  function updateSetting(key, value) {
+  function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]): void {
     settings.value[key] = value
     modified.value = true
     if (!isLoading.value) {
@@ -75,14 +79,14 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  function updateNestedSetting(path, value) {
+  function updateNestedSetting(path: string, value: unknown): void {
     const keys = path.split('.')
-    let target = settings.value
+    let target: Record<string, unknown> = settings.value as unknown as Record<string, unknown>
     for (let i = 0; i < keys.length - 1; i++) {
       if (!target[keys[i]]) {
         target[keys[i]] = {}
       }
-      target = target[keys[i]]
+      target = target[keys[i]] as Record<string, unknown>
     }
     target[keys[keys.length - 1]] = value
     modified.value = true

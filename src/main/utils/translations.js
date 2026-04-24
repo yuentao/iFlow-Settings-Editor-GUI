@@ -13,6 +13,8 @@ const defaultTranslations = {
   },
   errors: {
     configNotFound: '配置文件不存在',
+    configReadError: '配置文件读取失败',
+    configWriteError: '配置文件写入失败',
     configNotExist: '配置 "{name}" 不存在',
     configAlreadyExists: '配置 "{name}" 已存在',
     cannotDeleteDefault: '不能删除默认配置',
@@ -21,6 +23,9 @@ const defaultTranslations = {
     commandNotFound: '命令不存在',
     commandAlreadyExists: '命令已存在',
     commandInvalidName: '命令名只能包含字母、数字、中划线和下划线',
+    fileNotFound: '文件不存在',
+    permissionDenied: '权限不足',
+    unknown: '操作失败，请重试',
   },
   dialogs: {
     importSkill: '导入技能',

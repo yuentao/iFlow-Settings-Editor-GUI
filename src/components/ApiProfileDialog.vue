@@ -47,7 +47,7 @@
       </div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('close-create')">{{ $t('dialog.cancel') }}</button>
-        <button class="btn btn-primary" :disabled="!isCreateValid" @click="$emit('save-create', createData)">
+        <button class="btn btn-primary" :disabled="!isCreateValid" @click="handleSaveCreate">
           <Save size="14" />
           {{ $t('api.create') }}
         </button>
@@ -103,7 +103,7 @@
       </div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('close-edit')">{{ $t('dialog.cancel') }}</button>
-        <button class="btn btn-primary" :disabled="!isEditValid" @click="$emit('save-edit', editData)">
+        <button class="btn btn-primary" :disabled="!isEditValid" @click="handleSaveEdit">
           <Save size="14" />
           {{ $t('api.save') }}
         </button>
@@ -112,41 +112,63 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+/**
+ * ApiProfileDialog - API 配置编辑对话框组件
+ */
 import { computed } from 'vue'
 import { Key, Save } from '@icon-park/vue-next'
+import type { AuthType } from '@/shared/types'
 
-const props = defineProps({
-  showCreate: Boolean,
-  showEdit: Boolean,
-  createData: Object,
-  editData: Object,
-  currentProfileName: String
+interface ApiProfileData {
+  name: string
+  selectedAuthType: AuthType
+  apiKey: string
+  baseUrl: string
+  modelName: string
+}
+
+interface Props {
+  showCreate: boolean
+  showEdit: boolean
+  createData: ApiProfileData | null
+  editData: ApiProfileData | null
+  currentProfileName?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  showCreate: false,
+  showEdit: false,
+  createData: null,
+  editData: null,
+  currentProfileName: '',
 })
 
-defineEmits([
-  'close-create', 'save-create',
-  'close-edit', 'save-edit'
-])
+const emit = defineEmits<{
+  'close-create': []
+  'save-create': [data: ApiProfileData]
+  'close-edit': []
+  'save-edit': [data: ApiProfileData]
+}>()
 
-// Validation rules
-const isNameValid = name => {
+// Validation helper functions
+const isNameValid = (name: string): boolean => {
   if (!name || !name.trim()) return false
   return /^[a-zA-Z\u4e00-\u9fff][a-zA-Z0-9\u4e00-\u9fff_-]*$/.test(name.trim())
 }
 
-const isUrlValid = url => {
+const isUrlValid = (url: string): boolean => {
   if (!url || !url.trim()) return false
   try { new URL(url.trim()); return true } catch { return false }
 }
 
-const isModelNameValid = name => {
+const isModelNameValid = (name: string): boolean => {
   if (!name || !name.trim()) return false
   return /^[a-zA-Z0-9][a-zA-Z0-9_.\-:/]*$/.test(name.trim())
 }
 
 // Create form errors
-const createNameError = computed(() => {
+const createNameError = computed((): string => {
   const d = props.createData
   if (!d || !d.name || !d.name.trim()) return ''
   if (/^\d/.test(d.name.trim())) return 'api.validation.nameNoDigitStart'
@@ -154,14 +176,14 @@ const createNameError = computed(() => {
   return ''
 })
 
-const createBaseUrlError = computed(() => {
+const createBaseUrlError = computed((): string => {
   const d = props.createData
   if (!d || !d.baseUrl || !d.baseUrl.trim()) return ''
   if (!isUrlValid(d.baseUrl)) return 'api.validation.urlFormat'
   return ''
 })
 
-const createModelError = computed(() => {
+const createModelError = computed((): string => {
   const d = props.createData
   if (!d || !d.modelName || !d.modelName.trim()) return ''
   if (!isModelNameValid(d.modelName)) return 'api.validation.modelNoSpecial'
@@ -169,7 +191,7 @@ const createModelError = computed(() => {
 })
 
 // Edit form errors
-const editNameError = computed(() => {
+const editNameError = computed((): string => {
   const d = props.editData
   if (!d || !d.name || !d.name.trim()) return ''
   if (d.name === props.currentProfileName) return ''
@@ -178,37 +200,49 @@ const editNameError = computed(() => {
   return ''
 })
 
-const editBaseUrlError = computed(() => {
+const editBaseUrlError = computed((): string => {
   const d = props.editData
   if (!d || !d.baseUrl || !d.baseUrl.trim()) return ''
   if (!isUrlValid(d.baseUrl)) return 'api.validation.urlFormat'
   return ''
 })
 
-const editModelError = computed(() => {
+const editModelError = computed((): string => {
   const d = props.editData
   if (!d || !d.modelName || !d.modelName.trim()) return ''
   if (!isModelNameValid(d.modelName)) return 'api.validation.modelNoSpecial'
   return ''
 })
 
-const isCreateValid = computed(() => {
+const isCreateValid = computed((): boolean => {
   const d = props.createData
-  return d && d.name && d.name.trim() && isNameValid(d.name)
+  return !!(d && d.name && d.name.trim() && isNameValid(d.name)
     && d.apiKey && d.apiKey.trim()
     && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
-    && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName)
+    && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName))
 })
 
-const isEditValid = computed(() => {
+const isEditValid = computed((): boolean => {
   const d = props.editData
   if (!d) return false
   const nameOk = d.name === props.currentProfileName || (d.name && d.name.trim() && isNameValid(d.name))
-  return nameOk
+  return !!(nameOk
     && d.apiKey && d.apiKey.trim()
     && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
-    && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName)
+    && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName))
 })
+
+const handleSaveCreate = (): void => {
+  if (props.createData) {
+    emit('save-create', props.createData)
+  }
+}
+
+const handleSaveEdit = (): void => {
+  if (props.editData) {
+    emit('save-edit', props.editData)
+  }
+}
 </script>
 
 <style lang="less" scoped>

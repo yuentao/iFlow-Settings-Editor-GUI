@@ -5,6 +5,37 @@
 
 const { AppError, ErrorCodes, getStatusCodeForError } = require('../../shared/errors')
 const { logger } = require('./logger')
+const { t } = require('./translations')
+
+// 错误码到翻译键的映射
+const ERROR_CODE_TRANSLATIONS = {
+  [ErrorCodes.CONFIG_NOT_FOUND]: 'errors.configNotFound',
+  [ErrorCodes.CONFIG_READ_ERROR]: 'errors.configReadError',
+  [ErrorCodes.CONFIG_WRITE_ERROR]: 'errors.configWriteError',
+  [ErrorCodes.CONFIG_ALREADY_EXISTS]: 'errors.configAlreadyExists',
+  [ErrorCodes.FILE_NOT_FOUND]: 'errors.fileNotFound',
+  [ErrorCodes.PERMISSION_DENIED]: 'errors.permissionDenied',
+  [ErrorCodes.UNKNOWN_ERROR]: 'errors.unknown',
+}
+
+/**
+ * 根据错误码获取翻译后的错误消息
+ * @param {string} code - 错误码
+ * @param {string} fallbackMessage - 回退消息
+ * @param {Object} params - 翻译参数
+ * @returns {string} 翻译后的错误消息
+ */
+function getTranslatedErrorMessage(code, fallbackMessage, params = {}) {
+  const translationKey = ERROR_CODE_TRANSLATIONS[code]
+  if (translationKey) {
+    const translated = t(translationKey, params)
+    // 如果翻译返回的是键（未找到翻译），使用回退消息
+    if (translated !== translationKey) {
+      return translated
+    }
+  }
+  return fallbackMessage
+}
 
 /**
  * 处理 IPC 错误并返回标准化结果
@@ -16,9 +47,10 @@ function handleIpcError(error, context) {
   // 已经是 AppError 实例
   if (error instanceof AppError) {
     logger.error(`[${context || 'IPC'}] ${error.code}: ${error.message}`)
+    const translatedMessage = getTranslatedErrorMessage(error.code, error.message)
     return {
       success: false,
-      error: error.message,
+      error: translatedMessage,
       code: error.code,
     }
   }
@@ -29,20 +61,22 @@ function handleIpcError(error, context) {
 
     // 根据错误消息推断错误码
     const code = inferErrorCode(error.message, context)
+    const translatedMessage = getTranslatedErrorMessage(code, error.message)
 
     return {
       success: false,
-      error: error.message,
+      error: translatedMessage,
       code: code,
     }
   }
 
-  // 未知错误
+  // 未知错误 - 使用翻译后的消息
   logger.error(`[${context || 'IPC'}] Unknown error:`, error)
+  const unknownErrorMessage = t('errors.unknown')
 
   return {
     success: false,
-    error: '操作失败，请重试',
+    error: unknownErrorMessage,
     code: ErrorCodes.UNKNOWN_ERROR,
   }
 }

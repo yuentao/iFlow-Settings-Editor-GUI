@@ -7,11 +7,11 @@ const { app } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
+// 导入统一常量
+const { API_FIELDS } = require('../constants')
+
 // 配置文件路径
 const SETTINGS_FILE = path.join(app.getPath('home'), '.iflow', 'settings.json')
-
-// API 配置相关字段
-const API_FIELDS = ['selectedAuthType', 'apiKey', 'baseUrl', 'modelName', 'searchApiKey', 'cna']
 
 /**
  * 读取设置文件

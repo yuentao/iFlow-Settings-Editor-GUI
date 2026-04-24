@@ -46,7 +46,7 @@
         </button>
         <div class="side-panel-footer-right">
           <button class="btn btn-secondary" @click="$emit('close')">{{ $t('dialog.cancel') }}</button>
-          <button class="btn btn-primary" @click="$emit('save', localData)">
+          <button class="btn btn-primary" @click="handleSave">
             <Save size="14" />
             {{ isEditing ? $t('mcp.saveChanges') : $t('mcp.addServer') }}
           </button>
@@ -56,20 +56,43 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+/**
+ * ServerPanel - MCP 服务器编辑面板组件
+ */
 import { ref, watch, nextTick } from 'vue'
 import { Server, Save, Delete } from '@icon-park/vue-next'
+import type { McpServerConfig } from '@/shared/types'
 
-const props = defineProps({
-  show: Boolean,
-  isEditing: Boolean,
-  data: Object
+interface Props {
+  show: boolean
+  isEditing: boolean
+  data: McpServerConfig | null
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  show: false,
+  isEditing: false,
+  data: null,
 })
 
-const emit = defineEmits(['close', 'save', 'delete'])
+const emit = defineEmits<{
+  close: []
+  save: [data: McpServerConfig]
+  delete: []
+}>()
 
-const overlay = ref(null)
-const localData = ref({
+interface LocalServerData {
+  name: string
+  description: string
+  command: string
+  cwd: string
+  args: string
+  env: string
+}
+
+const overlay = ref<HTMLElement | null>(null)
+const localData = ref<LocalServerData>({
   name: '',
   description: '',
   command: 'npx',
@@ -78,18 +101,22 @@ const localData = ref({
   env: ''
 })
 
-watch(() => props.show, (val) => {
+watch(() => props.show, (val: boolean) => {
   if (val && props.data) {
     localData.value = { ...props.data }
     nextTick(() => overlay.value?.focus())
   }
 })
 
-watch(() => props.data, (val) => {
+watch(() => props.data, (val: McpServerConfig | null) => {
   if (val) {
     localData.value = { ...val }
   }
 }, { immediate: true })
+
+const handleSave = (): void => {
+  emit('save', localData.value as McpServerConfig)
+}
 </script>
 
 <style lang="less" scoped>
