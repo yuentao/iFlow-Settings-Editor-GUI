@@ -83,6 +83,11 @@ interface Window {
     onInstallUpdate: (callback: () => void) => void
     removeAllUpdateListeners: () => void
 
+    // ─── 待安装更新 ───────────────────────────────────────
+    getPendingUpdate: () => Promise<import('./shared/types').IpcResult<{ pending: import('./shared/types').PendingUpdateInfo | null }>>
+    clearPendingUpdate: () => Promise<import('./shared/types').IpcResult>
+    restorePendingUpdate: () => Promise<import('./shared/types').IpcResult<{ restored: boolean; pending?: import('./shared/types').PendingUpdateInfo }>>
+
     // ─── 翻译 ─────────────────────────────────────────────
     getTranslation: (localeData: any) => any
     sendTranslation: (translations: any) => void

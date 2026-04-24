@@ -99,6 +99,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('install-update', (event) => callback())
   },
 
+  // 待安装更新相关 API
+  getPendingUpdate: () => ipcRenderer.invoke('get-pending-update'),
+  clearPendingUpdate: () => ipcRenderer.invoke('clear-pending-update'),
+  restorePendingUpdate: () => ipcRenderer.invoke('restore-pending-update'),
+
   // 移除更新事件监听
   removeAllUpdateListeners: () => {
     ipcRenderer.removeAllListeners('update-status-changed')

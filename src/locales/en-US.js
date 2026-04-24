@@ -254,7 +254,7 @@ export default {
     releaseNotes: 'Release Notes',
     later: 'Remind Later',
     updateNow: 'Update Now',
-    updateHint: 'Update will be installed automatically after download',
+    updateHint: 'You will be prompted to install after download',
     downloading: 'Downloading Update...',
     readyToInstall: 'Ready to Install',
     downloadComplete: 'Download complete, ready to install',

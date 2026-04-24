@@ -2,6 +2,12 @@
   <div class="app" :class="themeClass">
     <TitleBar @minimize="minimize" @maximize="maximize" @close="close" />
 
+    <!-- 全局后台下载进度条 -->
+    <div v-if="isBackgroundDownloading" class="global-download-bar" @click="showDownloadDetail">
+      <div class="global-download-fill" :style="{ width: updateDownloadProgress + '%' }"></div>
+      <span class="global-download-text">{{ $t('update.backgroundDownloading', { progress: Math.round(updateDownloadProgress) }) }}</span>
+    </div>
+
     <main class="main">
       <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" @navigate="showSection" />
 
@@ -609,12 +615,15 @@ const initUpdateListeners = () => {
 
   // 监听更新状态变化
   window.electronAPI.onUpdateStatusChanged(state => {
+    console.log('[AutoUpdate][Renderer] Update status changed:', JSON.stringify(state))
     if (state.status === 'available' && state.info) {
       latestUpdateVersion.value = state.info.version || ''
       updateReleaseNotes.value = state.info.releaseNotes || ''
-      showUpdateNotification.value = true
+      // 自动后台下载流程中不弹通知对话框
+      if (!isBackgroundDownloading.value) {
+        showUpdateNotification.value = true
+      }
       showUpdateProgress.value = false
-      isBackgroundDownloading.value = false
     } else if (state.status === 'downloading' && state.isBackground) {
       // 后台下载开始，不显示进度窗
       isBackgroundDownloading.value = true
@@ -657,6 +666,7 @@ const initUpdateListeners = () => {
 
   // 监听自动检查更新（自动触发，不显示"已是最新"提示）
   window.electronAPI.onAutoCheckUpdate(() => {
+    console.log('[AutoUpdate][Renderer] Received auto-check-update event from main process')
     checkForUpdatesAuto()
   })
 
@@ -667,12 +677,13 @@ const initUpdateListeners = () => {
 
   // 监听后台下载完成
   window.electronAPI.onUpdateBackgroundComplete(info => {
-    // 后台下载完成，显示通知消息
-    showMessage({
-      type: 'info',
-      title: t('update.title'),
-      message: t('update.backgroundComplete', { version: info?.version || '' })
-    })
+    console.log('[AutoUpdate][Renderer] Background download complete:', JSON.stringify(info))
+    // 后台下载完成，弹出安装提示让用户选择
+    latestUpdateVersion.value = info?.version || ''
+    updateProgressStatus.value = 'downloaded'
+    updateDownloadProgress.value = 100
+    showUpdateProgress.value = true
+    isBackgroundDownloading.value = false
   })
 }
 
@@ -692,18 +703,28 @@ const checkForUpdatesManual = async () => {
   }
 }
 
-// 自动检查更新（不显示"已是最新"提示）
+// 自动检查更新（不显示"已是最新"提示，发现新版本后自动后台下载）
 const checkForUpdatesAuto = async () => {
+  console.log('[AutoUpdate][Renderer] checkForUpdatesAuto called')
   try {
     const result = await window.electronAPI.checkForUpdates()
+    console.log('[AutoUpdate][Renderer] checkForUpdates result:', JSON.stringify(result))
     if (result.success && result.hasUpdate) {
+      console.log(`[AutoUpdate][Renderer] New version available: ${result.version}, starting background download...`)
       latestUpdateVersion.value = result.version || ''
       updateReleaseNotes.value = result.releaseNotes || ''
-      showUpdateNotification.value = true
+      // 自动检查发现新版本，直接启动后台下载，不弹通知对话框
+      isBackgroundDownloading.value = true
+      showUpdateNotification.value = false
+      const downloadResult = await window.electronAPI.downloadUpdateBackground()
+      console.log('[AutoUpdate][Renderer] downloadUpdateBackground result:', JSON.stringify(downloadResult))
+    } else {
+      console.log('[AutoUpdate][Renderer] No update available or check failed')
     }
     // 自动检查不显示"已是最新"提示，静默完成
   } catch (error) {
-    console.error('Auto check for updates failed:', error)
+    console.error('[AutoUpdate][Renderer] Auto check for updates failed:', error)
+    isBackgroundDownloading.value = false
   }
 }
 
@@ -720,9 +741,15 @@ const handleUpdateLater = () => {
   showUpdateProgress.value = false
 }
 
+// 点击全局进度条跳转到关于页面查看详情
+const showDownloadDetail = () => {
+  currentSection.value = 'general'
+}
+
 // 后台下载更新（不显示进度窗）
 const handleDownloadBackground = async () => {
   showUpdateNotification.value = false
+  isBackgroundDownloading.value = true
   // 不显示进度窗，直接后台下载
   try {
     await window.electronAPI.downloadUpdateBackground()
@@ -837,6 +864,9 @@ const updateSystemTheme = () => {
 }
 
 onMounted(async () => {
+  // 优先初始化更新监听，确保在主进程发送 auto-check-update 事件前注册好
+  initUpdateListeners()
+
   await loadApiProfiles()
   await loadSettings()
   await loadSkillCount()
@@ -859,8 +889,18 @@ onMounted(async () => {
   }
   applyAcrylicStyle()
 
-  // 初始化更新监听
-  initUpdateListeners()
+  // 恢复待安装更新：如果上次下载了更新但用户选择"稍后安装"，重启后再次提醒
+  try {
+    const result = await window.electronAPI.restorePendingUpdate()
+    if (result?.success && result?.restored && result?.pending) {
+      latestUpdateVersion.value = result.pending.version || ''
+      updateProgressStatus.value = 'downloaded'
+      updateDownloadProgress.value = 100
+      showUpdateProgress.value = true
+    }
+  } catch (e) {
+    console.error('Failed to restore pending update:', e)
+  }
 
   // 监听主进程的确认对话框请求
   window.electronAPI.onShowConfirmRequest(request => {
@@ -878,6 +918,54 @@ onUnmounted(() => {})
 
 <style lang="less">
 @import './styles/global.less';
+
+// 全局后台下载进度条
+.global-download-bar {
+  height: 22px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.3s ease;
+
+  &:hover {
+    .global-download-fill {
+      filter: brightness(1.1);
+    }
+  }
+}
+
+.global-download-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--accent));
+  background-size: 200% 100%;
+  animation: download-shimmer 2s ease-in-out infinite;
+  transition: width 0.3s ease;
+  opacity: 0.15;
+}
+
+@keyframes download-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.global-download-text {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+  user-select: none;
+}
 
 .skeleton-header-title {
   width: 120px;

@@ -257,7 +257,7 @@ export default {
     releaseNotes: '更新说明',
     later: '稍后提醒',
     updateNow: '立即更新',
-    updateHint: '更新将在后台下载完成后自动安装',
+    updateHint: '下载完成后将提醒您安装',
     downloading: '正在下载更新...',
     readyToInstall: '更新已下载',
     downloadComplete: '下载完成，可以安装更新了',
