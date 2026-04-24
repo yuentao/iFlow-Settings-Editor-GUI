@@ -106,15 +106,59 @@ import MessageDialog from './components/MessageDialog.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import ApiProfileDialog from './components/ApiProfileDialog.vue'
 import ServerPanel from './components/ServerPanel.vue'
-import GeneralSettings from './views/GeneralSettings.vue'
-import ApiConfig from './views/ApiConfig.vue'
-import McpServers from './views/McpServers.vue'
-import SkillsView from './views/SkillsView.vue'
-import CommandsView from './views/CommandsView.vue'
-import Dashboard from './views/Dashboard.vue'
 import UpdateNotification from './components/UpdateNotification.vue'
 import UpdateProgress from './components/UpdateProgress.vue'
 import SkeletonLoader from './components/SkeletonLoader.vue'
+
+// 视图组件懒加载
+import { defineAsyncComponent } from 'vue'
+
+const loadingComponent = {
+  template: '<div class="async-loading"><div class="skeleton-header-title"></div><div class="skeleton-header-desc"></div></div>'
+}
+
+const errorComponent = {
+  template: '<div class="async-error"><p>{{ error }}</p><button @click="$emit(\'retry\')">重试</button></div>',
+  props: ['error'],
+  emits: ['retry']
+}
+
+const Dashboard = defineAsyncComponent({
+  loader: () => import('./views/Dashboard.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200
+})
+const GeneralSettings = defineAsyncComponent({
+  loader: () => import('./views/GeneralSettings.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200
+})
+const ApiConfig = defineAsyncComponent({
+  loader: () => import('./views/ApiConfig.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200
+})
+const McpServers = defineAsyncComponent({
+  loader: () => import('./views/McpServers.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200
+})
+const SkillsView = defineAsyncComponent({
+  loader: () => import('./views/SkillsView.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200
+})
+const CommandsView = defineAsyncComponent({
+  loader: () => import('./views/CommandsView.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200
+})
 
 const { locale, t } = useI18n()
 
