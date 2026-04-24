@@ -247,7 +247,7 @@ export default {
     releaseNotes: 'リリースノート',
     later: '後で通知',
     updateNow: '今すぐ更新',
-    updateHint: 'ダウンロード完了後自動的にインストールされます',
+    updateHint: 'ダウンロード完了後にインストールを促します',
     downloading: 'アップデートをダウンロード中...',
     readyToInstall: 'インストール準備完了',
     downloadComplete: 'ダウンロード完了、インストールできます',

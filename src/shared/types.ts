@@ -35,6 +35,7 @@ export interface Settings {
   apiProfilesOrder?: string[]
   mcpServers?: Record<string, McpServerConfig>
   checkpointing?: { enabled?: boolean }
+  pendingUpdate?: PendingUpdateInfo
 
   // 当前激活的 API 配置字段（与 apiProfiles[currentApiProfile] 同步）
   selectedAuthType?: AuthType
@@ -150,6 +151,13 @@ export interface UpdateState {
   error?: string | null
   downloadPath?: string | null
   isBackground?: boolean
+}
+
+/** 持久化的待安装更新信息（保存在 settings.json 中） */
+export interface PendingUpdateInfo {
+  version: string
+  downloadPath: string
+  downloadName?: string
 }
 
 export interface CheckUpdateResult extends IpcResult {

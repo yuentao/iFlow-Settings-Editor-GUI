@@ -13,8 +13,12 @@
 const { app } = require('electron')
 const path = require('path')
 
+console.log('[iFlow] main.js entry point loaded')
+
 // 导入模块化的主进程入口
 const { initializeApp } = require('./src/main/index')
+
+console.log('[iFlow] src/main/index.js imported, initializeApp type:', typeof initializeApp)
 
 // 设置应用路径
 app.setAppUserModelId('com.pandorastudio.iflow-settings-editor')

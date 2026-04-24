@@ -48,6 +48,49 @@ let updateState = {
 }
 
 /**
+ * 持久化待安装更新信息到 settings.json
+ * @param {Object} pendingInfo - { version, downloadPath, downloadName }
+ */
+function savePendingUpdate(pendingInfo) {
+  try {
+    const { readSettings, writeSettings } = require('../services/configService')
+    const settings = readSettings() || {}
+    settings.pendingUpdate = pendingInfo
+    writeSettings(settings)
+  } catch (e) {
+    console.error('Failed to save pending update:', e)
+  }
+}
+
+/**
+ * 清除持久化的待安装更新信息
+ */
+function clearPendingUpdate() {
+  try {
+    const { readSettings, writeSettings } = require('../services/configService')
+    const settings = readSettings() || {}
+    delete settings.pendingUpdate
+    writeSettings(settings)
+  } catch (e) {
+    console.error('Failed to clear pending update:', e)
+  }
+}
+
+/**
+ * 读取持久化的待安装更新信息
+ * @returns {Object|null}
+ */
+function readPendingUpdate() {
+  try {
+    const { readSettings } = require('../services/configService')
+    const settings = readSettings()
+    return settings?.pendingUpdate || null
+  } catch (e) {
+    return null
+  }
+}
+
+/**
  * 获取 GitHub 仓库信息
  */
 function getRepoInfo() {
@@ -285,13 +328,16 @@ function setUpdateState(newState) {
 function registerUpdatesIpcHandlers() {
   // 检查更新
   ipcMain.handle('check-for-updates', async () => {
+    console.log('[AutoUpdate][IPC] check-for-updates invoked')
     try {
       setUpdateState({ status: 'checking', error: null })
+      console.log('[AutoUpdate][IPC] Fetching latest release from GitHub...')
       const latest = await fetchLatestRelease()
       const currentVersion = getCurrentVersion()
       const latestVersion = latest.tag_name?.replace(/^v/, '') || '0.0.0'
 
       const hasUpdate = compareVersions(latestVersion, currentVersion) > 0
+      console.log(`[AutoUpdate][IPC] Current: ${currentVersion}, Latest: ${latestVersion}, HasUpdate: ${hasUpdate}`)
 
       if (hasUpdate) {
         if (updateState.status === 'downloading') {
@@ -369,6 +415,13 @@ function registerUpdatesIpcHandlers() {
         progress: 100,
       })
 
+      // 持久化待安装更新信息
+      savePendingUpdate({
+        version: updateState.info.version,
+        downloadPath: destPath,
+        downloadName: updateState.info.downloadName,
+      })
+
       return { success: true, downloadPath: destPath }
     } catch (error) {
       if (error.message === 'Download cancelled') {
@@ -382,8 +435,11 @@ function registerUpdatesIpcHandlers() {
 
   // 后台下载更新
   ipcMain.handle('download-update-background', async () => {
+    console.log('[AutoUpdate][IPC] download-update-background invoked')
+    console.log(`[AutoUpdate][IPC] updateState.info: ${JSON.stringify(updateState.info, null, 2)}`)
     try {
       if (!updateState.info?.downloadUrl) {
+        console.error('[AutoUpdate][IPC] No download URL available, current updateState:', JSON.stringify(updateState, null, 2))
         throw new Error(t('update.error.noDownloadUrl'))
       }
 
@@ -409,6 +465,15 @@ function registerUpdatesIpcHandlers() {
         downloadPath: destPath,
         progress: 100,
         isBackground: false,
+      })
+
+      console.log(`[AutoUpdate][IPC] Background download complete: ${destPath}`)
+
+      // 持久化待安装更新信息，下次启动时可恢复
+      savePendingUpdate({
+        version: updateState.info.version,
+        downloadPath: destPath,
+        downloadName: updateState.info.downloadName,
       })
 
       const mainWindow = getMainWindowRef()
@@ -450,6 +515,9 @@ function registerUpdatesIpcHandlers() {
         throw new Error(t('update.error.noDownloadedUpdate'))
       }
 
+      // 清除持久化的待安装更新
+      clearPendingUpdate()
+
       shell.openPath(updateState.downloadPath)
       app.exit(0)
       return { success: true }
@@ -475,6 +543,57 @@ function registerUpdatesIpcHandlers() {
       return { success: true }
     }
     return { success: false, error: t('update.error.noReleaseUrl') }
+  })
+
+  // 获取待安装更新信息
+  ipcMain.handle('get-pending-update', async () => {
+    const pending = readPendingUpdate()
+    if (!pending) {
+      return { success: true, pending: null }
+    }
+    // 检查下载文件是否还存在
+    if (pending.downloadPath && !fs.existsSync(pending.downloadPath)) {
+      clearPendingUpdate()
+      return { success: true, pending: null }
+    }
+    return { success: true, pending }
+  })
+
+  // 清除待安装更新（用户选择"稍后安装"时不清除，只是标记已提醒过）
+  ipcMain.handle('clear-pending-update', async () => {
+    clearPendingUpdate()
+    return { success: true }
+  })
+
+  // 恢复待安装更新状态（启动时调用）
+  ipcMain.handle('restore-pending-update', async () => {
+    const pending = readPendingUpdate()
+    if (!pending) {
+      return { success: true, restored: false }
+    }
+    // 检查下载文件是否还存在
+    if (pending.downloadPath && !fs.existsSync(pending.downloadPath)) {
+      clearPendingUpdate()
+      return { success: true, restored: false }
+    }
+    // 恢复更新状态
+    updateState = {
+      status: 'downloaded',
+      info: {
+        version: pending.version,
+        downloadName: pending.downloadName || 'update.exe',
+      },
+      progress: 100,
+      error: null,
+      downloadPath: pending.downloadPath,
+      isBackground: false,
+    }
+    // 通知渲染进程
+    const mainWindow = getMainWindowRef()
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('update-status-changed', updateState)
+    }
+    return { success: true, restored: true, pending }
   })
 }
 

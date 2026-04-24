@@ -6,6 +6,8 @@
 const { app, BrowserWindow, Menu, nativeImage } = require('electron')
 const path = require('path')
 
+console.log('[iFlow] src/main/index.js module loaded')
+
 // 导入各模块
 const { createWindow, getMainWindow, isMaximized, minimize, toggleMaximize, close, setIsQuitting } = require('./window')
 const { createTray, destroyTray, updateTrayMenu } = require('./tray')
@@ -62,6 +64,7 @@ function createMainWindow() {
  * 初始化应用
  */
 async function initializeApp() {
+  console.log('[iFlow][AutoUpdate] initializeApp() called')
   logger.info('Initializing iFlow Settings Editor...')
 
   // 设置应用路径
@@ -104,32 +107,45 @@ async function initializeApp() {
   // 检查更新设置
   try {
     const settings = readSettings()
+    const autoUpdateSetting = settings?.autoUpdate
+    console.log(`[iFlow][AutoUpdate] autoUpdate setting: ${autoUpdateSetting} (undefined means true)`)
+    logger.info(`[AutoUpdate] autoUpdate setting: ${autoUpdateSetting} (undefined means true)`)
     if (settings?.autoUpdate !== false) {
+      console.log('[iFlow][AutoUpdate] Scheduling auto-check in 5 seconds...')
+      logger.info('[AutoUpdate] Scheduling auto-check in 5 seconds...')
       // 延迟检查更新，等待窗口加载完成
       setTimeout(() => {
+        console.log('[iFlow][AutoUpdate] 5s elapsed, triggering auto-check-update')
         checkForUpdates()
       }, 5000)
+    } else {
+      console.log('[iFlow][AutoUpdate] Auto-update is disabled by user, skipping check')
+      logger.info('[AutoUpdate] Auto-update is disabled by user, skipping check')
     }
   } catch (e) {
-    logger.error('Failed to read settings for auto-update check:', e)
+    console.error('[iFlow][AutoUpdate] Failed to read settings for auto-update check:', e)
+    logger.error('[AutoUpdate] Failed to read settings for auto-update check:', e)
   }
 
   logger.info('App initialization complete')
 }
 
 /**
- * 检查更新
+ * 检查更新（自动触发，由定时器或启动时调用）
+ * 发送事件到渲染进程，渲染进程会静默检查并自动后台下载
  */
 function checkForUpdates() {
   try {
-    const { ipcMain } = require('electron')
-    // 通知渲染进程检查更新
+    // 通知渲染进程自动检查更新
     const mainWindow = getMainWindow()
     if (mainWindow && mainWindow.webContents) {
-      mainWindow.webContents.send('check-for-updates')
+      console.log('[iFlow][AutoUpdate] Sending "auto-check-update" event to renderer')
+      mainWindow.webContents.send('auto-check-update')
+    } else {
+      console.warn('[iFlow][AutoUpdate] Cannot send auto-check-update: mainWindow or webContents is null')
     }
   } catch (e) {
-    logger.error('Failed to check for updates:', e)
+    console.error('[iFlow][AutoUpdate] Failed to send auto-check-update event:', e)
   }
 }
 
@@ -137,6 +153,7 @@ function checkForUpdates() {
  * 应用准备就绪
  */
 app.whenReady().then(() => {
+  console.log('[iFlow] App ready event fired')
   logger.info('App ready event fired')
 
   // 检查是否是静默启动参数
