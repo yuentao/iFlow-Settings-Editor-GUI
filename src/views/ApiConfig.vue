@@ -63,6 +63,7 @@
       :title="$t('api.noProfiles')"
       :description="$t('api.addFirstProfile')"
       :actionText="$t('api.newProfile')"
+      embedded
       @action="$emit('create-profile')"
     />
   </section>
