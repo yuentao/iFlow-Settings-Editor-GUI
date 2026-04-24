@@ -27,11 +27,15 @@
             <div class="server-status"></div>
           </div>
         </template>
-        <div v-else class="empty-state">
-          <Server size="48" class="empty-state-icon" />
-          <div class="empty-state-title">{{ $t('mcp.noServers') }}</div>
-          <div class="empty-state-desc">{{ $t('mcp.addFirstServer') }}</div>
-        </div>
+        <EmptyState
+          v-else
+          :icon="Server"
+          :title="$t('mcp.noServers')"
+          :description="$t('mcp.addFirstServer')"
+          :actionText="$t('mcp.addServerBtn')"
+          embedded
+          @action="$emit('add-server')"
+        />
       </div>
     </div>
   </section>
@@ -39,6 +43,7 @@
 
 <script setup>
 import { Server, Add } from '@icon-park/vue-next'
+import EmptyState from '@/components/EmptyState.vue'
 
 defineProps({
   servers: {
@@ -134,37 +139,6 @@ defineEmits(['add-server', 'select-server'])
   border-radius: 50%;
   background: var(--success);
   box-shadow: 0 0 4px rgba(16, 185, 129, 0.4);
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-  text-align: center;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius);
-}
-
-.empty-state-icon {
-  font-size: 40px;
-  margin-bottom: 12px;
-  opacity: 0.4;
-  color: var(--text-tertiary);
-}
-
-.empty-state-title {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 4px;
-  color: var(--text-secondary);
-}
-
-.empty-state-desc {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin-bottom: 16px;
 }
 
 @keyframes fadeIn {

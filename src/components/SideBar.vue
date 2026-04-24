@@ -41,34 +41,34 @@
   </aside>
 </template>
 
-<script setup>
+<script setup lang="ts">
+/**
+ * SideBar - 侧边导航栏组件
+ */
 import { ref } from 'vue'
 import { Config, Key, Server, Star, Dashboard, Command } from '@icon-park/vue-next'
 
-defineProps({
-  currentSection: {
-    type: String,
-    default: 'dashboard',
-  },
-  serverCount: {
-    type: Number,
-    default: 0,
-  },
-  skillCount: {
-    type: Number,
-    default: 0,
-  },
-  commandCount: {
-    type: Number,
-    default: 0,
-  },
+interface Props {
+  currentSection?: string
+  serverCount?: number
+  skillCount?: number
+  commandCount?: number
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  currentSection: 'dashboard',
+  serverCount: 0,
+  skillCount: 0,
+  commandCount: 0,
 })
 
-defineEmits(['navigate'])
+const emit = defineEmits<{
+  navigate: [section: string]
+}>()
 
 const collapsed = ref(false)
 
-const toggleCollapse = () => {
+const toggleCollapse = (): void => {
   collapsed.value = !collapsed.value
 }
 </script>

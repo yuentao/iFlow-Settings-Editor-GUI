@@ -32,6 +32,7 @@ export default {
     installed: 'インストール済み',
     noServers: '未設定',
     noSkills: '未インストール',
+    noCommands: 'コマンドなし',
     enabled: '有効',
     disabled: '無効',
     shown: '表示済み',
@@ -101,10 +102,18 @@ export default {
     configCopied: 'プロファイルを "{name}" に複製しました',
     switchFailed: '切り替えに失敗しました',
     dragToSort: 'ドラッグして並べ替え',
+    noProfiles: 'API プロファイルがありません',
+    addFirstProfile: '最初の API プロファイルを作成して始めましょう',
     auth: {
       iflow: 'iFlow',
       api: 'API Key',
       openaiCompatible: 'OpenAI 互換'
+    },
+    validation: {
+      nameNoSpecial: '名前には英字、数字、漢字、ハイフン、アンダースコアのみ使用でき、数字で始めることはできません',
+      nameNoDigitStart: '名前を数字で始めることはできません',
+      urlFormat: '有効な URL 形式を入力してください（例: https://api.example.com）',
+      modelNoSpecial: 'モデル名には英字、数字、ピリオド、ハイフン、アンダースコア、コロン、スラッシュのみ使用できます'
     }
   },
   mcp: {
@@ -166,6 +175,7 @@ export default {
     },
     noCommands: 'コマンドがありません',
     addFirstCommand: '上のボタンをクリックして最初のコマンドを追加',
+    noCommandsInCategory: 'このカテゴリに一致するコマンドがありません',
     edit: '編集',
     export: 'エクスポート',
     delete: '削除',

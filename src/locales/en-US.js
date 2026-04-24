@@ -32,6 +32,7 @@ export default {
     installed: 'Installed',
     noServers: 'Not configured',
     noSkills: 'Not installed',
+    noCommands: 'No commands',
     enabled: 'Enabled',
     disabled: 'Disabled',
     shown: 'Shown',
@@ -108,10 +109,18 @@ export default {
     configCopied: 'Configuration copied as "{name}"',
     switchFailed: 'Switch failed',
     dragToSort: 'Drag to sort',
+    noProfiles: 'No API Profiles',
+    addFirstProfile: 'Create your first API profile to get started',
     auth: {
       iflow: 'iFlow',
       api: 'API Key',
       openaiCompatible: 'OpenAI Compatible'
+    },
+    validation: {
+      nameNoSpecial: 'Name can only contain letters, numbers, Chinese, hyphens, and underscores, and cannot start with a digit',
+      nameNoDigitStart: 'Name cannot start with a digit',
+      urlFormat: 'Please enter a valid URL format, e.g. https://api.example.com',
+      modelNoSpecial: 'Model name can only contain letters, digits, dots, hyphens, underscores, colons, and slashes'
     }
   },
   mcp: {
@@ -173,6 +182,7 @@ export default {
     },
     noCommands: 'No Commands',
     addFirstCommand: 'Click the button above to add your first command',
+    noCommandsInCategory: 'No commands match this category',
     edit: 'Edit',
     export: 'Export',
     delete: 'Delete',

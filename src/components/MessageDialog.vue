@@ -30,17 +30,36 @@
   </div>
 </template>
 
-<script setup>
-const props = defineProps({
-  dialog: {
-    type: Object,
-    default: () => ({ show: false, type: 'info', title: '', message: '' }),
-  },
+<script setup lang="ts">
+/**
+ * MessageDialog - 消息对话框组件
+ */
+interface DialogState {
+  show: boolean
+  type: 'info' | 'success' | 'warning' | 'error'
+  title: string
+  message: string
+  messageParams?: Record<string, string>
+}
+
+interface Props {
+  dialog: DialogState
+}
+
+withDefaults(defineProps<Props>(), {
+  dialog: () => ({
+    show: false,
+    type: 'info',
+    title: '',
+    message: '',
+  }),
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits<{
+  close: []
+}>()
 
-const handleConfirm = () => {
+const handleConfirm = (): void => {
   emit('close')
 }
 </script>

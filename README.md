@@ -19,6 +19,10 @@
 - 📦 **系统托盘** - 最小化到托盘，快速切换 API 配置
 - 🚀 **开机自启动** - 支持开机自动启动，可选后台静默启动
 - 📊 **仪表盘视图** - 直观展示当前配置状态和快捷操作
+- 🔧 **TypeScript 类型安全** - 全面 TypeScript 迁移，提供完整的类型推导和编译时检查
+- 🧱 **模块化架构** - 主进程模块化重构，代码结构更清晰，维护性更高
+- 🧪 **完善测试覆盖** - 组件和 Store 单元测试全覆盖，确保功能稳定可靠
+- ✅ **统一验证框架** - 统一的表单验证和错误处理机制
 
 ## 技术栈
 
@@ -27,11 +31,14 @@
 | Electron | 28.x |
 | Vue | 3.4.x |
 | Vite | 8.x |
-| vue-i18n | 9.x |
-| Less | 4.x |
-| Vitest | 4.x |
-| electron-builder | 24.x |
-| @icon-park/vue-next | 1.4.x |
+| vue-i18n | 9.14.x |
+| Pinia | 3.0.x |
+| TypeScript | 6.0.x |
+| Less | 4.6.x |
+| Vitest | 4.1.x |
+| electron-builder | 24.13.x |
+| @icon-park/vue-next | 1.4.2 |
+| @vueuse/core | 14.2.x |
 
 ## 支持的系统
 
@@ -83,6 +90,19 @@ npm run build:mac-zip
 ```
 
 构建完成后，安装包位于 `release/` 目录下。
+
+### 开发命令
+
+```bash
+# TypeScript 类型检查
+npm run type-check
+
+# 开发模式运行 (Vite Dev Server)
+npm run dev
+
+# Electron 开发模式 (并行启动 Vite + Electron)
+npm run electron:dev
+```
 
 ### CI/CD
 
@@ -182,29 +202,41 @@ git push origin v1.9.0
 
 ## 测试
 
+项目使用 **Vitest 4.x** 作为测试框架，配合 **happy-dom** 提供 DOM 测试环境。
+
 ```bash
-# 运行测试
+# 运行测试（监听模式）
 npm run test
 
-# UI 模式测试
+# UI 模式测试（可视化界面）
 npm run test:ui
 
-# 测试覆盖率
+# 测试覆盖率报告
 npm run test:coverage
 
-# 单次运行测试
+# 单次运行测试（CI 模式）
 npm run test:run
 ```
+
+### 测试覆盖范围
+
+- **组件测试**：TitleBar, SideBar, InputDialog, MessageDialog, ApiProfileDialog, ServerPanel, EmptyState, SkeletonLoader, UpdateNotification, UpdateProgress 等
+- **视图测试**：GeneralSettings, ApiConfig, McpServers, SkillsView, Dashboard 等
+- **Store 测试**：settings, apiProfiles, skills, commands 等状态管理模块
+- **单元测试**：工具函数、组合式函数、类型定义等
+
+测试文件与源文件同目录，命名为 `*.test.js` 或 `*.test.ts`。
 
 ## 项目结构
 
 ```
 iFlow-Settings-Editor-GUI/
-├── main.js              # Electron 主进程
+├── main.js              # Electron 主进程入口
 ├── preload.js           # 预加载脚本
 ├── index.html           # 入口 HTML
 ├── vite.config.js       # Vite 配置
 ├── vitest.config.js     # Vitest 测试配置
+├── tsconfig.json        # TypeScript 配置
 ├── build/               # 构建资源
 ├── dist/                # Vite 构建输出
 ├── release/             # Electron Builder 输出
@@ -219,16 +251,57 @@ iFlow-Settings-Editor-GUI/
     │   ├── MessageDialog.vue   # 消息对话框
     │   ├── ApiProfileDialog.vue # API 配置弹窗
     │   ├── ServerPanel.vue     # 服务器编辑面板
-    │   └── CommandEditorDialog.vue # 命令编辑对话框
+    │   ├── CommandEditorDialog.vue # 命令编辑对话框
+    │   ├── EmptyState.vue      # 空状态组件
+    │   ├── SkeletonLoader.vue  # 骨架屏加载
+    │   ├── UpdateNotification.vue # 更新通知
+    │   └── UpdateProgress.vue  # 更新进度
+    ├── composables/     # 组合式函数
+    │   ├── useLocale.ts        # 国际化钩子
+    │   └── useSettings.ts      # 设置钩子
     ├── views/           # 页面视图
     │   ├── GeneralSettings.vue # 常规设置
     │   ├── ApiConfig.vue      # API 配置管理
     │   ├── McpServers.vue     # MCP 服务器管理
     │   ├── SkillsView.vue     # 技能管理
     │   ├── CommandsView.vue   # 命令管理
-    │   └── Dashboard.vue     # 仪表盘
+    │   └── Dashboard.vue      # 仪表盘
+    ├── main/            # Electron 主进程模块
+    │   ├── index.js           # 主进程入口
+    │   ├── constants.js       # 常量定义
+    │   ├── window.js          # 窗口管理
+    │   ├── tray.js            # 托盘管理
+    │   ├── ipc/               # IPC 处理器
+    │   │   ├── apiProfiles.js # API 配置 IPC
+    │   │   ├── commands.js    # 命令 IPC
+    │   │   ├── dialogs.js     # 对话框 IPC
+    │   │   ├── index.js       # IPC 聚合
+    │   │   ├── settings.js    # 设置 IPC
+    │   │   ├── skills.js      # 技能 IPC
+    │   │   └── updates.js     # 更新 IPC
+    │   ├── services/          # 主进程服务
+    │   │   ├── autoLaunchService.js # 自启动服务
+    │   │   └── configService.js # 配置服务
+    │   └── utils/             # 工具模块
+    │       ├── errors.js      # 错误定义
+    │       ├── logger.js      # 日志工具
+    │       ├── translations.js # 翻译工具
+    │       └── validator.js   # 验证器
+    ├── stores/          # Pinia 状态管理 (TypeScript)
+    │   ├── apiProfiles.ts     # API 配置状态
+    │   ├── commands.ts        # 命令状态
+    │   ├── settings.ts        # 设置状态
+    │   ├── skills.ts          # 技能状态
+    │   ├── ui.ts              # UI 状态
+    │   └── index.js           # Store 聚合
     ├── locales/         # 国际化语言包
-    └── styles/          # 全局样式
+    │   ├── en-US.js    # 英文
+    │   ├── index.js    # 中文（简体）
+    │   └── ja-JP.js    # 日文
+    ├── styles/          # 全局样式
+    │   └── global.less # Windows Fluent Design 样式
+    └── shared/          # 共享类型定义
+        └── types.ts    # TypeScript 类型声明
 ```
 
 ## 许可证

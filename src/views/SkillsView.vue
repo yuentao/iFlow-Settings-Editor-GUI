@@ -17,7 +17,8 @@
         </button>
       </div>
 
-      <div class="skill-list">
+      <SkeletonLoader v-if="isLoading" type="list" :count="3" />
+      <div class="skill-list" v-else>
         <template v-if="skills.length > 0">
           <div v-for="(skill, index) in skills" :key="skill.name" class="skill-item" :class="{ selected: selectedSkill === skill.name }" @click="selectSkill(skill)">
             <div class="skill-icon">
@@ -39,11 +40,16 @@
             </button>
           </div>
         </template>
-        <div v-else class="empty-state">
-          <Star size="48" class="empty-state-icon" />
-          <div class="empty-state-title">{{ $t('skills.noSkills') }}</div>
-          <div class="empty-state-desc">{{ $t('skills.addFirstSkill') }}</div>
-        </div>
+        <EmptyState
+          v-else
+          :icon="Star"
+          :title="$t('skills.noSkills')"
+          :description="$t('skills.addFirstSkill')"
+          :actionText="$t('skills.importLocal')"
+          :showPlusIcon="false"
+          embedded
+          @action="importLocal"
+        />
       </div>
     </div>
 
@@ -73,6 +79,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Star, FolderOpen, Download, Upload, Delete } from '@icon-park/vue-next'
+import EmptyState from '@/components/EmptyState.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const emit = defineEmits(['show-message', 'skills-changed', 'show-input-dialog'])
 
@@ -81,8 +89,10 @@ const selectedSkill = ref(null)
 const showOnlineDialog = ref(false)
 const onlineUrl = ref('')
 const onlineName = ref('')
+const isLoading = ref(true)
 
 const loadSkills = async () => {
+  isLoading.value = true
   try {
     const result = await window.electronAPI.listSkills()
     if (result.success) {
@@ -93,6 +103,8 @@ const loadSkills = async () => {
     }
   } catch (error) {
     console.error('Failed to load skills:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
