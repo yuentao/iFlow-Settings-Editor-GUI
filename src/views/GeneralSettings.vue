@@ -130,11 +130,11 @@
                 <span class="status-time" v-else-if="cloudStore.isConfigured">{{ $t('cloudSync.neverSynced') }}</span>
               </div>
               <div class="cloud-status-right">
-                <label class="switch switch-sm" @click.stop>
+                <!-- <label class="switch switch-sm" @click.stop>
                   <input type="checkbox" v-model="autoSyncEnabled" @change="onToggleAutoSync" />
                   <span class="slider"></span>
                 </label>
-                <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span>
+                <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span> -->
                 <button
                   class="btn btn-primary btn-sm"
                   :disabled="!cloudStore.isConfigured || cloudStore.isSyncing"
