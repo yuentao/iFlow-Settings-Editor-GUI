@@ -259,7 +259,7 @@ class SyncService {
         devices.push({
           deviceId: parsed.deviceId,
           deviceName: parsed.deviceName || '',
-          lastModified: file.lastModified,
+          lastModified: parsed.timestamp || file.lastModified,
           isSelf: parsed.deviceId === this.deviceId,
         })
       } catch {

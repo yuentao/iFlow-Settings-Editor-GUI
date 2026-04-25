@@ -273,6 +273,53 @@ describe('WebDAVProvider', () => {
       expect(putCall[0]).toContain('/iFlow-Settings/devices/config-abc.json')
     })
 
+    it('upload should retry with DELETE on 409 (file already exists)', async () => {
+      // PROPFIND 目录存在，PUT 返回 409（文件已存在），DELETE 成功，再 PUT 成功
+      const propfindRes = createMockResponse(207, '<xml/>')
+      const putConflictRes = createMockResponse(409, '')
+      const deleteRes = createMockResponse(204, '')
+      const putSuccessRes = createMockResponse(201, '')
+      const methods = []
+
+      requestSpy.mockImplementation((url, options, callback) => {
+        methods.push(options.method)
+        if (options.method === 'PROPFIND') {
+          process.nextTick(() => callback(propfindRes))
+          const r = createMockRequest(propfindRes)
+          r.end = vi.fn()
+          return r
+        }
+        if (options.method === 'PUT') {
+          // 第一次 PUT 返回 409，第二次返回 201
+          if (methods.filter(m => m === 'PUT').length === 1) {
+            process.nextTick(() => callback(putConflictRes))
+          } else {
+            process.nextTick(() => callback(putSuccessRes))
+          }
+          const r = createMockRequest(putConflictRes)
+          r._responseCallback = callback
+          return r
+        }
+        if (options.method === 'DELETE') {
+          process.nextTick(() => callback(deleteRes))
+          const r = createMockRequest(deleteRes)
+          r._responseCallback = callback
+          return r
+        }
+        const r = createMockRequest(createMockResponse(500, ''))
+        r._responseCallback = callback
+        return r
+      })
+
+      const content = Buffer.from('{"test": true}')
+      const result = await provider.upload('devices/config-abc.json', content)
+      expect(result).toBeInstanceOf(Buffer)
+      // PUT 应该被调用两次（第一次 409，第二次成功）
+      expect(methods.filter(m => m === 'PUT')).toHaveLength(2)
+      // DELETE 应该被调用一次
+      expect(methods.filter(m => m === 'DELETE')).toHaveLength(1)
+    })
+
     it('download should send GET request and return buffer', async () => {
       const responseBody = Buffer.from('file-content')
       setupMockRequest(200, responseBody)
@@ -320,6 +367,14 @@ describe('WebDAVProvider', () => {
       const call = requestSpy.mock.calls[0]
       expect(call[1].method).toBe('PROPFIND')
       expect(call[1].headers.Depth).toBe('1')
+    })
+
+    it('list should return empty array on 409 (directory not found)', async () => {
+      // 某些 WebDAV 服务器在目录不存在时返回 409 Conflict 而非 404
+      setupMockRequest(409, '')
+
+      const files = await provider.list('devices/')
+      expect(files).toHaveLength(0)
     })
 
     it('isAuthorized should return true for 207 response', async () => {
@@ -431,6 +486,37 @@ describe('WebDAVProvider', () => {
       expect(callCount).toBe(2)
     })
 
+    it('should create directory with MKCOL if PROPFIND returns 409 (conflict)', async () => {
+      // 某些 WebDAV 服务器在目录不存在时返回 409 Conflict 而非 404
+      const conflictRes = createMockResponse(409, '')
+      const mkcolRes = createMockResponse(201, '')
+      let callCount = 0
+
+      requestSpy.mockImplementation((url, options, callback) => {
+        callCount++
+        if (options.method === 'PROPFIND') {
+          process.nextTick(() => callback(conflictRes))
+          const r = createMockRequest(conflictRes)
+          r.end = vi.fn()
+          return r
+        }
+        if (options.method === 'MKCOL') {
+          process.nextTick(() => callback(mkcolRes))
+          const r = createMockRequest(mkcolRes)
+          r.end = vi.fn()
+          return r
+        }
+        // fallback
+        const r = createMockRequest(createMockResponse(500, ''))
+        r._responseCallback = callback
+        return r
+      })
+
+      await provider._ensureDir('devices')
+      // 应该先 PROPFIND，再 MKCOL
+      expect(callCount).toBe(2)
+    })
+
     it('should not create directory if PROPFIND succeeds', async () => {
       const okRes = createMockResponse(207, '<xml/>')
       let methods = []
@@ -478,6 +564,37 @@ describe('WebDAVProvider', () => {
         'PROPFIND', 'MKCOL',
         'PROPFIND', 'MKCOL',
       ])
+    })
+
+    it('should handle MKCOL returning 409 (directory already exists)', async () => {
+      // PROPFIND 返回 404 → 尝试 MKCOL，但 MKCOL 返回 409（目录已存在/并发）
+      // 应该视为成功，不抛出异常
+      const notFoundRes = createMockResponse(404, '')
+      const conflictRes = createMockResponse(409, '')
+      let methods = []
+
+      requestSpy.mockImplementation((url, options, callback) => {
+        methods.push(options.method)
+        if (options.method === 'PROPFIND') {
+          process.nextTick(() => callback(notFoundRes))
+          const r = createMockRequest(notFoundRes)
+          r.end = vi.fn()
+          return r
+        }
+        if (options.method === 'MKCOL') {
+          process.nextTick(() => callback(conflictRes))
+          const r = createMockRequest(conflictRes)
+          r.end = vi.fn()
+          return r
+        }
+        const r = createMockRequest(createMockResponse(500, ''))
+        r._responseCallback = callback
+        return r
+      })
+
+      // 不应该抛出异常（MKCOL 返回 409 后会重试一次，仍然 409 但被忽略）
+      await expect(provider._ensureDir('devices')).resolves.toBeUndefined()
+      expect(methods).toEqual(['PROPFIND', 'MKCOL', 'MKCOL'])
     })
   })
 

@@ -34,7 +34,30 @@ class WebDAVProvider {
     }
 
     const url = this._buildUrl(remotePath)
-    return this._request('PUT', url, content)
+    console.log(`[WebDAVProvider] upload: ${url}`)
+
+    // 最多重试 3 次：PUT 409 时尝试 DELETE 再重试
+    const maxRetries = 3
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`[WebDAVProvider] upload: PUT attempt ${attempt}`)
+      try {
+        return await this._request('PUT', url, content)
+      } catch (error) {
+        console.log(`[WebDAVProvider] upload: PUT attempt ${attempt} failed: ${error.message}`)
+        if (error.message !== 'WEBDAV_ERROR_409' || attempt === maxRetries) {
+          throw error
+        }
+        // PUT 返回 409：某些服务器在文件已存在时返回冲突而不支持覆盖
+        // 尝试先删除再重试
+        console.log(`[WebDAVProvider] upload: trying DELETE`)
+        try {
+          await this._request('DELETE', url)
+        } catch {
+          // 删除失败（可能不存在），忽略
+        }
+        // 重试 PUT
+      }
+    }
   }
 
   /**
@@ -58,10 +81,19 @@ class WebDAVProvider {
 <d:propfind xmlns:d="DAV:">
   <d:prop><d:getlastmodified/><d:getcontentlength/></d:prop>
 </d:propfind>`
-    const response = await this._request('PROPFIND', url, Buffer.from(body), {
-      Depth: '1',
-    })
-    return this._parsePropfindResponse(response.toString('utf8'))
+    try {
+      const response = await this._request('PROPFIND', url, Buffer.from(body), {
+        Depth: '1',
+      })
+      return this._parsePropfindResponse(response.toString('utf8'))
+    } catch (error) {
+      // 409 Conflict：某些 WebDAV 服务器在目录不存在时返回 409 而非 404
+      // 此时应返回空数组（目录不存在 = 没有文件）
+      if (error.message === 'WEBDAV_ERROR_409') {
+        return []
+      }
+      throw error
+    }
   }
 
   /**
@@ -146,18 +178,56 @@ class WebDAVProvider {
    * @param {string} dirPath - 相对于 baseDir 的目录路径，如 "devices"
    */
   async _ensureDir(dirPath) {
+    // 先确保 baseDir 本身存在
+    try {
+      const baseUrl = this._buildUrl('')
+      console.log(`[WebDAVProvider] _ensureDir: ensuring base ${baseUrl}`)
+      await this._request('MKCOL', baseUrl)
+      console.log(`[WebDAVProvider] _ensureDir: base directory created`)
+    } catch (error) {
+      if (error.message !== 'WEBDAV_ERROR_409') {
+        console.log(`[WebDAVProvider] _ensureDir: base MKCOL error: ${error.message}`)
+      }
+      // 409 = 已存在，忽略
+    }
+
     const parts = dirPath.split('/').filter(Boolean)
     let currentDir = ''
     for (const part of parts) {
       currentDir += part + '/'
       const url = this._buildUrl(currentDir)
+      console.log(`[WebDAVProvider] _ensureDir: creating ${url}`)
       try {
-        await this._request('PROPFIND', url, Buffer.from(''), { Depth: '0' })
-      } catch (error) {
-        if (error.message === 'WEBDAV_NOT_FOUND') {
-          await this._request('MKCOL', url)
+        await this._request('MKCOL', url)
+        console.log(`[WebDAVProvider] _ensureDir: MKCOL ${url} succeeded`)
+      } catch (mkcolError) {
+        if (mkcolError.message === 'WEBDAV_ERROR_409') {
+          console.log(`[WebDAVProvider] _ensureDir: MKCOL ${url} got 409, checking if exists...`)
+          // 409 = 已存在或父目录不存在，先检查一下
+          try {
+            await this._request('PROPFIND', url, Buffer.from(''), { Depth: '0' })
+            console.log(`[WebDAVProvider] _ensureDir: ${url} exists after all`)
+          } catch {
+            // PROPFIND 失败，父目录可能不存在，尝试递归创建
+            const parentParts = currentDir.split('/').filter(Boolean).slice(0, -1)
+            if (parentParts.length > 0) {
+              const parentPath = parentParts.join('/')
+              console.log(`[WebDAVProvider] _ensureDir: parent ${parentPath} missing, creating recursively`)
+              await this._ensureDir(parentPath)
+              // 父目录创建成功后，重试当前目录
+              try {
+                await this._request('MKCOL', url)
+                console.log(`[WebDAVProvider] _ensureDir: MKCOL ${url} succeeded on retry`)
+              } catch (retryMkcolError) {
+                if (retryMkcolError.message !== 'WEBDAV_ERROR_409') {
+                  throw retryMkcolError
+                }
+                // 再次 409，忽略
+              }
+            }
+          }
         } else {
-          throw error
+          throw mkcolError
         }
       }
     }
@@ -206,6 +276,8 @@ class WebDAVProvider {
           } else if (res.statusCode === 405) {
             reject(new Error('WEBDAV_METHOD_NOT_ALLOWED'))
           } else {
+            // 调试日志：记录哪个请求返回了错误
+            console.error(`[WebDAVProvider] ${method} ${url} -> ${res.statusCode}`)
             reject(new Error(`WEBDAV_ERROR_${res.statusCode}`))
           }
         })

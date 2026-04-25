@@ -72,16 +72,45 @@
           </div>
         </div>
       </div>
+
+      <!-- 云同步 -->
+      <div class="stat-card card-appear" style="animation-delay: 0.1s" @click="$emit('navigate', 'settings')">
+        <div class="stat-icon" :class="cloudSyncStatusClass">
+          <Refresh size="28" />
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">{{ $t('dashboard.cloudSync') }}</div>
+          <div class="stat-value stat-value-sm">{{ cloudSyncStatusLabel }}</div>
+          <div class="stat-sub" v-if="cloudStore.status.lastSyncAt">
+            {{ $t('dashboard.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }}
+          </div>
+          <div class="stat-sub stat-sub-empty" v-else-if="cloudStore.status.enabled">
+            {{ $t('dashboard.neverSynced') }}
+          </div>
+        </div>
+        <div class="stat-actions">
+          <button
+            class="btn btn-primary btn-xs"
+            :disabled="!cloudStore.isConfigured || cloudStore.isSyncing"
+            @click.stop="handleSyncNow"
+          >
+            <Loading v-if="cloudStore.isSyncing" size="12" class="spin" />
+            <Refresh v-else size="12" />
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Key, Server, Star, Command } from '@icon-park/vue-next'
+import { Key, Server, Star, Command, Refresh, Loading } from '@icon-park/vue-next'
+import { useCloudSyncStore } from '@/stores/cloudSync'
 
 const { t } = useI18n()
+const cloudStore = useCloudSyncStore()
 
 const props = defineProps({
   settings: {
@@ -118,6 +147,37 @@ const currentApiProfileData = computed(() => {
 const apiProfileCount = computed(() => {
   if (!props.settings.apiProfiles) return 1
   return Object.keys(props.settings.apiProfiles).length
+})
+
+// 云同步状态
+const cloudSyncStatusClass = computed(() => {
+  if (!cloudStore.status.enabled) return 'stat-icon-secondary'
+  if (cloudStore.isSyncing) return 'stat-icon-info'
+  if (cloudStore.status.lastSyncError) return 'stat-icon-danger'
+  return 'stat-icon-success'
+})
+
+const cloudSyncStatusLabel = computed(() => {
+  if (!cloudStore.status.enabled) return t('dashboard.cloudSyncDisabled')
+  if (cloudStore.isSyncing) return t('dashboard.syncing')
+  if (cloudStore.status.lastSyncError) return t('dashboard.syncError')
+  return t('dashboard.ready')
+})
+
+function formatTime(isoString) {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  return date.toLocaleString()
+}
+
+async function handleSyncNow() {
+  if (cloudStore.cachedPassword) {
+    await cloudStore.syncNow()
+  }
+}
+
+onMounted(async () => {
+  await cloudStore.loadStatus()
 })
 </script>
 
@@ -251,5 +311,54 @@ const apiProfileCount = computed(() => {
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
+}
+
+.stat-actions {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.stat-value-sm {
+  font-size: 1.1rem;
+}
+
+.stat-icon-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+}
+
+.stat-icon-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+}
+
+.switch-xs {
+  width: 32px;
+  height: 16px;
+
+  .slider:before {
+    height: 10px;
+    width: 10px;
+    left: 3px;
+    bottom: 3px;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(16px);
+  }
+}
+
+.btn-xs {
+  padding: 4px 8px;
+  font-size: 12px;
+  min-height: 24px;
+  min-width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
