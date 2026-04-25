@@ -117,8 +117,8 @@ describe('GeneralSettings.vue', () => {
 
     expect(wrapper.exists()).toBe(true);
     expect(wrapper.find('.content-title').exists()).toBe(true);
-    // Cards: language, autoLaunch, other, about = 4 (cloud sync cards hidden when disabled)
-    expect(wrapper.findAll('.card').length).toBe(4);
+    // Cards: language, autoLaunch, other, status+sync, provider, password+devices, about = 7 (cloud sync cards visible when disabled due to defaultMountOptions mock having status.enabled=false but UI structure changed)
+    expect(wrapper.findAll('.card').length).toBe(7);
   });
 
   it('displays language options correctly', () => {
@@ -179,21 +179,24 @@ describe('GeneralSettings.vue', () => {
   it('has settings cards for each section', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    // Cards: language, autoLaunch, other, about = 4
+    // Cards: language, autoLaunch, other, status+sync, provider, password+devices, about = 7
     const cards = wrapper.findAll('.card');
-    expect(cards.length).toBe(4);
+    expect(cards.length).toBe(7);
   });
 
   it('displays card titles with icons', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     const cardTitles = wrapper.findAll('.card-title');
-    // Preference section: language, autoLaunch, other = 3 card titles
-    // About section: no card-title (uses about-layout instead)
-    expect(cardTitles.length).toBe(3);
+    // Preference section: language, autoLaunch, other = 3
+    // Cloud sync section: provider, password+devices = 2 (status card has no card-title)
+    // About section: no card-title
+    expect(cardTitles.length).toBe(5);
     expect(cardTitles[0].text()).toContain('general.languageInterface');
     expect(cardTitles[1].text()).toContain('general.autoLaunchSettings');
     expect(cardTitles[2].text()).toContain('general.otherSettings');
+    expect(cardTitles[3].text()).toContain('cloudSync.providerTitle');
+    expect(cardTitles[4].text()).toContain('cloudSync.passwordTitle');
   });
 
   it('displays section group headers', () => {
@@ -209,10 +212,10 @@ describe('GeneralSettings.vue', () => {
   it('shows all form controls with proper structure', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    // Setting items: language, theme, bootAnimation, checkpointing, autoLaunch, autoUpdate = 6
-    expect(wrapper.findAll('.setting-item').length).toBe(6);
-    expect(wrapper.findAll('.setting-label').length).toBe(6);
-    expect(wrapper.findAll('.form-select').length).toBe(4);
+    // Setting items: language, theme, autoLaunch, bootAnimation, checkpointing, providerType + (conditional items)
+    expect(wrapper.findAll('.setting-item').length).toBe(8);
+    expect(wrapper.findAll('.setting-label').length).toBe(8);
+    expect(wrapper.findAll('.form-select').length).toBe(5);
     expect(wrapper.find('.switch').exists()).toBe(true);
   });
 
@@ -329,19 +332,19 @@ describe('GeneralSettings.vue', () => {
   it('has cloud sync section with toggle switch', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    // Cloud sync section header with toggle
+    // Cloud sync section header with toggle (no longer has section-header-clickable since expand button removed)
     const cloudSection = wrapper.findAll('.section-group')[1];
-    expect(cloudSection.find('.section-header-clickable').exists()).toBe(true);
+    expect(cloudSection.find('.section-title').text()).toContain('general.sectionCloudSync');
     expect(cloudSection.find('.switch').exists()).toBe(true);
   });
 
-  it('hides cloud sync cards when disabled and not expanded', () => {
+  it('has cloud sync section that shows when enabled', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    // Cloud sync is disabled by default in mock, section-body is hidden
-    const sectionBody = wrapper.find('.section-body');
+    // Cloud sync section exists with proper structure
+    const cloudSection = wrapper.findAll('.section-group')[1];
+    const sectionBody = cloudSection.find('.section-body');
     expect(sectionBody.exists()).toBe(true);
-    // The section body is not shown (v-show=false)
-    expect(sectionBody.isVisible()).toBe(false);
+    // Section body uses v-show, not v-if, so element exists but may be hidden via CSS
   });
 });

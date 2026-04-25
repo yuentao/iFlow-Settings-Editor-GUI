@@ -74,7 +74,7 @@
       </div>
 
       <!-- 云同步 -->
-      <div class="stat-card card-appear" style="animation-delay: 0.1s" @click="$emit('navigate', 'settings')">
+      <div class="stat-card card-appear" style="animation-delay: 0.1s" @click="$emit('navigate', 'general')">
         <div class="stat-icon" :class="cloudSyncStatusClass">
           <Refresh size="28" />
         </div>

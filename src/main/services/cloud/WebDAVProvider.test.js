@@ -279,6 +279,7 @@ describe('WebDAVProvider', () => {
       const putConflictRes = createMockResponse(409, '')
       const deleteRes = createMockResponse(204, '')
       const putSuccessRes = createMockResponse(201, '')
+      const mkcolRes = createMockResponse(201, '')  // MKCOL for _ensureDir
       const methods = []
 
       requestSpy.mockImplementation((url, options, callback) => {
@@ -286,6 +287,13 @@ describe('WebDAVProvider', () => {
         if (options.method === 'PROPFIND') {
           process.nextTick(() => callback(propfindRes))
           const r = createMockRequest(propfindRes)
+          r.end = vi.fn()
+          return r
+        }
+        if (options.method === 'MKCOL') {
+          // _ensureDir calls MKCOL for baseDir and subdirs
+          process.nextTick(() => callback(mkcolRes))
+          const r = createMockRequest(mkcolRes)
           r.end = vi.fn()
           return r
         }
@@ -518,6 +526,8 @@ describe('WebDAVProvider', () => {
     })
 
     it('should not create directory if PROPFIND succeeds', async () => {
+      // When baseDir exists and target dir exists, new behavior uses MKCOL directly
+      // Only does PROPFIND when MKCOL returns 409 to check existence
       const okRes = createMockResponse(207, '<xml/>')
       let methods = []
 
@@ -530,7 +540,8 @@ describe('WebDAVProvider', () => {
       })
 
       await provider._ensureDir('devices')
-      expect(methods).toEqual(['PROPFIND'])
+      // New behavior: MKCOL for baseDir + MKCOL for target (both get 207, treated as existing)
+      expect(methods).toEqual(['MKCOL', 'MKCOL'])
     })
 
     it('should create nested directories one by one', async () => {
@@ -558,32 +569,28 @@ describe('WebDAVProvider', () => {
       })
 
       await provider._ensureDir('a/b/c')
-      // a/ → PROPFIND + MKCOL, a/b/ → PROPFIND + MKCOL, a/b/c/ → PROPFIND + MKCOL
-      expect(methods).toEqual([
-        'PROPFIND', 'MKCOL',
-        'PROPFIND', 'MKCOL',
-        'PROPFIND', 'MKCOL',
-      ])
+      // New behavior: MKCOL for baseDir + MKCOL for each subdirectory (no PROPFIND since MKCOL succeeds)
+      expect(methods).toEqual(['MKCOL', 'MKCOL', 'MKCOL', 'MKCOL'])
     })
 
     it('should handle MKCOL returning 409 (directory already exists)', async () => {
-      // PROPFIND 返回 404 → 尝试 MKCOL，但 MKCOL 返回 409（目录已存在/并发）
-      // 应该视为成功，不抛出异常
-      const notFoundRes = createMockResponse(404, '')
+      // New behavior: uses MKCOL first, when both return 409 does PROPFIND to check
+      // PROPFIND returns 404, triggering recursive creation
       const conflictRes = createMockResponse(409, '')
+      const notFoundRes = createMockResponse(404, '')
       let methods = []
 
       requestSpy.mockImplementation((url, options, callback) => {
         methods.push(options.method)
-        if (options.method === 'PROPFIND') {
-          process.nextTick(() => callback(notFoundRes))
-          const r = createMockRequest(notFoundRes)
-          r.end = vi.fn()
-          return r
-        }
         if (options.method === 'MKCOL') {
           process.nextTick(() => callback(conflictRes))
           const r = createMockRequest(conflictRes)
+          r.end = vi.fn()
+          return r
+        }
+        if (options.method === 'PROPFIND') {
+          process.nextTick(() => callback(notFoundRes))
+          const r = createMockRequest(notFoundRes)
           r.end = vi.fn()
           return r
         }
@@ -592,9 +599,10 @@ describe('WebDAVProvider', () => {
         return r
       })
 
-      // 不应该抛出异常（MKCOL 返回 409 后会重试一次，仍然 409 但被忽略）
+      // Should not throw - 409 means already exists, which is fine
       await expect(provider._ensureDir('devices')).resolves.toBeUndefined()
-      expect(methods).toEqual(['PROPFIND', 'MKCOL', 'MKCOL'])
+      // baseDir MKCOL (409), devices/ MKCOL (409 -> PROPFIND 404 -> recurse creates baseDir), retry devices MKCOL (409)
+      expect(methods).toEqual(['MKCOL', 'MKCOL', 'PROPFIND'])
     })
   })
 

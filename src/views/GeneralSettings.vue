@@ -101,7 +101,7 @@
     </div>
 
     <!-- ===== 云同步 ===== -->
-    <div class="section-group">
+    <div class="section-group" id="cloud-sync-section">
       <div class="section-header">
         <div class="section-header-left">
           <h2 class="section-title">{{ $t('general.sectionCloudSync') }}</h2>
@@ -675,6 +675,9 @@ onUnmounted(() => {
   if (window.electronAPI && window.electronAPI.removeUpdateListener) {
     window.electronAPI.removeUpdateListener('update-status-changed', handleStatusChanged)
     window.electronAPI.removeUpdateListener('update-download-progress', handleBackgroundProgress)
+  }
+  if (window.electronAPI?.removeListener) {
+    window.electronAPI.removeListener('cloud-sync:status-changed', handleCloudSyncStatusChanged)
   }
 })
 
