@@ -124,4 +124,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sendTranslation: (translations) => {
     ipcRenderer.send('set-main-translations', translations)
   },
+
+  // 云同步
+  cloudSyncGetStatus: () => ipcRenderer.invoke('cloud-sync:get-status'),
+  cloudSyncToggleEnabled: (enabled) => ipcRenderer.invoke('cloud-sync:toggle-enabled', enabled),
+  cloudSyncSetAutoSync: (enabled) => ipcRenderer.invoke('cloud-sync:set-auto-sync', enabled),
+  cloudSyncConfigureProvider: (provider, config) => ipcRenderer.invoke('cloud-sync:configure-provider', provider, config),
+  cloudSyncTestConnection: () => ipcRenderer.invoke('cloud-sync:test-connection'),
+  cloudSyncRevokeAuth: () => ipcRenderer.invoke('cloud-sync:revoke-auth'),
+  cloudSyncSetPassword: (password) => ipcRenderer.invoke('cloud-sync:set-password', password),
+  cloudSyncVerifyPassword: (password) => ipcRenderer.invoke('cloud-sync:verify-password', password),
+  cloudSyncChangePassword: (oldPassword, newPassword) => ipcRenderer.invoke('cloud-sync:change-password', oldPassword, newPassword),
+  cloudSyncHasPassword: () => ipcRenderer.invoke('cloud-sync:has-password'),
+  cloudSyncSyncNow: (password) => ipcRenderer.invoke('cloud-sync:sync-now', password),
+  cloudSyncPull: (password) => ipcRenderer.invoke('cloud-sync:pull', password),
+  cloudSyncPush: (password) => ipcRenderer.invoke('cloud-sync:push', password),
+  cloudSyncClearCloud: () => ipcRenderer.invoke('cloud-sync:clear-cloud'),
+  cloudSyncGetDevices: () => ipcRenderer.invoke('cloud-sync:get-devices'),
+  cloudSyncSetDeviceName: (name) => ipcRenderer.invoke('cloud-sync:set-device-name', name),
+  cloudSyncRemoveDevice: (deviceId) => ipcRenderer.invoke('cloud-sync:remove-device', deviceId),
+
+  // 云同步事件监听
+  onCloudSyncStatusChanged: (callback) => {
+    ipcRenderer.on('cloud-sync:status-changed', (_event, state) => callback(state))
+  },
+  onCloudSyncProgress: (callback) => {
+    ipcRenderer.on('cloud-sync:sync-progress', (_event, progress) => callback(progress))
+  },
+  onCloudSyncConflict: (callback) => {
+    ipcRenderer.on('cloud-sync:conflict-detected', (_event, info) => callback(info))
+  },
 })
