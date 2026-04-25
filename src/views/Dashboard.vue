@@ -99,6 +99,32 @@
           </button>
         </div>
       </div>
+
+      <!-- 同步密码输入对话框 -->
+      <div v-if="syncPasswordDialog.show" class="dialog-overlay sync-password-overlay" @click.self="closeSyncPasswordDialog">
+        <div class="dialog" @click.stop>
+          <div class="dialog-title">{{ $t('cloudSync.enterPassword') }}</div>
+          <div class="dialog-body">
+            <div class="form-group">
+              <input
+                type="password"
+                class="form-input"
+                v-model="syncPasswordDialog.password"
+                :placeholder="$t('cloudSync.enterPassword')"
+                @keyup.enter="handleSyncPasswordConfirm"
+                autofocus
+              />
+            </div>
+            <div class="password-error" v-if="syncPasswordDialog.error">{{ syncPasswordDialog.error }}</div>
+          </div>
+          <div class="dialog-actions">
+            <button class="btn btn-secondary" @click="closeSyncPasswordDialog">{{ $t('dialog.cancel') }}</button>
+            <button class="btn btn-primary" @click="handleSyncPasswordConfirm" :disabled="!syncPasswordDialog.password">
+              {{ $t('cloudSync.syncNow') }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -111,6 +137,12 @@ import { useCloudSyncStore } from '@/stores/cloudSync'
 
 const { t } = useI18n()
 const cloudStore = useCloudSyncStore()
+
+const syncPasswordDialog = ref({
+  show: false,
+  password: '',
+  error: '',
+})
 
 const props = defineProps({
   settings: {
@@ -172,8 +204,37 @@ function formatTime(isoString) {
 
 async function handleSyncNow() {
   if (cloudStore.cachedPassword) {
-    await cloudStore.syncNow()
+    await cloudStore.syncNow(cloudStore.cachedPassword)
+    return
   }
+  // 没有缓存密码，显示密码输入对话框
+  syncPasswordDialog.value = {
+    show: true,
+    password: '',
+    error: '',
+  }
+  // 聚焦到输入框
+  setTimeout(() => {
+    const input = document.querySelector('.sync-password-overlay .form-input')
+    if (input) input.focus()
+  }, 50)
+}
+
+async function handleSyncPasswordConfirm() {
+  const { password } = syncPasswordDialog.value
+  if (!password) return
+  const verifyResult = await cloudStore.verifyPassword(password)
+  if (!verifyResult.success || !verifyResult.valid) {
+    syncPasswordDialog.value.error = t('cloudSync.passwordIncorrect')
+    return
+  }
+  closeSyncPasswordDialog()
+  await cloudStore.syncNow(password)
+}
+
+function closeSyncPasswordDialog() {
+  syncPasswordDialog.value.show = false
+  syncPasswordDialog.value.error = ''
 }
 
 onMounted(async () => {
@@ -360,5 +421,11 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.password-error {
+  font-size: var(--font-size-xs);
+  color: var(--danger);
+  margin-top: var(--space-sm);
 }
 </style>
