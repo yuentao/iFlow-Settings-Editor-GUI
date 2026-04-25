@@ -10,6 +10,7 @@ const { registerSkillsIpcHandlers } = require('./skills')
 const { registerCommandsIpcHandlers } = require('./commands')
 const { registerUpdatesIpcHandlers, setupTranslations: setupUpdateTranslations } = require('./updates')
 const { registerDialogsIpcHandlers } = require('./dialogs')
+const { registerCloudSyncIpcHandlers } = require('./cloud')
 
 /**
  * 注册所有 IPC 处理器
@@ -27,6 +28,7 @@ function registerIpcHandlers(getMainWindow, t) {
   registerCommandsIpcHandlers()
   registerUpdatesIpcHandlers()
   registerDialogsIpcHandlers()
+  registerCloudSyncIpcHandlers()
 
   // 窗口控制
   ipcMain.on('window-minimize', () => {

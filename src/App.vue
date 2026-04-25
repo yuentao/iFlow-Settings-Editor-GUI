@@ -74,10 +74,17 @@
       :message-params="pendingConfirmRequest.messageParams"
       @confirm="handleConfirmDialogConfirm"
       @cancel="handleConfirmDialogCancel"
-      style="z-index: 1600"
-    />
+      style="z-index: 1600" />
 
-    <UpdateNotification :show="showUpdateNotification" :current-version="currentAppVersion" :latest-version="latestUpdateVersion" :release-notes="updateReleaseNotes" @update="handleUpdateNow" @background="handleDownloadBackground" @later="handleUpdateLater" @close="handleUpdateLater" />
+    <UpdateNotification
+      :show="showUpdateNotification"
+      :current-version="currentAppVersion"
+      :latest-version="latestUpdateVersion"
+      :release-notes="updateReleaseNotes"
+      @update="handleUpdateNow"
+      @background="handleDownloadBackground"
+      @later="handleUpdateLater"
+      @close="handleUpdateLater" />
 
     <UpdateProgress
       :show="showUpdateProgress"
@@ -120,50 +127,50 @@ import SkeletonLoader from './components/SkeletonLoader.vue'
 import { defineAsyncComponent } from 'vue'
 
 const loadingComponent = {
-  template: '<div class="async-loading"><div class="skeleton-header-title"></div><div class="skeleton-header-desc"></div></div>'
+  template: '<div class="async-loading"><div class="skeleton-header-title"></div><div class="skeleton-header-desc"></div></div>',
 }
 
 const errorComponent = {
   template: '<div class="async-error"><p>{{ error }}</p><button @click="$emit(\'retry\')">重试</button></div>',
   props: ['error'],
-  emits: ['retry']
+  emits: ['retry'],
 }
 
 const Dashboard = defineAsyncComponent({
   loader: () => import('./views/Dashboard.vue'),
   loadingComponent,
   errorComponent,
-  delay: 200
+  delay: 200,
 })
 const GeneralSettings = defineAsyncComponent({
   loader: () => import('./views/GeneralSettings.vue'),
   loadingComponent,
   errorComponent,
-  delay: 200
+  delay: 200,
 })
 const ApiConfig = defineAsyncComponent({
   loader: () => import('./views/ApiConfig.vue'),
   loadingComponent,
   errorComponent,
-  delay: 200
+  delay: 200,
 })
 const McpServers = defineAsyncComponent({
   loader: () => import('./views/McpServers.vue'),
   loadingComponent,
   errorComponent,
-  delay: 200
+  delay: 200,
 })
 const SkillsView = defineAsyncComponent({
   loader: () => import('./views/SkillsView.vue'),
   loadingComponent,
   errorComponent,
-  delay: 200
+  delay: 200,
 })
 const CommandsView = defineAsyncComponent({
   loader: () => import('./views/CommandsView.vue'),
   loadingComponent,
   errorComponent,
-  delay: 200
+  delay: 200,
 })
 
 const { locale, t } = useI18n()
@@ -445,6 +452,14 @@ watch(
 
 const showSection = section => {
   currentSection.value = section
+  if (section === 'general') {
+    nextTick(() => {
+      setTimeout(() => {
+        const el = document.getElementById('cloud-sync-section')
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      },100)
+    })
+  }
 }
 
 const serverCount = computed(() => (settings.value.mcpServers ? Object.keys(settings.value.mcpServers).length : 0))
@@ -953,8 +968,12 @@ onUnmounted(() => {})
 }
 
 @keyframes download-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .global-download-text {
@@ -987,7 +1006,11 @@ onUnmounted(() => {})
 }
 
 @keyframes skeleton-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 </style>

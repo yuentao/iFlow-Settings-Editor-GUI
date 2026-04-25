@@ -13,7 +13,7 @@
         </div>
         <div class="nav-item" :class="{ active: currentSection === 'general' }" @click="$emit('navigate', 'general')">
           <Config size="16" />
-          <span class="nav-item-text">{{ $t('sidebar.basicSettings') }}</span>
+          <span class="nav-item-text">{{ $t('sidebar.generalSettings') }}</span>
         </div>
       </div>
       <div class="sidebar-section">

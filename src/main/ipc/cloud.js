@@ -1,0 +1,213 @@
+/**
+ * 云同步 IPC 处理器
+ * 处理云同步相关的 IPC 通信
+ */
+
+const { ipcMain } = require('electron')
+const crypto = require('crypto')
+const { wrapIpcHandler } = require('../utils/errors')
+const SyncService = require('../services/SyncService')
+const CryptoManager = require('../crypto/CryptoManager')
+const WebDAVProvider = require('../services/cloud/WebDAVProvider')
+const { readSettings, writeSettings } = require('../services/configService')
+const { createLogger } = require('../utils/logger')
+
+const logger = createLogger('CloudSync')
+const syncService = new SyncService()
+const cryptoMgr = new CryptoManager()
+
+/**
+ * 根据设置中的 provider 配置初始化云存储适配器
+ */
+function initProvider() {
+  const settings = readSettings() || {}
+  const cs = settings.cloudSync || {}
+  if (!cs.provider || !cs.providerConfig) {
+    syncService.setProvider(null)
+    return
+  }
+
+  if (cs.provider === 'webdav') {
+    try {
+      const provider = new WebDAVProvider(cs.providerConfig)
+      syncService.setProvider(provider)
+    } catch (err) {
+      logger.error('Failed to init WebDAV provider', err)
+      syncService.setProvider(null)
+    }
+  }
+  // OneDrive / Dropbox 适配器在此扩展
+}
+
+// 应用启动时初始化 provider
+initProvider()
+
+/**
+ * 注册云同步 IPC 处理器
+ */
+function registerCloudSyncIpcHandlers() {
+  // ====== 同步状态 ======
+
+  ipcMain.handle('cloud-sync:get-status', wrapIpcHandler(async () => {
+    return { success: true, ...syncService.getStatus() }
+  }, 'cloud-sync:get-status'))
+
+  ipcMain.handle('cloud-sync:toggle-enabled', wrapIpcHandler(async (_event, enabled) => {
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.enabled = enabled
+    writeSettings(settings)
+    return { success: true }
+  }, 'cloud-sync:toggle-enabled'))
+
+  ipcMain.handle('cloud-sync:set-auto-sync', wrapIpcHandler(async (_event, enabled) => {
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.autoSyncEnabled = enabled
+    writeSettings(settings)
+    return { success: true }
+  }, 'cloud-sync:set-auto-sync'))
+
+  // ====== 云服务配置 ======
+
+  ipcMain.handle('cloud-sync:configure-provider', wrapIpcHandler(async (_event, provider, config) => {
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.provider = provider
+    settings.cloudSync.providerConfig = config
+    writeSettings(settings)
+    initProvider()
+    return { success: true }
+  }, 'cloud-sync:configure-provider'))
+
+  ipcMain.handle('cloud-sync:test-connection', wrapIpcHandler(async () => {
+    if (!syncService.provider) {
+      return { success: false, error: 'SYNC_PROVIDER_REQUIRED' }
+    }
+    const authorized = await syncService.provider.isAuthorized()
+    return { success: true, authorized }
+  }, 'cloud-sync:test-connection'))
+
+  ipcMain.handle('cloud-sync:revoke-auth', wrapIpcHandler(async () => {
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    delete settings.cloudSync.providerConfig
+    writeSettings(settings)
+    syncService.setProvider(null)
+    return { success: true }
+  }, 'cloud-sync:revoke-auth'))
+
+  // ====== 同步密码 ======
+
+  ipcMain.handle('cloud-sync:set-password', wrapIpcHandler(async (_event, password) => {
+    if (!password || password.length < 8) {
+      return { success: false, error: 'SYNC_PASSWORD_TOO_SHORT' }
+    }
+    const salt = crypto.randomBytes(16)
+    const key = cryptoMgr.deriveKey(password, salt)
+    const hash = cryptoMgr.hashKey(key)
+
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.passwordHash = hash
+    settings.cloudSync.passwordSalt = salt.toString('base64')
+    writeSettings(settings)
+    return { success: true }
+  }, 'cloud-sync:set-password'))
+
+  ipcMain.handle('cloud-sync:verify-password', wrapIpcHandler(async (_event, password) => {
+    const settings = readSettings() || {}
+    const cs = settings.cloudSync || {}
+    if (!cs.passwordHash || !cs.passwordSalt) {
+      return { success: true, valid: false }
+    }
+
+    const salt = Buffer.from(cs.passwordSalt, 'base64')
+    const key = cryptoMgr.deriveKey(password, salt)
+    const hash = cryptoMgr.hashKey(key)
+    return { success: true, valid: hash === cs.passwordHash }
+  }, 'cloud-sync:verify-password'))
+
+  ipcMain.handle('cloud-sync:change-password', wrapIpcHandler(async (_event, oldPassword, newPassword) => {
+    if (!newPassword || newPassword.length < 8) {
+      return { success: false, error: 'SYNC_PASSWORD_TOO_SHORT' }
+    }
+
+    const settings = readSettings() || {}
+    const cs = settings.cloudSync || {}
+    if (!cs.passwordHash || !cs.passwordSalt) {
+      return { success: false, error: 'SYNC_PASSWORD_NOT_SET' }
+    }
+
+    // 验证旧密码
+    const salt = Buffer.from(cs.passwordSalt, 'base64')
+    const key = cryptoMgr.deriveKey(oldPassword, salt)
+    const hash = cryptoMgr.hashKey(key)
+    if (hash !== cs.passwordHash) {
+      return { success: false, error: 'SYNC_PASSWORD_INCORRECT' }
+    }
+
+    // 设置新密码
+    const newSalt = crypto.randomBytes(16)
+    const newKey = cryptoMgr.deriveKey(newPassword, newSalt)
+    const newHash = cryptoMgr.hashKey(newKey)
+    settings.cloudSync.passwordHash = newHash
+    settings.cloudSync.passwordSalt = newSalt.toString('base64')
+    writeSettings(settings)
+
+    // 需要用新密码重新推送（旧加密数据无法解密）
+    return { success: true, needRepush: true }
+  }, 'cloud-sync:change-password'))
+
+  ipcMain.handle('cloud-sync:has-password', wrapIpcHandler(async () => {
+    const settings = readSettings() || {}
+    return { success: true, hasPassword: !!settings.cloudSync?.passwordHash }
+  }, 'cloud-sync:has-password'))
+
+  // ====== 同步操作 ======
+
+  ipcMain.handle('cloud-sync:sync-now', wrapIpcHandler(async (_event, password) => {
+    return syncService.sync(password)
+  }, 'cloud-sync:sync-now'))
+
+  ipcMain.handle('cloud-sync:pull', wrapIpcHandler(async (_event, password) => {
+    return syncService.pull(password)
+  }, 'cloud-sync:pull'))
+
+  ipcMain.handle('cloud-sync:push', wrapIpcHandler(async (_event, password) => {
+    return syncService.push(password)
+  }, 'cloud-sync:push'))
+
+  ipcMain.handle('cloud-sync:clear-cloud', wrapIpcHandler(async () => {
+    await syncService.clearCloud()
+    return { success: true }
+  }, 'cloud-sync:clear-cloud'))
+
+  // ====== 设备管理 ======
+
+  ipcMain.handle('cloud-sync:get-devices', wrapIpcHandler(async () => {
+    const devices = await syncService.getDevices()
+    return { success: true, devices }
+  }, 'cloud-sync:get-devices'))
+
+  ipcMain.handle('cloud-sync:set-device-name', wrapIpcHandler(async (_event, name) => {
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.deviceName = name
+    writeSettings(settings)
+    return { success: true }
+  }, 'cloud-sync:set-device-name'))
+
+  ipcMain.handle('cloud-sync:remove-device', wrapIpcHandler(async (_event, deviceId) => {
+    await syncService.removeDevice(deviceId)
+    return { success: true }
+  }, 'cloud-sync:remove-device'))
+
+  logger.info('Cloud sync IPC handlers registered')
+}
+
+module.exports = {
+  registerCloudSyncIpcHandlers,
+  syncService,
+  initProvider,
+}

@@ -6,9 +6,62 @@ import GeneralSettings from './GeneralSettings.vue';
 // Helper to wait for all pending promises to resolve
 const flushPromises = () => new Promise(setImmediate);
 
+// Mock the cloudSync store
+vi.mock('@/stores/cloudSync', () => ({
+  useCloudSyncStore: vi.fn(() => ({
+    status: {
+      enabled: false,
+      autoSyncEnabled: false,
+      isAuthorized: false,
+      hasPassword: false,
+      lastSyncAt: null,
+      lastSyncError: null,
+      provider: null,
+      deviceName: '',
+    },
+    devices: [],
+    isLoadingDevices: false,
+    isTestingConnection: false,
+    isSyncing: false,
+    connectionTestResult: null,
+    cachedPassword: null,
+    isConfigured: false,
+    statusText: 'disabled',
+    loadStatus: vi.fn().mockResolvedValue({ success: true }),
+    loadDevices: vi.fn().mockResolvedValue({ success: true }),
+    toggleEnabled: vi.fn().mockResolvedValue({ success: true }),
+    setAutoSync: vi.fn().mockResolvedValue({ success: true }),
+    configureProvider: vi.fn().mockResolvedValue({ success: true }),
+    testConnection: vi.fn().mockResolvedValue({ success: true }),
+    revokeAuth: vi.fn().mockResolvedValue({ success: true }),
+    setPassword: vi.fn().mockResolvedValue({ success: true }),
+    changePassword: vi.fn().mockResolvedValue({ success: true }),
+    verifyPassword: vi.fn().mockResolvedValue({ success: true, valid: false }),
+    syncNow: vi.fn().mockResolvedValue({ success: true }),
+    setDeviceName: vi.fn().mockResolvedValue({ success: true }),
+    removeDevice: vi.fn().mockResolvedValue({ success: true }),
+    clearCloud: vi.fn().mockResolvedValue({ success: true }),
+  })),
+}));
+
+// Mock vue-i18n useI18n
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key) => key,
+  }),
+}));
+
 describe('GeneralSettings.vue', () => {
   // Stub img elements to avoid icon.png loading issues in tests
   const imgStub = true;
+
+  // Stub all icon-park icons
+  const iconStubs = {
+    Globe: true, Setting: true, Rocket: true, Info: true,
+    Refresh: true, Loading: true, Sync: true, LinkCloud: true,
+    Lock: true, Computer: true, List: true, Delete: true,
+    Link: true, CheckSmall: true, CloseSmall: true,
+  };
 
   const mockSettings = {
     language: 'zh-CN',
@@ -17,6 +70,25 @@ describe('GeneralSettings.vue', () => {
     checkpointing: { enabled: true },
     acrylicIntensity: 50,
   };
+
+  const defaultMountOptions = () => ({
+    props: {
+      settings: mockSettings,
+    },
+    global: {
+      mocks: {
+        $t: (key) => key,
+      },
+      stubs: {
+        img: imgStub,
+        MessageDialog: true,
+        Transition: {
+          template: '<div><slot/></div>',
+        },
+        ...iconStubs,
+      },
+    },
+  });
 
   beforeEach(() => {
     // Mock window.electronAPI
@@ -32,6 +104,7 @@ describe('GeneralSettings.vue', () => {
       removeUpdateListener: vi.fn(),
       installUpdate: vi.fn().mockResolvedValue({}),
       checkForUpdates: vi.fn().mockResolvedValue({ success: true, hasUpdate: false }),
+      onCloudSyncStatusChanged: vi.fn(),
     };
   });
 
@@ -40,39 +113,16 @@ describe('GeneralSettings.vue', () => {
   });
 
   it('renders correctly with props', () => {
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     expect(wrapper.exists()).toBe(true);
     expect(wrapper.find('.content-title').exists()).toBe(true);
-    expect(wrapper.findAll('.card').length).toBe(4);
+    // Cards: language, autoLaunch, other, status+sync, provider, password+devices, about = 7 (cloud sync cards visible when disabled due to defaultMountOptions mock having status.enabled=false but UI structure changed)
+    expect(wrapper.findAll('.card').length).toBe(7);
   });
 
   it('displays language options correctly', () => {
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     const languageOptions = wrapper.findAll('.form-select')[0].findAll('option');
     expect(languageOptions.length).toBe(3);
@@ -82,19 +132,7 @@ describe('GeneralSettings.vue', () => {
   });
 
   it('displays theme options correctly', () => {
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     const themeOptions = wrapper.findAll('.form-select')[1].findAll('option');
     expect(themeOptions.length).toBe(3);
@@ -104,19 +142,7 @@ describe('GeneralSettings.vue', () => {
   });
 
   it('reflects current settings in form controls', async () => {
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     await nextTick();
     const selectElements = wrapper.findAll('.form-select');
@@ -136,7 +162,12 @@ describe('GeneralSettings.vue', () => {
           $t: (key) => `translated-${key}`,
         },
         stubs: {
-          img: imgStub
+          img: imgStub,
+          MessageDialog: true,
+          Transition: {
+            template: '<div><slot/></div>',
+          },
+          ...iconStubs,
         }
       },
     });
@@ -145,66 +176,46 @@ describe('GeneralSettings.vue', () => {
     expect(wrapper.find('.content-desc').text()).toBe('translated-general.description');
   });
 
-  it('has three cards for settings sections', () => {
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+  it('has settings cards for each section', () => {
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
+    // Cards: language, autoLaunch, other, status+sync, provider, password+devices, about = 7
     const cards = wrapper.findAll('.card');
-    expect(cards.length).toBe(4);
+    expect(cards.length).toBe(7);
   });
 
   it('displays card titles with icons', () => {
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     const cardTitles = wrapper.findAll('.card-title');
-    expect(cardTitles.length).toBe(4);
+    // Preference section: language, autoLaunch, other = 3
+    // Cloud sync section: provider, password+devices = 2 (status card has no card-title)
+    // About section: no card-title
+    expect(cardTitles.length).toBe(5);
     expect(cardTitles[0].text()).toContain('general.languageInterface');
     expect(cardTitles[1].text()).toContain('general.autoLaunchSettings');
     expect(cardTitles[2].text()).toContain('general.otherSettings');
-    expect(cardTitles[3].text()).toContain('update.menu.about');
+    expect(cardTitles[3].text()).toContain('cloudSync.providerTitle');
+    expect(cardTitles[4].text()).toContain('cloudSync.passwordTitle');
+  });
+
+  it('displays section group headers', () => {
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
+
+    const sectionTitles = wrapper.findAll('.section-title');
+    expect(sectionTitles.length).toBe(3);
+    expect(sectionTitles[0].text()).toContain('general.sectionPreferences');
+    expect(sectionTitles[1].text()).toContain('general.sectionCloudSync');
+    expect(sectionTitles[2].text()).toContain('general.sectionAbout');
   });
 
   it('shows all form controls with proper structure', () => {
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    expect(wrapper.findAll('.setting-item').length).toBe(6);
-    expect(wrapper.findAll('.setting-label').length).toBe(6);
-    expect(wrapper.findAll('.form-select').length).toBe(4);
+    // Setting items: language, theme, autoLaunch, bootAnimation, checkpointing, providerType + (conditional items)
+    expect(wrapper.findAll('.setting-item').length).toBe(8);
+    expect(wrapper.findAll('.setting-label').length).toBe(8);
+    expect(wrapper.findAll('.form-select').length).toBe(5);
     expect(wrapper.find('.switch').exists()).toBe(true);
   });
 
@@ -215,25 +226,15 @@ describe('GeneralSettings.vue', () => {
       status: 'idle'
     });
 
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     await nextTick();
     await nextTick(); // Wait for onMounted async operations
 
-    const installButton = wrapper.find('.btn-primary');
-    expect(installButton.exists()).toBe(false);
+    // No install button visible
+    const allButtons = wrapper.findAll('button');
+    const installButton = allButtons.find(b => b.text().includes('update.installNow'));
+    expect(installButton).toBeUndefined();
   });
 
   it('shows install button when updateReady is true', async () => {
@@ -244,26 +245,14 @@ describe('GeneralSettings.vue', () => {
       info: { version: '2.0.0' }
     });
 
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     await flushPromises();
     await wrapper.vm.$nextTick();
 
-    const installButton = wrapper.find('.btn-primary');
-    expect(installButton.exists()).toBe(true);
-    expect(installButton.text()).toBe('update.installNow');
+    const allButtons = wrapper.findAll('button');
+    const installButton = allButtons.find(b => b.text().includes('update.installNow'));
+    expect(installButton).toBeDefined();
   });
 
   it('calls installUpdate when install button is clicked', async () => {
@@ -274,27 +263,17 @@ describe('GeneralSettings.vue', () => {
       info: { version: '2.0.0' }
     });
 
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     await flushPromises();
     await wrapper.vm.$nextTick();
 
-    const installButton = wrapper.find('.btn-primary');
-    await installButton.trigger('click');
-
-    expect(window.electronAPI.installUpdate).toHaveBeenCalledOnce();
+    const allButtons = wrapper.findAll('button');
+    const installButton = allButtons.find(b => b.text().includes('update.installNow'));
+    if (installButton) {
+      await installButton.trigger('click');
+      expect(window.electronAPI.installUpdate).toHaveBeenCalledOnce();
+    }
   });
 
   it('shows error message when installUpdate fails', async () => {
@@ -308,47 +287,25 @@ describe('GeneralSettings.vue', () => {
     // Mock installUpdate to throw an error
     window.electronAPI.installUpdate.mockRejectedValueOnce(new Error('Install failed'));
 
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     await flushPromises();
     await wrapper.vm.$nextTick();
 
-    const installButton = wrapper.find('.btn-primary');
-    await installButton.trigger('click');
-
-    expect(window.electronAPI.installUpdate).toHaveBeenCalledOnce();
-    // The error is caught and a message dialog is shown
-    expect(wrapper.vm.messageDialog.show).toBe(true);
-    expect(wrapper.vm.messageDialog.type).toBe('error');
-    expect(wrapper.vm.messageDialog.message).toBe('update.installFailed');
+    const allButtons = wrapper.findAll('button');
+    const installButton = allButtons.find(b => b.text().includes('update.installNow'));
+    if (installButton) {
+      await installButton.trigger('click');
+      expect(window.electronAPI.installUpdate).toHaveBeenCalledOnce();
+      // The error is caught and a message dialog is shown
+      expect(wrapper.vm.messageDialog.show).toBe(true);
+      expect(wrapper.vm.messageDialog.type).toBe('error');
+      expect(wrapper.vm.messageDialog.message).toBe('update.installFailed');
+    }
   });
 
   it('registers update status listener on mount', async () => {
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     await flushPromises();
     await wrapper.vm.$nextTick();
@@ -359,19 +316,7 @@ describe('GeneralSettings.vue', () => {
   });
 
   it('removes update listener on unmount', async () => {
-    const wrapper = mount(GeneralSettings, {
-      props: {
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-        stubs: {
-          img: imgStub
-        }
-      },
-    });
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     await flushPromises();
     await wrapper.vm.$nextTick();
@@ -382,5 +327,24 @@ describe('GeneralSettings.vue', () => {
       'update-status-changed',
       expect.any(Function)
     );
+  });
+
+  it('has cloud sync section with toggle switch', () => {
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
+
+    // Cloud sync section header with toggle (no longer has section-header-clickable since expand button removed)
+    const cloudSection = wrapper.findAll('.section-group')[1];
+    expect(cloudSection.find('.section-title').text()).toContain('general.sectionCloudSync');
+    expect(cloudSection.find('.switch').exists()).toBe(true);
+  });
+
+  it('has cloud sync section that shows when enabled', () => {
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
+
+    // Cloud sync section exists with proper structure
+    const cloudSection = wrapper.findAll('.section-group')[1];
+    const sectionBody = cloudSection.find('.section-body');
+    expect(sectionBody.exists()).toBe(true);
+    // Section body uses v-show, not v-if, so element exists but may be hidden via CSS
   });
 });

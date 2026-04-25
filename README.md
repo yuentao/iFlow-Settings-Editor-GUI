@@ -19,6 +19,7 @@
 - 📦 **系统托盘** - 最小化到托盘，快速切换 API 配置
 - 🚀 **开机自启动** - 支持开机自动启动，可选后台静默启动
 - 📊 **仪表盘视图** - 直观展示当前配置状态和快捷操作
+- ☁️ **云同步功能** - 支持 WebDAV 协议的云端配置同步，字段级加密保障数据安全，多设备间无缝同步设置
 - 🔧 **TypeScript 类型安全** - 全面 TypeScript 迁移，提供完整的类型推导和编译时检查
 - 🧱 **模块化架构** - 主进程模块化重构，代码结构更清晰，维护性更高
 - 🧪 **完善测试覆盖** - 组件和 Store 单元测试全覆盖，确保功能稳定可靠
@@ -39,6 +40,7 @@
 | electron-builder | 24.13.x |
 | @icon-park/vue-next | 1.4.2 |
 | @vueuse/core | 14.2.x |
+| @iarna/toml | 2.2.5 |
 
 ## 支持的系统
 
@@ -182,6 +184,18 @@ git push origin v1.9.0
 - **执行命令** - 快速执行常用命令
 - **命令配置** - 管理命令参数和选项
 
+### 云同步管理
+
+在「云同步」页面可以：
+
+- **配置 WebDAV 服务器** - 输入服务器地址、用户名、密码等信息
+- **测试连接** - 验证 WebDAV 服务器连通性和权限
+- **手动同步** - 点击「立即同步」按钮将本地配置上传到云端或从云端下载
+- **自动同步** - 开启后会在设置变更时自动同步到云端
+- **查看同步状态** - 实时显示最后同步时间、同步错误等信息
+- **清除云端数据** - 一键清除云端存储的所有配置数据
+- **同步内容** - 目前支持 API 配置和 MCP 服务器的同步，技能和命令即将支持
+
 ### 系统托盘
 
 ![托盘图标](./screenshots/托盘图标.png)
@@ -278,10 +292,13 @@ iFlow-Settings-Editor-GUI/
     │   │   ├── index.js       # IPC 聚合
     │   │   ├── settings.js    # 设置 IPC
     │   │   ├── skills.js      # 技能 IPC
-    │   │   └── updates.js     # 更新 IPC
+    │   │   ├── updates.js     # 更新 IPC
+    │   │   └── cloud.js       # 云同步 IPC
     │   ├── services/          # 主进程服务
     │   │   ├── autoLaunchService.js # 自启动服务
-    │   │   └── configService.js # 配置服务
+    │   │   ├── configService.js # 配置服务
+    │   │   └── cloud/         # 云同步服务
+    │   │       └── WebDAVProvider.js # WebDAV 适配器
     │   └── utils/             # 工具模块
     │       ├── errors.js      # 错误定义
     │       ├── logger.js      # 日志工具
@@ -292,6 +309,7 @@ iFlow-Settings-Editor-GUI/
     │   ├── commands.ts        # 命令状态
     │   ├── settings.ts        # 设置状态
     │   ├── skills.ts          # 技能状态
+    │   ├── cloudSync.ts       # 云同步状态
     │   ├── ui.ts              # UI 状态
     │   └── index.js           # Store 聚合
     ├── locales/         # 国际化语言包
