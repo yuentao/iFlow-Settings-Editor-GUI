@@ -329,6 +329,8 @@ const duplicateApiProfile = async name => {
   const result = await window.electronAPI.duplicateApiProfile(name, newName)
   if (result.success) {
     await loadApiProfiles()
+    // 重新加载当前配置的完整数据，确保 settings.value.apiProfiles 被刷新
+    await switchApiProfile()
     await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configCopied', { name: newName }) })
   } else {
     await showMessage({ type: 'error', title: t('messages.error'), message: result.error })
