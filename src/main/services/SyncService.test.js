@@ -89,6 +89,7 @@ describe('SyncService', () => {
   let mockWriteSettings
   let mockLogger
   let mockProvider
+  let mockSafeStorage
   let service
 
   beforeEach(() => {
@@ -96,11 +97,17 @@ describe('SyncService', () => {
     mockWriteSettings = vi.fn()
     mockLogger = createMockLogger()
     mockProvider = createMockProvider()
+    mockSafeStorage = {
+      isEncryptionAvailable: vi.fn(() => true),
+      encryptString: vi.fn((str) => Buffer.from(`ENC(${str})`)),
+      decryptString: vi.fn((buf) => buf.toString().replace(/^ENC\(/, '').replace(/\)$/, '')),
+    }
 
     service = new SyncService({
       readSettings: mockReadSettings,
       writeSettings: mockWriteSettings,
       logger: mockLogger,
+      safeStorage: mockSafeStorage,
     })
     service.setProvider(mockProvider)
   })
@@ -382,6 +389,36 @@ describe('SyncService', () => {
       const originalDefault = local.apiProfiles.default
       service._mergeConfigs(local, [])
       expect(local.apiProfiles.default).toBe(originalDefault)
+    })
+
+    it('should sync top-level API fields after merge', () => {
+      const local = createBaseSettings()
+      local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
+      // 顶层字段是旧值
+      local.apiKey = 'sk-old-key'
+      local.baseUrl = 'https://old.com'
+      local.modelName = 'old-model'
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-25T10:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-merged-key', baseUrl: 'https://merged.com', modelName: 'merged-model' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+
+      // 顶层 API 字段应该与 apiProfiles.default 的合并数据一致
+      expect(local.apiKey).toBe('sk-merged-key')
+      expect(local.baseUrl).toBe('https://merged.com')
+      expect(local.modelName).toBe('merged-model')
     })
 
     it('should merge mcpServers with overwrite-when-newer strategy', () => {
@@ -727,6 +764,225 @@ describe('SyncService', () => {
       mockProvider.delete.mockResolvedValue(undefined)
       await service.removeDevice('remote-002')
       expect(mockProvider.delete).toHaveBeenCalledWith('devices/config-remote-002.json')
+    })
+  })
+
+  describe('auto-sync', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+      service.stopAutoSync()
+    })
+
+    describe('cachePassword / clearCachedPassword', () => {
+      it('should cache and retrieve password', () => {
+        service.cachePassword('my-secret', { persist: false })
+        expect(service._cachedPassword).toBe('my-secret')
+      })
+
+      it('should clear cached password', () => {
+        service.cachePassword('my-secret', { persist: false })
+        service.clearCachedPassword()
+        expect(service._cachedPassword).toBeNull()
+      })
+
+      it('should persist encrypted password when persist option is true', () => {
+        service.cachePassword('my-secret', { persist: true })
+        expect(service._cachedPassword).toBe('my-secret')
+        // 验证 writeSettings 被调用来持久化加密密码
+        const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeDefined()
+      })
+
+      it('should not persist password when persist option is false', () => {
+        const beforeCount = mockWriteSettings.mock.calls.length
+        service.cachePassword('my-secret', { persist: false })
+        // cachePassword 不应额外调用 writeSettings
+        expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
+      })
+
+      it('should clear persisted password on clearCachedPassword', () => {
+        service.cachePassword('my-secret', { persist: true })
+        // 让 mockReadSettings 返回包含加密密码的设置
+        const persistedSettings = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        mockReadSettings.mockReturnValue(persistedSettings)
+        service.clearCachedPassword()
+        expect(service._cachedPassword).toBeNull()
+        // 验证持久化密码被清除
+        const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeUndefined()
+      })
+    })
+
+    describe('restorePersistedPassword', () => {
+      it('should restore password from persistent storage', () => {
+        // 先持久化一个密码
+        service.cachePassword('restored-pass', { persist: true })
+        // 获取持久化后的设置
+        const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        // 让 mockReadSettings 返回包含加密密码的设置
+        mockReadSettings.mockReturnValue(lastWrite)
+        // 清除内存缓存
+        service._cachedPassword = null
+        // 恢复
+        service.restorePersistedPassword()
+        expect(service._cachedPassword).toBe('restored-pass')
+      })
+
+      it('should not overwrite existing cached password', () => {
+        service._cachedPassword = 'existing'
+        service.restorePersistedPassword()
+        expect(service._cachedPassword).toBe('existing')
+      })
+
+      it('should handle missing persisted password gracefully', () => {
+        service._cachedPassword = null
+        service.restorePersistedPassword()
+        expect(service._cachedPassword).toBeNull()
+      })
+    })
+
+    describe('startAutoSync / stopAutoSync', () => {
+      it('should start the auto-sync timer', () => {
+        service.startAutoSync({ interval: 60000 })
+        expect(service._autoSyncTimer).not.toBeNull()
+        expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Auto-sync started'))
+      })
+
+      it('should stop the auto-sync timer', () => {
+        service.startAutoSync({ interval: 60000 })
+        service.stopAutoSync()
+        expect(service._autoSyncTimer).toBeNull()
+        expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Auto-sync stopped'))
+      })
+
+      it('should restart timer if startAutoSync called again', () => {
+        service.startAutoSync({ interval: 60000 })
+        const firstTimer = service._autoSyncTimer
+        service.startAutoSync({ interval: 120000 })
+        expect(service._autoSyncTimer).not.toBe(firstTimer)
+      })
+
+      it('should be safe to call stopAutoSync when no timer is running', () => {
+        expect(() => service.stopAutoSync()).not.toThrow()
+      })
+    })
+
+    describe('_doAutoSync', () => {
+      it('should skip if no cached password', async () => {
+        service.clearCachedPassword()
+        await service._doAutoSync()
+        expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('no cached password'))
+      })
+
+      it('should skip if syncing is in progress', async () => {
+        service.cachePassword('pass')
+        service.isSyncing = true
+        await service._doAutoSync()
+        expect(mockProvider.list).not.toHaveBeenCalled()
+        service.isSyncing = false
+      })
+
+      it('should skip if no provider', async () => {
+        service.cachePassword('pass')
+        service.setProvider(null)
+        await service._doAutoSync()
+        // Should not throw, just return
+        service.setProvider(mockProvider)
+      })
+
+      it('should call sync when conditions are met', async () => {
+        service.cachePassword('pass')
+        mockProvider.list.mockResolvedValue([])
+        mockProvider.upload.mockResolvedValue(undefined)
+
+        await service._doAutoSync()
+        expect(mockProvider.list).toHaveBeenCalled()
+        expect(mockProvider.upload).toHaveBeenCalled()
+        expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Auto-sync triggered'))
+      })
+
+      it('should handle sync errors gracefully', async () => {
+        service.cachePassword('pass')
+        mockProvider.list.mockRejectedValue(new Error('network error'))
+
+        await service._doAutoSync()
+        expect(mockLogger.warn).toHaveBeenCalledWith('Auto-sync failed:', 'network error')
+      })
+    })
+
+    describe('onSettingsSaved', () => {
+      it('should not trigger when autoSync is disabled', () => {
+        const settings = createBaseSettings()
+        settings.cloudSync.autoSyncEnabled = false
+        mockReadSettings.mockReturnValue(settings)
+
+        service.onSettingsSaved()
+        expect(service._settingsSaveDebounceTimer).toBeNull()
+      })
+
+      it('should not trigger when cloudSync is not enabled', () => {
+        const settings = createBaseSettings()
+        settings.cloudSync.enabled = false
+        mockReadSettings.mockReturnValue(settings)
+
+        service.onSettingsSaved()
+        expect(service._settingsSaveDebounceTimer).toBeNull()
+      })
+
+      it('should not trigger when syncing is in progress', () => {
+        const settings = createBaseSettings()
+        settings.cloudSync.autoSyncEnabled = true
+        mockReadSettings.mockReturnValue(settings)
+        service.isSyncing = true
+
+        service.onSettingsSaved()
+        expect(service._settingsSaveDebounceTimer).toBeNull()
+        service.isSyncing = false
+      })
+
+      it('should set debounce timer when conditions are met', () => {
+        const settings = createBaseSettings()
+        settings.cloudSync.autoSyncEnabled = true
+        mockReadSettings.mockReturnValue(settings)
+        service.cachePassword('pass')
+
+        service.onSettingsSaved()
+        expect(service._settingsSaveDebounceTimer).not.toBeNull()
+      })
+
+      it('should debounce multiple calls', () => {
+        const settings = createBaseSettings()
+        settings.cloudSync.autoSyncEnabled = true
+        mockReadSettings.mockReturnValue(settings)
+        service.cachePassword('pass')
+
+        service.onSettingsSaved()
+        const firstTimer = service._settingsSaveDebounceTimer
+        service.onSettingsSaved()
+        // Timer was reset (new timeout created)
+        // The first timer was cleared, a new one was set
+        expect(service._settingsSaveDebounceTimer).not.toBeNull()
+      })
+
+      it('should trigger _doAutoSync after debounce delay', async () => {
+        const settings = createBaseSettings()
+        settings.cloudSync.autoSyncEnabled = true
+        mockReadSettings.mockReturnValue(settings)
+        service.cachePassword('pass')
+        mockProvider.list.mockResolvedValue([])
+        mockProvider.upload.mockResolvedValue(undefined)
+
+        service.onSettingsSaved()
+        vi.advanceTimersByTime(3000)
+        // Allow the async _doAutoSync to complete
+        await vi.runAllTimersAsync()
+
+        expect(mockProvider.list).toHaveBeenCalled()
+      })
     })
   })
 })

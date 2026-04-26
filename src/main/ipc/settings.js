@@ -23,21 +23,39 @@ function registerSettingsIpcHandlers() {
 
   // 保存设置
   ipcMain.handle('save-settings', wrapIpcHandler(async (event, data) => {
+    // 读取磁盘上的最新设置，用于合并
+    const existing = readSettings() || {}
+    const merged = { ...existing, ...data }
+
+    // cloudSync 和 autoUpdate 由主进程通过专用 IPC 管理，
+    // 渲染进程的 data 中可能包含过时的快照，始终以磁盘值为准
+    if (existing.cloudSync) {
+      merged.cloudSync = existing.cloudSync
+    }
+    if (existing.autoUpdate !== undefined) {
+      merged.autoUpdate = existing.autoUpdate
+    }
+
     // 保存时同步更新 apiProfiles 中的当前配置
-    const currentProfile = data.currentApiProfile || 'default'
-    if (!data.apiProfiles) {
-      data.apiProfiles = {}
+    const currentProfile = merged.currentApiProfile || 'default'
+    if (!merged.apiProfiles) {
+      merged.apiProfiles = {}
     }
 
     const currentConfig = {}
     for (const field of API_FIELDS) {
-      if (data[field] !== undefined) {
-        currentConfig[field] = data[field]
+      if (merged[field] !== undefined) {
+        currentConfig[field] = merged[field]
       }
     }
-    data.apiProfiles[currentProfile] = currentConfig
+    merged.apiProfiles[currentProfile] = currentConfig
 
-    writeSettings(data)
+    writeSettings(merged)
+
+    // 通知云同步服务：设置已保存，可能需要自动同步
+    const { syncService } = require('./cloud')
+    syncService.onSettingsSaved()
+
     return successResult()
   }, 'save-settings'))
 }
