@@ -1011,8 +1011,12 @@ async function handleSyncPasswordConfirm() {
   if (verifyResult.success && verifyResult.valid) {
     syncPasswordDialog.value.onCancel = null
     closeSyncPasswordDialog()
-    await cloudStore.syncNow(password)
-    cloudStore.loadDevices()
+    const syncResult = await cloudStore.syncNow(password)
+    if (syncResult.success) {
+      cloudStore.loadDevices()
+    } else {
+      showCloudMessage({ type: 'error', title: t('messages.error'), message: syncResult.error || t('cloudSync.syncFailed') })
+    }
   } else {
     syncPasswordDialog.value.error = t('cloudSync.passwordIncorrect')
   }

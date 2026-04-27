@@ -402,6 +402,7 @@ class SyncService {
     return {
       success: pushResult.success,
       error: pushResult.error,
+      // pull 成功时合并已完成，mergedFrom 反映实际合并的设备数
       mergedFrom: pullResult.mergedFrom,
     }
   }

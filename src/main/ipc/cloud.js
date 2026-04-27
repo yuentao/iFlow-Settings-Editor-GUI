@@ -128,8 +128,13 @@ function registerCloudSyncIpcHandlers() {
     const hash = cryptoMgr.hashKey(key)
     const valid = hash === cs.passwordHash
 
-    // 验证成功时缓存密码
-    if (valid) syncService.cachePassword(password)
+    // 验证成功时缓存密码并更新同步时间
+    if (valid) {
+      syncService.cachePassword(password)
+      settings.cloudSync = settings.cloudSync || {}
+      settings.cloudSync.lastSyncAt = new Date().toISOString()
+      writeSettings(settings)
+    }
     return { success: true, valid }
   }, 'cloud-sync:verify-password'))
 
