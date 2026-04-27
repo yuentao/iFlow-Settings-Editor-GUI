@@ -90,9 +90,8 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   async function setAutoSync(enabled: boolean) {
     try {
       const result = await window.electronAPI.cloudSyncSetAutoSync(enabled)
-      if (result.success) {
-        status.value.autoSyncEnabled = enabled
-      }
+      // 无论成功与否，都更新本地状态以保持 UI 和状态一致
+      status.value.autoSyncEnabled = enabled
       return result
     } catch (error) {
       console.error('[CloudSync] Failed to set auto sync:', error)

@@ -11,6 +11,10 @@ function _getDefaultWriteSettings() {
 function _getDefaultLogger() {
   return require('../utils/logger').createLogger('CloudSync')
 }
+function _getDefaultSafeStorage() {
+  const { safeStorage } = require('electron')
+  return safeStorage
+}
 
 class SyncService {
   /**
@@ -18,6 +22,7 @@ class SyncService {
    * @param {Function} [deps.readSettings] - 读取设置
    * @param {Function} [deps.writeSettings] - 写入设置
    * @param {object} [deps.logger] - 日志记录器 { info, warn, error }
+   * @param {object} [deps.safeStorage] - Electron safeStorage（加解密持久化密码）
    */
   constructor(deps = {}) {
     this.crypto = new CryptoManager()
@@ -28,8 +33,16 @@ class SyncService {
     this._readSettings = deps.readSettings || null
     this._writeSettings = deps.writeSettings || null
     this._logger = deps.logger || null
+    this._safeStorage = deps.safeStorage || null
 
     this._deviceId = null
+
+    // 自动同步相关
+    this._autoSyncTimer = null
+    this._autoSyncInterval = 5 * 60 * 1000 // 默认 5 分钟
+    this._cachedPassword = null // 缓存同步密码（仅内存）
+    this._settingsSaveDebounceTimer = null
+    this._settingsSaveDebounceDelay = 3000 // 设置保存后 3 秒触发自动推送
   }
 
   /** 懒加载 readSettings */
@@ -50,6 +63,12 @@ class SyncService {
     return this._logger
   }
 
+  /** 懒加载 safeStorage */
+  get safeStorage() {
+    if (!this._safeStorage) this._safeStorage = _getDefaultSafeStorage()
+    return this._safeStorage
+  }
+
   /** 获取或创建设备 ID（懒初始化） */
   get deviceId() {
     if (this._deviceId) return this._deviceId
@@ -60,6 +79,172 @@ class SyncService {
   /** 设置云存储适配器 */
   setProvider(provider) {
     this.provider = provider
+  }
+
+  /**
+   * 缓存同步密码（用于自动同步）
+   * 当自动同步启用时，同时持久化加密密码到设置文件
+   * @param {string} password
+   * @param {object} [options]
+   * @param {boolean} [options.persist] - 是否持久化加密密码（默认由 autoSyncEnabled 决定）
+   */
+  cachePassword(password, options = {}) {
+    this._cachedPassword = password
+    const shouldPersist = options.persist !== undefined ? options.persist : this._isAutoSyncActive()
+    if (shouldPersist && password) {
+      this._persistEncryptedPassword(password)
+    }
+  }
+
+  /** 清除缓存的密码，同时清除持久化的加密密码 */
+  clearCachedPassword() {
+    this._cachedPassword = null
+    this._clearPersistedPassword()
+  }
+
+  /**
+   * 将密码加密后持久化到设置文件
+   * 使用 Electron safeStorage（操作系统级加密，Windows DPAPI / macOS Keychain）
+   * @param {string} password
+   */
+  _persistEncryptedPassword(password) {
+    try {
+      if (!this.safeStorage.isEncryptionAvailable()) {
+        this.logger.warn('safeStorage encryption not available, cannot persist password')
+        return
+      }
+      const encrypted = this.safeStorage.encryptString(password)
+      const settings = this.readSettings() || {}
+      settings.cloudSync = settings.cloudSync || {}
+      settings.cloudSync.autoSyncEncryptedPassword = encrypted.toString('base64')
+      this.writeSettings(settings)
+      this.logger.info('Auto-sync password persisted (encrypted)')
+    } catch (err) {
+      this.logger.error('Failed to persist auto-sync password:', err)
+    }
+  }
+
+  /** 清除设置文件中持久化的加密密码 */
+  _clearPersistedPassword() {
+    try {
+      const settings = this.readSettings() || {}
+      if (settings.cloudSync?.autoSyncEncryptedPassword) {
+        delete settings.cloudSync.autoSyncEncryptedPassword
+        this.writeSettings(settings)
+      }
+    } catch (err) {
+      this.logger.error('Failed to clear persisted password:', err)
+    }
+  }
+
+  /**
+   * 从设置文件恢复持久化的密码到内存缓存
+   * 应用启动时调用，确保自动同步重启后仍能工作
+   */
+  restorePersistedPassword() {
+    if (this._cachedPassword) return // 已有内存缓存
+    try {
+      const settings = this.readSettings() || {}
+      const encryptedB64 = settings.cloudSync?.autoSyncEncryptedPassword
+      if (!encryptedB64) return
+      if (!this.safeStorage.isEncryptionAvailable()) {
+        this.logger.warn('safeStorage not available, cannot restore persisted password')
+        return
+      }
+      const encrypted = Buffer.from(encryptedB64, 'base64')
+      this._cachedPassword = this.safeStorage.decryptString(encrypted)
+      this.logger.info('Auto-sync password restored from persistent storage')
+    } catch (err) {
+      this.logger.error('Failed to restore persisted password:', err)
+      // 解密失败（如系统重装），清除无效的持久化数据
+      this._clearPersistedPassword()
+    }
+  }
+
+  /** 判断自动同步是否处于激活状态 */
+  _isAutoSyncActive() {
+    const settings = this.readSettings() || {}
+    const cs = settings.cloudSync || {}
+    return !!(cs.enabled && cs.autoSyncEnabled && cs.providerConfig && cs.passwordHash)
+  }
+
+  /**
+   * 启动自动同步定时器
+   * @param {object} [options]
+   * @param {number} [options.interval] - 同步间隔（毫秒），默认 5 分钟
+   */
+  startAutoSync(options = {}) {
+    this.stopAutoSync()
+    if (options.interval) this._autoSyncInterval = options.interval
+
+    // 尝试恢复持久化的密码
+    if (!this._cachedPassword) {
+      this.restorePersistedPassword()
+    }
+
+    this._autoSyncTimer = setInterval(() => {
+      this._doAutoSync()
+    }, this._autoSyncInterval)
+
+    this.logger.info(`Auto-sync started (interval: ${this._autoSyncInterval / 1000}s)`)
+  }
+
+  /** 停止自动同步定时器 */
+  stopAutoSync() {
+    if (this._autoSyncTimer) {
+      clearInterval(this._autoSyncTimer)
+      this._autoSyncTimer = null
+      this.logger.info('Auto-sync stopped')
+    }
+  }
+
+  /**
+   * 设置保存后触发自动同步（防抖）
+   * 仅当自动同步启用且已配置时生效
+   */
+  onSettingsSaved() {
+    const settings = this.readSettings() || {}
+    const cs = settings.cloudSync || {}
+
+    if (!cs.enabled || !cs.autoSyncEnabled || !this.provider || !cs.passwordHash) {
+      return
+    }
+
+    if (this.isSyncing) return
+
+    // 防抖：3 秒内多次保存只触发一次
+    if (this._settingsSaveDebounceTimer) {
+      clearTimeout(this._settingsSaveDebounceTimer)
+    }
+    this._settingsSaveDebounceTimer = setTimeout(() => {
+      this._settingsSaveDebounceTimer = null
+      this._doAutoSync()
+    }, this._settingsSaveDebounceDelay)
+  }
+
+  /**
+   * 执行自动同步（内部方法）
+   * 需要缓存的密码才能执行
+   */
+  async _doAutoSync() {
+    if (this.isSyncing || !this.provider) return
+
+    if (!this._cachedPassword) {
+      this.logger.warn('Auto-sync skipped: no cached password')
+      return
+    }
+
+    this.logger.info('Auto-sync triggered')
+    try {
+      const result = await this.sync(this._cachedPassword)
+      if (result.success) {
+        this.logger.info('Auto-sync succeeded')
+      } else {
+        this.logger.warn('Auto-sync failed:', result.error)
+      }
+    } catch (error) {
+      this.logger.error('Auto-sync error:', error)
+    }
   }
 
   /**
@@ -370,6 +555,18 @@ class SyncService {
     localSettings.mcpServers = mergedServers
     localSettings.apiProfilesOrder = mergedOrder
     localSettings.currentApiProfile = mergedCurrent
+
+    // 同步顶层 API 字段：确保当前配置的顶层快捷字段与 apiProfiles 中一致
+    // 否则 switch-api-profile 的 extractApiConfig 会用旧的顶层字段覆盖已合并的数据
+    const currentProfile = mergedProfiles[mergedCurrent]
+    if (currentProfile) {
+      const API_FIELDS = require('../constants').API_FIELDS
+      for (const field of API_FIELDS) {
+        if (currentProfile[field] !== undefined) {
+          localSettings[field] = currentProfile[field]
+        }
+      }
+    }
   }
 
   /**

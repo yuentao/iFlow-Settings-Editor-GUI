@@ -101,7 +101,7 @@
     </div>
 
     <!-- ===== 云同步 ===== -->
-    <div class="section-group" id="cloud-sync-section">
+    <div class="section-group" id="cloud-sync-section" style="display: none;">
       <div class="section-header">
         <div class="section-header-left">
           <h2 class="section-title">{{ $t('general.sectionCloudSync') }}</h2>
@@ -115,7 +115,7 @@
       </div>
 
       <transition name="collapse">
-        <div class="section-body" v-show="cloudStore.status.enabled">
+        <div class="section-body" v-show="syncEnabled">
           <!-- 状态 + 立即同步 + 同步内容 -->
           <div class="card card-appear" style="animation-delay: 0.02s">
             <div class="cloud-status-bar">
@@ -130,11 +130,11 @@
                 <span class="status-time" v-else-if="cloudStore.isConfigured">{{ $t('cloudSync.neverSynced') }}</span>
               </div>
               <div class="cloud-status-right">
-                <!-- <label class="switch switch-sm" @click.stop>
+                <label class="switch switch-sm" @click.stop>
                   <input type="checkbox" v-model="autoSyncEnabled" @change="onToggleAutoSync" />
                   <span class="slider"></span>
                 </label>
-                <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span> -->
+                <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span>
                 <button
                   class="btn btn-primary btn-sm"
                   :disabled="!cloudStore.isConfigured || cloudStore.isSyncing"
@@ -455,7 +455,7 @@
         </div>
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="closeSyncPasswordDialog">{{ $t('dialog.cancel') }}</button>
-          <button class="btn btn-primary" @click="handleSyncPasswordConfirm" :disabled="!syncPasswordDialog.password">
+          <button class="btn btn-primary" @click="syncPasswordDialog.show && syncPasswordDialog.onConfirm && syncPasswordDialog.onConfirm()" :disabled="!syncPasswordDialog.password">
             {{ $t('cloudSync.syncNow') }}
           </button>
         </div>
@@ -544,6 +544,7 @@ const syncPasswordDialog = ref({
   password: '',
   error: '',
   onConfirm: null,
+  onCancel: null,
 })
 const cloudConfirmDialog = ref({
   show: false,
@@ -657,13 +658,13 @@ onMounted(async () => {
   // 监听下载进度（后台下载用）
   window.electronAPI.onUpdateDownloadProgress(handleBackgroundProgress)
 
-  // 初始化云同步状态
+  // 初始化云同步状态 - 默认关闭，不加载已保存的开关状态
   await cloudStore.loadStatus()
-  syncEnabled.value = cloudStore.status.enabled
+  // syncEnabled 保持默认值 false，不加载已保存的状态
   autoSyncEnabled.value = cloudStore.status.autoSyncEnabled
   deviceName.value = cloudStore.status.deviceName || ''
   selectedProvider.value = cloudStore.status.provider || 'webdav'
-  if (cloudStore.status.enabled && cloudStore.isConfigured) {
+  if (syncEnabled.value && cloudStore.isConfigured) {
     await cloudStore.loadDevices()
   }
   if (window.electronAPI?.onCloudSyncStatusChanged) {
@@ -830,15 +831,86 @@ function showCloudMessage({ type = 'info', title, message }) {
   messageDialog.value = { show: true, type, title, message }
 }
 
+// 待处理的云同步启用标记（密码设置完成后继续）
+const pendingSyncEnable = ref(false)
+
 async function onToggleSyncEnabled() {
-  await cloudStore.toggleEnabled(syncEnabled.value)
   if (syncEnabled.value) {
-    await cloudStore.loadStatus()
+    // 开启云同步：检查是否已设置密码
+    if (!cloudStore.status.hasPassword) {
+      // 未设置密码，弹出密码设置对话框
+      // 先回滚开关状态，等密码设置成功后再开启
+      syncEnabled.value = false
+      showSetPasswordDialog()
+      // 密码设置成功后通过 handleSetPasswordConfirm 继续启用云同步
+      // 临时保存一个回调，等密码设置完成后调用
+      pendingSyncEnable.value = true
+    } else {
+      // 已设置密码，直接启用
+      await cloudStore.toggleEnabled(true)
+      await cloudStore.loadStatus()
+    }
+  } else {
+    // 关闭云同步
+    await cloudStore.toggleEnabled(false)
   }
 }
 
 async function onToggleAutoSync() {
-  await cloudStore.setAutoSync(autoSyncEnabled.value)
+  if (autoSyncEnabled.value) {
+    // 开启自动同步：检查主进程是否已缓存密码
+    try {
+      const result = await window.electronAPI.cloudSyncHasCachedPassword()
+      if (result.success && result.hasCachedPassword) {
+        // 主进程已有缓存密码，直接开启
+        await cloudStore.setAutoSync(true)
+      } else {
+        // 没有缓存密码，弹框验证一次
+        syncPasswordDialog.value = {
+          show: true,
+          password: '',
+          error: '',
+          onConfirm: handleAutoSyncPasswordConfirm,
+          onCancel: () => { autoSyncEnabled.value = false },
+        }
+        nextTick(() => {
+          const input = document.querySelector('.sync-password-overlay .form-input')
+          if (input) input.focus()
+        })
+      }
+    } catch (error) {
+      console.error('Failed to check cached password:', error)
+      // 出错时仍尝试直接开启
+      await cloudStore.setAutoSync(true)
+    }
+  } else {
+    // 关闭自动同步：直接关闭
+    await cloudStore.setAutoSync(false)
+  }
+}
+
+async function handleAutoSyncPasswordConfirm() {
+  const { password } = syncPasswordDialog.value
+  if (!password) return
+  const verifyResult = await cloudStore.verifyPassword(password)
+  if (verifyResult.success && verifyResult.valid) {
+    // 验证成功，清除 onCancel 避免关闭时回滚开关
+    syncPasswordDialog.value.onCancel = null
+    // 验证成功，密码已缓存到主进程，开启自动同步
+    const syncResult = await cloudStore.setAutoSync(true)
+    // 检查设置结果，确保成功后才关闭对话框
+    if (syncResult.success) {
+      closeSyncPasswordDialog()
+    } else {
+      // 设置失败，重置对话框状态，让用户可以重试
+      syncPasswordDialog.value.error = syncResult.error || t('cloudSync.setAutoSyncFailed')
+      syncPasswordDialog.value.onCancel = () => { autoSyncEnabled.value = false }
+      // 同时回滚 checkbox 状态以反映真实情况
+      autoSyncEnabled.value = false
+    }
+  } else {
+    syncPasswordDialog.value.error = t('cloudSync.passwordIncorrect')
+  }
 }
 
 function onProviderChange() {
@@ -934,6 +1006,13 @@ async function handleSetPasswordConfirm() {
   const result = await cloudStore.setPassword(password)
   if (result.success) {
     closePasswordDialog()
+    // 检查是否有待处理的云同步启用请求
+    if (pendingSyncEnable.value) {
+      pendingSyncEnable.value = false
+      syncEnabled.value = true
+      await cloudStore.toggleEnabled(true)
+      await cloudStore.loadStatus()
+    }
   } else {
     passwordDialog.value.error = result.error || t('messages.error')
   }
@@ -978,6 +1057,7 @@ function handleSyncNow() {
       password: '',
       error: '',
       onConfirm: handleSyncPasswordConfirm,
+      onCancel: null,
     }
     nextTick(() => {
       const input = document.querySelector('.sync-password-overlay .form-input')
@@ -991,6 +1071,7 @@ async function handleSyncPasswordConfirm() {
   if (!password) return
   const verifyResult = await cloudStore.verifyPassword(password)
   if (verifyResult.success && verifyResult.valid) {
+    syncPasswordDialog.value.onCancel = null
     closeSyncPasswordDialog()
     await cloudStore.syncNow(password)
     cloudStore.loadDevices()
@@ -1000,8 +1081,12 @@ async function handleSyncPasswordConfirm() {
 }
 
 function closeSyncPasswordDialog() {
+  const cancel = syncPasswordDialog.value.onCancel
   syncPasswordDialog.value.show = false
   syncPasswordDialog.value.error = ''
+  syncPasswordDialog.value.onConfirm = null
+  syncPasswordDialog.value.onCancel = null
+  if (cancel) cancel()
 }
 
 function handleClearCloud() {

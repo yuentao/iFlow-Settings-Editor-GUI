@@ -329,6 +329,8 @@ const duplicateApiProfile = async name => {
   const result = await window.electronAPI.duplicateApiProfile(name, newName)
   if (result.success) {
     await loadApiProfiles()
+    // 重新加载当前配置的完整数据，确保 settings.value.apiProfiles 被刷新
+    await switchApiProfile()
     await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configCopied', { name: newName }) })
   } else {
     await showMessage({ type: 'error', title: t('messages.error'), message: result.error })
@@ -450,14 +452,14 @@ watch(
   },
 )
 
-const showSection = section => {
+const showSection = (section, subSection) => {
   currentSection.value = section
-  if (section === 'general') {
+  if (section === 'general' && subSection && subSection.section === 'cloudSync') {
     nextTick(() => {
       setTimeout(() => {
         const el = document.getElementById('cloud-sync-section')
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      },100)
+      }, 200)
     })
   }
 }
@@ -700,22 +702,6 @@ const initUpdateListeners = () => {
     showUpdateProgress.value = true
     isBackgroundDownloading.value = false
   })
-}
-
-const checkForUpdatesManual = async () => {
-  try {
-    const result = await window.electronAPI.checkForUpdates()
-    if (result.success && result.hasUpdate) {
-      latestUpdateVersion.value = result.version || ''
-      updateReleaseNotes.value = result.releaseNotes || ''
-      showUpdateNotification.value = true
-    } else if (result.success) {
-      await showMessage({ type: 'info', title: t('update.title'), message: t('update.noUpdate') })
-    }
-  } catch (error) {
-    console.error('Check for updates failed:', error)
-    await showMessage({ type: 'error', title: t('update.title'), message: t('update.checkFailed') })
-  }
 }
 
 // 自动检查更新（不显示"已是最新"提示，发现新版本后自动后台下载）
