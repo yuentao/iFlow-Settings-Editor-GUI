@@ -161,8 +161,7 @@ describe('SyncService', () => {
   describe('getStatus', () => {
     it('should return correct sync status', () => {
       const status = service.getStatus()
-      expect(status.enabled).toBe(true)
-      expect(status.autoSyncEnabled).toBe(false)
+      // enabled 和 autoSyncEnabled 由渲染进程通过 localStorage 管理，不从此处返回
       expect(status.hasPassword).toBe(true)
       expect(status.isAuthorized).toBe(true)
       expect(status.provider).toBe('webdav')
@@ -176,7 +175,7 @@ describe('SyncService', () => {
     it('should handle missing cloudSync section', () => {
       mockReadSettings.mockReturnValue({})
       const status = service.getStatus()
-      expect(status.enabled).toBe(false)
+      // enabled 和 autoSyncEnabled 由渲染进程通过 localStorage 管理，不从此处返回
       expect(status.hasPassword).toBe(false)
       expect(status.isAuthorized).toBe(false)
       expect(status.provider).toBeNull()
@@ -266,15 +265,17 @@ describe('SyncService', () => {
 
     it('should overwrite same-name profile when remote is newer', () => {
       const local = createBaseSettings()
-      local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
+      // local profile 的 _lastModified 是 T1
+      local.apiProfiles.default._lastModified = '2026-04-25T08:00:00Z'
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-25T10:00:00Z', // 比最后同步时间新
+        timestamp: '2026-04-25T10:00:00Z',
         data: {
           apiProfiles: {
-            default: { apiKey: 'sk-updated', baseUrl: 'https://updated.com' },
+            // remote profile 的 _lastModified 是 T2 (比 T1 新)
+            default: { apiKey: 'sk-updated', baseUrl: 'https://updated.com', _lastModified: '2026-04-25T09:00:00Z' },
           },
           mcpServers: {},
           apiProfilesOrder: [],
@@ -288,15 +289,18 @@ describe('SyncService', () => {
 
     it('should NOT overwrite same-name profile when remote is older', () => {
       const local = createBaseSettings()
-      local.cloudSync.lastSyncAt = '2026-04-25T12:00:00Z'
+      // local profile 的 _lastModified 是 T3 (12:00)，表示在 lastSyncAt 之后被修改过
+      local.apiProfiles.default._lastModified = '2026-04-25T12:00:00Z'
+      local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-25T10:00:00Z', // 比最后同步时间旧
+        timestamp: '2026-04-25T10:00:00Z',
         data: {
           apiProfiles: {
-            default: { apiKey: 'sk-old', baseUrl: 'https://old.com' },
+            // remote profile 的 _lastModified 是 T2 (10:00)，比 local 的 T3 早
+            default: { apiKey: 'sk-old', baseUrl: 'https://old.com', _lastModified: '2026-04-25T10:00:00Z' },
           },
           mcpServers: {},
           apiProfilesOrder: [],
@@ -393,6 +397,7 @@ describe('SyncService', () => {
 
     it('should sync top-level API fields after merge', () => {
       const local = createBaseSettings()
+      // local profile 的 _lastModified 未设置（默认为 0）
       local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
       // 顶层字段是旧值
       local.apiKey = 'sk-old-key'
@@ -405,7 +410,7 @@ describe('SyncService', () => {
         timestamp: '2026-04-25T10:00:00Z',
         data: {
           apiProfiles: {
-            default: { apiKey: 'sk-merged-key', baseUrl: 'https://merged.com', modelName: 'merged-model' },
+            default: { apiKey: 'sk-merged-key', baseUrl: 'https://merged.com', modelName: 'merged-model', _lastModified: '2026-04-25T09:00:00Z' },
           },
           mcpServers: {},
           apiProfilesOrder: [],
@@ -423,6 +428,7 @@ describe('SyncService', () => {
 
     it('should merge mcpServers with overwrite-when-newer strategy', () => {
       const local = createBaseSettings()
+      // local server 的 _lastModified 未设置（默认为 0）
       local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
 
       const remoteConfigs = [{
@@ -432,7 +438,7 @@ describe('SyncService', () => {
         data: {
           apiProfiles: {},
           mcpServers: {
-            'my-server': { command: 'updated-cmd', args: ['updated-arg'] },
+            'my-server': { command: 'updated-cmd', args: ['updated-arg'], _lastModified: '2026-04-25T09:00:00Z' },
           },
           apiProfilesOrder: [],
           currentApiProfile: 'default',

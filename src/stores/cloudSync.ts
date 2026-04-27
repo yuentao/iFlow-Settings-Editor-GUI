@@ -7,8 +7,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export interface CloudSyncStatus {
-  enabled: boolean
-  autoSyncEnabled: boolean
+  // enabled 和 autoSyncEnabled 由渲染进程通过 localStorage 持久化，不从此处读取
   hasPassword: boolean
   isAuthorized: boolean
   provider: string | null
@@ -27,10 +26,8 @@ export interface CloudDeviceInfo {
 }
 
 export const useCloudSyncStore = defineStore('cloudSync', () => {
-  // State
+  // State（enabled 和 autoSyncEnabled 由渲染进程通过 localStorage 管理，不从此处读取）
   const status = ref<CloudSyncStatus>({
-    enabled: false,
-    autoSyncEnabled: false,
     hasPassword: false,
     isAuthorized: false,
     provider: null,
@@ -50,11 +47,14 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   // 密码缓存（仅内存中，不持久化）
   const cachedPassword = ref<string | null>(null)
 
+  // 云同步启用状态（开关状态由 localStorage 持久化，store 统一管理）
+  const syncEnabled = ref(localStorage.getItem('iflow_syncEnabled') === 'true')
+  const autoSyncEnabled = ref(localStorage.getItem('iflow_autoSyncEnabled') === 'true')
+
   // Getters
   const isConfigured = computed(() => status.value.hasPassword && status.value.isAuthorized)
 
   const statusText = computed(() => {
-    if (!status.value.enabled) return 'disabled'
     if (status.value.isSyncing) return 'syncing'
     if (!isConfigured.value) return 'notConfigured'
     if (status.value.lastSyncError) return 'error'
@@ -66,7 +66,8 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     try {
       const result = await window.electronAPI.cloudSyncGetStatus()
       if (result.success) {
-        const { success, ...rest } = result
+        const { success, enabled, autoSyncEnabled, ...rest } = result
+        // enabled 和 autoSyncEnabled 由渲染进程通过 localStorage 管理，不从 result 覆盖
         Object.assign(status.value, rest)
       }
     } catch (error) {
@@ -74,24 +75,10 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     }
   }
 
-  async function toggleEnabled(enabled: boolean) {
-    try {
-      const result = await window.electronAPI.cloudSyncToggleEnabled(enabled)
-      if (result.success) {
-        status.value.enabled = enabled
-      }
-      return result
-    } catch (error) {
-      console.error('[CloudSync] Failed to toggle enabled:', error)
-      return { success: false, error: (error as Error).message }
-    }
-  }
-
   async function setAutoSync(enabled: boolean) {
     try {
       const result = await window.electronAPI.cloudSyncSetAutoSync(enabled)
-      // 无论成功与否，都更新本地状态以保持 UI 和状态一致
-      status.value.autoSyncEnabled = enabled
+      // autoSyncEnabled 由渲染进程通过 localStorage 管理，不更新 status
       return result
     } catch (error) {
       console.error('[CloudSync] Failed to set auto sync:', error)
@@ -321,6 +308,16 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     }
   }
 
+  function setSyncEnabled(enabled: boolean) {
+    syncEnabled.value = enabled
+    localStorage.setItem('iflow_syncEnabled', String(enabled))
+  }
+
+  function setAutoSyncEnabled(enabled: boolean) {
+    autoSyncEnabled.value = enabled
+    localStorage.setItem('iflow_autoSyncEnabled', String(enabled))
+  }
+
   function clearCachedPassword() {
     cachedPassword.value = null
   }
@@ -335,9 +332,12 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     cachedPassword,
     isConfigured,
     statusText,
+    syncEnabled,
+    autoSyncEnabled,
     loadStatus,
-    toggleEnabled,
     setAutoSync,
+    setSyncEnabled,
+    setAutoSyncEnabled,
     configureProvider,
     testConnection,
     revokeAuth,

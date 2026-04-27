@@ -78,6 +78,7 @@ export default {
     autoLaunchHint: 'When enabled, the application will automatically start when the system boots and run silently in the background without showing the main window.',
     sectionPreferences: 'Preferences',
     sectionCloudSync: 'Cloud Sync',
+    experimental: 'Experimental',
     sectionAbout: 'About'
   },
   theme: {

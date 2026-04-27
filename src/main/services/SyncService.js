@@ -83,14 +83,15 @@ class SyncService {
 
   /**
    * 缓存同步密码（用于自动同步）
-   * 当自动同步启用时，同时持久化加密密码到设置文件
+   * 持久化加密密码到设置文件（用于重启后恢复）
    * @param {string} password
    * @param {object} [options]
-   * @param {boolean} [options.persist] - 是否持久化加密密码（默认由 autoSyncEnabled 决定）
+   * @param {boolean} [options.persist] - 是否持久化加密密码（默认 true）
    */
   cachePassword(password, options = {}) {
     this._cachedPassword = password
-    const shouldPersist = options.persist !== undefined ? options.persist : this._isAutoSyncActive()
+    // 默认持久化密码，因为加密密码在重启后仍需使用（用于同步操作）
+    const shouldPersist = options.persist !== undefined ? options.persist : true
     if (shouldPersist && password) {
       this._persistEncryptedPassword(password)
     }
@@ -161,13 +162,6 @@ class SyncService {
     }
   }
 
-  /** 判断自动同步是否处于激活状态 */
-  _isAutoSyncActive() {
-    const settings = this.readSettings() || {}
-    const cs = settings.cloudSync || {}
-    return !!(cs.enabled && cs.autoSyncEnabled && cs.providerConfig && cs.passwordHash)
-  }
-
   /**
    * 启动自动同步定时器
    * @param {object} [options]
@@ -186,6 +180,9 @@ class SyncService {
       this._doAutoSync()
     }, this._autoSyncInterval)
 
+    // 启动后立即触发一次同步
+    this._doAutoSync()
+
     this.logger.info(`Auto-sync started (interval: ${this._autoSyncInterval / 1000}s)`)
   }
 
@@ -200,13 +197,12 @@ class SyncService {
 
   /**
    * 设置保存后触发自动同步（防抖）
-   * 仅当自动同步启用且已配置时生效
+   * auto-sync 状态由渲染进程通过 localStorage 管理，主进程只负责在设置保存时触发同步
    */
   onSettingsSaved() {
-    const settings = this.readSettings() || {}
-    const cs = settings.cloudSync || {}
-
-    if (!cs.enabled || !cs.autoSyncEnabled || !this.provider || !cs.passwordHash) {
+    // 不再检查 cs.enabled/cs.autoSyncEnabled（这些值已不在 settings.json 中）
+    // _doAutoSync() 已检查 provider 和 password，确保已配置才会同步
+    if (!this.provider || !this._cachedPassword) {
       return
     }
 
@@ -255,8 +251,7 @@ class SyncService {
     const settings = this.readSettings() || {}
     const cs = settings.cloudSync || {}
     return {
-      enabled: cs.enabled || false,
-      autoSyncEnabled: cs.autoSyncEnabled || false,
+      // enabled 和 autoSyncEnabled 已移除，由渲染进程通过 localStorage 管理
       hasPassword: !!cs.passwordHash,
       isAuthorized: !!cs.providerConfig,
       provider: cs.provider || null,
@@ -407,6 +402,7 @@ class SyncService {
     return {
       success: pushResult.success,
       error: pushResult.error,
+      // pull 成功时合并已完成，mergedFrom 反映实际合并的设备数
       mergedFrom: pullResult.mergedFrom,
     }
   }
@@ -472,6 +468,7 @@ class SyncService {
    * @returns {object}
    */
   _extractSyncData(settings) {
+    // 不再在这里为 item 添加 _lastModified，避免影响合并比较
     return {
       apiProfiles: settings.apiProfiles || {},
       currentApiProfile: settings.currentApiProfile || 'default',
@@ -496,7 +493,12 @@ class SyncService {
 
     const local = this._extractSyncData(localSettings)
 
-    // 合并 apiProfiles：按 profile 名称
+    // 用于比较的本地时间参考：如果 item 没有 _lastModified，使用 lastSyncAt（上次已知同步时间）
+    const lastSyncAt = localSettings.cloudSync?.lastSyncAt
+      ? new Date(localSettings.cloudSync.lastSyncAt).getTime()
+      : 0
+
+    // 合并 apiProfiles：按 profile 名称，比较 per-item _lastModified
     const mergedProfiles = { ...local.apiProfiles }
     for (const remote of remoteConfigs) {
       for (const [name, profile] of Object.entries(remote.data.apiProfiles || {})) {
@@ -504,30 +506,37 @@ class SyncService {
           // 本地没有 → 直接加入
           mergedProfiles[name] = profile
         } else {
-          // 本地有同名 → 远端更新则覆盖
-          const remoteTime = new Date(remote.timestamp).getTime()
-          const localSyncTime = localSettings.cloudSync?.lastSyncAt
-            ? new Date(localSettings.cloudSync.lastSyncAt).getTime()
+          // 本地有同名 → 比较 per-item _lastModified 时间
+          // 远端时间：使用 item 的 _lastModified（没有则为 0，表示很旧）
+          const remoteItemTime = profile._lastModified
+            ? new Date(profile._lastModified).getTime()
             : 0
-          if (remoteTime > localSyncTime) {
+          // 本地时间：使用 item 的 _lastModified，如果没有则用 lastSyncAt
+          // （表示该 item 上次已知同步的时间，在此之前本地的修改不应当被覆盖）
+          const localItemTime = mergedProfiles[name]._lastModified
+            ? new Date(mergedProfiles[name]._lastModified).getTime()
+            : lastSyncAt
+          if (remoteItemTime > localItemTime) {
             mergedProfiles[name] = profile
           }
         }
       }
     }
 
-    // 合并 mcpServers：按服务器名称
+    // 合并 mcpServers：按服务器名称，比较 per-item _lastModified
     const mergedServers = { ...local.mcpServers }
     for (const remote of remoteConfigs) {
       for (const [name, server] of Object.entries(remote.data.mcpServers || {})) {
         if (!mergedServers[name]) {
           mergedServers[name] = server
         } else {
-          const remoteTime = new Date(remote.timestamp).getTime()
-          const localSyncTime = localSettings.cloudSync?.lastSyncAt
-            ? new Date(localSettings.cloudSync.lastSyncAt).getTime()
+          const remoteItemTime = server._lastModified
+            ? new Date(server._lastModified).getTime()
             : 0
-          if (remoteTime > localSyncTime) {
+          const localItemTime = mergedServers[name]._lastModified
+            ? new Date(mergedServers[name]._lastModified).getTime()
+            : lastSyncAt
+          if (remoteItemTime > localItemTime) {
             mergedServers[name] = server
           }
         }

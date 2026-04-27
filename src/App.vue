@@ -122,6 +122,7 @@ import ServerPanel from './components/ServerPanel.vue'
 import UpdateNotification from './components/UpdateNotification.vue'
 import UpdateProgress from './components/UpdateProgress.vue'
 import SkeletonLoader from './components/SkeletonLoader.vue'
+import { useCloudSyncStore } from './stores/cloudSync'
 
 // 视图组件懒加载
 import { defineAsyncComponent } from 'vue'
@@ -174,6 +175,7 @@ const CommandsView = defineAsyncComponent({
 })
 
 const { locale, t } = useI18n()
+const cloudSyncStore = useCloudSyncStore()
 
 const settings = ref({
   language: 'zh-CN',
@@ -206,6 +208,9 @@ const pendingConfirmResolve = ref(null)
 const showServerPanel = ref(false)
 const isEditingServer = ref(false)
 const editingServerData = ref({ name: '', description: '', command: 'npx', cwd: '.', args: '', env: '' })
+
+// 标志：跳过下次 saveSettings，避免 profile 切换触发不必要的云同步覆盖
+const skipNextSaveSettings = ref(false)
 const showApiEditDialog = ref(false)
 const editingApiProfileName = ref('')
 const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '' })
@@ -268,7 +273,9 @@ const saveApiCreate = async data => {
       loadedData.apiProfiles[name] = profileData
       await window.electronAPI.saveSettings(loadedData)
       showApiCreateDialog.value = false
+      skipNextSaveSettings.value = true  // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
       await loadSettings()
+      skipNextSaveSettings.value = false
       await loadApiProfiles()
       await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configCreated', { name }) })
     }
@@ -292,9 +299,11 @@ const deleteApiProfile = async name => {
     const data = JSON.parse(JSON.stringify(result.data))
     if (!data.checkpointing) data.checkpointing = { enabled: true }
     if (!data.mcpServers) data.mcpServers = {}
+    skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
     settings.value = data
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false
+    skipNextSaveSettings.value = false
     await loadApiProfiles()
     await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configDeleted') })
   } else {
@@ -306,9 +315,11 @@ const reorderApiProfiles = async newProfiles => {
   // 更新本地列表
   apiProfiles.value = newProfiles
   // 保存排序顺序到settings
+  skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
   settings.value.apiProfilesOrder = newProfiles.map(p => p.name)
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
+  skipNextSaveSettings.value = false
   if (result.success) {
     originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
     modified.value = false
@@ -317,8 +328,10 @@ const reorderApiProfiles = async newProfiles => {
 
 const selectApiProfile = async name => {
   if (name === currentApiProfile.value) return
+  skipNextSaveSettings.value = true  // 标记跳过下次 saveSettings，避免竞态覆盖
   currentApiProfile.value = name
   await switchApiProfile()
+  skipNextSaveSettings.value = false
 }
 
 const duplicateApiProfile = async name => {
@@ -383,6 +396,7 @@ const saveApiEdit = async data => {
   }
 
   // 更新配置数据
+  skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
   if (!settings.value.apiProfiles[newName]) settings.value.apiProfiles[newName] = {}
   settings.value.apiProfiles[newName].selectedAuthType = data.selectedAuthType
   settings.value.apiProfiles[newName].apiKey = data.apiKey
@@ -400,8 +414,11 @@ const saveApiEdit = async data => {
   showApiEditDialog.value = false
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
+  skipNextSaveSettings.value = false
   if (result.success) {
+    skipNextSaveSettings.value = true  // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
     await loadSettings()
+    skipNextSaveSettings.value = false
     await showMessage({ type: 'success', title: t('messages.success'), message: t('api.configSaved') })
   }
 }
@@ -433,6 +450,10 @@ watch(
   settings,
   async () => {
     if (!isLoading.value) {
+      if (skipNextSaveSettings.value) {
+        skipNextSaveSettings.value = false
+        return
+      }
       modified.value = true
       const dataToSave = JSON.parse(JSON.stringify(settings.value))
       await window.electronAPI.saveSettings(dataToSave)
@@ -589,8 +610,10 @@ const saveServerFromPanel = async data => {
   settings.value.mcpServers[name] = serverConfig
   currentServerName.value = name
   showServerPanel.value = false
+  skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
+  skipNextSaveSettings.value = false
   if (result.success) {
     originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
     modified.value = false
@@ -611,8 +634,10 @@ const deleteServer = async () => {
   delete settings.value.mcpServers[serverName]
   currentServerName.value = null
   showServerPanel.value = false
+  skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
+  skipNextSaveSettings.value = false
   if (result.success) {
     originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
     modified.value = false
@@ -909,9 +934,19 @@ onMounted(async () => {
   })
 
   window.electronAPI.onApiProfileSwitched(async profileName => {
+    skipNextSaveSettings.value = true
     currentApiProfile.value = profileName
     await loadSettings()
+    skipNextSaveSettings.value = false
   })
+
+  // 恢复自动同步定时器（由 cloudSync store 统一管理，包括 localStorage 持久化）
+  if (cloudSyncStore.autoSyncEnabled) {
+    await cloudSyncStore.loadStatus()
+    if (cloudSyncStore.isConfigured) {
+      await cloudSyncStore.setAutoSync(true)
+    }
+  }
 })
 
 onUnmounted(() => {})

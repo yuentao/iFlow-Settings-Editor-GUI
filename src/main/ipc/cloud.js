@@ -17,23 +17,6 @@ const syncService = new SyncService()
 const cryptoMgr = new CryptoManager()
 
 /**
- * 自动同步管理器
- * 根据配置启停自动同步定时器，并监听设置保存事件
- */
-const autoSyncManager = {
-  /** 检查并启动/停止自动同步 */
-  refresh() {
-    const settings = readSettings() || {}
-    const cs = settings.cloudSync || {}
-    if (cs.enabled && cs.autoSyncEnabled && cs.providerConfig && cs.passwordHash && syncService.provider) {
-      syncService.startAutoSync()
-    } else {
-      syncService.stopAutoSync()
-    }
-  },
-}
-
-/**
  * 根据设置中的 provider 配置初始化云存储适配器
  */
 function initProvider() {
@@ -56,10 +39,8 @@ function initProvider() {
   // OneDrive / Dropbox 适配器在此扩展
 }
 
-// 应用启动时初始化 provider
+// 应用启动时初始化 provider（providerConfig 仍从 settings.json 读取）
 initProvider()
-// 应用启动时初始化自动同步状态
-autoSyncManager.refresh()
 
 /**
  * 注册云同步 IPC 处理器
@@ -71,32 +52,14 @@ function registerCloudSyncIpcHandlers() {
     return { success: true, ...syncService.getStatus() }
   }, 'cloud-sync:get-status'))
 
-  ipcMain.handle('cloud-sync:toggle-enabled', wrapIpcHandler(async (_event, enabled) => {
-    const settings = readSettings() || {}
-    settings.cloudSync = settings.cloudSync || {}
-    settings.cloudSync.enabled = enabled
-    writeSettings(settings)
-    autoSyncManager.refresh()
-    return { success: true }
-  }, 'cloud-sync:toggle-enabled'))
-
   ipcMain.handle('cloud-sync:set-auto-sync', wrapIpcHandler(async (_event, enabled) => {
-    const settings = readSettings() || {}
-    settings.cloudSync = settings.cloudSync || {}
-    settings.cloudSync.autoSyncEnabled = enabled
-    // 关闭自动同步时清除持久化的加密密码
-    if (!enabled && settings.cloudSync.autoSyncEncryptedPassword) {
-      delete settings.cloudSync.autoSyncEncryptedPassword
-    }
-    writeSettings(settings)
+    // autoSyncEnabled 由渲染进程通过 localStorage 持久化
     if (!enabled) {
-      syncService._cachedPassword = null
-    } else if (syncService._cachedPassword) {
-      // 开启自动同步时：如果已有缓存密码则立即持久化
-      // （密码可能在 set-password/verify-password 时已缓存但未持久化，因为那时 autoSyncEnabled 可能还是 false）
-      syncService.cachePassword(syncService._cachedPassword, { persist: true })
+      syncService.stopAutoSync()
+      syncService.clearCachedPassword()
+    } else {
+      syncService.startAutoSync()
     }
-    autoSyncManager.refresh()
     return { success: true }
   }, 'cloud-sync:set-auto-sync'))
 
@@ -109,7 +72,7 @@ function registerCloudSyncIpcHandlers() {
     settings.cloudSync.providerConfig = config
     writeSettings(settings)
     initProvider()
-    autoSyncManager.refresh()
+    // 不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理
     return { success: true }
   }, 'cloud-sync:configure-provider'))
 
@@ -128,7 +91,7 @@ function registerCloudSyncIpcHandlers() {
     writeSettings(settings)
     syncService.setProvider(null)
     syncService.clearCachedPassword()
-    autoSyncManager.refresh()
+    // 不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理
     return { success: true }
   }, 'cloud-sync:revoke-auth'))
 
@@ -148,9 +111,8 @@ function registerCloudSyncIpcHandlers() {
     settings.cloudSync.passwordSalt = salt.toString('base64')
     writeSettings(settings)
 
-    // 缓存密码并刷新自动同步状态
+    // 缓存密码（不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理）
     syncService.cachePassword(password)
-    autoSyncManager.refresh()
     return { success: true }
   }, 'cloud-sync:set-password'))
 
@@ -166,8 +128,13 @@ function registerCloudSyncIpcHandlers() {
     const hash = cryptoMgr.hashKey(key)
     const valid = hash === cs.passwordHash
 
-    // 验证成功时缓存密码
-    if (valid) syncService.cachePassword(password)
+    // 验证成功时缓存密码并更新同步时间
+    if (valid) {
+      syncService.cachePassword(password)
+      settings.cloudSync = settings.cloudSync || {}
+      settings.cloudSync.lastSyncAt = new Date().toISOString()
+      writeSettings(settings)
+    }
     return { success: true, valid }
   }, 'cloud-sync:verify-password'))
 
@@ -198,9 +165,8 @@ function registerCloudSyncIpcHandlers() {
     settings.cloudSync.passwordSalt = newSalt.toString('base64')
     writeSettings(settings)
 
-    // 缓存新密码并刷新自动同步
+    // 缓存新密码（不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理）
     syncService.cachePassword(newPassword)
-    autoSyncManager.refresh()
 
     // 需要用新密码重新推送（旧加密数据无法解密）
     return { success: true, needRepush: true }
@@ -234,7 +200,7 @@ function registerCloudSyncIpcHandlers() {
   ipcMain.handle('cloud-sync:clear-cloud', wrapIpcHandler(async () => {
     await syncService.clearCloud()
     syncService.clearCachedPassword()
-    autoSyncManager.refresh()
+    // 不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理
     return { success: true }
   }, 'cloud-sync:clear-cloud'))
 
@@ -265,5 +231,4 @@ module.exports = {
   registerCloudSyncIpcHandlers,
   syncService,
   initProvider,
-  autoSyncManager,
 }

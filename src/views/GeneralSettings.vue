@@ -101,14 +101,15 @@
     </div>
 
     <!-- ===== 云同步 ===== -->
-    <div class="section-group" id="cloud-sync-section" style="display: none;">
+    <div class="section-group" id="cloud-sync-section">
       <div class="section-header">
         <div class="section-header-left">
           <h2 class="section-title">{{ $t('general.sectionCloudSync') }}</h2>
+          <span class="experimental-badge">{{ $t('general.experimental') || '(实验性)' }}</span>
         </div>
         <div class="section-header-right">
           <label class="switch" @click.stop>
-            <input type="checkbox" v-model="syncEnabled" @change="onToggleSyncEnabled" />
+            <input type="checkbox" :checked="syncEnabled" @click.stop="onToggleSyncEnabled" />
             <span class="slider"></span>
           </label>
         </div>
@@ -124,22 +125,16 @@
                   <span class="status-dot"></span>
                   <span class="status-label">{{ statusLabel }}</span>
                 </div>
-                <span class="status-time" v-if="cloudStore.isConfigured && cloudStore.status.lastSyncAt">
-                  {{ $t('cloudSync.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }}
-                </span>
+                <span class="status-time" v-if="cloudStore.isConfigured && cloudStore.status.lastSyncAt"> {{ $t('cloudSync.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }} </span>
                 <span class="status-time" v-else-if="cloudStore.isConfigured">{{ $t('cloudSync.neverSynced') }}</span>
               </div>
               <div class="cloud-status-right">
                 <label class="switch switch-sm" @click.stop>
-                  <input type="checkbox" v-model="autoSyncEnabled" @change="onToggleAutoSync" />
+                  <input type="checkbox" :checked="autoSyncEnabled" @change="onToggleAutoSync" />
                   <span class="slider"></span>
                 </label>
                 <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span>
-                <button
-                  class="btn btn-primary btn-sm"
-                  :disabled="!cloudStore.isConfigured || cloudStore.isSyncing"
-                  @click="handleSyncNow"
-                >
+                <button class="btn btn-primary btn-sm" :disabled="!cloudStore.isConfigured || cloudStore.isSyncing" @click="handleSyncNow">
                   <Loading v-if="cloudStore.isSyncing" size="14" class="spin" />
                   <Refresh v-else size="14" />
                   {{ cloudStore.isSyncing ? $t('cloudSync.statusSyncing') : $t('cloudSync.syncNow') }}
@@ -166,8 +161,6 @@
             </div>
           </div>
 
-          
-
           <!-- 云服务配置 -->
           <div class="card card-appear" style="animation-delay: 0.06s">
             <div class="card-title">
@@ -189,49 +182,26 @@
               <div class="webdav-form" v-if="!cloudStore.status.isAuthorized">
                 <div class="form-group">
                   <label class="form-label">{{ $t('cloudSync.webdavServerUrl') }}</label>
-                  <input
-                    type="url"
-                    class="form-input"
-                    v-model="webdavConfig.serverUrl"
-                    :placeholder="$t('cloudSync.webdavServerUrlPlaceholder')"
-                  />
+                  <input type="url" class="form-input" v-model="webdavConfig.serverUrl" :placeholder="$t('cloudSync.webdavServerUrlPlaceholder')" />
                 </div>
                 <div class="form-row">
                   <div class="form-group">
                     <label class="form-label">{{ $t('cloudSync.webdavUsername') }}</label>
-                    <input
-                      type="text"
-                      class="form-input"
-                      v-model="webdavConfig.username"
-                      :placeholder="$t('cloudSync.webdavUsernamePlaceholder')"
-                    />
+                    <input type="text" class="form-input" v-model="webdavConfig.username" :placeholder="$t('cloudSync.webdavUsernamePlaceholder')" />
                   </div>
                   <div class="form-group">
                     <label class="form-label">{{ $t('cloudSync.webdavPassword') }}</label>
-                    <input
-                      type="password"
-                      class="form-input"
-                      v-model="webdavConfig.password"
-                      :placeholder="$t('cloudSync.webdavPasswordPlaceholder')"
-                    />
+                    <input type="password" class="form-input" v-model="webdavConfig.password" :placeholder="$t('cloudSync.webdavPasswordPlaceholder')" />
                   </div>
                 </div>
                 <p class="webdav-hint">{{ $t('cloudSync.webdavPasswordHint') }}</p>
                 <div class="webdav-actions">
-                  <button
-                    class="btn btn-secondary btn-sm"
-                    :disabled="!canTestConnection"
-                    @click="handleTestConnection"
-                  >
+                  <button class="btn btn-secondary btn-sm" :disabled="!canTestConnection" @click="handleTestConnection">
                     <Loading v-if="cloudStore.isTestingConnection" size="14" class="spin" />
                     <Link v-else size="14" />
                     {{ $t('cloudSync.testConnection') }}
                   </button>
-                  <button
-                    class="btn btn-primary btn-sm"
-                    :disabled="!canTestConnection"
-                    @click="handleSaveProvider"
-                  >
+                  <button class="btn btn-primary btn-sm" :disabled="!canTestConnection" @click="handleSaveProvider">
                     {{ $t('dialog.confirm') }}
                   </button>
                 </div>
@@ -239,18 +209,14 @@
                   <span :class="cloudStore.connectionTestResult.success ? 'text-success' : 'text-danger'">
                     {{ cloudStore.connectionTestResult.success ? $t('cloudSync.connectionSuccess') : $t('cloudSync.connectionFailed') }}
                   </span>
-                  <span class="text-danger" v-if="cloudStore.connectionTestResult.message">
-                    — {{ cloudStore.connectionTestResult.message }}
-                  </span>
+                  <span class="text-danger" v-if="cloudStore.connectionTestResult.message"> — {{ cloudStore.connectionTestResult.message }} </span>
                 </div>
               </div>
 
               <div class="provider-authorized" v-else>
                 <div class="authorized-info">
                   <CheckSmall size="16" class="text-success" />
-                  <span class="authorized-text">
-                    {{ $t('cloudSync.connectionSuccess') }} — WebDAV
-                  </span>
+                  <span class="authorized-text"> {{ $t('cloudSync.connectionSuccess') }} — WebDAV </span>
                 </div>
                 <button class="btn btn-secondary btn-sm" @click="handleRevokeAuth">
                   {{ $t('cloudSync.revokeAuth') }}
@@ -274,11 +240,7 @@
                   <span class="password-hint" v-if="cloudStore.status.hasPassword"> — {{ $t('cloudSync.passwordHint') }}</span>
                 </p>
               </div>
-              <button
-                class="btn btn-sm"
-                :class="cloudStore.status.hasPassword ? 'btn-secondary' : 'btn-primary'"
-                @click="cloudStore.status.hasPassword ? showChangePasswordDialog() : showSetPasswordDialog()"
-              >
+              <button class="btn btn-sm" :class="cloudStore.status.hasPassword ? 'btn-secondary' : 'btn-primary'" @click="cloudStore.status.hasPassword ? showChangePasswordDialog() : showSetPasswordDialog()">
                 {{ cloudStore.status.hasPassword ? $t('cloudSync.changePassword') : $t('cloudSync.setPassword') }}
               </button>
             </div>
@@ -295,22 +257,12 @@
                   <label class="setting-label">{{ $t('cloudSync.deviceName') }}</label>
                 </div>
                 <div class="device-name-edit">
-                  <input
-                    type="text"
-                    class="form-input device-name-input"
-                    v-model="deviceName"
-                    @blur="handleSetDeviceName"
-                    @keyup.enter="handleSetDeviceName"
-                  />
+                  <input type="text" class="form-input device-name-input" v-model="deviceName" @blur="handleSetDeviceName" @keyup.enter="handleSetDeviceName" />
                 </div>
               </div>
               <div class="device-list-header">{{ $t('cloudSync.syncedDevices') }}</div>
               <div class="device-list" v-if="!cloudStore.isLoadingDevices">
-                <div
-                  v-for="device in cloudStore.devices"
-                  :key="device.deviceId"
-                  class="device-item"
-                >
+                <div v-for="device in cloudStore.devices" :key="device.deviceId" class="device-item">
                   <div class="device-status-dot" :class="{ 'is-self': device.isSelf }"></div>
                   <div class="device-info">
                     <div class="device-name">
@@ -319,11 +271,7 @@
                     </div>
                     <div class="device-time">{{ formatTime(device.lastModified) }}</div>
                   </div>
-                  <button
-                    v-if="!device.isSelf"
-                    class="btn btn-secondary btn-sm btn-remove-device"
-                    @click="handleRemoveDevice(device)"
-                  >
+                  <button v-if="!device.isSelf" class="btn btn-secondary btn-sm btn-remove-device" @click="handleRemoveDevice(device)">
                     {{ $t('cloudSync.removeDevice') }}
                   </button>
                 </div>
@@ -336,10 +284,6 @@
               </div>
             </template>
           </div>
-
-          
-
-          
         </div>
       </transition>
     </div>
@@ -399,31 +343,15 @@
         <div class="dialog-body">
           <div class="form-group" v-if="passwordDialog.showOldPassword">
             <label class="form-label">{{ $t('cloudSync.oldPassword') }}</label>
-            <input
-              type="password"
-              class="form-input"
-              v-model="passwordDialog.oldPassword"
-              :placeholder="$t('cloudSync.oldPassword')"
-            />
+            <input type="password" class="form-input" v-model="passwordDialog.oldPassword" :placeholder="$t('cloudSync.oldPassword')" />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t(passwordDialog.newPasswordLabel || 'cloudSync.newPassword') }}</label>
-            <input
-              type="password"
-              class="form-input"
-              v-model="passwordDialog.password"
-              :placeholder="$t('cloudSync.passwordMinLength')"
-            />
+            <input type="password" class="form-input" v-model="passwordDialog.password" :placeholder="$t('cloudSync.passwordMinLength')" />
           </div>
           <div class="form-group" v-if="passwordDialog.showConfirm">
             <label class="form-label">{{ $t('cloudSync.confirmPassword') }}</label>
-            <input
-              type="password"
-              class="form-input"
-              v-model="passwordDialog.confirmPassword"
-              :placeholder="$t('cloudSync.confirmPassword')"
-              @keyup.enter="passwordDialog.onConfirm"
-            />
+            <input type="password" class="form-input" v-model="passwordDialog.confirmPassword" :placeholder="$t('cloudSync.confirmPassword')" @keyup.enter="passwordDialog.onConfirm" />
           </div>
           <div class="password-error" v-if="passwordDialog.error">{{ passwordDialog.error }}</div>
         </div>
@@ -447,9 +375,8 @@
               class="form-input"
               v-model="syncPasswordDialog.password"
               :placeholder="$t('cloudSync.enterPassword')"
-              @keyup.enter="handleSyncPasswordConfirm"
-              autofocus
-            />
+              @keyup.enter="syncPasswordDialog.show && syncPasswordDialog.onConfirm && syncPasswordDialog.onConfirm()"
+              autofocus />
           </div>
           <div class="password-error" v-if="syncPasswordDialog.error">{{ syncPasswordDialog.error }}</div>
         </div>
@@ -499,6 +426,10 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 const cloudStore = useCloudSyncStore()
 
+// 云同步状态 refs（从 cloudSync store 中提取，Pinia 已自动 unwrap，直接使用）
+const syncEnabled = computed(() => cloudStore.syncEnabled)
+const autoSyncEnabled = computed(() => cloudStore.autoSyncEnabled)
+
 const localSettings = computed({
   get: () => props.settings,
   set: val => emit('update:settings', val),
@@ -517,9 +448,7 @@ const messageDialog = ref({
   message: '',
 })
 
-// 云同步状态
-const syncEnabled = ref(false)
-const autoSyncEnabled = ref(false)
+// 云同步状态（由 cloudSync store 统一管理，包括 localStorage 持久化）
 const selectedProvider = ref('webdav')
 const deviceName = ref('')
 const webdavConfig = ref({
@@ -569,7 +498,7 @@ const supportsAcrylic = computed(() => {
 const sliderWrapper = ref(null)
 
 // 更新状态变化处理
-const handleStatusChanged = (state) => {
+const handleStatusChanged = state => {
   if (state.status === 'downloaded') {
     updateReady.value = true
     updateVersion.value = state.info?.version || ''
@@ -587,7 +516,7 @@ const handleStatusChanged = (state) => {
 }
 
 // 后台下载进度处理
-const handleBackgroundProgress = (progress) => {
+const handleBackgroundProgress = progress => {
   if (isBackgroundDownloading.value) {
     backgroundProgress.value = progress
   }
@@ -658,13 +587,11 @@ onMounted(async () => {
   // 监听下载进度（后台下载用）
   window.electronAPI.onUpdateDownloadProgress(handleBackgroundProgress)
 
-  // 初始化云同步状态 - 默认关闭，不加载已保存的开关状态
+  // 初始化云同步状态（开关状态由 localStorage 持久化，不从 settings.json 加载）
   await cloudStore.loadStatus()
-  // syncEnabled 保持默认值 false，不加载已保存的状态
-  autoSyncEnabled.value = cloudStore.status.autoSyncEnabled
   deviceName.value = cloudStore.status.deviceName || ''
   selectedProvider.value = cloudStore.status.provider || 'webdav'
-  if (syncEnabled.value && cloudStore.isConfigured) {
+  if (cloudStore.syncEnabled && cloudStore.isConfigured) {
     await cloudStore.loadDevices()
   }
   if (window.electronAPI?.onCloudSyncStatusChanged) {
@@ -785,10 +712,7 @@ const updateSliderValue = e => {
 
 // === 云同步 Computed ===
 const canTestConnection = computed(() => {
-  return webdavConfig.value.serverUrl.trim() &&
-    webdavConfig.value.username.trim() &&
-    webdavConfig.value.password.trim() &&
-    !cloudStore.isTestingConnection
+  return webdavConfig.value.serverUrl.trim() && webdavConfig.value.username.trim() && webdavConfig.value.password.trim() && !cloudStore.isTestingConnection
 })
 
 const statusClass = computed(() => {
@@ -834,58 +758,55 @@ function showCloudMessage({ type = 'info', title, message }) {
 // 待处理的云同步启用标记（密码设置完成后继续）
 const pendingSyncEnable = ref(false)
 
-async function onToggleSyncEnabled() {
-  if (syncEnabled.value) {
+async function onToggleSyncEnabled(event) {
+  // event.target.checked tells us the intended new state (what the user is clicking TO)
+  // We use @click.stop with :checked instead of v-model, so the ref isn't toggled before this handler runs
+  const targetChecked = event.target.checked
+  if (targetChecked) {
     // 开启云同步：检查是否已设置密码
     if (!cloudStore.status.hasPassword) {
       // 未设置密码，弹出密码设置对话框
-      // 先回滚开关状态，等密码设置成功后再开启
-      syncEnabled.value = false
       showSetPasswordDialog()
-      // 密码设置成功后通过 handleSetPasswordConfirm 继续启用云同步
-      // 临时保存一个回调，等密码设置完成后调用
       pendingSyncEnable.value = true
     } else {
       // 已设置密码，直接启用
-      await cloudStore.toggleEnabled(true)
+      cloudStore.setSyncEnabled(true)
       await cloudStore.loadStatus()
     }
   } else {
     // 关闭云同步
-    await cloudStore.toggleEnabled(false)
+    cloudStore.setSyncEnabled(false)
+    // 同步关闭时，同时关闭自动同步，保持状态一致
+    cloudStore.setAutoSyncEnabled(false)
+    await cloudStore.setAutoSync(false)
   }
 }
 
 async function onToggleAutoSync() {
-  if (autoSyncEnabled.value) {
-    // 开启自动同步：检查主进程是否已缓存密码
-    try {
-      const result = await window.electronAPI.cloudSyncHasCachedPassword()
-      if (result.success && result.hasCachedPassword) {
-        // 主进程已有缓存密码，直接开启
-        await cloudStore.setAutoSync(true)
-      } else {
-        // 没有缓存密码，弹框验证一次
-        syncPasswordDialog.value = {
-          show: true,
-          password: '',
-          error: '',
-          onConfirm: handleAutoSyncPasswordConfirm,
-          onCancel: () => { autoSyncEnabled.value = false },
-        }
-        nextTick(() => {
-          const input = document.querySelector('.sync-password-overlay .form-input')
-          if (input) input.focus()
-        })
-      }
-    } catch (error) {
-      console.error('Failed to check cached password:', error)
-      // 出错时仍尝试直接开启
-      await cloudStore.setAutoSync(true)
+  // 使用 !cloudStore.autoSyncEnabled 判断目标状态，而不是 event.target.checked
+  // 因为 Vue 的 :checked 绑定在 @change 触发前就已经覆盖了 DOM 的 checked 属性
+  const enabled = !cloudStore.autoSyncEnabled
+  if (enabled) {
+    // 开启自动同步：弹出密码对话框进行确认
+    // 即使有缓存密码也弹框，确保用户明确确认后才启用
+    syncPasswordDialog.value = {
+      show: true,
+      password: '',
+      error: '',
+      onConfirm: handleAutoSyncPasswordConfirm,
+      onCancel: () => {
+        // 用户取消对话框，确保关闭自动同步
+        cloudStore.setAutoSync(false)
+      },
     }
+    nextTick(() => {
+      const input = document.querySelector('.sync-password-overlay .form-input')
+      if (input) input.focus()
+    })
   } else {
     // 关闭自动同步：直接关闭
     await cloudStore.setAutoSync(false)
+    cloudStore.setAutoSyncEnabled(false)
   }
 }
 
@@ -900,13 +821,17 @@ async function handleAutoSyncPasswordConfirm() {
     const syncResult = await cloudStore.setAutoSync(true)
     // 检查设置结果，确保成功后才关闭对话框
     if (syncResult.success) {
+      cloudStore.setAutoSyncEnabled(true)
       closeSyncPasswordDialog()
     } else {
       // 设置失败，重置对话框状态，让用户可以重试
       syncPasswordDialog.value.error = syncResult.error || t('cloudSync.setAutoSyncFailed')
-      syncPasswordDialog.value.onCancel = () => { autoSyncEnabled.value = false }
+      syncPasswordDialog.value.onCancel = () => {
+        cloudStore.setAutoSync(false)
+      }
       // 同时回滚 checkbox 状态以反映真实情况
-      autoSyncEnabled.value = false
+      cloudStore.setAutoSyncEnabled(false)
+      cloudStore.setAutoSync(false)
     }
   } else {
     syncPasswordDialog.value.error = t('cloudSync.passwordIncorrect')
@@ -971,6 +896,13 @@ function showSetPasswordDialog() {
     oldPassword: '',
     error: '',
     onConfirm: handleSetPasswordConfirm,
+    onCancel: () => {
+      // User cancelled after clicking the sync checkbox - revert checkbox state
+      if (pendingSyncEnable.value) {
+        pendingSyncEnable.value = false
+        cloudStore.setSyncEnabled(false)
+      }
+    },
   }
   nextTick(() => {
     const input = document.querySelector('.password-dialog-overlay .form-input')
@@ -1005,12 +937,15 @@ async function handleSetPasswordConfirm() {
   }
   const result = await cloudStore.setPassword(password)
   if (result.success) {
+    // 清除 onCancel，避免 closePasswordDialog 调用时回滚 checkbox 状态
+    passwordDialog.value.onCancel = null
+    // 关闭对话框前先设置 pendingSyncEnable = false，避免 onCancel 中错误地重置 syncEnabled
+    const shouldEnableSync = pendingSyncEnable.value
+    pendingSyncEnable.value = false
     closePasswordDialog()
     // 检查是否有待处理的云同步启用请求
-    if (pendingSyncEnable.value) {
-      pendingSyncEnable.value = false
-      syncEnabled.value = true
-      await cloudStore.toggleEnabled(true)
+    if (shouldEnableSync) {
+      cloudStore.setSyncEnabled(true)
       await cloudStore.loadStatus()
     }
   } else {
@@ -1036,7 +971,10 @@ async function handleChangePasswordConfirm() {
   if (result.success) {
     closePasswordDialog()
     if (result.needRepush) {
+      // 用新密码重新推送（push），将本地配置用新密码加密后上传
+      // 不使用 sync（pull+push），因为改密后本地文件仍用旧密码加密，pull 会解密失败
       showCloudMessage({ type: 'info', title: t('cloudSync.changePassword'), message: t('cloudSync.passwordChangedNeedRepush') })
+      await cloudStore.push(password)
     }
   } else {
     passwordDialog.value.error = result.error || t('messages.error')
@@ -1044,8 +982,12 @@ async function handleChangePasswordConfirm() {
 }
 
 function closePasswordDialog() {
+  const cancel = passwordDialog.value.onCancel
   passwordDialog.value.show = false
   passwordDialog.value.error = ''
+  passwordDialog.value.onConfirm = null
+  passwordDialog.value.onCancel = null
+  if (cancel) cancel()
 }
 
 function handleSyncNow() {
@@ -1073,8 +1015,12 @@ async function handleSyncPasswordConfirm() {
   if (verifyResult.success && verifyResult.valid) {
     syncPasswordDialog.value.onCancel = null
     closeSyncPasswordDialog()
-    await cloudStore.syncNow(password)
-    cloudStore.loadDevices()
+    const syncResult = await cloudStore.syncNow(password)
+    if (syncResult.success) {
+      cloudStore.loadDevices()
+    } else {
+      showCloudMessage({ type: 'error', title: t('messages.error'), message: syncResult.error || t('cloudSync.syncFailed') })
+    }
   } else {
     syncPasswordDialog.value.error = t('cloudSync.passwordIncorrect')
   }
@@ -1111,7 +1057,7 @@ function closeCloudConfirmDialog() {
   cloudConfirmDialog.value.show = false
 }
 
-const handleCloudSyncStatusChanged = (state) => {
+const handleCloudSyncStatusChanged = state => {
   if (state) {
     Object.assign(cloudStore.status, state)
   }
@@ -1175,6 +1121,20 @@ const handleCloudSyncStatusChanged = (state) => {
   margin: 0;
 }
 
+.experimental-badge {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: var(--space-sm);
+  vertical-align: middle;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .section-chevron {
   display: flex;
   align-items: center;
@@ -1196,7 +1156,9 @@ const handleCloudSyncStatusChanged = (state) => {
 // Collapse transition
 .collapse-enter-active,
 .collapse-leave-active {
-  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+  transition:
+    max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.25s ease;
   max-height: 2000px;
   opacity: 1;
 }
@@ -1463,11 +1425,26 @@ input:checked + .slider:before {
     border-radius: 12px;
   }
 
-  &.status-ready { background: var(--success-bg); color: var(--success); }
-  &.status-syncing { background: var(--info-bg); color: var(--info); }
-  &.status-error { background: var(--danger-bg); color: var(--danger); }
-  &.status-warning { background: var(--warning-bg); color: var(--warning); }
-  &.status-disabled { background: var(--control-fill); color: var(--text-tertiary); }
+  &.status-ready {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+  &.status-syncing {
+    background: var(--info-bg);
+    color: var(--info);
+  }
+  &.status-error {
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+  &.status-warning {
+    background: var(--warning-bg);
+    color: var(--warning);
+  }
+  &.status-disabled {
+    background: var(--control-fill);
+    color: var(--text-tertiary);
+  }
 }
 
 .status-dot {
@@ -1477,13 +1454,25 @@ input:checked + .slider:before {
   background: currentColor;
   flex-shrink: 0;
 
-  .status-syncing & { animation: pulse 1.5s ease-in-out infinite; }
+  .status-syncing & {
+    animation: pulse 1.5s ease-in-out infinite;
+  }
 }
 
-.status-label { white-space: nowrap; }
-.status-label-inline { white-space: nowrap; }
-.status-meta { flex: 1; min-width: 0; }
-.status-time { font-size: var(--font-size-xs); color: var(--text-tertiary); }
+.status-label {
+  white-space: nowrap;
+}
+.status-label-inline {
+  white-space: nowrap;
+}
+.status-meta {
+  flex: 1;
+  min-width: 0;
+}
+.status-time {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
 
 .sync-error {
   display: flex;
@@ -1520,11 +1509,20 @@ input:checked + .slider:before {
   line-height: 1.4;
 }
 
-.connection-result { font-size: var(--font-size-xs); margin-top: var(--space-xs); }
+.connection-result {
+  font-size: var(--font-size-xs);
+  margin-top: var(--space-xs);
+}
 
-.text-success { color: var(--success); }
-.text-danger { color: var(--danger); }
-.text-warning { color: var(--warning); }
+.text-success {
+  color: var(--success);
+}
+.text-danger {
+  color: var(--danger);
+}
+.text-warning {
+  color: var(--warning);
+}
 
 .provider-authorized {
   display: flex;
@@ -1540,15 +1538,27 @@ input:checked + .slider:before {
   gap: var(--space-sm);
 }
 
-.authorized-text { font-size: var(--font-size-sm); color: var(--text-primary); }
+.authorized-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
 
 // ============================================
 // Cloud sync - Password & Device
 // ============================================
-.password-hint { font-size: var(--font-size-xs); color: var(--text-tertiary); }
+.password-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
 
-.device-name-edit { width: 200px; flex-shrink: 0; }
-.device-name-input { font-family: var(--font-family); font-size: var(--font-size-sm); }
+.device-name-edit {
+  width: 200px;
+  flex-shrink: 0;
+}
+.device-name-input {
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+}
 
 .device-list-header {
   font-size: var(--font-size-xs);
@@ -1559,7 +1569,11 @@ input:checked + .slider:before {
   margin-bottom: var(--space-sm);
 }
 
-.device-list { display: flex; flex-direction: column; gap: 4px; }
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .device-item {
   display: flex;
@@ -1570,41 +1584,70 @@ input:checked + .slider:before {
   border-radius: var(--radius);
   transition: background 0.15s ease;
 
-  &:hover { background: var(--control-fill-hover); }
+  &:hover {
+    background: var(--control-fill-hover);
+  }
 }
 
 .device-status-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--text-tertiary); flex-shrink: 0;
-  &.is-self { background: var(--success); }
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  flex-shrink: 0;
+  &.is-self {
+    background: var(--success);
+  }
 }
 
-.device-info { flex: 1; min-width: 0; }
+.device-info {
+  flex: 1;
+  min-width: 0;
+}
 
 .device-name {
-  font-size: var(--font-size-sm); color: var(--text-primary);
-  display: flex; align-items: center; gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .device-self-badge {
-  font-size: var(--font-size-xs); padding: 1px 6px;
-  background: var(--accent-light); color: var(--accent);
-  border-radius: 10px; font-weight: 500;
+  font-size: var(--font-size-xs);
+  padding: 1px 6px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 10px;
+  font-weight: 500;
 }
 
-.device-time { font-size: var(--font-size-xs); color: var(--text-tertiary); margin-top: 2px; }
+.device-time {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
 
 .btn-remove-device {
-  opacity: 0; transition: opacity 0.15s ease;
-  .device-item:hover & { opacity: 1; }
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  .device-item:hover & {
+    opacity: 1;
+  }
 }
 
 .device-empty {
-  text-align: center; padding: var(--space-lg);
-  color: var(--text-tertiary); font-size: var(--font-size-sm);
+  text-align: center;
+  padding: var(--space-lg);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
 }
 
-.device-loading { display: flex; justify-content: center; padding: var(--space-lg); }
+.device-loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-lg);
+}
 
 // ============================================
 // Cloud sync - Sync content (inline layout)
@@ -1648,7 +1691,9 @@ input:checked + .slider:before {
 // ============================================
 .card-danger {
   border-color: var(--danger-bg);
-  .card-title { color: var(--danger); }
+  .card-title {
+    color: var(--danger);
+  }
 }
 
 .cloud-danger-zone {
@@ -1797,7 +1842,9 @@ input:checked + .slider:before {
   margin-bottom: var(--space-md);
 }
 
-.dialog-body { padding: var(--space-md) 0; }
+.dialog-body {
+  padding: var(--space-md) 0;
+}
 
 .dialog-confirm-text {
   font-size: var(--font-size-sm);
@@ -1827,13 +1874,22 @@ input:checked + .slider:before {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes fadeInUp {

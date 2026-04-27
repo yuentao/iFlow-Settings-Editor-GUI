@@ -127,7 +127,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 云同步
   cloudSyncGetStatus: () => ipcRenderer.invoke('cloud-sync:get-status'),
-  cloudSyncToggleEnabled: (enabled) => ipcRenderer.invoke('cloud-sync:toggle-enabled', enabled),
   cloudSyncSetAutoSync: (enabled) => ipcRenderer.invoke('cloud-sync:set-auto-sync', enabled),
   cloudSyncConfigureProvider: (provider, config) => ipcRenderer.invoke('cloud-sync:configure-provider', provider, config),
   cloudSyncTestConnection: () => ipcRenderer.invoke('cloud-sync:test-connection'),

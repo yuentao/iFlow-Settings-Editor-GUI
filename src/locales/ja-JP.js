@@ -71,6 +71,7 @@ export default {
     autoLaunchHint: '有効にすると、システム起動時にアプリケーションが自動的に起動し、バックグラウンドでサイレント実行されます。メインウィンドウは表示されません。',
     sectionPreferences: '基本設定',
     sectionCloudSync: 'クラウド同期',
+    experimental: '実験的',
     sectionAbout: 'バージョン情報'
   },
   theme: {
