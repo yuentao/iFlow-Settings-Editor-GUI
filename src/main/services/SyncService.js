@@ -468,6 +468,7 @@ class SyncService {
    * @returns {object}
    */
   _extractSyncData(settings) {
+    // 不再在这里为 item 添加 _lastModified，避免影响合并比较
     return {
       apiProfiles: settings.apiProfiles || {},
       currentApiProfile: settings.currentApiProfile || 'default',
@@ -492,7 +493,12 @@ class SyncService {
 
     const local = this._extractSyncData(localSettings)
 
-    // 合并 apiProfiles：按 profile 名称
+    // 用于比较的本地时间参考：如果 item 没有 _lastModified，使用 lastSyncAt（上次已知同步时间）
+    const lastSyncAt = localSettings.cloudSync?.lastSyncAt
+      ? new Date(localSettings.cloudSync.lastSyncAt).getTime()
+      : 0
+
+    // 合并 apiProfiles：按 profile 名称，比较 per-item _lastModified
     const mergedProfiles = { ...local.apiProfiles }
     for (const remote of remoteConfigs) {
       for (const [name, profile] of Object.entries(remote.data.apiProfiles || {})) {
@@ -500,30 +506,37 @@ class SyncService {
           // 本地没有 → 直接加入
           mergedProfiles[name] = profile
         } else {
-          // 本地有同名 → 远端更新则覆盖
-          const remoteTime = new Date(remote.timestamp).getTime()
-          const localSyncTime = localSettings.cloudSync?.lastSyncAt
-            ? new Date(localSettings.cloudSync.lastSyncAt).getTime()
+          // 本地有同名 → 比较 per-item _lastModified 时间
+          // 远端时间：使用 item 的 _lastModified（没有则为 0，表示很旧）
+          const remoteItemTime = profile._lastModified
+            ? new Date(profile._lastModified).getTime()
             : 0
-          if (remoteTime > localSyncTime) {
+          // 本地时间：使用 item 的 _lastModified，如果没有则用 lastSyncAt
+          // （表示该 item 上次已知同步的时间，在此之前本地的修改不应当被覆盖）
+          const localItemTime = mergedProfiles[name]._lastModified
+            ? new Date(mergedProfiles[name]._lastModified).getTime()
+            : lastSyncAt
+          if (remoteItemTime > localItemTime) {
             mergedProfiles[name] = profile
           }
         }
       }
     }
 
-    // 合并 mcpServers：按服务器名称
+    // 合并 mcpServers：按服务器名称，比较 per-item _lastModified
     const mergedServers = { ...local.mcpServers }
     for (const remote of remoteConfigs) {
       for (const [name, server] of Object.entries(remote.data.mcpServers || {})) {
         if (!mergedServers[name]) {
           mergedServers[name] = server
         } else {
-          const remoteTime = new Date(remote.timestamp).getTime()
-          const localSyncTime = localSettings.cloudSync?.lastSyncAt
-            ? new Date(localSettings.cloudSync.lastSyncAt).getTime()
+          const remoteItemTime = server._lastModified
+            ? new Date(server._lastModified).getTime()
             : 0
-          if (remoteTime > localSyncTime) {
+          const localItemTime = mergedServers[name]._lastModified
+            ? new Date(mergedServers[name]._lastModified).getTime()
+            : lastSyncAt
+          if (remoteItemTime > localItemTime) {
             mergedServers[name] = server
           }
         }
