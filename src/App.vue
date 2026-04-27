@@ -122,6 +122,7 @@ import ServerPanel from './components/ServerPanel.vue'
 import UpdateNotification from './components/UpdateNotification.vue'
 import UpdateProgress from './components/UpdateProgress.vue'
 import SkeletonLoader from './components/SkeletonLoader.vue'
+import { useCloudSyncStore } from './stores/cloudSync'
 
 // 视图组件懒加载
 import { defineAsyncComponent } from 'vue'
@@ -174,6 +175,7 @@ const CommandsView = defineAsyncComponent({
 })
 
 const { locale, t } = useI18n()
+const cloudSyncStore = useCloudSyncStore()
 
 const settings = ref({
   language: 'zh-CN',
@@ -912,6 +914,14 @@ onMounted(async () => {
     currentApiProfile.value = profileName
     await loadSettings()
   })
+
+  // 恢复自动同步定时器（由 cloudSync store 统一管理，包括 localStorage 持久化）
+  if (cloudSyncStore.autoSyncEnabled.value) {
+    await cloudSyncStore.loadStatus()
+    if (cloudSyncStore.isConfigured) {
+      await cloudSyncStore.setAutoSync(true)
+    }
+  }
 })
 
 onUnmounted(() => {})

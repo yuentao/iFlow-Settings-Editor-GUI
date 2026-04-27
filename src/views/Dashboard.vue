@@ -84,7 +84,7 @@
           <div class="stat-sub" v-if="cloudStore.status.lastSyncAt">
             {{ $t('dashboard.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }}
           </div>
-          <div class="stat-sub stat-sub-empty" v-else-if="cloudStore.status.enabled">
+          <div class="stat-sub stat-sub-empty" v-else-if="syncEnabled">
             {{ $t('dashboard.neverSynced') }}
           </div>
         </div>
@@ -138,6 +138,9 @@ import { useCloudSyncStore } from '@/stores/cloudSync'
 const { t } = useI18n()
 const cloudStore = useCloudSyncStore()
 
+// 云同步开关状态（由 cloudSync store 统一管理，包括 localStorage 持久化）
+const syncEnabled = computed(() => cloudStore.syncEnabled.value)
+
 const syncPasswordDialog = ref({
   show: false,
   password: '',
@@ -183,14 +186,14 @@ const apiProfileCount = computed(() => {
 
 // 云同步状态
 const cloudSyncStatusClass = computed(() => {
-  if (!cloudStore.status.enabled) return 'stat-icon-secondary'
+  if (!syncEnabled) return 'stat-icon-secondary'
   if (cloudStore.isSyncing) return 'stat-icon-info'
   if (cloudStore.status.lastSyncError) return 'stat-icon-danger'
   return 'stat-icon-success'
 })
 
 const cloudSyncStatusLabel = computed(() => {
-  if (!cloudStore.status.enabled) return t('dashboard.cloudSyncDisabled')
+  if (!syncEnabled) return t('dashboard.cloudSyncDisabled')
   if (cloudStore.isSyncing) return t('dashboard.syncing')
   if (cloudStore.status.lastSyncError) return t('dashboard.syncError')
   return t('dashboard.ready')
