@@ -79,6 +79,7 @@ export default {
     autoLaunchHint: '启用后，应用程序将在系统启动时自动运行，并以后台模式静默启动，不显示主窗口。',
     sectionPreferences: '偏好设置',
     sectionCloudSync: '云同步',
+    experimental: '实验性',
     sectionAbout: '关于'
   },
   theme: {

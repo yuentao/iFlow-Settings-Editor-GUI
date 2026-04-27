@@ -105,6 +105,7 @@
       <div class="section-header">
         <div class="section-header-left">
           <h2 class="section-title">{{ $t('general.sectionCloudSync') }}</h2>
+          <span class="experimental-badge">{{ $t('general.experimental') || '(实验性)' }}</span>
         </div>
         <div class="section-header-right">
           <label class="switch" @click.stop>
@@ -970,7 +971,10 @@ async function handleChangePasswordConfirm() {
   if (result.success) {
     closePasswordDialog()
     if (result.needRepush) {
+      // 用新密码重新推送（push），将本地配置用新密码加密后上传
+      // 不使用 sync（pull+push），因为改密后本地文件仍用旧密码加密，pull 会解密失败
       showCloudMessage({ type: 'info', title: t('cloudSync.changePassword'), message: t('cloudSync.passwordChangedNeedRepush') })
+      await cloudStore.push(password)
     }
   } else {
     passwordDialog.value.error = result.error || t('messages.error')
@@ -1115,6 +1119,20 @@ const handleCloudSyncStatusChanged = state => {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin: 0;
+}
+
+.experimental-badge {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: var(--space-sm);
+  vertical-align: middle;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .section-chevron {
