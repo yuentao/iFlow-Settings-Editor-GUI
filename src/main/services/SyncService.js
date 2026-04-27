@@ -83,14 +83,15 @@ class SyncService {
 
   /**
    * 缓存同步密码（用于自动同步）
-   * 当自动同步启用时，同时持久化加密密码到设置文件
+   * 持久化加密密码到设置文件（用于重启后恢复）
    * @param {string} password
    * @param {object} [options]
-   * @param {boolean} [options.persist] - 是否持久化加密密码（默认由 autoSyncEnabled 决定）
+   * @param {boolean} [options.persist] - 是否持久化加密密码（默认 true）
    */
   cachePassword(password, options = {}) {
     this._cachedPassword = password
-    const shouldPersist = options.persist !== undefined ? options.persist : this._isAutoSyncActive()
+    // 默认持久化密码，因为加密密码在重启后仍需使用（用于同步操作）
+    const shouldPersist = options.persist !== undefined ? options.persist : true
     if (shouldPersist && password) {
       this._persistEncryptedPassword(password)
     }
@@ -161,13 +162,6 @@ class SyncService {
     }
   }
 
-  /** 判断自动同步是否处于激活状态 */
-  _isAutoSyncActive() {
-    const settings = this.readSettings() || {}
-    const cs = settings.cloudSync || {}
-    return !!(cs.enabled && cs.autoSyncEnabled && cs.providerConfig && cs.passwordHash)
-  }
-
   /**
    * 启动自动同步定时器
    * @param {object} [options]
@@ -186,6 +180,9 @@ class SyncService {
       this._doAutoSync()
     }, this._autoSyncInterval)
 
+    // 启动后立即触发一次同步
+    this._doAutoSync()
+
     this.logger.info(`Auto-sync started (interval: ${this._autoSyncInterval / 1000}s)`)
   }
 
@@ -200,13 +197,12 @@ class SyncService {
 
   /**
    * 设置保存后触发自动同步（防抖）
-   * 仅当自动同步启用且已配置时生效
+   * auto-sync 状态由渲染进程通过 localStorage 管理，主进程只负责在设置保存时触发同步
    */
   onSettingsSaved() {
-    const settings = this.readSettings() || {}
-    const cs = settings.cloudSync || {}
-
-    if (!cs.enabled || !cs.autoSyncEnabled || !this.provider || !cs.passwordHash) {
+    // 不再检查 cs.enabled/cs.autoSyncEnabled（这些值已不在 settings.json 中）
+    // _doAutoSync() 已检查 provider 和 password，确保已配置才会同步
+    if (!this.provider || !this._cachedPassword) {
       return
     }
 
@@ -255,8 +251,7 @@ class SyncService {
     const settings = this.readSettings() || {}
     const cs = settings.cloudSync || {}
     return {
-      enabled: cs.enabled || false,
-      autoSyncEnabled: cs.autoSyncEnabled || false,
+      // enabled 和 autoSyncEnabled 已移除，由渲染进程通过 localStorage 管理
       hasPassword: !!cs.passwordHash,
       isAuthorized: !!cs.providerConfig,
       provider: cs.provider || null,

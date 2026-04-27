@@ -161,8 +161,7 @@ describe('SyncService', () => {
   describe('getStatus', () => {
     it('should return correct sync status', () => {
       const status = service.getStatus()
-      expect(status.enabled).toBe(true)
-      expect(status.autoSyncEnabled).toBe(false)
+      // enabled 和 autoSyncEnabled 由渲染进程通过 localStorage 管理，不从此处返回
       expect(status.hasPassword).toBe(true)
       expect(status.isAuthorized).toBe(true)
       expect(status.provider).toBe('webdav')
@@ -176,7 +175,7 @@ describe('SyncService', () => {
     it('should handle missing cloudSync section', () => {
       mockReadSettings.mockReturnValue({})
       const status = service.getStatus()
-      expect(status.enabled).toBe(false)
+      // enabled 和 autoSyncEnabled 由渲染进程通过 localStorage 管理，不从此处返回
       expect(status.hasPassword).toBe(false)
       expect(status.isAuthorized).toBe(false)
       expect(status.provider).toBeNull()
