@@ -101,7 +101,7 @@
     </div>
 
     <!-- ===== 云同步 ===== -->
-    <div class="section-group" id="cloud-sync-section">
+    <div class="section-group" id="cloud-sync-section" style="display: none;">
       <div class="section-header">
         <div class="section-header-left">
           <h2 class="section-title">{{ $t('general.sectionCloudSync') }}</h2>
@@ -115,7 +115,7 @@
       </div>
 
       <transition name="collapse">
-        <div class="section-body" v-show="cloudStore.status.enabled">
+        <div class="section-body" v-show="syncEnabled">
           <!-- 状态 + 立即同步 + 同步内容 -->
           <div class="card card-appear" style="animation-delay: 0.02s">
             <div class="cloud-status-bar">
@@ -658,13 +658,13 @@ onMounted(async () => {
   // 监听下载进度（后台下载用）
   window.electronAPI.onUpdateDownloadProgress(handleBackgroundProgress)
 
-  // 初始化云同步状态
+  // 初始化云同步状态 - 默认关闭，不加载已保存的开关状态
   await cloudStore.loadStatus()
-  syncEnabled.value = cloudStore.status.enabled
+  // syncEnabled 保持默认值 false，不加载已保存的状态
   autoSyncEnabled.value = cloudStore.status.autoSyncEnabled
   deviceName.value = cloudStore.status.deviceName || ''
   selectedProvider.value = cloudStore.status.provider || 'webdav'
-  if (cloudStore.status.enabled && cloudStore.isConfigured) {
+  if (syncEnabled.value && cloudStore.isConfigured) {
     await cloudStore.loadDevices()
   }
   if (window.electronAPI?.onCloudSyncStatusChanged) {
@@ -831,10 +831,28 @@ function showCloudMessage({ type = 'info', title, message }) {
   messageDialog.value = { show: true, type, title, message }
 }
 
+// 待处理的云同步启用标记（密码设置完成后继续）
+const pendingSyncEnable = ref(false)
+
 async function onToggleSyncEnabled() {
-  await cloudStore.toggleEnabled(syncEnabled.value)
   if (syncEnabled.value) {
-    await cloudStore.loadStatus()
+    // 开启云同步：检查是否已设置密码
+    if (!cloudStore.status.hasPassword) {
+      // 未设置密码，弹出密码设置对话框
+      // 先回滚开关状态，等密码设置成功后再开启
+      syncEnabled.value = false
+      showSetPasswordDialog()
+      // 密码设置成功后通过 handleSetPasswordConfirm 继续启用云同步
+      // 临时保存一个回调，等密码设置完成后调用
+      pendingSyncEnable.value = true
+    } else {
+      // 已设置密码，直接启用
+      await cloudStore.toggleEnabled(true)
+      await cloudStore.loadStatus()
+    }
+  } else {
+    // 关闭云同步
+    await cloudStore.toggleEnabled(false)
   }
 }
 
@@ -988,6 +1006,13 @@ async function handleSetPasswordConfirm() {
   const result = await cloudStore.setPassword(password)
   if (result.success) {
     closePasswordDialog()
+    // 检查是否有待处理的云同步启用请求
+    if (pendingSyncEnable.value) {
+      pendingSyncEnable.value = false
+      syncEnabled.value = true
+      await cloudStore.toggleEnabled(true)
+      await cloudStore.loadStatus()
+    }
   } else {
     passwordDialog.value.error = result.error || t('messages.error')
   }
