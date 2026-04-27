@@ -139,7 +139,7 @@ const { t } = useI18n()
 const cloudStore = useCloudSyncStore()
 
 // 云同步开关状态（由 cloudSync store 统一管理，包括 localStorage 持久化）
-const syncEnabled = computed(() => cloudStore.syncEnabled.value)
+const syncEnabled = computed(() => cloudStore.syncEnabled)
 
 const syncPasswordDialog = ref({
   show: false,

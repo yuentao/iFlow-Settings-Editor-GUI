@@ -916,7 +916,7 @@ onMounted(async () => {
   })
 
   // 恢复自动同步定时器（由 cloudSync store 统一管理，包括 localStorage 持久化）
-  if (cloudSyncStore.autoSyncEnabled.value) {
+  if (cloudSyncStore.autoSyncEnabled) {
     await cloudSyncStore.loadStatus()
     if (cloudSyncStore.isConfigured) {
       await cloudSyncStore.setAutoSync(true)

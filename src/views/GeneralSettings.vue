@@ -425,9 +425,9 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 const cloudStore = useCloudSyncStore()
 
-// 云同步状态 refs（从 cloudSync store 中提取，保证模板中可以直接绑定）
-const syncEnabled = computed(() => cloudStore.syncEnabled.value)
-const autoSyncEnabled = computed(() => cloudStore.autoSyncEnabled.value)
+// 云同步状态 refs（从 cloudSync store 中提取，Pinia 已自动 unwrap，直接使用）
+const syncEnabled = computed(() => cloudStore.syncEnabled)
+const autoSyncEnabled = computed(() => cloudStore.autoSyncEnabled)
 
 const localSettings = computed({
   get: () => props.settings,
@@ -590,7 +590,7 @@ onMounted(async () => {
   await cloudStore.loadStatus()
   deviceName.value = cloudStore.status.deviceName || ''
   selectedProvider.value = cloudStore.status.provider || 'webdav'
-  if (cloudStore.syncEnabled.value && cloudStore.isConfigured) {
+  if (cloudStore.syncEnabled && cloudStore.isConfigured) {
     await cloudStore.loadDevices()
   }
   if (window.electronAPI?.onCloudSyncStatusChanged) {
@@ -782,9 +782,9 @@ async function onToggleSyncEnabled(event) {
 }
 
 async function onToggleAutoSync() {
-  // 使用 !cloudStore.autoSyncEnabled.value 判断目标状态，而不是 event.target.checked
+  // 使用 !cloudStore.autoSyncEnabled 判断目标状态，而不是 event.target.checked
   // 因为 Vue 的 :checked 绑定在 @change 触发前就已经覆盖了 DOM 的 checked 属性
-  const enabled = !cloudStore.autoSyncEnabled.value
+  const enabled = !cloudStore.autoSyncEnabled
   if (enabled) {
     // 开启自动同步：弹出密码对话框进行确认
     // 即使有缓存密码也弹框，确保用户明确确认后才启用
