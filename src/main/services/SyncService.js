@@ -329,6 +329,7 @@ class SyncService {
 
       // 下载并解密所有设备配置
       const remoteConfigs = []
+      let decryptFailures = 0
       for (const file of configFiles) {
         const content = await this.provider.download(`devices/${file.name}`)
         let parsed
@@ -354,12 +355,21 @@ class SyncService {
           })
         } catch (err) {
           this.logger.warn(`Decryption failed for ${file.name}: ${err.message}`)
-          // 解密本机文件失败 → 密码错误
+          decryptFailures += 1
+          // 解密本机文件失败 → 密码确定错误（最强信号）
           if (file.name === `config-${this.deviceId}.json`) {
             throw new Error('SYNC_PASSWORD_INCORRECT')
           }
-          // 其他设备文件解密失败（可能是旧密码），跳过
+          // 其他设备文件解密失败暂不抛错，留待后续统一判定
         }
+      }
+
+      // 远端确有 config 文件但全部解密失败：
+      // - 用户可能从未在本机推送过 → 没有本机文件命中上面的强判定
+      // - 但所有其他设备文件都解不开几乎必然是密码错（旧密码场景极少全部命中）
+      // 抛出 SYNC_PASSWORD_LIKELY_INCORRECT，让 UI 明确提示"密码可能错误"
+      if (remoteConfigs.length === 0 && decryptFailures > 0) {
+        throw new Error('SYNC_PASSWORD_LIKELY_INCORRECT')
       }
 
       // 合并

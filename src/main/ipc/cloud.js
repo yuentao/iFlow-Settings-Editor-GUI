@@ -166,8 +166,26 @@ function registerCloudSyncIpcHandlers() {
     // 缓存新密码（不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理）
     syncService.cachePassword(newPassword)
 
-    // 需要用新密码重新推送（旧加密数据无法解密）
-    return { success: true, needRepush: true }
+    // 主动用新密码重新推送本机配置：
+    // - 旧文件由旧密码加密，新密码解不开 → 后续 pull 会抛 SYNC_PASSWORD_INCORRECT
+    // - 在此立刻覆写本机 config-{deviceId}.json，保证本机文件与新密码匹配
+    // - 其他设备的文件仍由旧密码加密，需要在那些设备上分别用新密码重新 push
+    let repushed = false
+    let repushError = null
+    if (syncService.provider) {
+      try {
+        const pushResult = await syncService.push(newPassword)
+        repushed = !!pushResult?.success
+        if (!pushResult?.success) {
+          repushError = pushResult?.error || null
+        }
+      } catch (err) {
+        repushError = err?.message || String(err)
+      }
+    }
+
+    // needRepush 表示「其他设备仍需用新密码重新 push」
+    return { success: true, needRepush: true, repushed, repushError }
   }, 'cloud-sync:change-password'))
 
   ipcMain.handle('cloud-sync:has-password', wrapIpcHandler(async () => {

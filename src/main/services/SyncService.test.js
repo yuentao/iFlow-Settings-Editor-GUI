@@ -765,8 +765,9 @@ describe('SyncService', () => {
       expect(result.error).toBe('SYNC_PASSWORD_INCORRECT')
     })
 
-    it('should skip remote files that fail to decrypt (not own device)', async () => {
-      // 用一个密码加密，然后用另一个密码解密 → 解密失败
+    it('should throw SYNC_PASSWORD_LIKELY_INCORRECT when all remote files fail to decrypt (no own device file)', async () => {
+      // 远端只有非本机设备的文件且都用错误密码无法解密
+      // 即使本机从未推送过（own device 文件不存在），也应明确告知"密码可能错误"
       const { default: CryptoManager } = await import('../crypto/CryptoManager')
       const crypto = new CryptoManager()
       const realPassword = 'real-password'
@@ -792,11 +793,61 @@ describe('SyncService', () => {
       mockProvider.download.mockResolvedValue(buffer)
 
       const result = await service.pull('any-password')
+      expect(result.success).toBe(false)
+      expect(result.error).toBe('SYNC_PASSWORD_LIKELY_INCORRECT')
+      // 解密失败应有 warn 日志
+      expect(mockLogger.warn).toHaveBeenCalled()
+    })
+
+    it('should still succeed when some remote files fail to decrypt but at least one succeeds', async () => {
+      // 混合场景：远端 2 个文件，1 个能解密，1 个不能
+      // 应跳过解密失败的，正常合并解密成功的
+      const { default: CryptoManager } = await import('../crypto/CryptoManager')
+      const crypto = new CryptoManager()
+      const goodPassword = 'good-password'
+      const wrongPassword = 'wrong-password'
+
+      const goodData = {
+        apiProfiles: { production: { apiKey: 'sk-good' } },
+        mcpServers: {},
+        apiProfilesOrder: ['production'],
+        currentApiProfile: 'production',
+      }
+      const goodBuffer = createRemoteConfigBuffer(
+        { ...goodData, _deviceId: 'good-device', _deviceName: 'GoodPC' },
+        goodPassword,
+        crypto
+      )
+
+      const badData = {
+        apiProfiles: { other: { apiKey: 'sk-bad' } },
+        mcpServers: {},
+        apiProfilesOrder: ['other'],
+        currentApiProfile: 'other',
+      }
+      const badEncrypted = crypto.encryptSyncData(badData, wrongPassword)
+      const badBuffer = Buffer.from(JSON.stringify({
+        version: 2,
+        timestamp: new Date().toISOString(),
+        deviceId: 'bad-device',
+        deviceName: 'BadPC',
+        data: badEncrypted,
+      }))
+
+      mockProvider.list.mockResolvedValue([
+        { name: 'config-good-device.json', path: '/devices/config-good-device.json', lastModified: '2026-04-25T10:00:00Z', size: 100 },
+        { name: 'config-bad-device.json', path: '/devices/config-bad-device.json', lastModified: '2026-04-25T10:00:00Z', size: 100 },
+      ])
+      mockProvider.download.mockImplementation((path) => {
+        if (path.includes('good-device')) return Promise.resolve(goodBuffer)
+        return Promise.resolve(badBuffer)
+      })
+
+      const result = await service.pull(goodPassword)
       expect(result.success).toBe(true)
-      // 解密失败的非本机设备被跳过，mergedFrom 不包含它
-      // 但因为 remoteConfigs 为空，mergedFrom 也为空
-      expect(result.mergedFrom).toEqual([])
-      // 应该有 warn 日志
+      // 仅成功解密的设备出现在 mergedFrom 中
+      expect(result.mergedFrom).toEqual(['GoodPC'])
+      // 解密失败的文件应该有 warn 日志
       expect(mockLogger.warn).toHaveBeenCalled()
     })
 
