@@ -637,8 +637,65 @@ describe('SyncService', () => {
     })
 
     it('should throw if already syncing', async () => {
-      service.isSyncing = true
+      // L-4：互斥由 _currentSyncPromise 单一来源保证，模拟并发态
+      service._currentSyncPromise = Promise.resolve()
       await expect(service.push('pass')).rejects.toThrow('SYNC_IN_PROGRESS')
+      service._currentSyncPromise = null
+    })
+
+    it('L-10: should emit onSyncingChanged(true/false) around successful push', async () => {
+      mockProvider.upload.mockResolvedValue(undefined)
+      const events = []
+      const off = service.onSyncingChanged((v) => events.push(v))
+
+      await service.push('pass')
+
+      expect(events).toEqual([true, false])
+      off()
+    })
+
+    it('L-10: should still emit onSyncingChanged(false) when push fails internally', async () => {
+      mockProvider.upload.mockRejectedValue(new Error('network down'))
+      const events = []
+      service.onSyncingChanged((v) => events.push(v))
+
+      const result = await service.push('pass')
+
+      expect(result.success).toBe(false)
+      // 即便内部失败，锁释放事件也必须触发
+      expect(events).toEqual([true, false])
+      expect(service.isSyncing).toBe(false)
+      expect(service._currentSyncPromise).toBeNull()
+    })
+
+    it('L-4: should serialize concurrent push calls and release lock after completion', async () => {
+      // 真实并发：让 upload 等待外部 resolve，使两次 push 真正重叠
+      let resolveUpload
+      mockProvider.upload.mockImplementation(
+        () => new Promise((res) => { resolveUpload = res })
+      )
+
+      const first = service.push('pass-1')
+      // 第一次未完成时 isSyncing 已为 true，且锁已建立
+      expect(service.isSyncing).toBe(true)
+      expect(service._currentSyncPromise).not.toBeNull()
+
+      // 第二次并发调用应立即拒绝
+      await expect(service.push('pass-2')).rejects.toThrow('SYNC_IN_PROGRESS')
+
+      // 释放第一次
+      resolveUpload(undefined)
+      const result1 = await first
+      expect(result1.success).toBe(true)
+
+      // 锁已释放
+      expect(service.isSyncing).toBe(false)
+      expect(service._currentSyncPromise).toBeNull()
+
+      // 再次调用应能正常成功
+      mockProvider.upload.mockResolvedValue(undefined)
+      const result2 = await service.push('pass-3')
+      expect(result2.success).toBe(true)
     })
 
     it('should upload encrypted config and update lastSyncAt', async () => {

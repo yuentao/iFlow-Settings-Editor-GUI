@@ -3,7 +3,7 @@
  * 处理云同步相关的 IPC 通信
  */
 
-const { ipcMain } = require('electron')
+const { ipcMain, BrowserWindow } = require('electron')
 const crypto = require('crypto')
 const { wrapIpcHandler } = require('../utils/errors')
 const SyncService = require('../services/SyncService')
@@ -15,6 +15,26 @@ const { createLogger } = require('../utils/logger')
 const logger = createLogger('CloudSync')
 const syncService = new SyncService()
 const cryptoMgr = new CryptoManager()
+
+/**
+ * L-10：把最新同步状态广播到所有渲染窗口
+ * 渲染端通过 onCloudSyncStatusChanged 订阅，确保 isSyncing 等字段
+ * 始终以主进程 SyncService 为单一来源，消除两端 desync。
+ */
+function broadcastSyncStatus() {
+  const status = { success: true, ...syncService.getStatus() }
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed()) continue
+    try {
+      win.webContents.send('cloud-sync:status-changed', status)
+    } catch (err) {
+      logger.warn('Failed to broadcast cloud-sync:status-changed:', err && err.message ? err.message : err)
+    }
+  }
+}
+
+// L-10：每次 isSyncing 翻转都广播一次最新状态
+syncService.onSyncingChanged(() => broadcastSyncStatus())
 
 /**
  * 根据设置中的 provider 配置初始化云存储适配器

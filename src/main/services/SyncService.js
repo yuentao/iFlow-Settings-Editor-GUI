@@ -27,7 +27,14 @@ class SyncService {
   constructor(deps = {}) {
     this.crypto = new CryptoManager()
     this.provider = null
+    // L-4：isSyncing 仍作为「状态快照」对外暴露，但真正的互斥由
+    // _currentSyncPromise 单一来源保证；任意时刻最多只有一个同步任务在跑。
     this.isSyncing = false
+    this._currentSyncPromise = null
+
+    // L-10：订阅 isSyncing 变化，IPC 层据此推送 cloud-sync:status-changed
+    // 让渲染端不再依赖各处轮询 / 自行 set isSyncing，消除 desync。
+    this._syncingChangedListeners = []
 
     // 依赖注入：测试时传入 mock，生产时按需加载真实模块
     this._readSettings = deps.readSettings || null
@@ -79,6 +86,67 @@ class SyncService {
   /** 设置云存储适配器 */
   setProvider(provider) {
     this.provider = provider
+  }
+
+  /**
+   * L-4：以 promise 为单一来源的并发锁
+   *
+   * 任意时刻只允许一个同步任务在跑：若 `_currentSyncPromise` 已存在，
+   * 立刻抛出 `SYNC_IN_PROGRESS`（与原 `isSyncing` 检查的对外契约保持一致），
+   * 调用方可决定是否等待 / 重试 / 提示用户。
+   *
+   * 与单纯置位 `this.isSyncing = true` 相比，本实现保证：
+   *   1. 同步进入闭包之前先建立锁，避免 `await this.provider.list(...)`
+   *      让出后的极小窗口内被另一个调用抢入；
+   *   2. `isSyncing` 与 `_currentSyncPromise` 的设置/释放在 try/finally
+   *      中成对出现，不会因异常路径漏置 false。
+   *
+   * @template T
+   * @param {() => Promise<T>} fn
+   * @returns {Promise<T>}
+   */
+  async _runExclusive(fn) {
+    if (this._currentSyncPromise) {
+      throw new Error('SYNC_IN_PROGRESS')
+    }
+    this.isSyncing = true
+    this._emitSyncingChanged(true)
+    const promise = (async () => {
+      try {
+        return await fn()
+      } finally {
+        this.isSyncing = false
+        this._currentSyncPromise = null
+        this._emitSyncingChanged(false)
+      }
+    })()
+    this._currentSyncPromise = promise
+    return promise
+  }
+
+  /**
+   * L-10：注册 isSyncing 变化监听器
+   * @param {(isSyncing: boolean) => void} callback
+   * @returns {() => void} 取消订阅函数
+   */
+  onSyncingChanged(callback) {
+    if (typeof callback !== 'function') return () => {}
+    this._syncingChangedListeners.push(callback)
+    return () => {
+      const idx = this._syncingChangedListeners.indexOf(callback)
+      if (idx >= 0) this._syncingChangedListeners.splice(idx, 1)
+    }
+  }
+
+  /** L-10：触发 isSyncing 监听器，单个监听器异常不影响其他 */
+  _emitSyncingChanged(isSyncing) {
+    for (const cb of this._syncingChangedListeners) {
+      try {
+        cb(isSyncing)
+      } catch (err) {
+        this.logger.warn('syncing-changed listener threw:', err && err.message ? err.message : err)
+      }
+    }
   }
 
   /**
@@ -312,45 +380,43 @@ class SyncService {
    */
   async push(password) {
     if (!this.provider) throw new Error('SYNC_PROVIDER_REQUIRED')
-    if (this.isSyncing) throw new Error('SYNC_IN_PROGRESS')
 
-    this.isSyncing = true
-    try {
-      const settings = this.readSettings() || {}
-      const syncData = this._extractSyncData(settings)
-      const encrypted = this.crypto.encryptSyncData(syncData, password)
+    return this._runExclusive(async () => {
+      try {
+        const settings = this.readSettings() || {}
+        const syncData = this._extractSyncData(settings)
+        const encrypted = this.crypto.encryptSyncData(syncData, password)
 
-      const deviceName = (settings.cloudSync || {}).deviceName || ''
-      const fileContent = Buffer.from(JSON.stringify({
-        version: 2,
-        timestamp: new Date().toISOString(),
-        deviceId: this.deviceId,
-        deviceName,
-        fingerprint: this.crypto.fingerprint(encrypted),
-        data: encrypted,
-      }, null, 2))
+        const deviceName = (settings.cloudSync || {}).deviceName || ''
+        const fileContent = Buffer.from(JSON.stringify({
+          version: 2,
+          timestamp: new Date().toISOString(),
+          deviceId: this.deviceId,
+          deviceName,
+          fingerprint: this.crypto.fingerprint(encrypted),
+          data: encrypted,
+        }, null, 2))
 
-      await this.provider.upload(`devices/config-${this.deviceId}.json`, fileContent)
+        await this.provider.upload(`devices/config-${this.deviceId}.json`, fileContent)
 
-      // 更新元数据
-      const updated = this.readSettings() || {}
-      updated.cloudSync = updated.cloudSync || {}
-      updated.cloudSync.lastSyncAt = new Date().toISOString()
-      updated.cloudSync.lastSyncError = null
-      this.writeSettings(updated)
+        // 更新元数据
+        const updated = this.readSettings() || {}
+        updated.cloudSync = updated.cloudSync || {}
+        updated.cloudSync.lastSyncAt = new Date().toISOString()
+        updated.cloudSync.lastSyncError = null
+        this.writeSettings(updated)
 
-      this.logger.info('Push succeeded')
-      return { success: true }
-    } catch (error) {
-      this.logger.error('Push failed:', error)
-      const updated = this.readSettings() || {}
-      updated.cloudSync = updated.cloudSync || {}
-      updated.cloudSync.lastSyncError = error.message
-      this.writeSettings(updated)
-      return { success: false, error: error.message }
-    } finally {
-      this.isSyncing = false
-    }
+        this.logger.info('Push succeeded')
+        return { success: true }
+      } catch (error) {
+        this.logger.error('Push failed:', error)
+        const updated = this.readSettings() || {}
+        updated.cloudSync = updated.cloudSync || {}
+        updated.cloudSync.lastSyncError = error.message
+        this.writeSettings(updated)
+        return { success: false, error: error.message }
+      }
+    })
   }
 
   /**
@@ -360,85 +426,83 @@ class SyncService {
    */
   async pull(password) {
     if (!this.provider) throw new Error('SYNC_PROVIDER_REQUIRED')
-    if (this.isSyncing) throw new Error('SYNC_IN_PROGRESS')
 
-    this.isSyncing = true
-    try {
-      const files = await this.provider.list('devices/')
-      const configFiles = files.filter(
-        (f) => f.name.startsWith('config-') && f.name.endsWith('.json')
-      )
+    return this._runExclusive(async () => {
+      try {
+        const files = await this.provider.list('devices/')
+        const configFiles = files.filter(
+          (f) => f.name.startsWith('config-') && f.name.endsWith('.json')
+        )
 
-      // 下载并解密所有设备配置
-      const remoteConfigs = []
-      let decryptFailures = 0
-      for (const file of configFiles) {
-        const content = await this.provider.download(`devices/${file.name}`)
-        let parsed
-        try {
-          parsed = JSON.parse(content.toString('utf8'))
-        } catch {
-          this.logger.warn(`Invalid JSON in ${file.name}, skipping`)
-          continue
-        }
-
-        if (parsed.version !== 2) {
-          this.logger.warn(`Unsupported version in ${file.name}, skipping`)
-          continue
-        }
-
-        try {
-          const decrypted = this.crypto.decryptSyncData(parsed.data, password)
-          remoteConfigs.push({
-            deviceId: parsed.deviceId,
-            deviceName: parsed.deviceName || '',
-            timestamp: parsed.timestamp,
-            data: decrypted,
-          })
-        } catch (err) {
-          this.logger.warn(`Decryption failed for ${file.name}: ${err.message}`)
-          decryptFailures += 1
-          // 解密本机文件失败 → 密码确定错误（最强信号）
-          if (file.name === `config-${this.deviceId}.json`) {
-            throw new Error('SYNC_PASSWORD_INCORRECT')
+        // 下载并解密所有设备配置
+        const remoteConfigs = []
+        let decryptFailures = 0
+        for (const file of configFiles) {
+          const content = await this.provider.download(`devices/${file.name}`)
+          let parsed
+          try {
+            parsed = JSON.parse(content.toString('utf8'))
+          } catch {
+            this.logger.warn(`Invalid JSON in ${file.name}, skipping`)
+            continue
           }
-          // 其他设备文件解密失败暂不抛错，留待后续统一判定
+
+          if (parsed.version !== 2) {
+            this.logger.warn(`Unsupported version in ${file.name}, skipping`)
+            continue
+          }
+
+          try {
+            const decrypted = this.crypto.decryptSyncData(parsed.data, password)
+            remoteConfigs.push({
+              deviceId: parsed.deviceId,
+              deviceName: parsed.deviceName || '',
+              timestamp: parsed.timestamp,
+              data: decrypted,
+            })
+          } catch (err) {
+            this.logger.warn(`Decryption failed for ${file.name}: ${err.message}`)
+            decryptFailures += 1
+            // 解密本机文件失败 → 密码确定错误（最强信号）
+            if (file.name === `config-${this.deviceId}.json`) {
+              throw new Error('SYNC_PASSWORD_INCORRECT')
+            }
+            // 其他设备文件解密失败暂不抛错，留待后续统一判定
+          }
         }
+
+        // 远端确有 config 文件但全部解密失败：
+        // - 用户可能从未在本机推送过 → 没有本机文件命中上面的强判定
+        // - 但所有其他设备文件都解不开几乎必然是密码错（旧密码场景极少全部命中）
+        // 抛出 SYNC_PASSWORD_LIKELY_INCORRECT，让 UI 明确提示"密码可能错误"
+        if (remoteConfigs.length === 0 && decryptFailures > 0) {
+          throw new Error('SYNC_PASSWORD_LIKELY_INCORRECT')
+        }
+
+        // 合并
+        const settings = this.readSettings() || {}
+        this._mergeConfigs(settings, remoteConfigs)
+
+        // 更新元数据并一次性落盘（H-4：合并原本相邻的两次 writeSettings）
+        settings.cloudSync = settings.cloudSync || {}
+        settings.cloudSync.lastSyncAt = new Date().toISOString()
+        settings.cloudSync.lastSyncError = null
+        this.writeSettings(settings)
+
+        this.logger.info(`Pull succeeded, merged ${remoteConfigs.length} remote config(s)`)
+        return {
+          success: true,
+          mergedFrom: remoteConfigs.map((c) => c.deviceName || c.deviceId),
+        }
+      } catch (error) {
+        this.logger.error('Pull failed:', error)
+        const updated = this.readSettings() || {}
+        updated.cloudSync = updated.cloudSync || {}
+        updated.cloudSync.lastSyncError = error.message
+        this.writeSettings(updated)
+        return { success: false, error: error.message }
       }
-
-      // 远端确有 config 文件但全部解密失败：
-      // - 用户可能从未在本机推送过 → 没有本机文件命中上面的强判定
-      // - 但所有其他设备文件都解不开几乎必然是密码错（旧密码场景极少全部命中）
-      // 抛出 SYNC_PASSWORD_LIKELY_INCORRECT，让 UI 明确提示"密码可能错误"
-      if (remoteConfigs.length === 0 && decryptFailures > 0) {
-        throw new Error('SYNC_PASSWORD_LIKELY_INCORRECT')
-      }
-
-      // 合并
-      const settings = this.readSettings() || {}
-      this._mergeConfigs(settings, remoteConfigs)
-
-      // 更新元数据并一次性落盘（H-4：合并原本相邻的两次 writeSettings）
-      settings.cloudSync = settings.cloudSync || {}
-      settings.cloudSync.lastSyncAt = new Date().toISOString()
-      settings.cloudSync.lastSyncError = null
-      this.writeSettings(settings)
-
-      this.logger.info(`Pull succeeded, merged ${remoteConfigs.length} remote config(s)`)
-      return {
-        success: true,
-        mergedFrom: remoteConfigs.map((c) => c.deviceName || c.deviceId),
-      }
-    } catch (error) {
-      this.logger.error('Pull failed:', error)
-      const updated = this.readSettings() || {}
-      updated.cloudSync = updated.cloudSync || {}
-      updated.cloudSync.lastSyncError = error.message
-      this.writeSettings(updated)
-      return { success: false, error: error.message }
-    } finally {
-      this.isSyncing = false
-    }
+    })
   }
 
   /**
