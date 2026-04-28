@@ -726,6 +726,38 @@ describe('SyncService', () => {
       expect(mockWriteSettings).toHaveBeenCalled()
     })
 
+    it('should call writeSettings only once in successful pull (H-4)', async () => {
+      const password = 'sync-password'
+      const remoteData = {
+        apiProfiles: {
+          production: { apiKey: 'sk-prod-key', baseUrl: 'https://prod.com' },
+        },
+        mcpServers: {},
+        apiProfilesOrder: ['production'],
+        currentApiProfile: 'production',
+      }
+      const { default: CryptoManager } = await import('../crypto/CryptoManager')
+      const crypto = new CryptoManager()
+      const buffer = createRemoteConfigBuffer(remoteData, password, crypto)
+
+      mockProvider.list.mockResolvedValue([
+        { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-25T10:00:00Z', size: 1024 },
+      ])
+      mockProvider.download.mockResolvedValue(buffer)
+
+      const beforeCount = mockWriteSettings.mock.calls.length
+      const result = await service.pull(password)
+      expect(result.success).toBe(true)
+      const after = mockWriteSettings.mock.calls.length
+      // pull 成功路径：合并结果 + lastSyncAt 元数据 应合并为 1 次写入
+      expect(after - beforeCount).toBe(1)
+      // 该次写入同时包含合并后的 apiProfiles 与 lastSyncAt
+      const written = mockWriteSettings.mock.calls[after - 1][0]
+      expect(written.apiProfiles).toBeDefined()
+      expect(written.cloudSync.lastSyncAt).toBeDefined()
+      expect(written.cloudSync.lastSyncError).toBeNull()
+    })
+
     it('should return success with empty merge when no remote files', async () => {
       mockProvider.list.mockResolvedValue([])
 
@@ -1087,6 +1119,28 @@ describe('SyncService', () => {
       it('should handle missing persisted password gracefully', () => {
         service._cachedPassword = null
         service.restorePersistedPassword()
+        expect(service._cachedPassword).toBeNull()
+      })
+
+      it('should NOT delete persisted password on decrypt failure (M-6)', () => {
+        // 模拟磁盘上有加密密码的设置
+        const settingsWithEncrypted = createBaseSettings()
+        settingsWithEncrypted.cloudSync.autoSyncEncryptedPassword = 'invalid-base64-blob'
+        mockReadSettings.mockReturnValue(settingsWithEncrypted)
+
+        // 模拟解密抛错（如系统重装、用户切换、safeStorage 主密钥变化）
+        mockSafeStorage.decryptString = vi.fn(() => {
+          throw new Error('decrypt failed')
+        })
+
+        service._cachedPassword = null
+        const beforeWriteCount = mockWriteSettings.mock.calls.length
+
+        service.restorePersistedPassword()
+
+        // 仅 warn，不写盘删除字段
+        expect(mockLogger.warn).toHaveBeenCalled()
+        expect(mockWriteSettings.mock.calls.length).toBe(beforeWriteCount)
         expect(service._cachedPassword).toBeNull()
       })
     })

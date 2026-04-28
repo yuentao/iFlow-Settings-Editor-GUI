@@ -256,8 +256,25 @@ function registerCloudSyncIpcHandlers() {
   ipcMain.handle('cloud-sync:clear-cloud', wrapIpcHandler(async () => {
     await syncService.clearCloud()
     syncService.clearCachedPassword()
-    // 不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理
-    return { success: true }
+
+    // H-5: 同步清理本地密码哈希/盐与持久化的加密密码
+    // 否则用户清空云端后用其他设备重新设置密码，本地仍持有旧 hash → verify-password 会误判
+    let cleared = false
+    const settings = readSettings() || {}
+    if (settings.cloudSync) {
+      if (settings.cloudSync.passwordHash || settings.cloudSync.passwordSalt) {
+        delete settings.cloudSync.passwordHash
+        delete settings.cloudSync.passwordSalt
+        cleared = true
+      }
+      if (settings.cloudSync.autoSyncEncryptedPassword) {
+        delete settings.cloudSync.autoSyncEncryptedPassword
+        cleared = true
+      }
+      if (cleared) writeSettings(settings)
+    }
+
+    return { success: true, cleared }
   }, 'cloud-sync:clear-cloud'))
 
   // ====== 设备管理 ======

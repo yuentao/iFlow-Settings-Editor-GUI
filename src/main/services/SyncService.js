@@ -148,6 +148,12 @@ class SyncService {
   /**
    * 从设置文件恢复持久化的密码到内存缓存
    * 应用启动时调用，确保自动同步重启后仍能工作
+   *
+   * M-6：解密失败时仅打 warn，不再静默删除持久化数据。
+   * 系统重装、用户切换、safeStorage 主密钥变化等场景下解密失败属正常，
+   * 但持久化字段仍可能在原系统/原用户下有效，删除是不可逆操作；
+   * 改为保留字段，由用户重新输入密码后通过 cachePassword({persist:true})
+   * 自然覆写，或通过显式 set-remember-password(false) 主动清除。
    */
   restorePersistedPassword() {
     if (this._cachedPassword) return // 已有内存缓存
@@ -163,9 +169,11 @@ class SyncService {
       this._cachedPassword = this.safeStorage.decryptString(encrypted)
       this.logger.info('Auto-sync password restored from persistent storage')
     } catch (err) {
-      this.logger.error('Failed to restore persisted password:', err)
-      // 解密失败（如系统重装），清除无效的持久化数据
-      this._clearPersistedPassword()
+      // M-6：仅 warn，不删除持久化字段
+      this.logger.warn(
+        'Failed to decrypt persisted sync password (left intact, will require manual re-entry):',
+        err && err.message ? err.message : err
+      )
     }
   }
 
@@ -382,9 +390,8 @@ class SyncService {
       // 合并
       const settings = this.readSettings() || {}
       this._mergeConfigs(settings, remoteConfigs)
-      this.writeSettings(settings)
 
-      // 更新元数据
+      // 更新元数据并一次性落盘（H-4：合并原本相邻的两次 writeSettings）
       settings.cloudSync = settings.cloudSync || {}
       settings.cloudSync.lastSyncAt = new Date().toISOString()
       settings.cloudSync.lastSyncError = null
