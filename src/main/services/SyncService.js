@@ -27,7 +27,14 @@ class SyncService {
   constructor(deps = {}) {
     this.crypto = new CryptoManager()
     this.provider = null
+    // L-4：isSyncing 仍作为「状态快照」对外暴露，但真正的互斥由
+    // _currentSyncPromise 单一来源保证；任意时刻最多只有一个同步任务在跑。
     this.isSyncing = false
+    this._currentSyncPromise = null
+
+    // L-10：订阅 isSyncing 变化，IPC 层据此推送 cloud-sync:status-changed
+    // 让渲染端不再依赖各处轮询 / 自行 set isSyncing，消除 desync。
+    this._syncingChangedListeners = []
 
     // 依赖注入：测试时传入 mock，生产时按需加载真实模块
     this._readSettings = deps.readSettings || null
@@ -82,16 +89,84 @@ class SyncService {
   }
 
   /**
+   * L-4：以 promise 为单一来源的并发锁
+   *
+   * 任意时刻只允许一个同步任务在跑：若 `_currentSyncPromise` 已存在，
+   * 立刻抛出 `SYNC_IN_PROGRESS`（与原 `isSyncing` 检查的对外契约保持一致），
+   * 调用方可决定是否等待 / 重试 / 提示用户。
+   *
+   * 与单纯置位 `this.isSyncing = true` 相比，本实现保证：
+   *   1. 同步进入闭包之前先建立锁，避免 `await this.provider.list(...)`
+   *      让出后的极小窗口内被另一个调用抢入；
+   *   2. `isSyncing` 与 `_currentSyncPromise` 的设置/释放在 try/finally
+   *      中成对出现，不会因异常路径漏置 false。
+   *
+   * @template T
+   * @param {() => Promise<T>} fn
+   * @returns {Promise<T>}
+   */
+  async _runExclusive(fn) {
+    if (this._currentSyncPromise) {
+      throw new Error('SYNC_IN_PROGRESS')
+    }
+    this.isSyncing = true
+    this._emitSyncingChanged(true)
+    const promise = (async () => {
+      try {
+        return await fn()
+      } finally {
+        this.isSyncing = false
+        this._currentSyncPromise = null
+        this._emitSyncingChanged(false)
+      }
+    })()
+    this._currentSyncPromise = promise
+    return promise
+  }
+
+  /**
+   * L-10：注册 isSyncing 变化监听器
+   * @param {(isSyncing: boolean) => void} callback
+   * @returns {() => void} 取消订阅函数
+   */
+  onSyncingChanged(callback) {
+    if (typeof callback !== 'function') return () => {}
+    this._syncingChangedListeners.push(callback)
+    return () => {
+      const idx = this._syncingChangedListeners.indexOf(callback)
+      if (idx >= 0) this._syncingChangedListeners.splice(idx, 1)
+    }
+  }
+
+  /** L-10：触发 isSyncing 监听器，单个监听器异常不影响其他 */
+  _emitSyncingChanged(isSyncing) {
+    for (const cb of this._syncingChangedListeners) {
+      try {
+        cb(isSyncing)
+      } catch (err) {
+        this.logger.warn('syncing-changed listener threw:', err && err.message ? err.message : err)
+      }
+    }
+  }
+
+  /**
    * 缓存同步密码（用于自动同步）
-   * 持久化加密密码到设置文件（用于重启后恢复）
+   * 默认仅缓存到内存。仅当显式 `options.persist === true` 时才会用 safeStorage
+   * 加密后持久化到设置文件（用于自动同步在重启后恢复）。
+   *
+   * 安全考虑（M-1）：默认不持久化是为了：
+   *   1. Linux 下 safeStorage 行为依赖桌面环境，可能 fallback 到弱加密；
+   *   2. 持久化文件被备份/泄漏后，攻击者只要拿到当前用户登录态即可解密；
+   *   3. 用户对"密码是否被持久化"应有显式控制权（UI 开关 rememberSyncPassword）。
+   *
    * @param {string} password
    * @param {object} [options]
-   * @param {boolean} [options.persist] - 是否持久化加密密码（默认 true）
+   * @param {boolean} [options.persist=false] - 是否持久化加密密码
    */
   cachePassword(password, options = {}) {
     this._cachedPassword = password
-    // 默认持久化密码，因为加密密码在重启后仍需使用（用于同步操作）
-    const shouldPersist = options.persist !== undefined ? options.persist : true
+    // 默认不持久化；调用方需根据用户设置（如 rememberSyncPassword）显式传 persist:true
+    const shouldPersist = options.persist === true
     if (shouldPersist && password) {
       this._persistEncryptedPassword(password)
     }
@@ -100,6 +175,33 @@ class SyncService {
   /** 清除缓存的密码，同时清除持久化的加密密码 */
   clearCachedPassword() {
     this._cachedPassword = null
+    this._clearPersistedPassword()
+  }
+
+  /**
+   * 是否当前有内存缓存的同步密码（L-9：替代外部读取 _cachedPassword）
+   * @returns {boolean}
+   */
+  hasCachedPassword() {
+    return !!this._cachedPassword
+  }
+
+  /**
+   * 将当前内存缓存的密码持久化到加密存储（L-9：替代外部读取 _cachedPassword 后回调 cachePassword）
+   * 仅当存在缓存时才执行；否则静默返回 false。
+   * @returns {boolean} 是否触发了持久化
+   */
+  persistCachedPassword() {
+    if (!this._cachedPassword) return false
+    this._persistEncryptedPassword(this._cachedPassword)
+    return true
+  }
+
+  /**
+   * 清除磁盘上持久化的加密密码（保留内存缓存）
+   * L-9：暴露公共方法，避免外部访问下划线开头的私有清理函数。
+   */
+  clearPersistedPassword() {
     this._clearPersistedPassword()
   }
 
@@ -141,6 +243,12 @@ class SyncService {
   /**
    * 从设置文件恢复持久化的密码到内存缓存
    * 应用启动时调用，确保自动同步重启后仍能工作
+   *
+   * M-6：解密失败时仅打 warn，不再静默删除持久化数据。
+   * 系统重装、用户切换、safeStorage 主密钥变化等场景下解密失败属正常，
+   * 但持久化字段仍可能在原系统/原用户下有效，删除是不可逆操作；
+   * 改为保留字段，由用户重新输入密码后通过 cachePassword({persist:true})
+   * 自然覆写，或通过显式 set-remember-password(false) 主动清除。
    */
   restorePersistedPassword() {
     if (this._cachedPassword) return // 已有内存缓存
@@ -156,9 +264,11 @@ class SyncService {
       this._cachedPassword = this.safeStorage.decryptString(encrypted)
       this.logger.info('Auto-sync password restored from persistent storage')
     } catch (err) {
-      this.logger.error('Failed to restore persisted password:', err)
-      // 解密失败（如系统重装），清除无效的持久化数据
-      this._clearPersistedPassword()
+      // M-6：仅 warn，不删除持久化字段
+      this.logger.warn(
+        'Failed to decrypt persisted sync password (left intact, will require manual re-entry):',
+        err && err.message ? err.message : err
+      )
     }
   }
 
@@ -270,45 +380,43 @@ class SyncService {
    */
   async push(password) {
     if (!this.provider) throw new Error('SYNC_PROVIDER_REQUIRED')
-    if (this.isSyncing) throw new Error('SYNC_IN_PROGRESS')
 
-    this.isSyncing = true
-    try {
-      const settings = this.readSettings() || {}
-      const syncData = this._extractSyncData(settings)
-      const encrypted = this.crypto.encryptSyncData(syncData, password)
+    return this._runExclusive(async () => {
+      try {
+        const settings = this.readSettings() || {}
+        const syncData = this._extractSyncData(settings)
+        const encrypted = this.crypto.encryptSyncData(syncData, password)
 
-      const deviceName = (settings.cloudSync || {}).deviceName || ''
-      const fileContent = Buffer.from(JSON.stringify({
-        version: 2,
-        timestamp: new Date().toISOString(),
-        deviceId: this.deviceId,
-        deviceName,
-        fingerprint: this.crypto.fingerprint(encrypted),
-        data: encrypted,
-      }, null, 2))
+        const deviceName = (settings.cloudSync || {}).deviceName || ''
+        const fileContent = Buffer.from(JSON.stringify({
+          version: 2,
+          timestamp: new Date().toISOString(),
+          deviceId: this.deviceId,
+          deviceName,
+          fingerprint: this.crypto.fingerprint(encrypted),
+          data: encrypted,
+        }, null, 2))
 
-      await this.provider.upload(`devices/config-${this.deviceId}.json`, fileContent)
+        await this.provider.upload(`devices/config-${this.deviceId}.json`, fileContent)
 
-      // 更新元数据
-      const updated = this.readSettings() || {}
-      updated.cloudSync = updated.cloudSync || {}
-      updated.cloudSync.lastSyncAt = new Date().toISOString()
-      updated.cloudSync.lastSyncError = null
-      this.writeSettings(updated)
+        // 更新元数据
+        const updated = this.readSettings() || {}
+        updated.cloudSync = updated.cloudSync || {}
+        updated.cloudSync.lastSyncAt = new Date().toISOString()
+        updated.cloudSync.lastSyncError = null
+        this.writeSettings(updated)
 
-      this.logger.info('Push succeeded')
-      return { success: true }
-    } catch (error) {
-      this.logger.error('Push failed:', error)
-      const updated = this.readSettings() || {}
-      updated.cloudSync = updated.cloudSync || {}
-      updated.cloudSync.lastSyncError = error.message
-      this.writeSettings(updated)
-      return { success: false, error: error.message }
-    } finally {
-      this.isSyncing = false
-    }
+        this.logger.info('Push succeeded')
+        return { success: true }
+      } catch (error) {
+        this.logger.error('Push failed:', error)
+        const updated = this.readSettings() || {}
+        updated.cloudSync = updated.cloudSync || {}
+        updated.cloudSync.lastSyncError = error.message
+        this.writeSettings(updated)
+        return { success: false, error: error.message }
+      }
+    })
   }
 
   /**
@@ -318,76 +426,83 @@ class SyncService {
    */
   async pull(password) {
     if (!this.provider) throw new Error('SYNC_PROVIDER_REQUIRED')
-    if (this.isSyncing) throw new Error('SYNC_IN_PROGRESS')
 
-    this.isSyncing = true
-    try {
-      const files = await this.provider.list('devices/')
-      const configFiles = files.filter(
-        (f) => f.name.startsWith('config-') && f.name.endsWith('.json')
-      )
+    return this._runExclusive(async () => {
+      try {
+        const files = await this.provider.list('devices/')
+        const configFiles = files.filter(
+          (f) => f.name.startsWith('config-') && f.name.endsWith('.json')
+        )
 
-      // 下载并解密所有设备配置
-      const remoteConfigs = []
-      for (const file of configFiles) {
-        const content = await this.provider.download(`devices/${file.name}`)
-        let parsed
-        try {
-          parsed = JSON.parse(content.toString('utf8'))
-        } catch {
-          this.logger.warn(`Invalid JSON in ${file.name}, skipping`)
-          continue
-        }
-
-        if (parsed.version !== 2) {
-          this.logger.warn(`Unsupported version in ${file.name}, skipping`)
-          continue
-        }
-
-        try {
-          const decrypted = this.crypto.decryptSyncData(parsed.data, password)
-          remoteConfigs.push({
-            deviceId: parsed.deviceId,
-            deviceName: parsed.deviceName || '',
-            timestamp: parsed.timestamp,
-            data: decrypted,
-          })
-        } catch (err) {
-          this.logger.warn(`Decryption failed for ${file.name}: ${err.message}`)
-          // 解密本机文件失败 → 密码错误
-          if (file.name === `config-${this.deviceId}.json`) {
-            throw new Error('SYNC_PASSWORD_INCORRECT')
+        // 下载并解密所有设备配置
+        const remoteConfigs = []
+        let decryptFailures = 0
+        for (const file of configFiles) {
+          const content = await this.provider.download(`devices/${file.name}`)
+          let parsed
+          try {
+            parsed = JSON.parse(content.toString('utf8'))
+          } catch {
+            this.logger.warn(`Invalid JSON in ${file.name}, skipping`)
+            continue
           }
-          // 其他设备文件解密失败（可能是旧密码），跳过
+
+          if (parsed.version !== 2) {
+            this.logger.warn(`Unsupported version in ${file.name}, skipping`)
+            continue
+          }
+
+          try {
+            const decrypted = this.crypto.decryptSyncData(parsed.data, password)
+            remoteConfigs.push({
+              deviceId: parsed.deviceId,
+              deviceName: parsed.deviceName || '',
+              timestamp: parsed.timestamp,
+              data: decrypted,
+            })
+          } catch (err) {
+            this.logger.warn(`Decryption failed for ${file.name}: ${err.message}`)
+            decryptFailures += 1
+            // 解密本机文件失败 → 密码确定错误（最强信号）
+            if (file.name === `config-${this.deviceId}.json`) {
+              throw new Error('SYNC_PASSWORD_INCORRECT')
+            }
+            // 其他设备文件解密失败暂不抛错，留待后续统一判定
+          }
         }
+
+        // 远端确有 config 文件但全部解密失败：
+        // - 用户可能从未在本机推送过 → 没有本机文件命中上面的强判定
+        // - 但所有其他设备文件都解不开几乎必然是密码错（旧密码场景极少全部命中）
+        // 抛出 SYNC_PASSWORD_LIKELY_INCORRECT，让 UI 明确提示"密码可能错误"
+        if (remoteConfigs.length === 0 && decryptFailures > 0) {
+          throw new Error('SYNC_PASSWORD_LIKELY_INCORRECT')
+        }
+
+        // 合并
+        const settings = this.readSettings() || {}
+        this._mergeConfigs(settings, remoteConfigs)
+
+        // 更新元数据并一次性落盘（H-4：合并原本相邻的两次 writeSettings）
+        settings.cloudSync = settings.cloudSync || {}
+        settings.cloudSync.lastSyncAt = new Date().toISOString()
+        settings.cloudSync.lastSyncError = null
+        this.writeSettings(settings)
+
+        this.logger.info(`Pull succeeded, merged ${remoteConfigs.length} remote config(s)`)
+        return {
+          success: true,
+          mergedFrom: remoteConfigs.map((c) => c.deviceName || c.deviceId),
+        }
+      } catch (error) {
+        this.logger.error('Pull failed:', error)
+        const updated = this.readSettings() || {}
+        updated.cloudSync = updated.cloudSync || {}
+        updated.cloudSync.lastSyncError = error.message
+        this.writeSettings(updated)
+        return { success: false, error: error.message }
       }
-
-      // 合并
-      const settings = this.readSettings() || {}
-      this._mergeConfigs(settings, remoteConfigs)
-      this.writeSettings(settings)
-
-      // 更新元数据
-      settings.cloudSync = settings.cloudSync || {}
-      settings.cloudSync.lastSyncAt = new Date().toISOString()
-      settings.cloudSync.lastSyncError = null
-      this.writeSettings(settings)
-
-      this.logger.info(`Pull succeeded, merged ${remoteConfigs.length} remote config(s)`)
-      return {
-        success: true,
-        mergedFrom: remoteConfigs.map((c) => c.deviceName || c.deviceId),
-      }
-    } catch (error) {
-      this.logger.error('Pull failed:', error)
-      const updated = this.readSettings() || {}
-      updated.cloudSync = updated.cloudSync || {}
-      updated.cloudSync.lastSyncError = error.message
-      this.writeSettings(updated)
-      return { success: false, error: error.message }
-    } finally {
-      this.isSyncing = false
-    }
+    })
   }
 
   /**
@@ -474,6 +589,9 @@ class SyncService {
       currentApiProfile: settings.currentApiProfile || 'default',
       mcpServers: settings.mcpServers || {},
       apiProfilesOrder: settings.apiProfilesOrder || [],
+      // tombstone 一并上传，让其他设备据此物理删除已删条目
+      _deletedProfiles: settings._deletedProfiles || {},
+      _deletedServers: settings._deletedServers || {},
     }
   }
 
@@ -498,21 +616,50 @@ class SyncService {
       ? new Date(localSettings.cloudSync.lastSyncAt).getTime()
       : 0
 
+    // ─── 合并 tombstone（取每个 name 的最新 deletedAt） ──
+    const mergedDeletedProfiles = { ...(local._deletedProfiles || {}) }
+    const mergedDeletedServers = { ...(local._deletedServers || {}) }
+    const _mergeTombstoneBucket = (target, incoming) => {
+      if (!incoming || typeof incoming !== 'object') return
+      for (const [name, entry] of Object.entries(incoming)) {
+        if (!entry || !entry.deletedAt) continue
+        const t = new Date(entry.deletedAt).getTime()
+        if (Number.isNaN(t)) continue
+        const existing = target[name]
+        const existingT = existing && existing.deletedAt ? new Date(existing.deletedAt).getTime() : 0
+        if (t > existingT) target[name] = { deletedAt: entry.deletedAt }
+      }
+    }
+    for (const remote of remoteConfigs) {
+      _mergeTombstoneBucket(mergedDeletedProfiles, remote.data._deletedProfiles)
+      _mergeTombstoneBucket(mergedDeletedServers, remote.data._deletedServers)
+    }
+
+    const _profileTombT = (name) => {
+      const t = mergedDeletedProfiles[name]
+      return t && t.deletedAt ? new Date(t.deletedAt).getTime() : 0
+    }
+    const _serverTombT = (name) => {
+      const t = mergedDeletedServers[name]
+      return t && t.deletedAt ? new Date(t.deletedAt).getTime() : 0
+    }
+
     // 合并 apiProfiles：按 profile 名称，比较 per-item _lastModified
     const mergedProfiles = { ...local.apiProfiles }
     for (const remote of remoteConfigs) {
       for (const [name, profile] of Object.entries(remote.data.apiProfiles || {})) {
+        const remoteItemTime = profile._lastModified
+          ? new Date(profile._lastModified).getTime()
+          : 0
+        // 远端条目若被 tombstone 覆盖（删除晚于其修改时间），跳过该条目
+        if (_profileTombT(name) >= remoteItemTime && _profileTombT(name) > 0) {
+          continue
+        }
         if (!mergedProfiles[name]) {
           // 本地没有 → 直接加入
           mergedProfiles[name] = profile
         } else {
-          // 本地有同名 → 比较 per-item _lastModified 时间
-          // 远端时间：使用 item 的 _lastModified（没有则为 0，表示很旧）
-          const remoteItemTime = profile._lastModified
-            ? new Date(profile._lastModified).getTime()
-            : 0
           // 本地时间：使用 item 的 _lastModified，如果没有则用 lastSyncAt
-          // （表示该 item 上次已知同步的时间，在此之前本地的修改不应当被覆盖）
           const localItemTime = mergedProfiles[name]._lastModified
             ? new Date(mergedProfiles[name]._lastModified).getTime()
             : lastSyncAt
@@ -522,17 +669,29 @@ class SyncService {
         }
       }
     }
+    // 应用 tombstone：本地条目若 _lastModified <= deletedAt 则物理删除
+    for (const name of Object.keys(mergedProfiles)) {
+      const tombT = _profileTombT(name)
+      if (tombT === 0) continue
+      const itemT = mergedProfiles[name]._lastModified
+        ? new Date(mergedProfiles[name]._lastModified).getTime()
+        : 0
+      if (itemT <= tombT) delete mergedProfiles[name]
+    }
 
     // 合并 mcpServers：按服务器名称，比较 per-item _lastModified
     const mergedServers = { ...local.mcpServers }
     for (const remote of remoteConfigs) {
       for (const [name, server] of Object.entries(remote.data.mcpServers || {})) {
+        const remoteItemTime = server._lastModified
+          ? new Date(server._lastModified).getTime()
+          : 0
+        if (_serverTombT(name) >= remoteItemTime && _serverTombT(name) > 0) {
+          continue
+        }
         if (!mergedServers[name]) {
           mergedServers[name] = server
         } else {
-          const remoteItemTime = server._lastModified
-            ? new Date(server._lastModified).getTime()
-            : 0
           const localItemTime = mergedServers[name]._lastModified
             ? new Date(mergedServers[name]._lastModified).getTime()
             : lastSyncAt
@@ -542,28 +701,58 @@ class SyncService {
         }
       }
     }
-
-    // 合并 apiProfilesOrder：去重保序
-    const mergedOrder = [...(local.apiProfilesOrder || [])]
-    for (const remote of remoteConfigs) {
-      for (const name of remote.data.apiProfilesOrder || []) {
-        if (!mergedOrder.includes(name)) {
-          mergedOrder.push(name)
-        }
-      }
+    for (const name of Object.keys(mergedServers)) {
+      const tombT = _serverTombT(name)
+      if (tombT === 0) continue
+      const itemT = mergedServers[name]._lastModified
+        ? new Date(mergedServers[name]._lastModified).getTime()
+        : 0
+      if (itemT <= tombT) delete mergedServers[name]
     }
 
-    // currentApiProfile：取最新远程值
+    // 合并 apiProfilesOrder：去重保序，并剔除已被 tombstone 显式删除的条目
+    const mergedOrder = []
+    const _seenOrder = new Set()
+    const _pushOrder = (name) => {
+      if (_seenOrder.has(name)) return
+      if (_profileTombT(name) > 0) return // 被 tombstone 显式删除
+      _seenOrder.add(name)
+      mergedOrder.push(name)
+    }
+    for (const name of (local.apiProfilesOrder || [])) _pushOrder(name)
+    for (const remote of remoteConfigs) {
+      for (const name of (remote.data.apiProfilesOrder || [])) _pushOrder(name)
+    }
+
+    // currentApiProfile：取最新远程值；若被 tombstone 显式删除则回退到 default 或任一存活 profile
     const latestRemote = remoteConfigs[0]
-    const mergedCurrent = latestRemote
+    let mergedCurrent = latestRemote
       ? latestRemote.data.currentApiProfile || local.currentApiProfile
       : local.currentApiProfile
+    if (mergedCurrent && _profileTombT(mergedCurrent) > 0) {
+      if ('default' in mergedProfiles) {
+        mergedCurrent = 'default'
+      } else {
+        const survivors = Object.keys(mergedProfiles)
+        mergedCurrent = survivors[0] || 'default'
+      }
+    }
 
     // 应用合并结果
     localSettings.apiProfiles = mergedProfiles
     localSettings.mcpServers = mergedServers
     localSettings.apiProfilesOrder = mergedOrder
     localSettings.currentApiProfile = mergedCurrent
+    localSettings._deletedProfiles = mergedDeletedProfiles
+    localSettings._deletedServers = mergedDeletedServers
+
+    // 清理超过保留期的墓碑，避免无限增长
+    try {
+      const { pruneOldTombstones } = require('../services/configService')
+      pruneOldTombstones(localSettings)
+    } catch (_) {
+      // 测试环境可能未注入 configService，忽略
+    }
 
     // 同步顶层 API 字段：确保当前配置的顶层快捷字段与 apiProfiles 中一致
     // 否则 switch-api-profile 的 extractApiConfig 会用旧的顶层字段覆盖已合并的数据

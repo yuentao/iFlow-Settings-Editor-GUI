@@ -108,6 +108,147 @@ function applyApiConfig(settings, apiConfig) {
   }
 }
 
+/** 内部：忽略元数据字段后比较两个条目内容是否相等 */
+function _isItemContentEqual(a, b) {
+  if (a === b) return true
+  if (!a || !b) return false
+  if (typeof a !== 'object' || typeof b !== 'object') return false
+  const cleanA = JSON.stringify(_omitMeta(a))
+  const cleanB = JSON.stringify(_omitMeta(b))
+  return cleanA === cleanB
+}
+
+function _omitMeta(obj) {
+  if (!obj || typeof obj !== 'object') return obj
+  const result = {}
+  for (const [k, v] of Object.entries(obj)) {
+    if (k === '_lastModified') continue
+    result[k] = v
+  }
+  return result
+}
+
+/**
+ * 对比新旧 settings 中的 apiProfiles 与 mcpServers，
+ * 对内容变化或新增的条目写入 _lastModified=now；未变化的条目保留原时间戳。
+ *
+ * 这是云同步合并策略（per-item _lastModified 比较）能正确工作的前提：
+ * - 不再把 stampModifiedItems 误以为可放在 SyncService 中（那样无法反映本地修改）；
+ * - 必须在每次 settings 落盘前调用。
+ *
+ * @param {Object|null} oldSettings - 旧设置（来自磁盘）
+ * @param {Object} newSettings - 即将写入的新设置（直接修改）
+ */
+function stampModifiedItems(oldSettings, newSettings) {
+  if (!newSettings || typeof newSettings !== 'object') return
+  const now = new Date().toISOString()
+
+  const oldProfiles = (oldSettings && oldSettings.apiProfiles) || {}
+  const newProfiles = newSettings.apiProfiles || {}
+  for (const [name, profile] of Object.entries(newProfiles)) {
+    if (!profile || typeof profile !== 'object') continue
+    const oldProfile = oldProfiles[name]
+    if (!oldProfile) {
+      profile._lastModified = now
+    } else if (!_isItemContentEqual(oldProfile, profile)) {
+      profile._lastModified = now
+    } else if (oldProfile._lastModified && !profile._lastModified) {
+      profile._lastModified = oldProfile._lastModified
+    }
+  }
+
+  const oldServers = (oldSettings && oldSettings.mcpServers) || {}
+  const newServers = newSettings.mcpServers || {}
+  for (const [name, server] of Object.entries(newServers)) {
+    if (!server || typeof server !== 'object') continue
+    const oldServer = oldServers[name]
+    if (!oldServer) {
+      server._lastModified = now
+    } else if (!_isItemContentEqual(oldServer, server)) {
+      server._lastModified = now
+    } else if (oldServer._lastModified && !server._lastModified) {
+      server._lastModified = oldServer._lastModified
+    }
+  }
+}
+
+// ─── Tombstone（墓碑）支持 ────────────────────────
+// 用于云同步的删除合并：
+//   settings._deletedProfiles = { [name]: { deletedAt: ISO } }
+//   settings._deletedServers  = { [name]: { deletedAt: ISO } }
+// _mergeConfigs 在合并时会对 tombstone 也合并，并物理删除被墓碑覆盖的条目。
+// 默认保留 30 天，超过后由 pruneOldTombstones 清理。
+
+const DEFAULT_TOMBSTONE_RETENTION_DAYS = 30
+
+function _ensureTombstoneBucket(settings, key) {
+  if (!settings[key] || typeof settings[key] !== 'object') {
+    settings[key] = {}
+  }
+  return settings[key]
+}
+
+/**
+ * 标记某个 apiProfile 为已删除（写入 tombstone），不会从 apiProfiles 中物理删除。
+ * 通常调用方应：先调用此函数 → 再 delete settings.apiProfiles[name]。
+ * @param {Object} settings
+ * @param {string} name
+ * @param {string} [deletedAt] - ISO 时间戳，默认 now
+ */
+function markDeletedProfile(settings, name, deletedAt) {
+  if (!settings || !name) return
+  const bucket = _ensureTombstoneBucket(settings, '_deletedProfiles')
+  bucket[name] = { deletedAt: deletedAt || new Date().toISOString() }
+}
+
+/**
+ * 标记某个 mcpServer 为已删除。
+ * @param {Object} settings
+ * @param {string} name
+ * @param {string} [deletedAt]
+ */
+function markDeletedServer(settings, name, deletedAt) {
+  if (!settings || !name) return
+  const bucket = _ensureTombstoneBucket(settings, '_deletedServers')
+  bucket[name] = { deletedAt: deletedAt || new Date().toISOString() }
+}
+
+/** 取 apiProfile 的删除时间戳（毫秒），不存在则返回 0。 */
+function getProfileTombstoneTime(settings, name) {
+  const t = settings && settings._deletedProfiles && settings._deletedProfiles[name]
+  return t && t.deletedAt ? new Date(t.deletedAt).getTime() : 0
+}
+
+/** 取 mcpServer 的删除时间戳（毫秒），不存在则返回 0。 */
+function getServerTombstoneTime(settings, name) {
+  const t = settings && settings._deletedServers && settings._deletedServers[name]
+  return t && t.deletedAt ? new Date(t.deletedAt).getTime() : 0
+}
+
+/**
+ * 清理超过保留期的墓碑，避免 settings 体积无限增长。
+ * @param {Object} settings
+ * @param {number} [maxAgeDays] - 保留天数，默认 30
+ * @returns {number} 被清理的墓碑数量
+ */
+function pruneOldTombstones(settings, maxAgeDays = DEFAULT_TOMBSTONE_RETENTION_DAYS) {
+  if (!settings) return 0
+  const cutoff = Date.now() - maxAgeDays * 86400_000
+  let removed = 0
+  for (const key of ['_deletedProfiles', '_deletedServers']) {
+    const bucket = settings[key]
+    if (!bucket || typeof bucket !== 'object') continue
+    for (const [name, entry] of Object.entries(bucket)) {
+      const t = entry && entry.deletedAt ? new Date(entry.deletedAt).getTime() : 0
+      if (!t || t < cutoff) {
+        delete bucket[name]
+        removed++
+      }
+    }
+  }
+  return removed
+}
+
 module.exports = {
   SETTINGS_FILE,
   API_FIELDS,
@@ -118,4 +259,11 @@ module.exports = {
   getApiFields,
   extractApiConfig,
   applyApiConfig,
+  stampModifiedItems,
+  markDeletedProfile,
+  markDeletedServer,
+  getProfileTombstoneTime,
+  getServerTombstoneTime,
+  pruneOldTombstones,
+  DEFAULT_TOMBSTONE_RETENTION_DAYS,
 }

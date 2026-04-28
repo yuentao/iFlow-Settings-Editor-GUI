@@ -143,7 +143,7 @@
             </div>
             <div class="sync-error" v-if="cloudStore.status.lastSyncError">
               <CloseSmall size="14" />
-              {{ cloudStore.status.lastSyncError }}
+              {{ lastSyncErrorText }}
             </div>
             <!-- 同步内容 -->
             <div class="sync-content-section">
@@ -736,6 +736,25 @@ const statusLabel = computed(() => {
   return map[s] || s
 })
 
+// M-3: 把主进程抛出的错误码映射为本地化提示。
+// 未识别的错误码或自由文本原样返回，避免界面上出现裸露的 SYNC_xxx 字符串。
+const SYNC_ERROR_I18N_MAP = {
+  SYNC_PASSWORD_INCORRECT: 'cloudSync.errPasswordIncorrect',
+  SYNC_PASSWORD_LIKELY_INCORRECT: 'cloudSync.errPasswordLikelyIncorrect',
+  SYNC_PASSWORD_NOT_SET: 'cloudSync.errorPasswordRequired',
+  SYNC_PASSWORD_TOO_SHORT: 'cloudSync.passwordMinLength',
+  SYNC_PROVIDER_REQUIRED: 'cloudSync.errorProviderRequired',
+  SYNC_IN_PROGRESS: 'cloudSync.statusSyncing',
+}
+
+function formatSyncError(err) {
+  if (!err) return ''
+  const key = SYNC_ERROR_I18N_MAP[err]
+  return key ? t(key) : err
+}
+
+const lastSyncErrorText = computed(() => formatSyncError(cloudStore.status.lastSyncError))
+
 // === 云同步 Methods ===
 function formatTime(isoStr) {
   if (!isoStr) return ''
@@ -825,7 +844,7 @@ async function handleAutoSyncPasswordConfirm() {
       closeSyncPasswordDialog()
     } else {
       // 设置失败，重置对话框状态，让用户可以重试
-      syncPasswordDialog.value.error = syncResult.error || t('cloudSync.setAutoSyncFailed')
+      syncPasswordDialog.value.error = formatSyncError(syncResult.error) || t('cloudSync.setAutoSyncFailed')
       syncPasswordDialog.value.onCancel = () => {
         cloudStore.setAutoSync(false)
       }
@@ -854,7 +873,7 @@ async function handleSaveProvider() {
   if (result.success) {
     showCloudMessage({ type: 'success', title: t('messages.success'), message: t('cloudSync.connectionSuccess') })
   } else {
-    showCloudMessage({ type: 'error', title: t('messages.error'), message: result.error || t('cloudSync.connectionFailed') })
+    showCloudMessage({ type: 'error', title: t('messages.error'), message: formatSyncError(result.error) || t('cloudSync.connectionFailed') })
   }
 }
 
@@ -949,7 +968,7 @@ async function handleSetPasswordConfirm() {
       await cloudStore.loadStatus()
     }
   } else {
-    passwordDialog.value.error = result.error || t('messages.error')
+    passwordDialog.value.error = formatSyncError(result.error) || t('messages.error')
   }
 }
 
@@ -970,14 +989,23 @@ async function handleChangePasswordConfirm() {
   const result = await cloudStore.changePassword(oldPassword, password)
   if (result.success) {
     closePasswordDialog()
-    if (result.needRepush) {
-      // 用新密码重新推送（push），将本地配置用新密码加密后上传
-      // 不使用 sync（pull+push），因为改密后本地文件仍用旧密码加密，pull 会解密失败
+    if (result.repushError) {
+      // M-3: 主进程已用新密码尝试重推但失败，告知用户本机已更新但云端需重试
+      showCloudMessage({
+        type: 'warning',
+        title: t('cloudSync.changePassword'),
+        message: t('cloudSync.passwordChangedRepushFailed', { error: formatSyncError(result.repushError) }),
+      })
+    } else if (result.repushed) {
+      // 主进程已自动用新密码重推成功，但其他设备文件仍由旧密码加密，需要在那些设备分别重推
+      showCloudMessage({ type: 'info', title: t('cloudSync.changePassword'), message: t('cloudSync.passwordChangedNeedRepush') })
+    } else if (result.needRepush) {
+      // provider 未配置，主进程未尝试重推：渲染端兜底用新密码 push 一次
       showCloudMessage({ type: 'info', title: t('cloudSync.changePassword'), message: t('cloudSync.passwordChangedNeedRepush') })
       await cloudStore.push(password)
     }
   } else {
-    passwordDialog.value.error = result.error || t('messages.error')
+    passwordDialog.value.error = formatSyncError(result.error) || t('messages.error')
   }
 }
 
@@ -1019,7 +1047,7 @@ async function handleSyncPasswordConfirm() {
     if (syncResult.success) {
       cloudStore.loadDevices()
     } else {
-      showCloudMessage({ type: 'error', title: t('messages.error'), message: syncResult.error || t('cloudSync.syncFailed') })
+      showCloudMessage({ type: 'error', title: t('messages.error'), message: formatSyncError(syncResult.error) || t('cloudSync.syncFailed') })
     }
   } else {
     syncPasswordDialog.value.error = t('cloudSync.passwordIncorrect')
@@ -1047,7 +1075,7 @@ function handleClearCloud() {
       if (result.success) {
         showCloudMessage({ type: 'info', title: t('messages.success'), message: t('cloudSync.clearCloudSuccess') })
       } else {
-        showCloudMessage({ type: 'error', title: t('messages.error'), message: result.error || t('messages.error') })
+        showCloudMessage({ type: 'error', title: t('messages.error'), message: formatSyncError(result.error) || t('messages.error') })
       }
     },
   }

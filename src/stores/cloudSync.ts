@@ -51,6 +51,22 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   const syncEnabled = ref(localStorage.getItem('iflow_syncEnabled') === 'true')
   const autoSyncEnabled = ref(localStorage.getItem('iflow_autoSyncEnabled') === 'true')
 
+  // L-10：订阅主进程同步状态广播，以主进程为单一来源覆盖本地 status，
+  // 消除主/渲染两端 isSyncing 等字段 desync。
+  // preload 暴露的 onCloudSyncStatusChanged 在应用生命周期内一直有效，
+  // store 同样在生命周期内长存，无需取消订阅。
+  if (typeof window !== 'undefined' && (window as any).electronAPI?.onCloudSyncStatusChanged) {
+    ;(window as any).electronAPI.onCloudSyncStatusChanged((state: any) => {
+      if (!state || !state.success) return
+      const { success: _success, ...rest } = state
+      Object.assign(status.value, rest)
+      // 同步本地的 isSyncing ref（沿用旧字段供模板/计算属性使用）
+      if (typeof state.isSyncing === 'boolean') {
+        isSyncing.value = state.isSyncing
+      }
+    })
+  }
+
   // Getters
   const isConfigured = computed(() => status.value.hasPassword && status.value.isAuthorized)
 
@@ -66,8 +82,10 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     try {
       const result = await window.electronAPI.cloudSyncGetStatus()
       if (result.success) {
-        const { success, enabled, autoSyncEnabled, ...rest } = result
-        // enabled 和 autoSyncEnabled 由渲染进程通过 localStorage 管理，不从 result 覆盖
+        // L-8：CloudSyncStatus 已不含 enabled/autoSyncEnabled，主进程也不再返回，
+        // 直接合并 result 中匹配的字段即可（success 字段不会冲突，Object.assign
+        // 即使写入也无副作用，但为避免污染 status 形状，此处显式排除）
+        const { success: _success, ...rest } = result
         Object.assign(status.value, rest)
       }
     } catch (error) {

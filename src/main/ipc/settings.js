@@ -4,7 +4,7 @@
  */
 
 const { ipcMain } = require('electron')
-const { readSettings, writeSettings, API_FIELDS, extractApiConfig } = require('../services/configService')
+const { readSettings, writeSettings, API_FIELDS, extractApiConfig, stampModifiedItems, markDeletedProfile, markDeletedServer } = require('../services/configService')
 const { handleIpcError, wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 const { t } = require('../utils/translations')
 
@@ -49,6 +49,42 @@ function registerSettingsIpcHandlers() {
       }
     }
     merged.apiProfiles[currentProfile] = currentConfig
+
+    // 检测显式删除：仅当渲染端 payload 显式带了 apiProfiles / mcpServers 才比对
+    // （避免只更新顶层字段时把磁盘上的整张表误判为删除）
+    if (data && Object.prototype.hasOwnProperty.call(data, 'apiProfiles')) {
+      const oldProfiles = (existing && existing.apiProfiles) || {}
+      const newProfiles = merged.apiProfiles || {}
+      for (const name of Object.keys(oldProfiles)) {
+        if (!(name in newProfiles)) {
+          markDeletedProfile(merged, name)
+        }
+      }
+      // 重新出现的条目：清理旧 tombstone
+      if (merged._deletedProfiles) {
+        for (const name of Object.keys(newProfiles)) {
+          if (merged._deletedProfiles[name]) delete merged._deletedProfiles[name]
+        }
+      }
+    }
+    if (data && Object.prototype.hasOwnProperty.call(data, 'mcpServers')) {
+      const oldServers = (existing && existing.mcpServers) || {}
+      const newServers = merged.mcpServers || {}
+      for (const name of Object.keys(oldServers)) {
+        if (!(name in newServers)) {
+          markDeletedServer(merged, name)
+        }
+      }
+      if (merged._deletedServers) {
+        for (const name of Object.keys(newServers)) {
+          if (merged._deletedServers[name]) delete merged._deletedServers[name]
+        }
+      }
+    }
+
+    // 为内容变化的 apiProfiles/mcpServers 条目打上 _lastModified 时间戳
+    // 这是云同步增量合并策略能正确工作的前提
+    stampModifiedItems(existing, merged)
 
     writeSettings(merged)
 

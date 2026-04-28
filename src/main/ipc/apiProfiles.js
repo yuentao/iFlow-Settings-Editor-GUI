@@ -4,7 +4,7 @@
  */
 
 const { ipcMain } = require('electron')
-const { readSettings, writeSettings, API_FIELDS, extractApiConfig, applyApiConfig } = require('../services/configService')
+const { readSettings, writeSettings, API_FIELDS, extractApiConfig, applyApiConfig, stampModifiedItems, markDeletedProfile } = require('../services/configService')
 const { updateTrayMenu } = require('../tray')
 const { handleIpcError, wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 const { t } = require('../utils/translations')
@@ -47,6 +47,7 @@ function registerApiProfilesIpcHandlers() {
     if (!settings) {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
+    const oldSnapshot = JSON.parse(JSON.stringify(settings))
 
     const profiles = settings.apiProfiles || {}
     if (!profiles[profileName]) {
@@ -65,6 +66,7 @@ function registerApiProfilesIpcHandlers() {
     applyApiConfig(settings, newConfig)
     settings.currentApiProfile = profileName
     settings.apiProfiles = profiles
+    stampModifiedItems(oldSnapshot, settings)
     writeSettings(settings)
 
     updateTrayMenu()
@@ -77,6 +79,7 @@ function registerApiProfilesIpcHandlers() {
     if (!settings) {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
+    const oldSnapshot = JSON.parse(JSON.stringify(settings))
 
     if (!settings.apiProfiles) {
       settings.apiProfiles = { default: {} }
@@ -99,6 +102,11 @@ function registerApiProfilesIpcHandlers() {
       }
     }
     settings.apiProfiles[name] = newConfig
+    // 用户先删除再重建：移除同名 tombstone，避免合并时被云端误删
+    if (settings._deletedProfiles && settings._deletedProfiles[name]) {
+      delete settings._deletedProfiles[name]
+    }
+    stampModifiedItems(oldSnapshot, settings)
     writeSettings(settings)
 
     updateTrayMenu()
@@ -111,6 +119,7 @@ function registerApiProfilesIpcHandlers() {
     if (!settings) {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
+    const oldSnapshot = JSON.parse(JSON.stringify(settings))
 
     if (name === 'default') {
       return { success: false, error: t('errors.cannotDeleteDefault'), code: ErrorCodes.CANNOT_DELETE_DEFAULT }
@@ -121,6 +130,8 @@ function registerApiProfilesIpcHandlers() {
       return { success: false, error: t('errors.configNotExist', { name }), code: ErrorCodes.PROFILE_NOT_FOUND }
     }
 
+    // 写入 tombstone，云同步合并时其他设备会据此物理删除
+    markDeletedProfile(settings, name)
     delete profiles[name]
     settings.apiProfiles = profiles
 
@@ -132,6 +143,7 @@ function registerApiProfilesIpcHandlers() {
       }
     }
 
+    stampModifiedItems(oldSnapshot, settings)
     writeSettings(settings)
     updateTrayMenu()
     return successResult(settings)
@@ -143,6 +155,7 @@ function registerApiProfilesIpcHandlers() {
     if (!settings) {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
+    const oldSnapshot = JSON.parse(JSON.stringify(settings))
 
     if (oldName === 'default') {
       return { success: false, error: t('errors.cannotRenameDefault'), code: ErrorCodes.CANNOT_RENAME_DEFAULT }
@@ -157,14 +170,24 @@ function registerApiProfilesIpcHandlers() {
       return { success: false, error: t('errors.configAlreadyExists', { name: newName }), code: ErrorCodes.PROFILE_EXISTS }
     }
 
-    profiles[newName] = profiles[oldName]
+    // 重命名 = 旧名删除 + 新名新增；新名上若有旧 tombstone 应清掉，避免远端把新创建的视为已删除
+    const renamed = profiles[oldName]
+    if (renamed && typeof renamed === 'object') {
+      delete renamed._lastModified // 让 stampModifiedItems 视为内容变化重新打戳
+    }
+    profiles[newName] = renamed
     delete profiles[oldName]
+    markDeletedProfile(settings, oldName)
+    if (settings._deletedProfiles && settings._deletedProfiles[newName]) {
+      delete settings._deletedProfiles[newName]
+    }
     settings.apiProfiles = profiles
 
     if (settings.currentApiProfile === oldName) {
       settings.currentApiProfile = newName
     }
 
+    stampModifiedItems(oldSnapshot, settings)
     writeSettings(settings)
     updateTrayMenu()
     return successResult()
@@ -176,6 +199,7 @@ function registerApiProfilesIpcHandlers() {
     if (!settings) {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
+    const oldSnapshot = JSON.parse(JSON.stringify(settings))
 
     const profiles = settings.apiProfiles || {}
     if (!profiles[sourceName]) {
@@ -186,8 +210,14 @@ function registerApiProfilesIpcHandlers() {
       return { success: false, error: t('errors.configAlreadyExists', { name: newName }), code: ErrorCodes.PROFILE_EXISTS }
     }
 
-    profiles[newName] = JSON.parse(JSON.stringify(profiles[sourceName]))
+    const cloned = JSON.parse(JSON.stringify(profiles[sourceName]))
+    delete cloned._lastModified // 由 stampModifiedItems 重新打时间戳
+    profiles[newName] = cloned
     settings.apiProfiles = profiles
+    if (settings._deletedProfiles && settings._deletedProfiles[newName]) {
+      delete settings._deletedProfiles[newName]
+    }
+    stampModifiedItems(oldSnapshot, settings)
     writeSettings(settings)
 
     updateTrayMenu()

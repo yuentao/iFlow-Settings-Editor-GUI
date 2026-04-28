@@ -448,6 +448,186 @@ describe('SyncService', () => {
       service._mergeConfigs(local, remoteConfigs)
       expect(local.mcpServers['my-server'].command).toBe('updated-cmd')
     })
+
+    // ─── Tombstone 删除合并 ─────────────────────
+    it('local tombstone should remove a profile that exists on remote', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = { default: local.apiProfiles.default }
+      local._deletedProfiles = {
+        staging: { deletedAt: '2026-04-26T12:00:00Z' },
+      }
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+            // staging 在远端存在，但 _lastModified 早于本地 tombstone → 应被删除
+            staging: { apiKey: 'sk-staging', _lastModified: '2026-04-25T10:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default', 'staging'],
+          currentApiProfile: 'default',
+          _deletedProfiles: {},
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.apiProfiles.staging).toBeUndefined()
+      expect(local.apiProfiles.default).toBeDefined()
+      expect(local._deletedProfiles.staging).toBeDefined()
+      expect(local.apiProfilesOrder).not.toContain('staging')
+    })
+
+    it('remote tombstone should remove a local profile when local has no newer modification', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = {
+        default: local.apiProfiles.default,
+        staging: { apiKey: 'sk-staging-old', _lastModified: '2026-04-25T08:00:00Z' },
+      }
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          currentApiProfile: 'default',
+          _deletedProfiles: {
+            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.apiProfiles.staging).toBeUndefined()
+      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-04-26T12:00:00Z')
+    })
+
+    it('local edit newer than remote tombstone should win (resurrects profile)', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = {
+        default: local.apiProfiles.default,
+        // 本地修改时间晚于远端 tombstone
+        staging: { apiKey: 'sk-staging-new', _lastModified: '2026-04-26T15:00:00Z' },
+      }
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          currentApiProfile: 'default',
+          _deletedProfiles: {
+            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.apiProfiles.staging).toBeDefined()
+      expect(local.apiProfiles.staging.apiKey).toBe('sk-staging-new')
+    })
+
+    it('should keep newer tombstone deletedAt across both sides', () => {
+      const local = createBaseSettings()
+      local._deletedProfiles = {
+        staging: { deletedAt: '2026-04-26T12:00:00Z' },
+      }
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+          _deletedProfiles: {
+            staging: { deletedAt: '2026-04-26T15:00:00Z' }, // 更新
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-04-26T15:00:00Z')
+    })
+
+    it('should apply tombstone to mcpServers as well', () => {
+      const local = createBaseSettings()
+      local.mcpServers = {
+        'my-server': { command: 'npx', args: ['x'], _lastModified: '2026-04-25T08:00:00Z' },
+      }
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {},
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+          _deletedProfiles: {},
+          _deletedServers: {
+            'my-server': { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.mcpServers['my-server']).toBeUndefined()
+      expect(local._deletedServers['my-server']).toBeDefined()
+    })
+
+    it('should fall back currentApiProfile to default if it was tombstoned', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = {
+        default: local.apiProfiles.default,
+        staging: { apiKey: 'sk-staging', _lastModified: '2026-04-25T08:00:00Z' },
+      }
+      local.currentApiProfile = 'staging'
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          currentApiProfile: 'staging',
+          _deletedProfiles: {
+            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.apiProfiles.staging).toBeUndefined()
+      expect(local.currentApiProfile).toBe('default')
+    })
   })
 
   describe('push', () => {
@@ -457,8 +637,65 @@ describe('SyncService', () => {
     })
 
     it('should throw if already syncing', async () => {
-      service.isSyncing = true
+      // L-4：互斥由 _currentSyncPromise 单一来源保证，模拟并发态
+      service._currentSyncPromise = Promise.resolve()
       await expect(service.push('pass')).rejects.toThrow('SYNC_IN_PROGRESS')
+      service._currentSyncPromise = null
+    })
+
+    it('L-10: should emit onSyncingChanged(true/false) around successful push', async () => {
+      mockProvider.upload.mockResolvedValue(undefined)
+      const events = []
+      const off = service.onSyncingChanged((v) => events.push(v))
+
+      await service.push('pass')
+
+      expect(events).toEqual([true, false])
+      off()
+    })
+
+    it('L-10: should still emit onSyncingChanged(false) when push fails internally', async () => {
+      mockProvider.upload.mockRejectedValue(new Error('network down'))
+      const events = []
+      service.onSyncingChanged((v) => events.push(v))
+
+      const result = await service.push('pass')
+
+      expect(result.success).toBe(false)
+      // 即便内部失败，锁释放事件也必须触发
+      expect(events).toEqual([true, false])
+      expect(service.isSyncing).toBe(false)
+      expect(service._currentSyncPromise).toBeNull()
+    })
+
+    it('L-4: should serialize concurrent push calls and release lock after completion', async () => {
+      // 真实并发：让 upload 等待外部 resolve，使两次 push 真正重叠
+      let resolveUpload
+      mockProvider.upload.mockImplementation(
+        () => new Promise((res) => { resolveUpload = res })
+      )
+
+      const first = service.push('pass-1')
+      // 第一次未完成时 isSyncing 已为 true，且锁已建立
+      expect(service.isSyncing).toBe(true)
+      expect(service._currentSyncPromise).not.toBeNull()
+
+      // 第二次并发调用应立即拒绝
+      await expect(service.push('pass-2')).rejects.toThrow('SYNC_IN_PROGRESS')
+
+      // 释放第一次
+      resolveUpload(undefined)
+      const result1 = await first
+      expect(result1.success).toBe(true)
+
+      // 锁已释放
+      expect(service.isSyncing).toBe(false)
+      expect(service._currentSyncPromise).toBeNull()
+
+      // 再次调用应能正常成功
+      mockProvider.upload.mockResolvedValue(undefined)
+      const result2 = await service.push('pass-3')
+      expect(result2.success).toBe(true)
     })
 
     it('should upload encrypted config and update lastSyncAt', async () => {
@@ -546,6 +783,38 @@ describe('SyncService', () => {
       expect(mockWriteSettings).toHaveBeenCalled()
     })
 
+    it('should call writeSettings only once in successful pull (H-4)', async () => {
+      const password = 'sync-password'
+      const remoteData = {
+        apiProfiles: {
+          production: { apiKey: 'sk-prod-key', baseUrl: 'https://prod.com' },
+        },
+        mcpServers: {},
+        apiProfilesOrder: ['production'],
+        currentApiProfile: 'production',
+      }
+      const { default: CryptoManager } = await import('../crypto/CryptoManager')
+      const crypto = new CryptoManager()
+      const buffer = createRemoteConfigBuffer(remoteData, password, crypto)
+
+      mockProvider.list.mockResolvedValue([
+        { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-25T10:00:00Z', size: 1024 },
+      ])
+      mockProvider.download.mockResolvedValue(buffer)
+
+      const beforeCount = mockWriteSettings.mock.calls.length
+      const result = await service.pull(password)
+      expect(result.success).toBe(true)
+      const after = mockWriteSettings.mock.calls.length
+      // pull 成功路径：合并结果 + lastSyncAt 元数据 应合并为 1 次写入
+      expect(after - beforeCount).toBe(1)
+      // 该次写入同时包含合并后的 apiProfiles 与 lastSyncAt
+      const written = mockWriteSettings.mock.calls[after - 1][0]
+      expect(written.apiProfiles).toBeDefined()
+      expect(written.cloudSync.lastSyncAt).toBeDefined()
+      expect(written.cloudSync.lastSyncError).toBeNull()
+    })
+
     it('should return success with empty merge when no remote files', async () => {
       mockProvider.list.mockResolvedValue([])
 
@@ -585,8 +854,9 @@ describe('SyncService', () => {
       expect(result.error).toBe('SYNC_PASSWORD_INCORRECT')
     })
 
-    it('should skip remote files that fail to decrypt (not own device)', async () => {
-      // 用一个密码加密，然后用另一个密码解密 → 解密失败
+    it('should throw SYNC_PASSWORD_LIKELY_INCORRECT when all remote files fail to decrypt (no own device file)', async () => {
+      // 远端只有非本机设备的文件且都用错误密码无法解密
+      // 即使本机从未推送过（own device 文件不存在），也应明确告知"密码可能错误"
       const { default: CryptoManager } = await import('../crypto/CryptoManager')
       const crypto = new CryptoManager()
       const realPassword = 'real-password'
@@ -612,11 +882,61 @@ describe('SyncService', () => {
       mockProvider.download.mockResolvedValue(buffer)
 
       const result = await service.pull('any-password')
+      expect(result.success).toBe(false)
+      expect(result.error).toBe('SYNC_PASSWORD_LIKELY_INCORRECT')
+      // 解密失败应有 warn 日志
+      expect(mockLogger.warn).toHaveBeenCalled()
+    })
+
+    it('should still succeed when some remote files fail to decrypt but at least one succeeds', async () => {
+      // 混合场景：远端 2 个文件，1 个能解密，1 个不能
+      // 应跳过解密失败的，正常合并解密成功的
+      const { default: CryptoManager } = await import('../crypto/CryptoManager')
+      const crypto = new CryptoManager()
+      const goodPassword = 'good-password'
+      const wrongPassword = 'wrong-password'
+
+      const goodData = {
+        apiProfiles: { production: { apiKey: 'sk-good' } },
+        mcpServers: {},
+        apiProfilesOrder: ['production'],
+        currentApiProfile: 'production',
+      }
+      const goodBuffer = createRemoteConfigBuffer(
+        { ...goodData, _deviceId: 'good-device', _deviceName: 'GoodPC' },
+        goodPassword,
+        crypto
+      )
+
+      const badData = {
+        apiProfiles: { other: { apiKey: 'sk-bad' } },
+        mcpServers: {},
+        apiProfilesOrder: ['other'],
+        currentApiProfile: 'other',
+      }
+      const badEncrypted = crypto.encryptSyncData(badData, wrongPassword)
+      const badBuffer = Buffer.from(JSON.stringify({
+        version: 2,
+        timestamp: new Date().toISOString(),
+        deviceId: 'bad-device',
+        deviceName: 'BadPC',
+        data: badEncrypted,
+      }))
+
+      mockProvider.list.mockResolvedValue([
+        { name: 'config-good-device.json', path: '/devices/config-good-device.json', lastModified: '2026-04-25T10:00:00Z', size: 100 },
+        { name: 'config-bad-device.json', path: '/devices/config-bad-device.json', lastModified: '2026-04-25T10:00:00Z', size: 100 },
+      ])
+      mockProvider.download.mockImplementation((path) => {
+        if (path.includes('good-device')) return Promise.resolve(goodBuffer)
+        return Promise.resolve(badBuffer)
+      })
+
+      const result = await service.pull(goodPassword)
       expect(result.success).toBe(true)
-      // 解密失败的非本机设备被跳过，mergedFrom 不包含它
-      // 但因为 remoteConfigs 为空，mergedFrom 也为空
-      expect(result.mergedFrom).toEqual([])
-      // 应该有 warn 日志
+      // 仅成功解密的设备出现在 mergedFrom 中
+      expect(result.mergedFrom).toEqual(['GoodPC'])
+      // 解密失败的文件应该有 warn 日志
       expect(mockLogger.warn).toHaveBeenCalled()
     })
 
@@ -810,6 +1130,15 @@ describe('SyncService', () => {
         expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
       })
 
+      it('should NOT persist password by default (M-1: secure default)', () => {
+        const beforeCount = mockWriteSettings.mock.calls.length
+        // 不传 options，使用默认值
+        service.cachePassword('my-secret')
+        expect(service._cachedPassword).toBe('my-secret')
+        // 默认不持久化：writeSettings 不应被额外调用
+        expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
+      })
+
       it('should clear persisted password on clearCachedPassword', () => {
         service.cachePassword('my-secret', { persist: true })
         // 让 mockReadSettings 返回包含加密密码的设置
@@ -818,6 +1147,53 @@ describe('SyncService', () => {
         service.clearCachedPassword()
         expect(service._cachedPassword).toBeNull()
         // 验证持久化密码被清除
+        const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeUndefined()
+      })
+
+      // L-9：公共方法替代外部访问私有字段
+      it('hasCachedPassword() returns true after cachePassword (L-9)', () => {
+        expect(service.hasCachedPassword()).toBe(false)
+        service.cachePassword('my-secret', { persist: false })
+        expect(service.hasCachedPassword()).toBe(true)
+      })
+
+      it('hasCachedPassword() returns false after clearCachedPassword (L-9)', () => {
+        service.cachePassword('my-secret', { persist: false })
+        service.clearCachedPassword()
+        expect(service.hasCachedPassword()).toBe(false)
+      })
+
+      it('persistCachedPassword() persists existing cached password (L-9)', () => {
+        service.cachePassword('my-secret', { persist: false })
+        const beforeCount = mockWriteSettings.mock.calls.length
+        const result = service.persistCachedPassword()
+        expect(result).toBe(true)
+        // 应触发一次 writeSettings 写入加密密码
+        expect(mockWriteSettings.mock.calls.length).toBe(beforeCount + 1)
+        const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeDefined()
+      })
+
+      it('persistCachedPassword() returns false and writes nothing when no cache (L-9)', () => {
+        const beforeCount = mockWriteSettings.mock.calls.length
+        const result = service.persistCachedPassword()
+        expect(result).toBe(false)
+        expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
+      })
+
+      it('clearPersistedPassword() clears disk-only, keeps memory cache (L-9)', () => {
+        // 先持久化
+        service.cachePassword('my-secret', { persist: true })
+        const persistedSettings =
+          mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        mockReadSettings.mockReturnValue(persistedSettings)
+
+        service.clearPersistedPassword()
+
+        // 内存缓存仍在
+        expect(service.hasCachedPassword()).toBe(true)
+        // 磁盘字段已被清理
         const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
         expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeUndefined()
       })
@@ -847,6 +1223,28 @@ describe('SyncService', () => {
       it('should handle missing persisted password gracefully', () => {
         service._cachedPassword = null
         service.restorePersistedPassword()
+        expect(service._cachedPassword).toBeNull()
+      })
+
+      it('should NOT delete persisted password on decrypt failure (M-6)', () => {
+        // 模拟磁盘上有加密密码的设置
+        const settingsWithEncrypted = createBaseSettings()
+        settingsWithEncrypted.cloudSync.autoSyncEncryptedPassword = 'invalid-base64-blob'
+        mockReadSettings.mockReturnValue(settingsWithEncrypted)
+
+        // 模拟解密抛错（如系统重装、用户切换、safeStorage 主密钥变化）
+        mockSafeStorage.decryptString = vi.fn(() => {
+          throw new Error('decrypt failed')
+        })
+
+        service._cachedPassword = null
+        const beforeWriteCount = mockWriteSettings.mock.calls.length
+
+        service.restorePersistedPassword()
+
+        // 仅 warn，不写盘删除字段
+        expect(mockLogger.warn).toHaveBeenCalled()
+        expect(mockWriteSettings.mock.calls.length).toBe(beforeWriteCount)
         expect(service._cachedPassword).toBeNull()
       })
     })
