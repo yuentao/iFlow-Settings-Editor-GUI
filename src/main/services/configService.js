@@ -172,6 +172,83 @@ function stampModifiedItems(oldSettings, newSettings) {
   }
 }
 
+// ─── Tombstone（墓碑）支持 ────────────────────────
+// 用于云同步的删除合并：
+//   settings._deletedProfiles = { [name]: { deletedAt: ISO } }
+//   settings._deletedServers  = { [name]: { deletedAt: ISO } }
+// _mergeConfigs 在合并时会对 tombstone 也合并，并物理删除被墓碑覆盖的条目。
+// 默认保留 30 天，超过后由 pruneOldTombstones 清理。
+
+const DEFAULT_TOMBSTONE_RETENTION_DAYS = 30
+
+function _ensureTombstoneBucket(settings, key) {
+  if (!settings[key] || typeof settings[key] !== 'object') {
+    settings[key] = {}
+  }
+  return settings[key]
+}
+
+/**
+ * 标记某个 apiProfile 为已删除（写入 tombstone），不会从 apiProfiles 中物理删除。
+ * 通常调用方应：先调用此函数 → 再 delete settings.apiProfiles[name]。
+ * @param {Object} settings
+ * @param {string} name
+ * @param {string} [deletedAt] - ISO 时间戳，默认 now
+ */
+function markDeletedProfile(settings, name, deletedAt) {
+  if (!settings || !name) return
+  const bucket = _ensureTombstoneBucket(settings, '_deletedProfiles')
+  bucket[name] = { deletedAt: deletedAt || new Date().toISOString() }
+}
+
+/**
+ * 标记某个 mcpServer 为已删除。
+ * @param {Object} settings
+ * @param {string} name
+ * @param {string} [deletedAt]
+ */
+function markDeletedServer(settings, name, deletedAt) {
+  if (!settings || !name) return
+  const bucket = _ensureTombstoneBucket(settings, '_deletedServers')
+  bucket[name] = { deletedAt: deletedAt || new Date().toISOString() }
+}
+
+/** 取 apiProfile 的删除时间戳（毫秒），不存在则返回 0。 */
+function getProfileTombstoneTime(settings, name) {
+  const t = settings && settings._deletedProfiles && settings._deletedProfiles[name]
+  return t && t.deletedAt ? new Date(t.deletedAt).getTime() : 0
+}
+
+/** 取 mcpServer 的删除时间戳（毫秒），不存在则返回 0。 */
+function getServerTombstoneTime(settings, name) {
+  const t = settings && settings._deletedServers && settings._deletedServers[name]
+  return t && t.deletedAt ? new Date(t.deletedAt).getTime() : 0
+}
+
+/**
+ * 清理超过保留期的墓碑，避免 settings 体积无限增长。
+ * @param {Object} settings
+ * @param {number} [maxAgeDays] - 保留天数，默认 30
+ * @returns {number} 被清理的墓碑数量
+ */
+function pruneOldTombstones(settings, maxAgeDays = DEFAULT_TOMBSTONE_RETENTION_DAYS) {
+  if (!settings) return 0
+  const cutoff = Date.now() - maxAgeDays * 86400_000
+  let removed = 0
+  for (const key of ['_deletedProfiles', '_deletedServers']) {
+    const bucket = settings[key]
+    if (!bucket || typeof bucket !== 'object') continue
+    for (const [name, entry] of Object.entries(bucket)) {
+      const t = entry && entry.deletedAt ? new Date(entry.deletedAt).getTime() : 0
+      if (!t || t < cutoff) {
+        delete bucket[name]
+        removed++
+      }
+    }
+  }
+  return removed
+}
+
 module.exports = {
   SETTINGS_FILE,
   API_FIELDS,
@@ -183,4 +260,10 @@ module.exports = {
   extractApiConfig,
   applyApiConfig,
   stampModifiedItems,
+  markDeletedProfile,
+  markDeletedServer,
+  getProfileTombstoneTime,
+  getServerTombstoneTime,
+  pruneOldTombstones,
+  DEFAULT_TOMBSTONE_RETENTION_DAYS,
 }

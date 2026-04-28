@@ -474,6 +474,9 @@ class SyncService {
       currentApiProfile: settings.currentApiProfile || 'default',
       mcpServers: settings.mcpServers || {},
       apiProfilesOrder: settings.apiProfilesOrder || [],
+      // tombstone 一并上传，让其他设备据此物理删除已删条目
+      _deletedProfiles: settings._deletedProfiles || {},
+      _deletedServers: settings._deletedServers || {},
     }
   }
 
@@ -498,21 +501,50 @@ class SyncService {
       ? new Date(localSettings.cloudSync.lastSyncAt).getTime()
       : 0
 
+    // ─── 合并 tombstone（取每个 name 的最新 deletedAt） ──
+    const mergedDeletedProfiles = { ...(local._deletedProfiles || {}) }
+    const mergedDeletedServers = { ...(local._deletedServers || {}) }
+    const _mergeTombstoneBucket = (target, incoming) => {
+      if (!incoming || typeof incoming !== 'object') return
+      for (const [name, entry] of Object.entries(incoming)) {
+        if (!entry || !entry.deletedAt) continue
+        const t = new Date(entry.deletedAt).getTime()
+        if (Number.isNaN(t)) continue
+        const existing = target[name]
+        const existingT = existing && existing.deletedAt ? new Date(existing.deletedAt).getTime() : 0
+        if (t > existingT) target[name] = { deletedAt: entry.deletedAt }
+      }
+    }
+    for (const remote of remoteConfigs) {
+      _mergeTombstoneBucket(mergedDeletedProfiles, remote.data._deletedProfiles)
+      _mergeTombstoneBucket(mergedDeletedServers, remote.data._deletedServers)
+    }
+
+    const _profileTombT = (name) => {
+      const t = mergedDeletedProfiles[name]
+      return t && t.deletedAt ? new Date(t.deletedAt).getTime() : 0
+    }
+    const _serverTombT = (name) => {
+      const t = mergedDeletedServers[name]
+      return t && t.deletedAt ? new Date(t.deletedAt).getTime() : 0
+    }
+
     // 合并 apiProfiles：按 profile 名称，比较 per-item _lastModified
     const mergedProfiles = { ...local.apiProfiles }
     for (const remote of remoteConfigs) {
       for (const [name, profile] of Object.entries(remote.data.apiProfiles || {})) {
+        const remoteItemTime = profile._lastModified
+          ? new Date(profile._lastModified).getTime()
+          : 0
+        // 远端条目若被 tombstone 覆盖（删除晚于其修改时间），跳过该条目
+        if (_profileTombT(name) >= remoteItemTime && _profileTombT(name) > 0) {
+          continue
+        }
         if (!mergedProfiles[name]) {
           // 本地没有 → 直接加入
           mergedProfiles[name] = profile
         } else {
-          // 本地有同名 → 比较 per-item _lastModified 时间
-          // 远端时间：使用 item 的 _lastModified（没有则为 0，表示很旧）
-          const remoteItemTime = profile._lastModified
-            ? new Date(profile._lastModified).getTime()
-            : 0
           // 本地时间：使用 item 的 _lastModified，如果没有则用 lastSyncAt
-          // （表示该 item 上次已知同步的时间，在此之前本地的修改不应当被覆盖）
           const localItemTime = mergedProfiles[name]._lastModified
             ? new Date(mergedProfiles[name]._lastModified).getTime()
             : lastSyncAt
@@ -522,17 +554,29 @@ class SyncService {
         }
       }
     }
+    // 应用 tombstone：本地条目若 _lastModified <= deletedAt 则物理删除
+    for (const name of Object.keys(mergedProfiles)) {
+      const tombT = _profileTombT(name)
+      if (tombT === 0) continue
+      const itemT = mergedProfiles[name]._lastModified
+        ? new Date(mergedProfiles[name]._lastModified).getTime()
+        : 0
+      if (itemT <= tombT) delete mergedProfiles[name]
+    }
 
     // 合并 mcpServers：按服务器名称，比较 per-item _lastModified
     const mergedServers = { ...local.mcpServers }
     for (const remote of remoteConfigs) {
       for (const [name, server] of Object.entries(remote.data.mcpServers || {})) {
+        const remoteItemTime = server._lastModified
+          ? new Date(server._lastModified).getTime()
+          : 0
+        if (_serverTombT(name) >= remoteItemTime && _serverTombT(name) > 0) {
+          continue
+        }
         if (!mergedServers[name]) {
           mergedServers[name] = server
         } else {
-          const remoteItemTime = server._lastModified
-            ? new Date(server._lastModified).getTime()
-            : 0
           const localItemTime = mergedServers[name]._lastModified
             ? new Date(mergedServers[name]._lastModified).getTime()
             : lastSyncAt
@@ -542,28 +586,58 @@ class SyncService {
         }
       }
     }
-
-    // 合并 apiProfilesOrder：去重保序
-    const mergedOrder = [...(local.apiProfilesOrder || [])]
-    for (const remote of remoteConfigs) {
-      for (const name of remote.data.apiProfilesOrder || []) {
-        if (!mergedOrder.includes(name)) {
-          mergedOrder.push(name)
-        }
-      }
+    for (const name of Object.keys(mergedServers)) {
+      const tombT = _serverTombT(name)
+      if (tombT === 0) continue
+      const itemT = mergedServers[name]._lastModified
+        ? new Date(mergedServers[name]._lastModified).getTime()
+        : 0
+      if (itemT <= tombT) delete mergedServers[name]
     }
 
-    // currentApiProfile：取最新远程值
+    // 合并 apiProfilesOrder：去重保序，并剔除已被 tombstone 显式删除的条目
+    const mergedOrder = []
+    const _seenOrder = new Set()
+    const _pushOrder = (name) => {
+      if (_seenOrder.has(name)) return
+      if (_profileTombT(name) > 0) return // 被 tombstone 显式删除
+      _seenOrder.add(name)
+      mergedOrder.push(name)
+    }
+    for (const name of (local.apiProfilesOrder || [])) _pushOrder(name)
+    for (const remote of remoteConfigs) {
+      for (const name of (remote.data.apiProfilesOrder || [])) _pushOrder(name)
+    }
+
+    // currentApiProfile：取最新远程值；若被 tombstone 显式删除则回退到 default 或任一存活 profile
     const latestRemote = remoteConfigs[0]
-    const mergedCurrent = latestRemote
+    let mergedCurrent = latestRemote
       ? latestRemote.data.currentApiProfile || local.currentApiProfile
       : local.currentApiProfile
+    if (mergedCurrent && _profileTombT(mergedCurrent) > 0) {
+      if ('default' in mergedProfiles) {
+        mergedCurrent = 'default'
+      } else {
+        const survivors = Object.keys(mergedProfiles)
+        mergedCurrent = survivors[0] || 'default'
+      }
+    }
 
     // 应用合并结果
     localSettings.apiProfiles = mergedProfiles
     localSettings.mcpServers = mergedServers
     localSettings.apiProfilesOrder = mergedOrder
     localSettings.currentApiProfile = mergedCurrent
+    localSettings._deletedProfiles = mergedDeletedProfiles
+    localSettings._deletedServers = mergedDeletedServers
+
+    // 清理超过保留期的墓碑，避免无限增长
+    try {
+      const { pruneOldTombstones } = require('../services/configService')
+      pruneOldTombstones(localSettings)
+    } catch (_) {
+      // 测试环境可能未注入 configService，忽略
+    }
 
     // 同步顶层 API 字段：确保当前配置的顶层快捷字段与 apiProfiles 中一致
     // 否则 switch-api-profile 的 extractApiConfig 会用旧的顶层字段覆盖已合并的数据

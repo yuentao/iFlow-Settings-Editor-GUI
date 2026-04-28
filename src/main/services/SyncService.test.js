@@ -448,6 +448,186 @@ describe('SyncService', () => {
       service._mergeConfigs(local, remoteConfigs)
       expect(local.mcpServers['my-server'].command).toBe('updated-cmd')
     })
+
+    // ─── Tombstone 删除合并 ─────────────────────
+    it('local tombstone should remove a profile that exists on remote', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = { default: local.apiProfiles.default }
+      local._deletedProfiles = {
+        staging: { deletedAt: '2026-04-26T12:00:00Z' },
+      }
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+            // staging 在远端存在，但 _lastModified 早于本地 tombstone → 应被删除
+            staging: { apiKey: 'sk-staging', _lastModified: '2026-04-25T10:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default', 'staging'],
+          currentApiProfile: 'default',
+          _deletedProfiles: {},
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.apiProfiles.staging).toBeUndefined()
+      expect(local.apiProfiles.default).toBeDefined()
+      expect(local._deletedProfiles.staging).toBeDefined()
+      expect(local.apiProfilesOrder).not.toContain('staging')
+    })
+
+    it('remote tombstone should remove a local profile when local has no newer modification', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = {
+        default: local.apiProfiles.default,
+        staging: { apiKey: 'sk-staging-old', _lastModified: '2026-04-25T08:00:00Z' },
+      }
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          currentApiProfile: 'default',
+          _deletedProfiles: {
+            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.apiProfiles.staging).toBeUndefined()
+      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-04-26T12:00:00Z')
+    })
+
+    it('local edit newer than remote tombstone should win (resurrects profile)', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = {
+        default: local.apiProfiles.default,
+        // 本地修改时间晚于远端 tombstone
+        staging: { apiKey: 'sk-staging-new', _lastModified: '2026-04-26T15:00:00Z' },
+      }
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          currentApiProfile: 'default',
+          _deletedProfiles: {
+            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.apiProfiles.staging).toBeDefined()
+      expect(local.apiProfiles.staging.apiKey).toBe('sk-staging-new')
+    })
+
+    it('should keep newer tombstone deletedAt across both sides', () => {
+      const local = createBaseSettings()
+      local._deletedProfiles = {
+        staging: { deletedAt: '2026-04-26T12:00:00Z' },
+      }
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+          _deletedProfiles: {
+            staging: { deletedAt: '2026-04-26T15:00:00Z' }, // 更新
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-04-26T15:00:00Z')
+    })
+
+    it('should apply tombstone to mcpServers as well', () => {
+      const local = createBaseSettings()
+      local.mcpServers = {
+        'my-server': { command: 'npx', args: ['x'], _lastModified: '2026-04-25T08:00:00Z' },
+      }
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {},
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+          _deletedProfiles: {},
+          _deletedServers: {
+            'my-server': { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.mcpServers['my-server']).toBeUndefined()
+      expect(local._deletedServers['my-server']).toBeDefined()
+    })
+
+    it('should fall back currentApiProfile to default if it was tombstoned', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = {
+        default: local.apiProfiles.default,
+        staging: { apiKey: 'sk-staging', _lastModified: '2026-04-25T08:00:00Z' },
+      }
+      local.currentApiProfile = 'staging'
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          currentApiProfile: 'staging',
+          _deletedProfiles: {
+            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.apiProfiles.staging).toBeUndefined()
+      expect(local.currentApiProfile).toBe('default')
+    })
   })
 
   describe('push', () => {
