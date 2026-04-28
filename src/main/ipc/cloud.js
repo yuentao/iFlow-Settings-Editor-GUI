@@ -210,7 +210,7 @@ function registerCloudSyncIpcHandlers() {
   }, 'cloud-sync:has-password'))
 
   ipcMain.handle('cloud-sync:has-cached-password', wrapIpcHandler(async () => {
-    return { success: true, hasCachedPassword: !!syncService._cachedPassword }
+    return { success: true, hasCachedPassword: syncService.hasCachedPassword() }
   }, 'cloud-sync:has-cached-password'))
 
   // M-1: 用户对密码持久化的显式控制
@@ -227,12 +227,10 @@ function registerCloudSyncIpcHandlers() {
 
     if (enabled) {
       // 用户明确启用：若当前内存中有密码则立即持久化
-      if (syncService._cachedPassword) {
-        syncService.cachePassword(syncService._cachedPassword, { persist: true })
-      }
+      syncService.persistCachedPassword()
     } else {
       // 用户关闭：清理任何已持久化的加密密码（内存缓存保留至会话结束）
-      syncService._clearPersistedPassword()
+      syncService.clearPersistedPassword()
     }
     return { success: true, remember: enabled }
   }, 'cloud-sync:set-remember-password'))

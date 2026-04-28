@@ -111,6 +111,33 @@ class SyncService {
   }
 
   /**
+   * 是否当前有内存缓存的同步密码（L-9：替代外部读取 _cachedPassword）
+   * @returns {boolean}
+   */
+  hasCachedPassword() {
+    return !!this._cachedPassword
+  }
+
+  /**
+   * 将当前内存缓存的密码持久化到加密存储（L-9：替代外部读取 _cachedPassword 后回调 cachePassword）
+   * 仅当存在缓存时才执行；否则静默返回 false。
+   * @returns {boolean} 是否触发了持久化
+   */
+  persistCachedPassword() {
+    if (!this._cachedPassword) return false
+    this._persistEncryptedPassword(this._cachedPassword)
+    return true
+  }
+
+  /**
+   * 清除磁盘上持久化的加密密码（保留内存缓存）
+   * L-9：暴露公共方法，避免外部访问下划线开头的私有清理函数。
+   */
+  clearPersistedPassword() {
+    this._clearPersistedPassword()
+  }
+
+  /**
    * 将密码加密后持久化到设置文件
    * 使用 Electron safeStorage（操作系统级加密，Windows DPAPI / macOS Keychain）
    * @param {string} password

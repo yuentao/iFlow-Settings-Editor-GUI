@@ -1093,6 +1093,53 @@ describe('SyncService', () => {
         const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
         expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeUndefined()
       })
+
+      // L-9：公共方法替代外部访问私有字段
+      it('hasCachedPassword() returns true after cachePassword (L-9)', () => {
+        expect(service.hasCachedPassword()).toBe(false)
+        service.cachePassword('my-secret', { persist: false })
+        expect(service.hasCachedPassword()).toBe(true)
+      })
+
+      it('hasCachedPassword() returns false after clearCachedPassword (L-9)', () => {
+        service.cachePassword('my-secret', { persist: false })
+        service.clearCachedPassword()
+        expect(service.hasCachedPassword()).toBe(false)
+      })
+
+      it('persistCachedPassword() persists existing cached password (L-9)', () => {
+        service.cachePassword('my-secret', { persist: false })
+        const beforeCount = mockWriteSettings.mock.calls.length
+        const result = service.persistCachedPassword()
+        expect(result).toBe(true)
+        // 应触发一次 writeSettings 写入加密密码
+        expect(mockWriteSettings.mock.calls.length).toBe(beforeCount + 1)
+        const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeDefined()
+      })
+
+      it('persistCachedPassword() returns false and writes nothing when no cache (L-9)', () => {
+        const beforeCount = mockWriteSettings.mock.calls.length
+        const result = service.persistCachedPassword()
+        expect(result).toBe(false)
+        expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
+      })
+
+      it('clearPersistedPassword() clears disk-only, keeps memory cache (L-9)', () => {
+        // 先持久化
+        service.cachePassword('my-secret', { persist: true })
+        const persistedSettings =
+          mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        mockReadSettings.mockReturnValue(persistedSettings)
+
+        service.clearPersistedPassword()
+
+        // 内存缓存仍在
+        expect(service.hasCachedPassword()).toBe(true)
+        // 磁盘字段已被清理
+        const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeUndefined()
+      })
     })
 
     describe('restorePersistedPassword', () => {
