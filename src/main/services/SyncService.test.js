@@ -1041,6 +1041,15 @@ describe('SyncService', () => {
         expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
       })
 
+      it('should NOT persist password by default (M-1: secure default)', () => {
+        const beforeCount = mockWriteSettings.mock.calls.length
+        // 不传 options，使用默认值
+        service.cachePassword('my-secret')
+        expect(service._cachedPassword).toBe('my-secret')
+        // 默认不持久化：writeSettings 不应被额外调用
+        expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
+      })
+
       it('should clear persisted password on clearCachedPassword', () => {
         service.cachePassword('my-secret', { persist: true })
         // 让 mockReadSettings 返回包含加密密码的设置

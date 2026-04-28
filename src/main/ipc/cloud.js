@@ -43,6 +43,22 @@ function initProvider() {
 initProvider()
 
 /**
+ * 读取「记住同步密码」开关（settings.cloudSync.rememberSyncPassword）
+ * 默认 false（M-1：用户必须显式启用）
+ */
+function readRememberPassword() {
+  const settings = readSettings() || {}
+  return settings.cloudSync?.rememberSyncPassword === true
+}
+
+/**
+ * 根据「记住同步密码」开关代理 cachePassword 调用，统一持久化策略
+ */
+function cachePasswordWithSettings(password) {
+  syncService.cachePassword(password, { persist: readRememberPassword() })
+}
+
+/**
  * 注册云同步 IPC 处理器
  */
 function registerCloudSyncIpcHandlers() {
@@ -111,8 +127,8 @@ function registerCloudSyncIpcHandlers() {
     settings.cloudSync.passwordSalt = salt.toString('base64')
     writeSettings(settings)
 
-    // 缓存密码（不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理）
-    syncService.cachePassword(password)
+    // 缓存密码（持久化与否由 rememberSyncPassword 开关决定，M-1）
+    cachePasswordWithSettings(password)
     return { success: true }
   }, 'cloud-sync:set-password'))
 
@@ -131,7 +147,7 @@ function registerCloudSyncIpcHandlers() {
     // 验证成功仅缓存密码；不更新 lastSyncAt（仅验证不等于完成同步，
     // 错误地推进时间线会让后续 pull 的兜底比较把远端实际更新当成"旧"，造成数据丢失）
     if (valid) {
-      syncService.cachePassword(password)
+      cachePasswordWithSettings(password)
     }
     return { success: true, valid }
   }, 'cloud-sync:verify-password'))
@@ -163,8 +179,8 @@ function registerCloudSyncIpcHandlers() {
     settings.cloudSync.passwordSalt = newSalt.toString('base64')
     writeSettings(settings)
 
-    // 缓存新密码（不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理）
-    syncService.cachePassword(newPassword)
+    // 缓存新密码（持久化与否由 rememberSyncPassword 开关决定，M-1）
+    cachePasswordWithSettings(newPassword)
 
     // 主动用新密码重新推送本机配置：
     // - 旧文件由旧密码加密，新密码解不开 → 后续 pull 会抛 SYNC_PASSWORD_INCORRECT
@@ -197,11 +213,35 @@ function registerCloudSyncIpcHandlers() {
     return { success: true, hasCachedPassword: !!syncService._cachedPassword }
   }, 'cloud-sync:has-cached-password'))
 
+  // M-1: 用户对密码持久化的显式控制
+  ipcMain.handle('cloud-sync:get-remember-password', wrapIpcHandler(async () => {
+    return { success: true, remember: readRememberPassword() }
+  }, 'cloud-sync:get-remember-password'))
+
+  ipcMain.handle('cloud-sync:set-remember-password', wrapIpcHandler(async (_event, remember) => {
+    const enabled = remember === true
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.rememberSyncPassword = enabled
+    writeSettings(settings)
+
+    if (enabled) {
+      // 用户明确启用：若当前内存中有密码则立即持久化
+      if (syncService._cachedPassword) {
+        syncService.cachePassword(syncService._cachedPassword, { persist: true })
+      }
+    } else {
+      // 用户关闭：清理任何已持久化的加密密码（内存缓存保留至会话结束）
+      syncService._clearPersistedPassword()
+    }
+    return { success: true, remember: enabled }
+  }, 'cloud-sync:set-remember-password'))
+
   // ====== 同步操作 ======
 
   ipcMain.handle('cloud-sync:sync-now', wrapIpcHandler(async (_event, password) => {
-    // 缓存密码供自动同步使用
-    if (password) syncService.cachePassword(password)
+    // 缓存密码供自动同步使用（持久化与否由 rememberSyncPassword 开关决定，M-1）
+    if (password) cachePasswordWithSettings(password)
     return syncService.sync(password)
   }, 'cloud-sync:sync-now'))
 

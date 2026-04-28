@@ -83,15 +83,22 @@ class SyncService {
 
   /**
    * 缓存同步密码（用于自动同步）
-   * 持久化加密密码到设置文件（用于重启后恢复）
+   * 默认仅缓存到内存。仅当显式 `options.persist === true` 时才会用 safeStorage
+   * 加密后持久化到设置文件（用于自动同步在重启后恢复）。
+   *
+   * 安全考虑（M-1）：默认不持久化是为了：
+   *   1. Linux 下 safeStorage 行为依赖桌面环境，可能 fallback 到弱加密；
+   *   2. 持久化文件被备份/泄漏后，攻击者只要拿到当前用户登录态即可解密；
+   *   3. 用户对"密码是否被持久化"应有显式控制权（UI 开关 rememberSyncPassword）。
+   *
    * @param {string} password
    * @param {object} [options]
-   * @param {boolean} [options.persist] - 是否持久化加密密码（默认 true）
+   * @param {boolean} [options.persist=false] - 是否持久化加密密码
    */
   cachePassword(password, options = {}) {
     this._cachedPassword = password
-    // 默认持久化密码，因为加密密码在重启后仍需使用（用于同步操作）
-    const shouldPersist = options.persist !== undefined ? options.persist : true
+    // 默认不持久化；调用方需根据用户设置（如 rememberSyncPassword）显式传 persist:true
+    const shouldPersist = options.persist === true
     if (shouldPersist && password) {
       this._persistEncryptedPassword(password)
     }
