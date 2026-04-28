@@ -359,6 +359,9 @@ export default {
     passwordIncorrect: '密码错误',
     enterPassword: '输入同步密码',
     passwordChangedNeedRepush: '密码已更改，需要重新推送数据到云端',
+    passwordChangedRepushFailed: '密码已在本机更新，但重新推送云端失败：{error}。下次手动同步时将自动重试。',
+    errPasswordIncorrect: '同步密码错误，请确认后重试',
+    errPasswordLikelyIncorrect: '同步密码可能错误，远程文件无法解密，请确认密码后重试',
     // 设备
     deviceTitle: '设备管理',
     deviceName: '设备名称',
