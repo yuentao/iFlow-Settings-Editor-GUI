@@ -108,6 +108,70 @@ function applyApiConfig(settings, apiConfig) {
   }
 }
 
+/** 内部：忽略元数据字段后比较两个条目内容是否相等 */
+function _isItemContentEqual(a, b) {
+  if (a === b) return true
+  if (!a || !b) return false
+  if (typeof a !== 'object' || typeof b !== 'object') return false
+  const cleanA = JSON.stringify(_omitMeta(a))
+  const cleanB = JSON.stringify(_omitMeta(b))
+  return cleanA === cleanB
+}
+
+function _omitMeta(obj) {
+  if (!obj || typeof obj !== 'object') return obj
+  const result = {}
+  for (const [k, v] of Object.entries(obj)) {
+    if (k === '_lastModified') continue
+    result[k] = v
+  }
+  return result
+}
+
+/**
+ * 对比新旧 settings 中的 apiProfiles 与 mcpServers，
+ * 对内容变化或新增的条目写入 _lastModified=now；未变化的条目保留原时间戳。
+ *
+ * 这是云同步合并策略（per-item _lastModified 比较）能正确工作的前提：
+ * - 不再把 stampModifiedItems 误以为可放在 SyncService 中（那样无法反映本地修改）；
+ * - 必须在每次 settings 落盘前调用。
+ *
+ * @param {Object|null} oldSettings - 旧设置（来自磁盘）
+ * @param {Object} newSettings - 即将写入的新设置（直接修改）
+ */
+function stampModifiedItems(oldSettings, newSettings) {
+  if (!newSettings || typeof newSettings !== 'object') return
+  const now = new Date().toISOString()
+
+  const oldProfiles = (oldSettings && oldSettings.apiProfiles) || {}
+  const newProfiles = newSettings.apiProfiles || {}
+  for (const [name, profile] of Object.entries(newProfiles)) {
+    if (!profile || typeof profile !== 'object') continue
+    const oldProfile = oldProfiles[name]
+    if (!oldProfile) {
+      profile._lastModified = now
+    } else if (!_isItemContentEqual(oldProfile, profile)) {
+      profile._lastModified = now
+    } else if (oldProfile._lastModified && !profile._lastModified) {
+      profile._lastModified = oldProfile._lastModified
+    }
+  }
+
+  const oldServers = (oldSettings && oldSettings.mcpServers) || {}
+  const newServers = newSettings.mcpServers || {}
+  for (const [name, server] of Object.entries(newServers)) {
+    if (!server || typeof server !== 'object') continue
+    const oldServer = oldServers[name]
+    if (!oldServer) {
+      server._lastModified = now
+    } else if (!_isItemContentEqual(oldServer, server)) {
+      server._lastModified = now
+    } else if (oldServer._lastModified && !server._lastModified) {
+      server._lastModified = oldServer._lastModified
+    }
+  }
+}
+
 module.exports = {
   SETTINGS_FILE,
   API_FIELDS,
@@ -118,4 +182,5 @@ module.exports = {
   getApiFields,
   extractApiConfig,
   applyApiConfig,
+  stampModifiedItems,
 }

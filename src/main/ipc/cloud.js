@@ -128,12 +128,10 @@ function registerCloudSyncIpcHandlers() {
     const hash = cryptoMgr.hashKey(key)
     const valid = hash === cs.passwordHash
 
-    // 验证成功时缓存密码并更新同步时间
+    // 验证成功仅缓存密码；不更新 lastSyncAt（仅验证不等于完成同步，
+    // 错误地推进时间线会让后续 pull 的兜底比较把远端实际更新当成"旧"，造成数据丢失）
     if (valid) {
       syncService.cachePassword(password)
-      settings.cloudSync = settings.cloudSync || {}
-      settings.cloudSync.lastSyncAt = new Date().toISOString()
-      writeSettings(settings)
     }
     return { success: true, valid }
   }, 'cloud-sync:verify-password'))

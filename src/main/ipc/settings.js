@@ -4,7 +4,7 @@
  */
 
 const { ipcMain } = require('electron')
-const { readSettings, writeSettings, API_FIELDS, extractApiConfig } = require('../services/configService')
+const { readSettings, writeSettings, API_FIELDS, extractApiConfig, stampModifiedItems } = require('../services/configService')
 const { handleIpcError, wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 const { t } = require('../utils/translations')
 
@@ -49,6 +49,10 @@ function registerSettingsIpcHandlers() {
       }
     }
     merged.apiProfiles[currentProfile] = currentConfig
+
+    // 为内容变化的 apiProfiles/mcpServers 条目打上 _lastModified 时间戳
+    // 这是云同步增量合并策略能正确工作的前提
+    stampModifiedItems(existing, merged)
 
     writeSettings(merged)
 
