@@ -154,7 +154,7 @@ const emit = defineEmits<{
 // Validation helper functions
 const isNameValid = (name: string): boolean => {
   if (!name || !name.trim()) return false
-  return /^[a-zA-Z\u4e00-\u9fff][a-zA-Z0-9\u4e00-\u9fff_-]*$/.test(name.trim())
+  return /^[a-zA-Z\u4e00-\u9fff][a-zA-Z0-9\u4e00-\u9fff_.:-]*$/.test(name.trim())
 }
 
 const isUrlValid = (url: string): boolean => {
