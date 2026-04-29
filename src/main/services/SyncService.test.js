@@ -1171,6 +1171,122 @@ describe('SyncService', () => {
     })
   })
 
+  // ─── N-2: pushPending 崩溃恢复 ─────────────────────
+  describe('N-2 pushPending crash recovery', () => {
+    it('pull should set pushPending=true in written settings', async () => {
+      const password = 'sync-password'
+      const remoteData = {
+        apiProfiles: { production: { apiKey: 'sk-prod-key', baseUrl: 'https://prod.com' } },
+        mcpServers: {},
+        apiProfilesOrder: ['production'],
+        currentApiProfile: 'production',
+      }
+      const { default: CryptoManager } = await import('../crypto/CryptoManager')
+      const crypto = new CryptoManager()
+      const buffer = createRemoteConfigBuffer(remoteData, password, crypto)
+
+      mockProvider.list.mockResolvedValue([
+        { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-25T10:00:00Z', size: 1024 },
+      ])
+      mockProvider.download.mockResolvedValue(buffer)
+
+      await service.pull(password)
+
+      // 最后一次 writeSettings 调用应包含 pushPending: true
+      const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+      expect(lastWrite.cloudSync.pushPending).toBe(true)
+    })
+
+    it('pull with no remote files should NOT set pushPending', async () => {
+      mockProvider.list.mockResolvedValue([])
+
+      await service.pull('pass')
+
+      const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+      expect(lastWrite.cloudSync.pushPending).toBeUndefined()
+    })
+
+    it('push should delete pushPending on success', async () => {
+      mockProvider.upload.mockResolvedValue(undefined)
+
+      // 模拟 settings 中已有 pushPending 标记
+      mockReadSettings.mockReturnValue(createBaseSettings({
+        cloudSync: {
+          ...createBaseSettings().cloudSync,
+          pushPending: true,
+        },
+      }))
+
+      const result = await service.push('pass')
+      expect(result.success).toBe(true)
+
+      // 最后一次 writeSettings 应清除了 pushPending
+      const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+      expect(lastWrite.cloudSync.pushPending).toBeUndefined()
+    })
+
+    it('_checkPushPending should return false when no pushPending flag', () => {
+      mockReadSettings.mockReturnValue(createBaseSettings())
+      service._cachedPassword = 'pass'
+
+      const result = service._checkPushPending()
+      expect(result).toBe(false)
+    })
+
+    it('_checkPushPending should return false when no cached password', () => {
+      mockReadSettings.mockReturnValue(createBaseSettings({
+        cloudSync: { ...createBaseSettings().cloudSync, pushPending: true },
+      }))
+      service._cachedPassword = null
+
+      const result = service._checkPushPending()
+      expect(result).toBe(false)
+    })
+
+    it('_checkPushPending should return true and trigger recovery push when pushPending is set', async () => {
+      mockReadSettings.mockReturnValue(createBaseSettings({
+        cloudSync: { ...createBaseSettings().cloudSync, pushPending: true },
+      }))
+      mockProvider.upload.mockResolvedValue(undefined)
+      service._cachedPassword = 'pass'
+
+      const result = service._checkPushPending()
+      expect(result).toBe(true)
+
+      // 等待异步 push 完成
+      await new Promise((r) => setTimeout(r, 50))
+
+      // push 应该被调用
+      expect(mockProvider.upload).toHaveBeenCalled()
+    })
+
+    it('sync (pull+push) should set pushPending after pull and clear it after push', async () => {
+      const password = 'sync-password'
+      const remoteData = {
+        apiProfiles: { production: { apiKey: 'sk-prod-key', baseUrl: 'https://prod.com' } },
+        mcpServers: {},
+        apiProfilesOrder: ['production'],
+        currentApiProfile: 'production',
+      }
+      const { default: CryptoManager } = await import('../crypto/CryptoManager')
+      const crypto = new CryptoManager()
+      const buffer = createRemoteConfigBuffer(remoteData, password, crypto)
+
+      mockProvider.list.mockResolvedValue([
+        { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-25T10:00:00Z', size: 1024 },
+      ])
+      mockProvider.download.mockResolvedValue(buffer)
+      mockProvider.upload.mockResolvedValue(undefined)
+
+      const result = await service.sync(password)
+      expect(result.success).toBe(true)
+
+      // 最终 push 成功后，pushPending 应被清除
+      const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+      expect(lastWrite.cloudSync.pushPending).toBeUndefined()
+    })
+  })
+
   describe('clearCloud', () => {
     it('should throw if no provider', async () => {
       service.setProvider(null)

@@ -297,10 +297,12 @@ class SyncService {
     if (gracePeriod > 0) {
       this._gracePeriodTimer = setTimeout(() => {
         this._gracePeriodTimer = null
-        this._doAutoSync()
+        // N-2 修复：优先检查 pushPending 标记，如有则补推而非全量同步
+        // 这覆盖了「pull 成功后 push 前崩溃」的场景
+        this._checkPushPending() || this._doAutoSync()
       }, gracePeriod)
     } else {
-      this._doAutoSync()
+      this._checkPushPending() || this._doAutoSync()
     }
 
     this.logger.info(`Auto-sync started (interval: ${this._autoSyncInterval / 1000}s, grace: ${gracePeriod / 1000}s)`)
@@ -368,6 +370,30 @@ class SyncService {
   }
 
   /**
+   * N-2 修复：检查 pushPending 标记，如有则补推
+   * 覆盖「pull 成功 → push 前崩溃」场景：重启后优先补推本地数据到远端。
+   * @returns {boolean} 是否触发了补推
+   */
+  _checkPushPending() {
+    if (!this.provider || !this._cachedPassword) return false
+    const settings = this.readSettings() || {}
+    if (!settings.cloudSync?.pushPending) return false
+
+    this.logger.info('PushPending detected — performing recovery push')
+    // 异步执行补推，不阻塞调用方
+    this.push(this._cachedPassword).then((result) => {
+      if (result.success) {
+        this.logger.info('Recovery push succeeded')
+      } else {
+        this.logger.warn('Recovery push failed:', result.error)
+      }
+    }).catch((err) => {
+      this.logger.error('Recovery push error:', err)
+    })
+    return true
+  }
+
+  /**
    * 获取同步状态
    * @returns {object}
    */
@@ -418,6 +444,8 @@ class SyncService {
         updated.cloudSync = updated.cloudSync || {}
         updated.cloudSync.lastSyncAt = new Date().toISOString()
         updated.cloudSync.lastSyncError = null
+        // N-2 修复：push 成功后清除 pushPending 标记
+        delete updated.cloudSync.pushPending
         this.writeSettings(updated)
 
         this.logger.info('Push succeeded')
@@ -498,9 +526,15 @@ class SyncService {
         this._mergeConfigs(settings, remoteConfigs)
 
         // 更新元数据并一次性落盘（H-4：合并原本相邻的两次 writeSettings）
+        // N-2 修复：设置 pushPending 标记，表示 pull 后需推送。若 push 前崩溃，
+        // 重启后 startAutoSync 会检测到此标记并优先补推，保证远端一致。
+        // 仅当有远端配置合并时才设置——无远端数据时无需补推。
         settings.cloudSync = settings.cloudSync || {}
         settings.cloudSync.lastSyncAt = new Date().toISOString()
         settings.cloudSync.lastSyncError = null
+        if (remoteConfigs.length > 0) {
+          settings.cloudSync.pushPending = true
+        }
         this.writeSettings(settings)
 
         this.logger.info(`Pull succeeded, merged ${remoteConfigs.length} remote config(s)`)
