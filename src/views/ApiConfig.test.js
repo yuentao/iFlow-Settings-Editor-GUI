@@ -10,24 +10,18 @@ describe('ApiConfig.vue', () => {
         selectedAuthType: 'openai-compatible',
         apiKey: '',
         modelName: '',
-        searchApiKey: '',
-        cna: ''
       },
       'dev': {
         baseUrl: 'https://api.dev.com',
         selectedAuthType: 'openai-compatible',
         apiKey: 'dev-key',
         modelName: 'gpt-4',
-        searchApiKey: '',
-        cna: ''
       },
       'prod': {
         baseUrl: 'https://api.prod.com',
         selectedAuthType: 'openai-compatible',
         apiKey: 'prod-key',
         modelName: 'gpt-4',
-        searchApiKey: '',
-        cna: ''
       }
     },
     currentApiProfile: 'default'

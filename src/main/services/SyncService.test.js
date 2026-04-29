@@ -39,8 +39,6 @@ function createBaseSettings(overrides = {}) {
         apiKey: 'sk-test-key',
         baseUrl: 'https://api.example.com',
         modelName: 'gpt-4',
-        searchApiKey: 'search-key',
-        cna: true,
       },
     },
     currentApiProfile: 'default',
@@ -628,6 +626,172 @@ describe('SyncService', () => {
       expect(local.apiProfiles.staging).toBeUndefined()
       expect(local.currentApiProfile).toBe('default')
     })
+
+    // ─── N-1 修复：旧数据迁移 + 从未同步场景 ───────────
+    it('N-1: should NOT overwrite local profile when local has no _lastModified and never synced (local-wins)', () => {
+      const local = createBaseSettings()
+      // 旧数据：profile 没有 _lastModified，且从未同步过
+      delete local.apiProfiles.default._lastModified
+      delete local.cloudSync.lastSyncAt
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-25T10:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-remote', baseUrl: 'https://remote.com', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      // 旧数据 + 从未同步 → 本地优先，远端不应覆盖
+      expect(local.apiProfiles.default.apiKey).toBe('sk-test-key')
+      expect(local.apiProfiles.default.baseUrl).toBe('https://api.example.com')
+    })
+
+    it('N-1: should NOT overwrite local server when local has no _lastModified and never synced (local-wins)', () => {
+      const local = createBaseSettings()
+      delete local.mcpServers['my-server']._lastModified
+      delete local.cloudSync.lastSyncAt
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-25T10:00:00Z',
+        data: {
+          apiProfiles: {},
+          mcpServers: {
+            'my-server': { command: 'remote-cmd', args: ['x'], _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.mcpServers['my-server'].command).toBe('npx')
+    })
+
+    it('N-1: should allow remote to override via lastSyncAt fallback when synced before', () => {
+      const local = createBaseSettings()
+      // 旧数据没有 _lastModified，但曾同步过 → lastSyncAt 兜底有效
+      delete local.apiProfiles.default._lastModified
+      local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-25T10:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-remote', baseUrl: 'https://remote.com', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      // lastSyncAt(08:00) < remote _lastModified(09:00) → 远端胜出
+      expect(local.apiProfiles.default.apiKey).toBe('sk-remote')
+    })
+
+    it('N-1: tombstone should NOT delete local profile without _lastModified when never synced', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = {
+        default: local.apiProfiles.default,
+        oldProfile: { apiKey: 'sk-old' }, // 无 _lastModified
+      }
+      delete local.cloudSync.lastSyncAt
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          currentApiProfile: 'default',
+          _deletedProfiles: {
+            oldProfile: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      // 从未同步过 → tombstone 不应删除旧条目
+      expect(local.apiProfiles.oldProfile).toBeDefined()
+      expect(local.apiProfiles.oldProfile.apiKey).toBe('sk-old')
+    })
+
+    it('N-1: tombstone should delete local profile without _lastModified when synced before', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = {
+        default: local.apiProfiles.default,
+        oldProfile: { apiKey: 'sk-old' }, // 无 _lastModified
+      }
+      local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          currentApiProfile: 'default',
+          _deletedProfiles: {
+            oldProfile: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      // 曾同步过 → tombstone 应删除旧条目
+      expect(local.apiProfiles.oldProfile).toBeUndefined()
+    })
+
+    it('N-1: tombstone should NOT delete local server without _lastModified when never synced', () => {
+      const local = createBaseSettings()
+      local.mcpServers = {
+        'my-server': { command: 'npx', args: ['x'] }, // 无 _lastModified
+      }
+      delete local.cloudSync.lastSyncAt
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {},
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+          _deletedProfiles: {},
+          _deletedServers: {
+            'my-server': { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.mcpServers['my-server']).toBeDefined()
+      expect(local.mcpServers['my-server'].command).toBe('npx')
+    })
   })
 
   describe('push', () => {
@@ -1002,6 +1166,122 @@ describe('SyncService', () => {
 
       const result = await service.sync('pass')
       expect(result.mergedFrom).toEqual([])
+    })
+  })
+
+  // ─── N-2: pushPending 崩溃恢复 ─────────────────────
+  describe('N-2 pushPending crash recovery', () => {
+    it('pull should set pushPending=true in written settings', async () => {
+      const password = 'sync-password'
+      const remoteData = {
+        apiProfiles: { production: { apiKey: 'sk-prod-key', baseUrl: 'https://prod.com' } },
+        mcpServers: {},
+        apiProfilesOrder: ['production'],
+        currentApiProfile: 'production',
+      }
+      const { default: CryptoManager } = await import('../crypto/CryptoManager')
+      const crypto = new CryptoManager()
+      const buffer = createRemoteConfigBuffer(remoteData, password, crypto)
+
+      mockProvider.list.mockResolvedValue([
+        { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-25T10:00:00Z', size: 1024 },
+      ])
+      mockProvider.download.mockResolvedValue(buffer)
+
+      await service.pull(password)
+
+      // 最后一次 writeSettings 调用应包含 pushPending: true
+      const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+      expect(lastWrite.cloudSync.pushPending).toBe(true)
+    })
+
+    it('pull with no remote files should NOT set pushPending', async () => {
+      mockProvider.list.mockResolvedValue([])
+
+      await service.pull('pass')
+
+      const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+      expect(lastWrite.cloudSync.pushPending).toBeUndefined()
+    })
+
+    it('push should delete pushPending on success', async () => {
+      mockProvider.upload.mockResolvedValue(undefined)
+
+      // 模拟 settings 中已有 pushPending 标记
+      mockReadSettings.mockReturnValue(createBaseSettings({
+        cloudSync: {
+          ...createBaseSettings().cloudSync,
+          pushPending: true,
+        },
+      }))
+
+      const result = await service.push('pass')
+      expect(result.success).toBe(true)
+
+      // 最后一次 writeSettings 应清除了 pushPending
+      const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+      expect(lastWrite.cloudSync.pushPending).toBeUndefined()
+    })
+
+    it('_checkPushPending should return false when no pushPending flag', () => {
+      mockReadSettings.mockReturnValue(createBaseSettings())
+      service._cachedPassword = 'pass'
+
+      const result = service._checkPushPending()
+      expect(result).toBe(false)
+    })
+
+    it('_checkPushPending should return false when no cached password', () => {
+      mockReadSettings.mockReturnValue(createBaseSettings({
+        cloudSync: { ...createBaseSettings().cloudSync, pushPending: true },
+      }))
+      service._cachedPassword = null
+
+      const result = service._checkPushPending()
+      expect(result).toBe(false)
+    })
+
+    it('_checkPushPending should return true and trigger recovery push when pushPending is set', async () => {
+      mockReadSettings.mockReturnValue(createBaseSettings({
+        cloudSync: { ...createBaseSettings().cloudSync, pushPending: true },
+      }))
+      mockProvider.upload.mockResolvedValue(undefined)
+      service._cachedPassword = 'pass'
+
+      const result = service._checkPushPending()
+      expect(result).toBe(true)
+
+      // 等待异步 push 完成
+      await new Promise((r) => setTimeout(r, 50))
+
+      // push 应该被调用
+      expect(mockProvider.upload).toHaveBeenCalled()
+    })
+
+    it('sync (pull+push) should set pushPending after pull and clear it after push', async () => {
+      const password = 'sync-password'
+      const remoteData = {
+        apiProfiles: { production: { apiKey: 'sk-prod-key', baseUrl: 'https://prod.com' } },
+        mcpServers: {},
+        apiProfilesOrder: ['production'],
+        currentApiProfile: 'production',
+      }
+      const { default: CryptoManager } = await import('../crypto/CryptoManager')
+      const crypto = new CryptoManager()
+      const buffer = createRemoteConfigBuffer(remoteData, password, crypto)
+
+      mockProvider.list.mockResolvedValue([
+        { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-25T10:00:00Z', size: 1024 },
+      ])
+      mockProvider.download.mockResolvedValue(buffer)
+      mockProvider.upload.mockResolvedValue(undefined)
+
+      const result = await service.sync(password)
+      expect(result.success).toBe(true)
+
+      // 最终 push 成功后，pushPending 应被清除
+      const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+      expect(lastWrite.cloudSync.pushPending).toBeUndefined()
     })
   })
 

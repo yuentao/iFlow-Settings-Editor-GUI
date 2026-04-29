@@ -290,10 +290,22 @@ class SyncService {
       this._doAutoSync()
     }, this._autoSyncInterval)
 
-    // 启动后立即触发一次同步
-    this._doAutoSync()
+    // L-5：启动时不立即触发同步，给 30 秒 grace period，
+    // 避免切换 provider 或重启后立即发起网络请求，
+    // 可能与用户正在编辑的设置抢写。
+    const gracePeriod = options.gracePeriod !== undefined ? options.gracePeriod : 30000
+    if (gracePeriod > 0) {
+      this._gracePeriodTimer = setTimeout(() => {
+        this._gracePeriodTimer = null
+        // N-2 修复：优先检查 pushPending 标记，如有则补推而非全量同步
+        // 这覆盖了「pull 成功后 push 前崩溃」的场景
+        this._checkPushPending() || this._doAutoSync()
+      }, gracePeriod)
+    } else {
+      this._checkPushPending() || this._doAutoSync()
+    }
 
-    this.logger.info(`Auto-sync started (interval: ${this._autoSyncInterval / 1000}s)`)
+    this.logger.info(`Auto-sync started (interval: ${this._autoSyncInterval / 1000}s, grace: ${gracePeriod / 1000}s)`)
   }
 
   /** 停止自动同步定时器 */
@@ -301,8 +313,12 @@ class SyncService {
     if (this._autoSyncTimer) {
       clearInterval(this._autoSyncTimer)
       this._autoSyncTimer = null
-      this.logger.info('Auto-sync stopped')
     }
+    if (this._gracePeriodTimer) {
+      clearTimeout(this._gracePeriodTimer)
+      this._gracePeriodTimer = null
+    }
+    this.logger.info('Auto-sync stopped')
   }
 
   /**
@@ -351,6 +367,30 @@ class SyncService {
     } catch (error) {
       this.logger.error('Auto-sync error:', error)
     }
+  }
+
+  /**
+   * N-2 修复：检查 pushPending 标记，如有则补推
+   * 覆盖「pull 成功 → push 前崩溃」场景：重启后优先补推本地数据到远端。
+   * @returns {boolean} 是否触发了补推
+   */
+  _checkPushPending() {
+    if (!this.provider || !this._cachedPassword) return false
+    const settings = this.readSettings() || {}
+    if (!settings.cloudSync?.pushPending) return false
+
+    this.logger.info('PushPending detected — performing recovery push')
+    // 异步执行补推，不阻塞调用方
+    this.push(this._cachedPassword).then((result) => {
+      if (result.success) {
+        this.logger.info('Recovery push succeeded')
+      } else {
+        this.logger.warn('Recovery push failed:', result.error)
+      }
+    }).catch((err) => {
+      this.logger.error('Recovery push error:', err)
+    })
+    return true
   }
 
   /**
@@ -404,6 +444,8 @@ class SyncService {
         updated.cloudSync = updated.cloudSync || {}
         updated.cloudSync.lastSyncAt = new Date().toISOString()
         updated.cloudSync.lastSyncError = null
+        // N-2 修复：push 成功后清除 pushPending 标记
+        delete updated.cloudSync.pushPending
         this.writeSettings(updated)
 
         this.logger.info('Push succeeded')
@@ -484,9 +526,15 @@ class SyncService {
         this._mergeConfigs(settings, remoteConfigs)
 
         // 更新元数据并一次性落盘（H-4：合并原本相邻的两次 writeSettings）
+        // N-2 修复：设置 pushPending 标记，表示 pull 后需推送。若 push 前崩溃，
+        // 重启后 startAutoSync 会检测到此标记并优先补推，保证远端一致。
+        // 仅当有远端配置合并时才设置——无远端数据时无需补推。
         settings.cloudSync = settings.cloudSync || {}
         settings.cloudSync.lastSyncAt = new Date().toISOString()
         settings.cloudSync.lastSyncError = null
+        if (remoteConfigs.length > 0) {
+          settings.cloudSync.pushPending = true
+        }
         this.writeSettings(settings)
 
         this.logger.info(`Pull succeeded, merged ${remoteConfigs.length} remote config(s)`)
@@ -524,16 +572,31 @@ class SyncService {
 
   /**
    * 清空云端数据
+   * L-7：使用 Promise.allSettled 并发删除，避免串行删除在设备多时过慢，
+   *      且任一失败不再中断后续删除；返回失败列表供调用方判断。
+   * @returns {Promise<{failedFiles: string[]}>}
    */
   async clearCloud() {
     if (!this.provider) throw new Error('SYNC_PROVIDER_REQUIRED')
     const files = await this.provider.list('devices/')
-    for (const file of files) {
-      if (file.name.startsWith('config-') && file.name.endsWith('.json')) {
-        await this.provider.delete(`devices/${file.name}`)
+    const configFiles = files.filter(
+      (f) => f.name.startsWith('config-') && f.name.endsWith('.json')
+    )
+
+    const results = await Promise.allSettled(
+      configFiles.map((file) => this.provider.delete(`devices/${file.name}`))
+    )
+
+    const failedFiles = []
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        failedFiles.push(configFiles[index].name)
+        this.logger.warn(`Failed to delete ${configFiles[index].name}: ${result.reason}`)
       }
-    }
-    this.logger.info('Cloud data cleared')
+    })
+
+    this.logger.info(`Cloud data cleared (${configFiles.length - failedFiles.length}/${configFiles.length} deleted)`)
+    return { failedFiles }
   }
 
   /**
@@ -659,24 +722,32 @@ class SyncService {
           // 本地没有 → 直接加入
           mergedProfiles[name] = profile
         } else {
-          // 本地时间：使用 item 的 _lastModified，如果没有则用 lastSyncAt
-          const localItemTime = mergedProfiles[name]._lastModified
+          // 本地时间：使用 item 的 _lastModified；如果没有且曾同步过，用 lastSyncAt 兜底
+          // N-1 修复：若从未同步过（lastSyncAt=0）且本地条目无 _lastModified，
+          // 视为旧迁移数据，采用「本地优先」策略，不轻易被远端覆盖
+          const hasLocalTimestamp = !!mergedProfiles[name]._lastModified
+          const localItemTime = hasLocalTimestamp
             ? new Date(mergedProfiles[name]._lastModified).getTime()
             : lastSyncAt
-          if (remoteItemTime > localItemTime) {
+          if (remoteItemTime > localItemTime && (hasLocalTimestamp || lastSyncAt > 0)) {
             mergedProfiles[name] = profile
           }
         }
       }
     }
     // 应用 tombstone：本地条目若 _lastModified <= deletedAt 则物理删除
+    // N-1 修复：无 _lastModified 的旧条目仅在与远端同步过后才受 tombstone 约束
     for (const name of Object.keys(mergedProfiles)) {
       const tombT = _profileTombT(name)
       if (tombT === 0) continue
-      const itemT = mergedProfiles[name]._lastModified
+      const hasTimestamp = !!mergedProfiles[name]._lastModified
+      const itemT = hasTimestamp
         ? new Date(mergedProfiles[name]._lastModified).getTime()
         : 0
-      if (itemT <= tombT) delete mergedProfiles[name]
+      // 有时间戳的条目直接比较；无时间戳的旧条目仅在曾同步过时才受 tombstone 约束
+      if (hasTimestamp ? (itemT <= tombT) : (lastSyncAt > 0)) {
+        delete mergedProfiles[name]
+      }
     }
 
     // 合并 mcpServers：按服务器名称，比较 per-item _lastModified
@@ -692,10 +763,12 @@ class SyncService {
         if (!mergedServers[name]) {
           mergedServers[name] = server
         } else {
-          const localItemTime = mergedServers[name]._lastModified
+          // N-1 修复：同 apiProfiles 逻辑
+          const hasLocalTimestamp = !!mergedServers[name]._lastModified
+          const localItemTime = hasLocalTimestamp
             ? new Date(mergedServers[name]._lastModified).getTime()
             : lastSyncAt
-          if (remoteItemTime > localItemTime) {
+          if (remoteItemTime > localItemTime && (hasLocalTimestamp || lastSyncAt > 0)) {
             mergedServers[name] = server
           }
         }
@@ -704,10 +777,13 @@ class SyncService {
     for (const name of Object.keys(mergedServers)) {
       const tombT = _serverTombT(name)
       if (tombT === 0) continue
-      const itemT = mergedServers[name]._lastModified
+      const hasTimestamp = !!mergedServers[name]._lastModified
+      const itemT = hasTimestamp
         ? new Date(mergedServers[name]._lastModified).getTime()
         : 0
-      if (itemT <= tombT) delete mergedServers[name]
+      if (hasTimestamp ? (itemT <= tombT) : (lastSyncAt > 0)) {
+        delete mergedServers[name]
+      }
     }
 
     // 合并 apiProfilesOrder：去重保序，并剔除已被 tombstone 显式删除的条目

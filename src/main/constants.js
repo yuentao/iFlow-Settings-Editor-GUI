@@ -9,8 +9,6 @@ const API_FIELDS = Object.freeze([
   'apiKey',
   'baseUrl',
   'modelName',
-  'searchApiKey',
-  'cna'
 ])
 
 // API 配置默认值
@@ -19,8 +17,6 @@ const PROFILE_DEFAULTS = Object.freeze({
   apiKey: '',
   baseUrl: '',
   modelName: '',
-  searchApiKey: '',
-  cna: false
 })
 
 module.exports = {

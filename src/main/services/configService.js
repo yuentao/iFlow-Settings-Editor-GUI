@@ -3,21 +3,29 @@
  * 负责配置文件的读写操作
  */
 
-const { app } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
 // 导入统一常量
 const { API_FIELDS } = require('../constants')
 
-// 配置文件路径
-const SETTINGS_FILE = path.join(app.getPath('home'), '.iflow', 'settings.json')
+// 延迟计算配置文件路径，避免模块加载时 require('electron') 失败
+// 纯函数（如 stampModifiedItems、tombstone 工具）不依赖此路径
+let _SETTINGS_FILE = null
+function getSettingsFile() {
+  if (!_SETTINGS_FILE) {
+    const { app } = require('electron')
+    _SETTINGS_FILE = path.join(app.getPath('home'), '.iflow', 'settings.json')
+  }
+  return _SETTINGS_FILE
+}
 
 /**
  * 读取设置文件
  * @returns {Object|null} 设置数据，如果文件不存在则返回 null
  */
 function readSettings() {
+  const SETTINGS_FILE = getSettingsFile()
   if (!fs.existsSync(SETTINGS_FILE)) {
     return null
   }
@@ -35,6 +43,7 @@ function readSettings() {
  * @param {Object} data - 要写入的数据
  */
 function writeSettings(data) {
+  const SETTINGS_FILE = getSettingsFile()
   try {
     // 先创建备份
     if (fs.existsSync(SETTINGS_FILE)) {
@@ -61,7 +70,7 @@ function writeSettings(data) {
  * @returns {string} 配置文件路径
  */
 function getSettingsPath() {
-  return SETTINGS_FILE
+  return getSettingsFile()
 }
 
 /**
@@ -69,7 +78,7 @@ function getSettingsPath() {
  * @returns {boolean}
  */
 function settingsExists() {
-  return fs.existsSync(SETTINGS_FILE)
+  return fs.existsSync(getSettingsFile())
 }
 
 /**
@@ -154,6 +163,11 @@ function stampModifiedItems(oldSettings, newSettings) {
       profile._lastModified = now
     } else if (oldProfile._lastModified && !profile._lastModified) {
       profile._lastModified = oldProfile._lastModified
+    } else if (!oldProfile._lastModified && !profile._lastModified) {
+      // N-1 修复：旧数据迁移场景——条目没有 _lastModified 且内容未变，
+      // 补写当前时间戳作为迁移标记，确保后续 _mergeConfigs 有时间参考，
+      // 避免远端条目因 localItemTime 退化为 0 而错误覆盖本地数据。
+      profile._lastModified = now
     }
   }
 
@@ -168,6 +182,9 @@ function stampModifiedItems(oldSettings, newSettings) {
       server._lastModified = now
     } else if (oldServer._lastModified && !server._lastModified) {
       server._lastModified = oldServer._lastModified
+    } else if (!oldServer._lastModified && !server._lastModified) {
+      // N-1 修复：旧数据迁移场景——同 apiProfiles 逻辑
+      server._lastModified = now
     }
   }
 }
@@ -250,7 +267,7 @@ function pruneOldTombstones(settings, maxAgeDays = DEFAULT_TOMBSTONE_RETENTION_D
 }
 
 module.exports = {
-  SETTINGS_FILE,
+  get SETTINGS_FILE() { return getSettingsFile() },
   API_FIELDS,
   readSettings,
   writeSettings,

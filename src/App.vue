@@ -181,6 +181,9 @@ const settings = ref({
   language: 'zh-CN',
   uiTheme: 'Light',
   bootAnimationShown: true,
+  showMemoryUsage: false,
+  maxSessionTurns: -1,
+  excludeTools: [],
   checkpointing: { enabled: true },
   mcpServers: {},
   selectedAuthType: 'openai-compatible',
@@ -190,6 +193,18 @@ const settings = ref({
   currentApiProfile: 'default',
   apiProfiles: { default: {} },
   acrylicIntensity: 50,
+  // CLI 行为控制 - 新字段默认值
+  autoAccept: false,
+  hideBanner: false,
+  disableAutoUpdate: false,
+  autoConfigureMaxOldSpaceSize: undefined,
+  disableTelemetry: false,
+  tokensLimit: 128000,
+  compressionTokenThreshold: 0.8,
+  skipNextSpeakerCheck: true,
+  shellTimeout: 120000,
+  approvalMode: 'autoEdit',
+  thinkingModeEnabled: 'true',
 })
 
 const originalSettings = ref({})
@@ -235,6 +250,18 @@ const switchApiProfile = async () => {
     const data = JSON.parse(JSON.stringify(result.data))
     if (!data.checkpointing) data.checkpointing = { enabled: true }
     if (!data.mcpServers) data.mcpServers = {}
+    // CLI 行为控制 - 新字段默认值
+    if (data.autoAccept === undefined) data.autoAccept = false
+    if (data.hideBanner === undefined) data.hideBanner = false
+    if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
+    if (data.autoConfigureMaxOldSpaceSize === undefined) data.autoConfigureMaxOldSpaceSize = undefined
+    if (data.disableTelemetry === undefined) data.disableTelemetry = false
+    if (data.tokensLimit === undefined) data.tokensLimit = 128000
+    if (data.compressionTokenThreshold === undefined) data.compressionTokenThreshold = 0.8
+    if (data.skipNextSpeakerCheck === undefined) data.skipNextSpeakerCheck = true
+    if (data.shellTimeout === undefined) data.shellTimeout = 120000
+    if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
+    if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     settings.value = data
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false
@@ -300,6 +327,18 @@ const deleteApiProfile = async name => {
     if (!data.checkpointing) data.checkpointing = { enabled: true }
     if (!data.mcpServers) data.mcpServers = {}
     skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
+    // CLI 行为控制 - 新字段默认值
+    if (data.autoAccept === undefined) data.autoAccept = false
+    if (data.hideBanner === undefined) data.hideBanner = false
+    if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
+    if (data.autoConfigureMaxOldSpaceSize === undefined) data.autoConfigureMaxOldSpaceSize = undefined
+    if (data.disableTelemetry === undefined) data.disableTelemetry = false
+    if (data.tokensLimit === undefined) data.tokensLimit = 128000
+    if (data.compressionTokenThreshold === undefined) data.compressionTokenThreshold = 0.8
+    if (data.skipNextSpeakerCheck === undefined) data.skipNextSpeakerCheck = true
+    if (data.shellTimeout === undefined) data.shellTimeout = 120000
+    if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
+    if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     settings.value = data
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false
@@ -432,6 +471,9 @@ const loadSettings = async () => {
     if (data.language === undefined) data.language = 'zh-CN'
     if (data.uiTheme === undefined) data.uiTheme = 'Light'
     if (data.bootAnimationShown === undefined) data.bootAnimationShown = true
+    if (data.showMemoryUsage === undefined) data.showMemoryUsage = false
+    if (data.maxSessionTurns === undefined) data.maxSessionTurns = -1
+    if (data.excludeTools === undefined) data.excludeTools = []
     if (!data.selectedAuthType) data.selectedAuthType = 'openai-compatible'
     if (data.apiKey === undefined) data.apiKey = ''
     if (data.baseUrl === undefined) data.baseUrl = ''
@@ -439,6 +481,18 @@ const loadSettings = async () => {
     if (!data.apiProfiles) data.apiProfiles = { default: {} }
     if (!data.currentApiProfile) data.currentApiProfile = 'default'
     if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
+    // CLI 行为控制 - 新字段默认值
+    if (data.autoAccept === undefined) data.autoAccept = false
+    if (data.hideBanner === undefined) data.hideBanner = false
+    if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
+    if (data.autoConfigureMaxOldSpaceSize === undefined) data.autoConfigureMaxOldSpaceSize = undefined
+    if (data.disableTelemetry === undefined) data.disableTelemetry = false
+    if (data.tokensLimit === undefined) data.tokensLimit = 128000
+    if (data.compressionTokenThreshold === undefined) data.compressionTokenThreshold = 0.8
+    if (data.skipNextSpeakerCheck === undefined) data.skipNextSpeakerCheck = true
+    if (data.shellTimeout === undefined) data.shellTimeout = 120000
+    if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
+    if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     settings.value = data
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false

@@ -1,6 +1,6 @@
 const crypto = require('crypto')
 
-const SENSITIVE_KEYS = new Set(['apiKey', 'searchApiKey', 'cna'])
+const SENSITIVE_KEYS = new Set(['apiKey'])
 const ENC_PREFIX = '$enc:'
 
 class CryptoManager {
@@ -102,8 +102,6 @@ class CryptoManager {
           for (const [ek, ev] of Object.entries(v)) {
             result[k][ek] = this.encryptField(String(ev), key)
           }
-        } else if (k === 'cna' && typeof v === 'boolean') {
-          result[k] = this.encryptField(String(v), key)
         } else if (SENSITIVE_KEYS.has(k) && typeof v === 'string') {
           result[k] = this.encryptField(v, key)
         } else if (v && typeof v === 'object') {
@@ -137,12 +135,7 @@ class CryptoManager {
               : ev
           }
         } else if (typeof v === 'string' && v.startsWith(ENC_PREFIX)) {
-          const decrypted = this.decryptField(v, key)
-          if (k === 'cna') {
-            result[k] = decrypted === 'true'
-          } else {
-            result[k] = decrypted
-          }
+          result[k] = this.decryptField(v, key)
         } else if (v && typeof v === 'object') {
           result[k] = this._decryptFields(v, key)
         } else {

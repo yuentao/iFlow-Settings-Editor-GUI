@@ -39,6 +39,39 @@
               <option value="System">{{ $t('theme.system') }}</option>
             </select>
           </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.showMemoryUsage') }}</label>
+              <p class="setting-desc">{{ $t('general.showMemoryUsageDesc') }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.showMemoryUsage" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.hideBanner') }}</label>
+              <p class="setting-desc">{{ $t('general.hideBannerDesc') }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.hideBanner" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="setting-divider"></div>
+        <div class="setting-item setting-item-full" v-if="supportsAcrylic">
+          <div class="setting-info">
+            <label class="setting-label">{{ $t('general.acrylicEffect') }}</label>
+            <p class="setting-desc">{{ localSettings.acrylicIntensity }}% — {{ $t('general.acrylicMin') }} — {{ $t('general.acrylicMax') }}</p>
+          </div>
+          <div class="slider-container">
+            <div class="slider-track">
+              <div class="slider-fill" :style="{ width: localSettings.acrylicIntensity + '%' }"></div>
+            </div>
+            <input type="range" class="form-slider" min="0" max="100" :value="localSettings.acrylicIntensity" @input="updateSliderValue" />
+          </div>
         </div>
       </div>
 
@@ -67,34 +100,101 @@
         <div class="settings-grid">
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">{{ $t('general.bootAnimation') }}</label>
+              <label class="setting-label">{{ $t('general.maxSessionTurns') }}</label>
+              <p class="setting-desc">{{ $t('general.maxSessionTurnsDesc') }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.bootAnimationShown">
-              <option :value="true">{{ $t('general.bootAnimationShown') }}</option>
-              <option :value="false">{{ $t('general.bootAnimationNotShown') }}</option>
+            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.maxSessionTurns" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.disableAutoUpdate') }}</label>
+              <p class="setting-desc">{{ $t('general.disableAutoUpdateDesc') }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.disableAutoUpdate" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.autoConfigureMaxOldSpaceSize') }}</label>
+              <p class="setting-desc">{{ $t('general.autoConfigureMaxOldSpaceSizeDesc') }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.autoConfigureMaxOldSpaceSize" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.disableTelemetry') }}</label>
+              <p class="setting-desc">{{ $t('general.disableTelemetryDesc') }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.disableTelemetry" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.tokensLimit') }}</label>
+              <p class="setting-desc">{{ $t('general.tokensLimitDesc') }}</p>
+            </div>
+            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.tokensLimit" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.compressionTokenThreshold') }}</label>
+              <p class="setting-desc">{{ $t('general.compressionTokenThresholdDesc') }}</p>
+            </div>
+            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.compressionTokenThreshold" step="0.01" min="0" max="1" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.skipNextSpeakerCheck') }}</label>
+              <p class="setting-desc">{{ $t('general.skipNextSpeakerCheckDesc') }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.skipNextSpeakerCheck" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.shellTimeout') }}</label>
+              <p class="setting-desc">{{ $t('general.shellTimeoutDesc') }}</p>
+            </div>
+            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.shellTimeout" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.approvalMode') }}</label>
+              <p class="setting-desc">{{ $t('general.approvalModeDesc') }}</p>
+            </div>
+            <select class="form-select setting-select" v-model="localSettings.approvalMode">
+              <option value="yolo">{{ $t('general.approvalModeYolo') }}</option>
+              <option value="plan">{{ $t('general.approvalModePlan') }}</option>
+              <option value="autoEdit">{{ $t('general.approvalModeAutoEdit') }}</option>
+              <option value="default">{{ $t('general.approvalModeDefault') }}</option>
             </select>
           </div>
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">{{ $t('general.checkpointing') }}</label>
+              <label class="setting-label">{{ $t('general.thinkingModeEnabled') }}</label>
+              <p class="setting-desc">{{ $t('general.thinkingModeEnabledDesc') }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.checkpointing.enabled">
-              <option :value="true">{{ $t('general.enabled') }}</option>
-              <option :value="false">{{ $t('general.disabled') }}</option>
+            <select class="form-select setting-select" v-model="localSettings.thinkingModeEnabled">
+              <option value="true">{{ $t('general.enabled') }}</option>
+              <option value="false">{{ $t('general.disabled') }}</option>
             </select>
           </div>
-        </div>
-        <div class="setting-divider"></div>
-        <div class="setting-item setting-item-full" v-if="supportsAcrylic">
-          <div class="setting-info">
-            <label class="setting-label">{{ $t('general.acrylicEffect') }}</label>
-            <p class="setting-desc">{{ localSettings.acrylicIntensity }}% — {{ $t('general.acrylicMin') }} — {{ $t('general.acrylicMax') }}</p>
-          </div>
-          <div class="slider-container">
-            <div class="slider-track">
-              <div class="slider-fill" :style="{ width: localSettings.acrylicIntensity + '%' }"></div>
+          <div class="setting-item setting-item-full">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.excludeTools') }}</label>
+              <p class="setting-desc">{{ $t('general.excludeToolsDesc') }}</p>
+              <p class="setting-desc security-note"><span class="security-label">{{ $t('general.excludeToolsSecurityNoteLabel') }}</span> {{ $t('general.excludeToolsSecurityNote') }}</p>
             </div>
-            <input type="range" class="form-slider" min="0" max="100" :value="localSettings.acrylicIntensity" @input="updateSliderValue" />
+            <textarea class="form-textarea core-tools-textarea" :value="excludeToolsText" @input="onExcludeToolsInput" :placeholder="$t('general.excludeToolsPlaceholder')" rows="3"></textarea>
           </div>
         </div>
       </div>
@@ -705,6 +805,22 @@ const onAutoUpdateChange = async () => {
   }
 }
 
+// Exclude tools: array ↔ textarea text conversion
+const excludeToolsText = computed(() => {
+  const tools = props.settings.excludeTools
+  if (!tools || !Array.isArray(tools) || tools.length === 0) return ''
+  return tools.join('\n')
+})
+
+const onExcludeToolsInput = e => {
+  const text = e.target.value
+  const tools = text
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s)
+  emit('update:settings', { ...props.settings, excludeTools: tools })
+}
+
 const updateSliderValue = e => {
   const value = Number(e.target.value)
   emit('update:settings', { ...props.settings, acrylicIntensity: value })
@@ -1258,6 +1374,19 @@ const handleCloudSyncStatusChanged = state => {
 .setting-select {
   width: 160px;
   flex-shrink: 0;
+}
+
+.setting-input-number {
+  width: 100px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.core-tools-textarea {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  resize: vertical;
+  min-height: 60px;
 }
 
 .setting-divider {
@@ -1961,6 +2090,20 @@ input:checked + .slider:before {
 
   .sync-content-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+// Security note styling
+.security-note {
+  margin-top: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-sm);
+
+  .security-label {
+    font-weight: 600;
+    color: var(--warning);
   }
 }
 </style>
