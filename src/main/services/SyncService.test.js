@@ -628,6 +628,172 @@ describe('SyncService', () => {
       expect(local.apiProfiles.staging).toBeUndefined()
       expect(local.currentApiProfile).toBe('default')
     })
+
+    // ─── N-1 修复：旧数据迁移 + 从未同步场景 ───────────
+    it('N-1: should NOT overwrite local profile when local has no _lastModified and never synced (local-wins)', () => {
+      const local = createBaseSettings()
+      // 旧数据：profile 没有 _lastModified，且从未同步过
+      delete local.apiProfiles.default._lastModified
+      delete local.cloudSync.lastSyncAt
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-25T10:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-remote', baseUrl: 'https://remote.com', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      // 旧数据 + 从未同步 → 本地优先，远端不应覆盖
+      expect(local.apiProfiles.default.apiKey).toBe('sk-test-key')
+      expect(local.apiProfiles.default.baseUrl).toBe('https://api.example.com')
+    })
+
+    it('N-1: should NOT overwrite local server when local has no _lastModified and never synced (local-wins)', () => {
+      const local = createBaseSettings()
+      delete local.mcpServers['my-server']._lastModified
+      delete local.cloudSync.lastSyncAt
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-25T10:00:00Z',
+        data: {
+          apiProfiles: {},
+          mcpServers: {
+            'my-server': { command: 'remote-cmd', args: ['x'], _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.mcpServers['my-server'].command).toBe('npx')
+    })
+
+    it('N-1: should allow remote to override via lastSyncAt fallback when synced before', () => {
+      const local = createBaseSettings()
+      // 旧数据没有 _lastModified，但曾同步过 → lastSyncAt 兜底有效
+      delete local.apiProfiles.default._lastModified
+      local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-25T10:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-remote', baseUrl: 'https://remote.com', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      // lastSyncAt(08:00) < remote _lastModified(09:00) → 远端胜出
+      expect(local.apiProfiles.default.apiKey).toBe('sk-remote')
+    })
+
+    it('N-1: tombstone should NOT delete local profile without _lastModified when never synced', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = {
+        default: local.apiProfiles.default,
+        oldProfile: { apiKey: 'sk-old' }, // 无 _lastModified
+      }
+      delete local.cloudSync.lastSyncAt
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          currentApiProfile: 'default',
+          _deletedProfiles: {
+            oldProfile: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      // 从未同步过 → tombstone 不应删除旧条目
+      expect(local.apiProfiles.oldProfile).toBeDefined()
+      expect(local.apiProfiles.oldProfile.apiKey).toBe('sk-old')
+    })
+
+    it('N-1: tombstone should delete local profile without _lastModified when synced before', () => {
+      const local = createBaseSettings()
+      local.apiProfiles = {
+        default: local.apiProfiles.default,
+        oldProfile: { apiKey: 'sk-old' }, // 无 _lastModified
+      }
+      local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {
+            default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
+          },
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          currentApiProfile: 'default',
+          _deletedProfiles: {
+            oldProfile: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      // 曾同步过 → tombstone 应删除旧条目
+      expect(local.apiProfiles.oldProfile).toBeUndefined()
+    })
+
+    it('N-1: tombstone should NOT delete local server without _lastModified when never synced', () => {
+      const local = createBaseSettings()
+      local.mcpServers = {
+        'my-server': { command: 'npx', args: ['x'] }, // 无 _lastModified
+      }
+      delete local.cloudSync.lastSyncAt
+
+      const remoteConfigs = [{
+        deviceId: 'remote-1',
+        deviceName: 'RemotePC',
+        timestamp: '2026-04-26T13:00:00Z',
+        data: {
+          apiProfiles: {},
+          mcpServers: {},
+          apiProfilesOrder: [],
+          currentApiProfile: 'default',
+          _deletedProfiles: {},
+          _deletedServers: {
+            'my-server': { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+        },
+      }]
+
+      service._mergeConfigs(local, remoteConfigs)
+      expect(local.mcpServers['my-server']).toBeDefined()
+      expect(local.mcpServers['my-server'].command).toBe('npx')
+    })
   })
 
   describe('push', () => {

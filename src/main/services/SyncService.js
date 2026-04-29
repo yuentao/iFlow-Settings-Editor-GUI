@@ -688,24 +688,32 @@ class SyncService {
           // 本地没有 → 直接加入
           mergedProfiles[name] = profile
         } else {
-          // 本地时间：使用 item 的 _lastModified，如果没有则用 lastSyncAt
-          const localItemTime = mergedProfiles[name]._lastModified
+          // 本地时间：使用 item 的 _lastModified；如果没有且曾同步过，用 lastSyncAt 兜底
+          // N-1 修复：若从未同步过（lastSyncAt=0）且本地条目无 _lastModified，
+          // 视为旧迁移数据，采用「本地优先」策略，不轻易被远端覆盖
+          const hasLocalTimestamp = !!mergedProfiles[name]._lastModified
+          const localItemTime = hasLocalTimestamp
             ? new Date(mergedProfiles[name]._lastModified).getTime()
             : lastSyncAt
-          if (remoteItemTime > localItemTime) {
+          if (remoteItemTime > localItemTime && (hasLocalTimestamp || lastSyncAt > 0)) {
             mergedProfiles[name] = profile
           }
         }
       }
     }
     // 应用 tombstone：本地条目若 _lastModified <= deletedAt 则物理删除
+    // N-1 修复：无 _lastModified 的旧条目仅在与远端同步过后才受 tombstone 约束
     for (const name of Object.keys(mergedProfiles)) {
       const tombT = _profileTombT(name)
       if (tombT === 0) continue
-      const itemT = mergedProfiles[name]._lastModified
+      const hasTimestamp = !!mergedProfiles[name]._lastModified
+      const itemT = hasTimestamp
         ? new Date(mergedProfiles[name]._lastModified).getTime()
         : 0
-      if (itemT <= tombT) delete mergedProfiles[name]
+      // 有时间戳的条目直接比较；无时间戳的旧条目仅在曾同步过时才受 tombstone 约束
+      if (hasTimestamp ? (itemT <= tombT) : (lastSyncAt > 0)) {
+        delete mergedProfiles[name]
+      }
     }
 
     // 合并 mcpServers：按服务器名称，比较 per-item _lastModified
@@ -721,10 +729,12 @@ class SyncService {
         if (!mergedServers[name]) {
           mergedServers[name] = server
         } else {
-          const localItemTime = mergedServers[name]._lastModified
+          // N-1 修复：同 apiProfiles 逻辑
+          const hasLocalTimestamp = !!mergedServers[name]._lastModified
+          const localItemTime = hasLocalTimestamp
             ? new Date(mergedServers[name]._lastModified).getTime()
             : lastSyncAt
-          if (remoteItemTime > localItemTime) {
+          if (remoteItemTime > localItemTime && (hasLocalTimestamp || lastSyncAt > 0)) {
             mergedServers[name] = server
           }
         }
@@ -733,10 +743,13 @@ class SyncService {
     for (const name of Object.keys(mergedServers)) {
       const tombT = _serverTombT(name)
       if (tombT === 0) continue
-      const itemT = mergedServers[name]._lastModified
+      const hasTimestamp = !!mergedServers[name]._lastModified
+      const itemT = hasTimestamp
         ? new Date(mergedServers[name]._lastModified).getTime()
         : 0
-      if (itemT <= tombT) delete mergedServers[name]
+      if (hasTimestamp ? (itemT <= tombT) : (lastSyncAt > 0)) {
+        delete mergedServers[name]
+      }
     }
 
     // 合并 apiProfilesOrder：去重保序，并剔除已被 tombstone 显式删除的条目

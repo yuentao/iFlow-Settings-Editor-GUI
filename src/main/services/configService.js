@@ -154,6 +154,11 @@ function stampModifiedItems(oldSettings, newSettings) {
       profile._lastModified = now
     } else if (oldProfile._lastModified && !profile._lastModified) {
       profile._lastModified = oldProfile._lastModified
+    } else if (!oldProfile._lastModified && !profile._lastModified) {
+      // N-1 修复：旧数据迁移场景——条目没有 _lastModified 且内容未变，
+      // 补写当前时间戳作为迁移标记，确保后续 _mergeConfigs 有时间参考，
+      // 避免远端条目因 localItemTime 退化为 0 而错误覆盖本地数据。
+      profile._lastModified = now
     }
   }
 
@@ -168,6 +173,9 @@ function stampModifiedItems(oldSettings, newSettings) {
       server._lastModified = now
     } else if (oldServer._lastModified && !server._lastModified) {
       server._lastModified = oldServer._lastModified
+    } else if (!oldServer._lastModified && !server._lastModified) {
+      // N-1 修复：旧数据迁移场景——同 apiProfiles 逻辑
+      server._lastModified = now
     }
   }
 }
