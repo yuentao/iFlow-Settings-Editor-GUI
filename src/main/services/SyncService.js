@@ -290,10 +290,20 @@ class SyncService {
       this._doAutoSync()
     }, this._autoSyncInterval)
 
-    // 启动后立即触发一次同步
-    this._doAutoSync()
+    // L-5：启动时不立即触发同步，给 30 秒 grace period，
+    // 避免切换 provider 或重启后立即发起网络请求，
+    // 可能与用户正在编辑的设置抢写。
+    const gracePeriod = options.gracePeriod !== undefined ? options.gracePeriod : 30000
+    if (gracePeriod > 0) {
+      this._gracePeriodTimer = setTimeout(() => {
+        this._gracePeriodTimer = null
+        this._doAutoSync()
+      }, gracePeriod)
+    } else {
+      this._doAutoSync()
+    }
 
-    this.logger.info(`Auto-sync started (interval: ${this._autoSyncInterval / 1000}s)`)
+    this.logger.info(`Auto-sync started (interval: ${this._autoSyncInterval / 1000}s, grace: ${gracePeriod / 1000}s)`)
   }
 
   /** 停止自动同步定时器 */
@@ -301,8 +311,12 @@ class SyncService {
     if (this._autoSyncTimer) {
       clearInterval(this._autoSyncTimer)
       this._autoSyncTimer = null
-      this.logger.info('Auto-sync stopped')
     }
+    if (this._gracePeriodTimer) {
+      clearTimeout(this._gracePeriodTimer)
+      this._gracePeriodTimer = null
+    }
+    this.logger.info('Auto-sync stopped')
   }
 
   /**
@@ -524,16 +538,31 @@ class SyncService {
 
   /**
    * 清空云端数据
+   * L-7：使用 Promise.allSettled 并发删除，避免串行删除在设备多时过慢，
+   *      且任一失败不再中断后续删除；返回失败列表供调用方判断。
+   * @returns {Promise<{failedFiles: string[]}>}
    */
   async clearCloud() {
     if (!this.provider) throw new Error('SYNC_PROVIDER_REQUIRED')
     const files = await this.provider.list('devices/')
-    for (const file of files) {
-      if (file.name.startsWith('config-') && file.name.endsWith('.json')) {
-        await this.provider.delete(`devices/${file.name}`)
+    const configFiles = files.filter(
+      (f) => f.name.startsWith('config-') && f.name.endsWith('.json')
+    )
+
+    const results = await Promise.allSettled(
+      configFiles.map((file) => this.provider.delete(`devices/${file.name}`))
+    )
+
+    const failedFiles = []
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        failedFiles.push(configFiles[index].name)
+        this.logger.warn(`Failed to delete ${configFiles[index].name}: ${result.reason}`)
       }
-    }
-    this.logger.info('Cloud data cleared')
+    })
+
+    this.logger.info(`Cloud data cleared (${configFiles.length - failedFiles.length}/${configFiles.length} deleted)`)
+    return { failedFiles }
   }
 
   /**

@@ -139,6 +139,7 @@
     "adm-zip": "^0.5.17",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.8.3",
+    "fast-xml-parser": "^5.7.2",
     "marked": "^18.0.2",
     "pinia": "^3.0.4",
     "vue-i18n": "^9.14.5"
