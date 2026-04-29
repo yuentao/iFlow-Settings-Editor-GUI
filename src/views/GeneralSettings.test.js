@@ -67,6 +67,20 @@ describe('GeneralSettings.vue', () => {
   const mockSettings = {
     language: 'zh-CN',
     uiTheme: 'Light',
+    showMemoryUsage: true,
+    hideBanner: false,
+    maxSessionTurns: 10,
+    autoAccept: false,
+    disableAutoUpdate: false,
+    autoConfigureMaxOldSpaceSize: undefined,
+    disableTelemetry: false,
+    tokensLimit: 128000,
+    compressionTokenThreshold: 0.8,
+    skipNextSpeakerCheck: true,
+    shellTimeout: 120000,
+    approvalMode: 'autoEdit',
+    thinkingModeEnabled: 'true',
+    excludeTools: [],
     bootAnimationShown: true,
     checkpointing: { enabled: true },
     acrylicIntensity: 50,
@@ -147,9 +161,10 @@ describe('GeneralSettings.vue', () => {
 
     await nextTick();
     const selectElements = wrapper.findAll('.form-select');
+    // Selects: language, theme, approvalMode, thinkingModeEnabled, providerType = 5
     expect(selectElements[0].element.value).toBe('zh-CN');
     expect(selectElements[1].element.value).toBe('Light');
-    expect(selectElements[2].element.value).toBe('true');
+    expect(selectElements[2].element.value).toBe('autoEdit');
     expect(selectElements[3].element.value).toBe('true');
   });
 
@@ -213,9 +228,17 @@ describe('GeneralSettings.vue', () => {
   it('shows all form controls with proper structure', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    // Setting items: language, theme, autoLaunch, bootAnimation, checkpointing, providerType + (conditional items)
-    expect(wrapper.findAll('.setting-item').length).toBe(8);
-    expect(wrapper.findAll('.setting-label').length).toBe(8);
+    // All setting-item divs in DOM (v-show only hides with CSS, elements remain in DOM):
+    // Language card: 4 grid items + 1 full width (acrylic) = 5
+    // AutoLaunch card: 1 setting-item-main = 1
+    // Other card: 10 grid items + 1 full width (excludeTools) = 11
+    // Cloud sync provider card: 1 (providerType) = 1
+    // Password card: 1 (passwordStatus) + 1 (deviceName when isConfigured) = 1 or 2
+    // mock has isConfigured=false, so deviceName doesn't show, total = 1
+    // Total: 5 + 1 + 11 + 1 + 1 = 19
+    expect(wrapper.findAll('.setting-item').length).toBe(19);
+    expect(wrapper.findAll('.setting-label').length).toBe(19);
+    // Selects: language, theme, approvalMode, thinkingModeEnabled, providerType = 5
     expect(wrapper.findAll('.form-select').length).toBe(5);
     expect(wrapper.find('.switch').exists()).toBe(true);
   });

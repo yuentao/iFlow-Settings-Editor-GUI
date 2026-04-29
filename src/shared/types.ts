@@ -29,6 +29,9 @@ export interface Settings {
   autoLaunch?: boolean
   startMinimized?: boolean
   bootAnimationShown?: boolean
+  showMemoryUsage?: boolean
+  maxSessionTurns?: number
+  excludeTools?: string[]
   autoUpdate?: boolean
   currentApiProfile?: string
   apiProfiles?: Record<string, ApiProfileConfig>
@@ -42,6 +45,37 @@ export interface Settings {
   apiKey?: string
   baseUrl?: string
   modelName?: string
+
+  // CLI 行为控制
+  autoAccept?: boolean
+  hideBanner?: boolean
+  disableAutoUpdate?: boolean
+  autoConfigureMaxOldSpaceSize?: boolean
+  disableTelemetry?: boolean
+  tokensLimit?: number
+  compressionTokenThreshold?: number
+  skipNextSpeakerCheck?: boolean
+  shellTimeout?: number
+  approvalMode?: 'yolo' | 'plan' | 'autoEdit' | 'default'
+  thinkingModeEnabled?: 'true' | 'false'
+  customThemes?: Record<string, CustomThemeConfig>
+}
+
+/** 自定义 CLI 主题配置 */
+export interface CustomThemeConfig {
+  name: string
+  type: 'custom'
+  Background?: string
+  Foreground?: string
+  LightBlue?: string
+  AccentBlue?: string
+  AccentPurple?: string
+  AccentCyan?: string
+  AccentGreen?: string
+  AccentYellow?: string
+  AccentRed?: string
+  Comment?: string
+  Gray?: string
 }
 
 /** apiProfiles 中每个配置的结构 */

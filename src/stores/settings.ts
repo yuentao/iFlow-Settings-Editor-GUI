@@ -23,6 +23,18 @@ export const useSettingsStore = defineStore('settings', () => {
     apiProfiles: {},
     mcpServers: [],
     autoUpdate: true,
+    // CLI 行为控制 - 新字段默认值
+    autoAccept: false,
+    hideBanner: false,
+    disableAutoUpdate: false,
+    autoConfigureMaxOldSpaceSize: undefined,
+    disableTelemetry: false,
+    tokensLimit: 128000,
+    compressionTokenThreshold: 0.8,
+    skipNextSpeakerCheck: true,
+    shellTimeout: 120000,
+    approvalMode: 'autoEdit',
+    thinkingModeEnabled: 'true',
   })
 
   const isLoading = ref(true)
