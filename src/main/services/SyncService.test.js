@@ -39,8 +39,6 @@ function createBaseSettings(overrides = {}) {
         apiKey: 'sk-test-key',
         baseUrl: 'https://api.example.com',
         modelName: 'gpt-4',
-        searchApiKey: 'search-key',
-        cna: true,
       },
     },
     currentApiProfile: 'default',

@@ -107,16 +107,12 @@ describe('CryptoManager', () => {
           apiKey: 'sk-secret-key-123',
           baseUrl: 'https://api.example.com',
           modelName: 'gpt-4',
-          searchApiKey: 'search-key-456',
-          cna: true,
         },
         production: {
           selectedAuthType: 'anthropic',
           apiKey: 'sk-prod-key-789',
           baseUrl: 'https://api.anthropic.com',
           modelName: 'claude-3',
-          searchApiKey: '',
-          cna: false,
         },
       },
       currentApiProfile: 'default',
@@ -139,8 +135,6 @@ describe('CryptoManager', () => {
 
       // 敏感字段应被加密
       expect(encrypted.apiProfiles.default.apiKey).toMatch(/^\$enc:/)
-      expect(encrypted.apiProfiles.default.searchApiKey).toMatch(/^\$enc:/)
-      expect(encrypted.apiProfiles.default.cna).toMatch(/^\$enc:/)
       expect(encrypted.apiProfiles.production.apiKey).toMatch(/^\$enc:/)
       expect(encrypted.mcpServers['my-server'].env.API_KEY).toMatch(/^\$enc:/)
 
@@ -213,33 +207,15 @@ describe('CryptoManager', () => {
       expect(decrypted).toEqual(data)
     })
 
-    it('should handle cna = false (boolean)', () => {
-      const data = { apiProfiles: { p1: { cna: false } } }
-      const encrypted = mgr.encryptSyncData(data, 'pass')
-      expect(encrypted.apiProfiles.p1.cna).toMatch(/^\$enc:/)
-      const decrypted = mgr.decryptSyncData(encrypted, 'pass')
-      expect(decrypted.apiProfiles.p1.cna).toBe(false)
-    })
-
-    it('should handle empty searchApiKey string', () => {
-      const data = { apiProfiles: { p1: { searchApiKey: '' } } }
-      const encrypted = mgr.encryptSyncData(data, 'pass')
-      // 空字符串也是 string 类型，应该被加密
-      expect(encrypted.apiProfiles.p1.searchApiKey).toMatch(/^\$enc:/)
-      const decrypted = mgr.decryptSyncData(encrypted, 'pass')
-      expect(decrypted.apiProfiles.p1.searchApiKey).toBe('')
-    })
-
     it('should handle null and undefined values gracefully', () => {
       const data = {
         apiProfiles: {
-          p1: { apiKey: null, searchApiKey: undefined },
+          p1: { apiKey: null },
         },
       }
       const encrypted = mgr.encryptSyncData(data, 'pass')
       const decrypted = mgr.decryptSyncData(encrypted, 'pass')
       expect(decrypted.apiProfiles.p1.apiKey).toBeNull()
-      expect(decrypted.apiProfiles.p1.searchApiKey).toBeUndefined()
     })
   })
 

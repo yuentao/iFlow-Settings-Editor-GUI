@@ -42,8 +42,6 @@ export interface Settings {
   apiKey?: string
   baseUrl?: string
   modelName?: string
-  searchApiKey?: string
-  cna?: boolean
 }
 
 /** apiProfiles 中每个配置的结构 */
@@ -52,8 +50,6 @@ export interface ApiProfileConfig {
   apiKey?: string
   baseUrl?: string
   modelName?: string
-  searchApiKey?: string
-  cna?: boolean
 }
 
 // ─── API Profile（列表展示用） ────────────────────────────
