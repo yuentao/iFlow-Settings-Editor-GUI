@@ -230,7 +230,7 @@
               </div>
               <div class="cloud-status-right">
                 <label class="switch switch-sm" @click.stop>
-                  <input type="checkbox" :checked="autoSyncEnabled" @change="onToggleAutoSync" />
+                  <input type="checkbox" :checked="autoSyncEnabled" @click.prevent.stop="onToggleAutoSync" />
                   <span class="slider"></span>
                 </label>
                 <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span>
@@ -941,7 +941,8 @@ async function onToggleAutoSync() {
       error: '',
       onConfirm: handleAutoSyncPasswordConfirm,
       onCancel: () => {
-        // 用户取消对话框，确保关闭自动同步
+        // 用户取消对话框，确保关闭自动同步（同时回滚 UI 开关状态）
+        cloudStore.setAutoSyncEnabled(false)
         cloudStore.setAutoSync(false)
       },
     }
