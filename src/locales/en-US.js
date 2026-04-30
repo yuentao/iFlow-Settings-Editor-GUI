@@ -28,6 +28,8 @@ export default {
     commands: 'Commands',
     cloudSync: 'Cloud Sync',
     cloudSyncDisabled: 'Disabled',
+    cloudSyncNotConfigured: 'Not configured',
+    cloudSyncNotEnabled: 'Not enabled',
     ready: 'Ready',
     syncing: 'Syncing',
     syncError: 'Error',

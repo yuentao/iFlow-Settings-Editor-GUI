@@ -28,6 +28,8 @@ export default {
     commands: 'コマンド',
     cloudSync: 'クラウド同期',
     cloudSyncDisabled: '無効',
+    cloudSyncNotConfigured: '未設定',
+    cloudSyncNotEnabled: '未起動',
     ready: '準備完了',
     syncing: '同期中',
     syncError: 'エラー',

@@ -81,17 +81,17 @@
         <div class="stat-content">
           <div class="stat-label">{{ $t('dashboard.cloudSync') }}</div>
           <div class="stat-value stat-value-sm">{{ cloudSyncStatusLabel }}</div>
-          <div class="stat-sub" v-if="cloudStore.status.lastSyncAt">
+          <div class="stat-sub" v-if="syncEnabled && cloudStore.isConfigured && cloudStore.status.lastSyncAt">
             {{ $t('dashboard.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }}
           </div>
-          <div class="stat-sub stat-sub-empty" v-else-if="syncEnabled">
+          <div class="stat-sub stat-sub-empty" v-else-if="syncEnabled && cloudStore.isConfigured">
             {{ $t('dashboard.neverSynced') }}
           </div>
         </div>
         <div class="stat-actions">
           <button
             class="btn btn-primary btn-xs"
-            :disabled="!cloudStore.isConfigured || cloudStore.isSyncing"
+            :disabled="!syncEnabled || !cloudStore.isConfigured || cloudStore.isSyncing"
             @click.stop="handleSyncNow"
           >
             <Loading v-if="cloudStore.isSyncing" size="12" class="spin" />
@@ -186,14 +186,18 @@ const apiProfileCount = computed(() => {
 
 // 云同步状态
 const cloudSyncStatusClass = computed(() => {
-  if (!syncEnabled) return 'stat-icon-secondary'
+  if (!syncEnabled.value && cloudStore.isConfigured) return 'stat-icon-warning'
+  if (!syncEnabled.value) return 'stat-icon-secondary'
+  if (!cloudStore.isConfigured) return 'stat-icon-secondary'
   if (cloudStore.isSyncing) return 'stat-icon-info'
   if (cloudStore.status.lastSyncError) return 'stat-icon-danger'
   return 'stat-icon-success'
 })
 
 const cloudSyncStatusLabel = computed(() => {
-  if (!syncEnabled) return t('dashboard.cloudSyncDisabled')
+  if (!syncEnabled.value && cloudStore.isConfigured) return t('dashboard.cloudSyncNotEnabled')
+  if (!syncEnabled.value) return t('dashboard.cloudSyncDisabled')
+  if (!cloudStore.isConfigured) return t('dashboard.cloudSyncNotConfigured')
   if (cloudStore.isSyncing) return t('dashboard.syncing')
   if (cloudStore.status.lastSyncError) return t('dashboard.syncError')
   return t('dashboard.ready')
