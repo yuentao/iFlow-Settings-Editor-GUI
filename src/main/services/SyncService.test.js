@@ -51,8 +51,6 @@ function createBaseSettings(overrides = {}) {
     },
     apiProfilesOrder: ['default'],
     cloudSync: {
-      enabled: true,
-      autoSyncEnabled: false,
       deviceId: 'test-device-001',
       deviceName: 'TestPC',
       provider: 'webdav',
@@ -1749,28 +1747,23 @@ describe('SyncService', () => {
     })
 
     describe('onSettingsSaved', () => {
-      it('should not trigger when autoSync is disabled', () => {
-        const settings = createBaseSettings()
-        settings.cloudSync.autoSyncEnabled = false
-        mockReadSettings.mockReturnValue(settings)
+      it('should not trigger when no provider is configured', () => {
+        service.provider = null
+        service.cachePassword('pass')
 
         service.onSettingsSaved()
         expect(service._settingsSaveDebounceTimer).toBeNull()
       })
 
-      it('should not trigger when cloudSync is not enabled', () => {
-        const settings = createBaseSettings()
-        settings.cloudSync.enabled = false
-        mockReadSettings.mockReturnValue(settings)
+      it('should not trigger when no cached password', () => {
+        // provider is set in beforeEach, but no password cached
 
         service.onSettingsSaved()
         expect(service._settingsSaveDebounceTimer).toBeNull()
       })
 
       it('should not trigger when syncing is in progress', () => {
-        const settings = createBaseSettings()
-        settings.cloudSync.autoSyncEnabled = true
-        mockReadSettings.mockReturnValue(settings)
+        service.cachePassword('pass')
         service.isSyncing = true
 
         service.onSettingsSaved()
@@ -1779,9 +1772,6 @@ describe('SyncService', () => {
       })
 
       it('should set debounce timer when conditions are met', () => {
-        const settings = createBaseSettings()
-        settings.cloudSync.autoSyncEnabled = true
-        mockReadSettings.mockReturnValue(settings)
         service.cachePassword('pass')
 
         service.onSettingsSaved()
@@ -1789,9 +1779,6 @@ describe('SyncService', () => {
       })
 
       it('should debounce multiple calls', () => {
-        const settings = createBaseSettings()
-        settings.cloudSync.autoSyncEnabled = true
-        mockReadSettings.mockReturnValue(settings)
         service.cachePassword('pass')
 
         service.onSettingsSaved()
@@ -1803,9 +1790,6 @@ describe('SyncService', () => {
       })
 
       it('should trigger _doAutoSync after debounce delay', async () => {
-        const settings = createBaseSettings()
-        settings.cloudSync.autoSyncEnabled = true
-        mockReadSettings.mockReturnValue(settings)
         service.cachePassword('pass')
         mockProvider.list.mockResolvedValue([])
         mockProvider.upload.mockResolvedValue(undefined)
@@ -1816,6 +1800,96 @@ describe('SyncService', () => {
         await vi.runAllTimersAsync()
 
         expect(mockProvider.list).toHaveBeenCalled()
+      })
+    })
+
+    // ─── T-2: Tombstone lifecycle end-to-end ─────────────────
+
+    describe('T-2: tombstone lifecycle end-to-end', () => {
+      it('delete → push → other device pull → item removed → push back → no resurrection', async () => {
+        const password = 'sync-password'
+        const { default: CryptoManager } = await import('../crypto/CryptoManager')
+        const crypto = new CryptoManager()
+
+        // ── Step 1: Simulate Device A has deleted "staging" and pushed ──
+        // Device A's sync data includes a tombstone for "staging"
+        const deviceAData = {
+          apiProfiles: {
+            default: {
+              selectedAuthType: 'openai-compatible',
+              apiKey: 'sk-test-key',
+              baseUrl: 'https://api.example.com',
+              modelName: 'gpt-4',
+              _lastModified: '2026-04-25T10:00:00Z',
+            },
+            production: {
+              selectedAuthType: 'openai-compatible',
+              apiKey: 'sk-prod-key',
+              baseUrl: 'https://prod.com',
+              modelName: 'gpt-4',
+              _lastModified: '2026-04-25T10:00:00Z',
+            },
+          },
+          currentApiProfile: 'default',
+          mcpServers: {},
+          apiProfilesOrder: ['default', 'production'],
+          _deletedProfiles: {
+            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+          },
+          _deletedServers: {},
+        }
+
+        // ── Step 2: Device B pull — B still has "staging", tombstone should remove it ──
+        const settingsB = createBaseSettings()
+        settingsB.apiProfiles.staging = {
+          selectedAuthType: 'openai-compatible',
+          apiKey: 'sk-staging-key',
+          baseUrl: 'https://staging.com',
+          modelName: 'gpt-4',
+          _lastModified: '2026-04-25T09:00:00Z',
+        }
+        settingsB.apiProfilesOrder = ['default', 'staging']
+        settingsB.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
+        mockReadSettings.mockReturnValue(settingsB)
+
+        const remoteBuffer = createRemoteConfigBuffer(deviceAData, password, crypto)
+        mockProvider.list.mockResolvedValue([
+          { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-26T12:00:00Z', size: 1024 },
+        ])
+        mockProvider.download.mockResolvedValue(remoteBuffer)
+
+        const pullResult = await service.pull(password)
+        expect(pullResult.success).toBe(true)
+
+        // Verify "staging" was removed by tombstone in B's merged settings
+        const mergedSettings = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        expect(mergedSettings.apiProfiles.staging).toBeUndefined()
+        // Tombstone should be propagated to B too
+        expect(mergedSettings._deletedProfiles.staging).toBeDefined()
+
+        // ── Step 3: Device B pushes — its data now includes the tombstone ──
+        mockProvider.upload.mockClear()
+        mockProvider.upload.mockResolvedValue(undefined)
+        await service.push(password)
+        expect(mockProvider.upload).toHaveBeenCalled()
+
+        // ── Step 4: Device A pulls back — "staging" must NOT be resurrected ──
+        // Even if somehow stale data without tombstone arrives, the local tombstone blocks it
+        mockReadSettings.mockReturnValue(mergedSettings)
+        mockProvider.list.mockResolvedValue([
+          { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-26T12:30:00Z', size: 1024 },
+        ])
+        // Remote still has the same tombstone data
+        mockProvider.download.mockResolvedValue(remoteBuffer)
+
+        const pullResult2 = await service.pull(password)
+        expect(pullResult2.success).toBe(true)
+
+        // Verify "staging" is still gone — no resurrection
+        const finalSettings = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
+        expect(finalSettings.apiProfiles.staging).toBeUndefined()
+        // Tombstone persists
+        expect(finalSettings._deletedProfiles.staging).toBeDefined()
       })
     })
   })
