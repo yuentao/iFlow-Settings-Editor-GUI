@@ -30,6 +30,8 @@ class WebDAVProvider {
     this.password = config.password
     this.baseDir = config.baseDir || DEFAULT_BASE_DIR
     this.timeout = config.timeout || DEFAULT_TIMEOUT
+    // N-5：缓存 Auth header，避免每次请求重新计算
+    this._authHeader = 'Basic ' + Buffer.from(`${this.username}:${this.password}`).toString('base64')
   }
 
   /**
@@ -271,10 +273,9 @@ class WebDAVProvider {
     return new Promise((resolve, reject) => {
       const parsedUrl = new URL(url)
       const mod = parsedUrl.protocol === 'https:' ? https : http
-      const auth = Buffer.from(`${this.username}:${this.password}`).toString('base64')
 
       const headers = {
-        Authorization: `Basic ${auth}`,
+        Authorization: this._authHeader,
         ...extraHeaders,
       }
 

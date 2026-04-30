@@ -205,7 +205,6 @@
       <div class="section-header">
         <div class="section-header-left">
           <h2 class="section-title">{{ $t('general.sectionCloudSync') }}</h2>
-          <span class="experimental-badge">{{ $t('general.experimental') || '(实验性)' }}</span>
         </div>
         <div class="section-header-right">
           <label class="switch" @click.stop>
@@ -230,7 +229,7 @@
               </div>
               <div class="cloud-status-right">
                 <label class="switch switch-sm" @click.stop>
-                  <input type="checkbox" :checked="autoSyncEnabled" @change="onToggleAutoSync" />
+                  <input type="checkbox" :checked="autoSyncEnabled" @click.prevent.stop="onToggleAutoSync" />
                   <span class="slider"></span>
                 </label>
                 <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span>
@@ -343,6 +342,16 @@
               <button class="btn btn-sm" :class="cloudStore.status.hasPassword ? 'btn-secondary' : 'btn-primary'" @click="cloudStore.status.hasPassword ? showChangePasswordDialog() : showSetPasswordDialog()">
                 {{ cloudStore.status.hasPassword ? $t('cloudSync.changePassword') : $t('cloudSync.setPassword') }}
               </button>
+            </div>
+            <div class="setting-item setting-item-main" v-if="cloudStore.status.hasPassword">
+              <div class="setting-info">
+                <label class="setting-label">{{ $t('cloudSync.rememberPassword') }}</label>
+                <p class="setting-desc">{{ $t('cloudSync.rememberPasswordDesc') }}</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" :checked="cloudStore.rememberPassword" @change="onToggleRememberPassword" />
+                <span class="slider"></span>
+              </label>
             </div>
 
             <!-- 设备管理（内嵌在同一卡片） -->
@@ -689,6 +698,7 @@ onMounted(async () => {
 
   // 初始化云同步状态（开关状态由 localStorage 持久化，不从 settings.json 加载）
   await cloudStore.loadStatus()
+  await cloudStore.getRememberPassword()
   deviceName.value = cloudStore.status.deviceName || ''
   selectedProvider.value = cloudStore.status.provider || 'webdav'
   if (cloudStore.syncEnabled && cloudStore.isConfigured) {
@@ -930,7 +940,8 @@ async function onToggleAutoSync() {
       error: '',
       onConfirm: handleAutoSyncPasswordConfirm,
       onCancel: () => {
-        // 用户取消对话框，确保关闭自动同步
+        // 用户取消对话框，确保关闭自动同步（同时回滚 UI 开关状态）
+        cloudStore.setAutoSyncEnabled(false)
         cloudStore.setAutoSync(false)
       },
     }
@@ -1132,6 +1143,11 @@ function closePasswordDialog() {
   passwordDialog.value.onConfirm = null
   passwordDialog.value.onCancel = null
   if (cancel) cancel()
+}
+
+async function onToggleRememberPassword(event) {
+  const enabled = event.target.checked
+  await cloudStore.setRememberPasswordValue(enabled)
 }
 
 function handleSyncNow() {

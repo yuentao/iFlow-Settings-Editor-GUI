@@ -136,6 +136,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cloudSyncChangePassword: (oldPassword, newPassword) => ipcRenderer.invoke('cloud-sync:change-password', oldPassword, newPassword),
   cloudSyncHasPassword: () => ipcRenderer.invoke('cloud-sync:has-password'),
   cloudSyncHasCachedPassword: () => ipcRenderer.invoke('cloud-sync:has-cached-password'),
+  cloudSyncGetRememberPassword: () => ipcRenderer.invoke('cloud-sync:get-remember-password'),
+  cloudSyncSetRememberPassword: (remember) => ipcRenderer.invoke('cloud-sync:set-remember-password', remember),
   cloudSyncSyncNow: (password) => ipcRenderer.invoke('cloud-sync:sync-now', password),
   cloudSyncPull: (password) => ipcRenderer.invoke('cloud-sync:pull', password),
   cloudSyncPush: (password) => ipcRenderer.invoke('cloud-sync:push', password),

@@ -157,6 +157,19 @@ class CryptoManager {
   }
 
   /**
+   * 常量时间比较哈希值（N-4：防止 timing attack）
+   * @param {string} a - 哈希值 A（hex）
+   * @param {string} b - 哈希值 B（hex）
+   * @returns {boolean}
+   */
+  verifyHash(a, b) {
+    const bufA = Buffer.from(a, 'hex')
+    const bufB = Buffer.from(b, 'hex')
+    if (bufA.length !== bufB.length) return false
+    return crypto.timingSafeEqual(bufA, bufB)
+  }
+
+  /**
    * 递归排序对象键（保证序列化结果一致）
    * @param {*} obj - 数据
    * @returns {*} 键排序后的数据

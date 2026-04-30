@@ -222,7 +222,7 @@ const pendingConfirmRequest = ref(null)
 const pendingConfirmResolve = ref(null)
 const showServerPanel = ref(false)
 const isEditingServer = ref(false)
-const editingServerData = ref({ name: '', description: '', command: 'npx', cwd: '.', args: '', env: '' })
+const editingServerData = ref({ name: '', description: '' })
 
 // 标志：跳过下次 saveSettings，避免 profile 切换触发不必要的云同步覆盖
 const skipNextSaveSettings = ref(false)
@@ -300,7 +300,7 @@ const saveApiCreate = async data => {
       loadedData.apiProfiles[name] = profileData
       await window.electronAPI.saveSettings(loadedData)
       showApiCreateDialog.value = false
-      skipNextSaveSettings.value = true  // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
+      skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
       await loadSettings()
       skipNextSaveSettings.value = false
       await loadApiProfiles()
@@ -326,7 +326,7 @@ const deleteApiProfile = async name => {
     const data = JSON.parse(JSON.stringify(result.data))
     if (!data.checkpointing) data.checkpointing = { enabled: true }
     if (!data.mcpServers) data.mcpServers = {}
-    skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
+    skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
     // CLI 行为控制 - 新字段默认值
     if (data.autoAccept === undefined) data.autoAccept = false
     if (data.hideBanner === undefined) data.hideBanner = false
@@ -354,7 +354,7 @@ const reorderApiProfiles = async newProfiles => {
   // 更新本地列表
   apiProfiles.value = newProfiles
   // 保存排序顺序到settings
-  skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
+  skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
   settings.value.apiProfilesOrder = newProfiles.map(p => p.name)
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
@@ -367,7 +367,7 @@ const reorderApiProfiles = async newProfiles => {
 
 const selectApiProfile = async name => {
   if (name === currentApiProfile.value) return
-  skipNextSaveSettings.value = true  // 标记跳过下次 saveSettings，避免竞态覆盖
+  skipNextSaveSettings.value = true // 标记跳过下次 saveSettings，避免竞态覆盖
   currentApiProfile.value = name
   await switchApiProfile()
   skipNextSaveSettings.value = false
@@ -435,7 +435,7 @@ const saveApiEdit = async data => {
   }
 
   // 更新配置数据
-  skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
+  skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
   if (!settings.value.apiProfiles[newName]) settings.value.apiProfiles[newName] = {}
   settings.value.apiProfiles[newName].selectedAuthType = data.selectedAuthType
   settings.value.apiProfiles[newName].apiKey = data.apiKey
@@ -455,7 +455,7 @@ const saveApiEdit = async data => {
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
-    skipNextSaveSettings.value = true  // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
+    skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
     await loadSettings()
     skipNextSaveSettings.value = false
     await showMessage({ type: 'success', title: t('messages.success'), message: t('api.configSaved') })
@@ -605,7 +605,7 @@ const selectServer = name => {
 
 const openAddServerPanel = () => {
   isEditingServer.value = false
-  editingServerData.value = { name: '', description: '', command: 'npx', cwd: '.', args: '-y\npackage-name', env: '' }
+  editingServerData.value = { name: '', description: '', command: 'npx', args: ['-y', 'package-name'] }
   showServerPanel.value = true
   nextTick(() => {})
 }
@@ -614,14 +614,8 @@ const openEditServerPanel = name => {
   const server = settings.value.mcpServers[name]
   if (!server) return
   isEditingServer.value = true
-  editingServerData.value = {
-    name: name,
-    description: server.description || '',
-    command: server.command || '',
-    cwd: server.cwd || '.',
-    args: (server.args || []).join('\n'),
-    env: server.env ? JSON.stringify(server.env, null, 2) : '',
-  }
+  // 传入原始配置（name 单独注入），ServerPanel 自行拆分 description 与自定义字段
+  editingServerData.value = { name, ...server }
   showServerPanel.value = true
   nextTick(() => {})
 }
@@ -643,28 +637,12 @@ const saveServerFromPanel = async data => {
   if (isEditingServer.value && currentServerName.value && currentServerName.value !== name) {
     delete settings.value.mcpServers[currentServerName.value]
   }
-  const serverConfig = {
-    command: data.command.trim(),
-    description: data.description.trim(),
-    cwd: data.cwd.trim() || '.',
-    args: data.args
-      .split('\n')
-      .map(s => s.trim())
-      .filter(s => s),
-  }
-  const envText = data.env.trim()
-  if (envText) {
-    try {
-      serverConfig.env = JSON.parse(envText)
-    } catch (e) {
-      await showMessage({ type: 'error', title: t('messages.error'), message: t('mcp.invalidEnvJson') })
-      return
-    }
-  }
+  // ServerPanel 返回的 data 包含 name + 所有配置字段（description + 自定义字段）
+  const { name: _, ...serverConfig } = data
   settings.value.mcpServers[name] = serverConfig
   currentServerName.value = name
   showServerPanel.value = false
-  skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
+  skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
@@ -688,7 +666,7 @@ const deleteServer = async () => {
   delete settings.value.mcpServers[serverName]
   currentServerName.value = null
   showServerPanel.value = false
-  skipNextSaveSettings.value = true  // 跳过 watch，避免重复触发 onSettingsSaved
+  skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false

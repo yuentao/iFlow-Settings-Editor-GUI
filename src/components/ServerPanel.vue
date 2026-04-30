@@ -20,23 +20,35 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('mcp.descriptionLabel') }}</label>
-          <input type="text" class="form-input" v-model="localData.description" :placeholder="$t('mcp.descriptionPlaceholder')" />
+          <textarea class="form-textarea" v-model="localData.description" rows="3" :placeholder="$t('mcp.descriptionPlaceholder')"></textarea>
         </div>
+
         <div class="form-group">
-          <label class="form-label">{{ $t('mcp.command') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" v-model="localData.command" :placeholder="$t('mcp.commandPlaceholder')" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ $t('mcp.workingDir') }}</label>
-          <input type="text" class="form-input" v-model="localData.cwd" :placeholder="$t('mcp.cwdPlaceholder')" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ $t('mcp.args') }}</label>
-          <textarea class="form-textarea" v-model="localData.args" rows="4" :placeholder="$t('mcp.argsPlaceholder')"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ $t('mcp.envVars') }}</label>
-          <textarea class="form-textarea" v-model="localData.env" rows="3" :placeholder="$t('mcp.envVarsPlaceholder')"></textarea>
+          <label class="form-label">{{ $t('mcp.customFields') }}</label>
+          <div class="custom-fields">
+            <div v-for="(field, index) in localData.fields" :key="index" class="custom-field-row">
+              <input
+                type="text"
+                class="form-input field-key"
+                v-model="field.key"
+                :placeholder="$t('mcp.fieldKeyPlaceholder')"
+              />
+              <textarea
+                class="form-textarea field-value"
+                v-model="field.value"
+                rows="1"
+                :placeholder="$t('mcp.fieldValuePlaceholder')"
+                @input="autoResize($event)"
+              ></textarea>
+              <button class="btn-icon btn-remove" @click="removeField(index)" :title="$t('mcp.removeField')">
+                <svg viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" /><line x1="10" y1="0" x2="0" y2="10" /></svg>
+              </button>
+            </div>
+            <button class="btn btn-secondary btn-add-field" @click="addField">
+              <Add size="14" />
+              {{ $t('mcp.addField') }}
+            </button>
+          </div>
         </div>
       </div>
       <div class="side-panel-footer">
@@ -59,15 +71,26 @@
 <script setup lang="ts">
 /**
  * ServerPanel - MCP 服务器编辑面板组件
+ *
+ * 结构：
+ * - 键名 (name): 文本框 — 对应 settings.json 中的 mcpServers 键名
+ * - 描述 (description): 文本域 — 固定字段
+ * - 自定义字段: 动态键值对 — 其余所有属性（command, args, env 等）均可自由编辑
+ *   值在 UI 中以文本形式输入，保存时尝试 JSON 解析（数组/对象/数字/布尔），
+ *   解析失败则作为普通字符串存储
  */
 import { ref, watch, nextTick } from 'vue'
-import { Server, Save, Delete } from '@icon-park/vue-next'
-import type { McpServerConfig } from '@/shared/types'
+import { Server, Save, Delete, Add } from '@icon-park/vue-next'
+
+interface CustomField {
+  key: string
+  value: string
+}
 
 interface Props {
   show: boolean
   isEditing: boolean
-  data: McpServerConfig | null
+  data: Record<string, any> | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -78,44 +101,110 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   close: []
-  save: [data: McpServerConfig]
+  save: [data: Record<string, any>]
   delete: []
 }>()
 
 interface LocalServerData {
   name: string
   description: string
-  command: string
-  cwd: string
-  args: string
-  env: string
+  fields: CustomField[]
+  /** 以 _ 开头的内部字段（如 _lastModified），不在 UI 中展示，保存时原样写回 */
+  _internalFields: Record<string, any>
 }
 
 const overlay = ref<HTMLElement | null>(null)
 const localData = ref<LocalServerData>({
   name: '',
   description: '',
-  command: 'npx',
-  cwd: '.',
-  args: '',
-  env: ''
+  fields: [{ key: '', value: '' }],
+  _internalFields: {},
 })
+
+/** 将服务器配置对象转为 LocalServerData（description 单独提取，_ 开头的内部字段隐藏，其余转键值对） */
+function serverConfigToLocal(config: Record<string, any>): LocalServerData {
+  const { name, description, ...rest } = config
+  const fields: CustomField[] = []
+  const internalFields: Record<string, any> = {}
+  for (const [key, val] of Object.entries(rest)) {
+    if (key.startsWith('_')) {
+      internalFields[key] = val
+    } else {
+      fields.push({
+        key,
+        value: typeof val === 'string' ? val : JSON.stringify(val, null, 2),
+      })
+    }
+  }
+  // 至少保留一条空字段
+  if (fields.length === 0) {
+    fields.push({ key: '', value: '' })
+  }
+  return {
+    name: config.name || '',
+    description: description || '',
+    fields,
+    _internalFields: internalFields,
+  }
+}
+
+/** 将 LocalServerData 转为服务器配置对象（不含 name） */
+function localToServerConfig(local: LocalServerData): Record<string, any> {
+  const config: Record<string, any> = {}
+  if (local.description.trim()) {
+    config.description = local.description.trim()
+  }
+  for (const field of local.fields) {
+    const key = field.key.trim()
+    if (!key) continue
+    const val = field.value.trim()
+    // 尝试 JSON 解析，失败则当作字符串
+    try {
+      config[key] = JSON.parse(val)
+    } catch {
+      config[key] = val
+    }
+  }
+  // 合并内部字段（_lastModified 等）
+  Object.assign(config, local._internalFields)
+  return config
+}
 
 watch(() => props.show, (val: boolean) => {
   if (val && props.data) {
-    localData.value = { ...props.data }
+    localData.value = serverConfigToLocal(props.data)
     nextTick(() => overlay.value?.focus())
   }
 })
 
-watch(() => props.data, (val: McpServerConfig | null) => {
+watch(() => props.data, (val: Record<string, any> | null) => {
   if (val) {
-    localData.value = { ...val }
+    localData.value = serverConfigToLocal(val)
   }
 }, { immediate: true })
 
+const addField = () => {
+  localData.value.fields.push({ key: '', value: '' })
+}
+
+const removeField = (index: number) => {
+  localData.value.fields.splice(index, 1)
+  // 至少保留一条空字段
+  if (localData.value.fields.length === 0) {
+    localData.value.fields.push({ key: '', value: '' })
+  }
+}
+
+const autoResize = (event: Event) => {
+  const el = event.target as HTMLTextAreaElement
+  el.style.height = 'auto'
+  el.style.height = el.scrollHeight + 'px'
+}
+
 const handleSave = (): void => {
-  emit('save', localData.value as McpServerConfig)
+  const config = localToServerConfig(localData.value)
+  config.name = localData.value.name
+  emit('save', config)
 }
 </script>
 
@@ -138,7 +227,7 @@ const handleSave = (): void => {
   right: 0;
   top: 0;
   bottom: 0;
-  width: 420px;
+  width: 480px;
   max-width: 100%;
   background: var(--bg-elevated);
   border-left: 1px solid var(--border);
@@ -209,6 +298,79 @@ const handleSave = (): void => {
       margin-bottom: 0;
     }
   }
+}
+
+// Custom key-value field editor
+.custom-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-field-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  animation: fadeIn 0.15s ease;
+
+  .field-key {
+    flex: 0 0 120px;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .field-value {
+    flex: 1;
+    font-size: 12px;
+    padding: 6px 8px;
+    min-height: 32px;
+    max-height: 200px;
+    resize: vertical;
+    font-family: 'Cascadia Code', Consolas, monospace;
+  }
+}
+
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all var(--transition);
+
+  svg {
+    width: 10px;
+    height: 10px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  &:hover {
+    background: var(--control-fill-hover);
+    color: var(--text-primary);
+  }
+}
+
+.btn-remove:hover {
+  color: var(--danger);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.btn-add-field {
+  align-self: flex-start;
+  font-size: 12px;
+  padding: 4px 12px;
+  gap: 4px;
+  display: flex;
+  align-items: center;
 }
 
 .side-panel-footer {
