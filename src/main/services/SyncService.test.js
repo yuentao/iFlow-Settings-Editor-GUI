@@ -1762,12 +1762,18 @@ describe('SyncService', () => {
         expect(service._settingsSaveDebounceTimer).toBeNull()
       })
 
-      it('should not trigger when syncing is in progress', () => {
+      it('should not trigger when syncing is in progress (via _currentSyncPromise)', () => {
         service.cachePassword('pass')
+        // Simulate real concurrent state: set _currentSyncPromise (which also implies isSyncing=true)
+        const pendingPromise = new Promise(() => {}) // never resolves
+        service._currentSyncPromise = pendingPromise
         service.isSyncing = true
 
         service.onSettingsSaved()
         expect(service._settingsSaveDebounceTimer).toBeNull()
+
+        // Cleanup
+        service._currentSyncPromise = null
         service.isSyncing = false
       })
 
@@ -1890,6 +1896,58 @@ describe('SyncService', () => {
         expect(finalSettings.apiProfiles.staging).toBeUndefined()
         // Tombstone persists
         expect(finalSettings._deletedProfiles.staging).toBeDefined()
+      })
+    })
+
+    // ─── T-7: change-password repush path ─────────────────
+    describe('T-7: change-password repush', () => {
+      it('push with new password should overwrite old encrypted file', async () => {
+        const oldPassword = 'old-password-123'
+        const newPassword = 'new-password-456'
+
+        // Setup: cache old password and push with it
+        service.cachePassword(oldPassword)
+        mockProvider.upload.mockResolvedValue(undefined)
+        const pushOld = await service.push(oldPassword)
+        expect(pushOld.success).toBe(true)
+
+        // Simulate password change: cache new password and push again
+        service.cachePassword(newPassword)
+        mockProvider.upload.mockClear()
+        mockProvider.upload.mockResolvedValue(undefined)
+        const pushNew = await service.push(newPassword)
+        expect(pushNew.success).toBe(true)
+        // Upload was called (the repush)
+        expect(mockProvider.upload).toHaveBeenCalled()
+      })
+
+      it('pull with new password should fail on old-encrypted remote files', async () => {
+        const newPassword = 'new-password-456'
+        const { default: CryptoManager } = await import('../crypto/CryptoManager')
+        const crypto = new CryptoManager()
+
+        // Create a remote config encrypted with a DIFFERENT password
+        const oldPassword = 'old-password-123'
+        const remoteData = {
+          apiProfiles: { default: { selectedAuthType: 'openai-compatible', apiKey: 'key', baseUrl: 'https://api.com', modelName: 'gpt-4', _lastModified: '2026-04-25T10:00:00Z' } },
+          currentApiProfile: 'default',
+          mcpServers: {},
+          apiProfilesOrder: ['default'],
+          _deletedProfiles: {},
+          _deletedServers: {},
+        }
+        const remoteBuffer = createRemoteConfigBuffer(remoteData, oldPassword, crypto)
+
+        // Pull with new password — decryption should fail
+        mockProvider.list.mockResolvedValue([
+          { name: 'config-remote-001.json', path: '/devices/config-remote-001.json', lastModified: '2026-04-26T12:00:00Z', size: 1024 },
+        ])
+        mockProvider.download.mockResolvedValue(remoteBuffer)
+
+        const result = await service.pull(newPassword)
+        expect(result.success).toBe(false)
+        // Should report password mismatch
+        expect(result.error).toMatch(/PASSWORD/)
       })
     })
   })

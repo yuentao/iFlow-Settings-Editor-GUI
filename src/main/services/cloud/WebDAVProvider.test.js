@@ -219,6 +219,70 @@ describe('WebDAVProvider', () => {
       // lastModified 应该有值（回退到当前时间）
       expect(files[0].lastModified).toBeTruthy()
     })
+
+    // T-5: 不同的命名空间前缀
+    it('should parse PROPFIND with D: (uppercase) namespace prefix', () => {
+      const xml = `<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:">
+  <D:response>
+    <D:href>/iFlow-Settings/devices/</D:href>
+  </D:response>
+  <D:response>
+    <D:href>/iFlow-Settings/devices/config-test.json</D:href>
+    <D:propstat><D:prop>
+      <D:getlastmodified>Mon, 25 Apr 2026 10:00:00 GMT</D:getlastmodified>
+      <D:getcontentlength>512</D:getcontentlength>
+    </D:prop></D:propstat>
+  </D:response>
+</D:multistatus>`
+
+      const files = provider._parsePropfindResponse(xml)
+      expect(files).toHaveLength(1)
+      expect(files[0].name).toBe('config-test.json')
+      expect(files[0].size).toBe(512)
+    })
+
+    it('should parse PROPFIND with a: (non-standard) namespace prefix', () => {
+      const xml = `<?xml version="1.0" encoding="utf-8"?>
+<a:multistatus xmlns:a="DAV:">
+  <a:response>
+    <a:href>/iFlow-Settings/devices/</a:href>
+  </a:response>
+  <a:response>
+    <a:href>/iFlow-Settings/devices/config-alternate.json</a:href>
+    <a:propstat><a:prop>
+      <a:getlastmodified>Tue, 26 Apr 2026 08:00:00 GMT</a:getlastmodified>
+      <a:getcontentlength>2048</a:getcontentlength>
+    </a:prop></a:propstat>
+  </a:response>
+</a:multistatus>`
+
+      const files = provider._parsePropfindResponse(xml)
+      expect(files).toHaveLength(1)
+      expect(files[0].name).toBe('config-alternate.json')
+      expect(files[0].size).toBe(2048)
+    })
+
+    it('should parse PROPFIND without namespace prefix', () => {
+      const xml = `<?xml version="1.0" encoding="utf-8"?>
+<multistatus xmlns="DAV:">
+  <response>
+    <href>/iFlow-Settings/devices/</href>
+  </response>
+  <response>
+    <href>/iFlow-Settings/devices/config-noprefix.json</href>
+    <propstat><prop>
+      <getlastmodified>Wed, 27 Apr 2026 12:00:00 GMT</getlastmodified>
+      <getcontentlength>4096</getcontentlength>
+    </prop></propstat>
+  </response>
+</multistatus>`
+
+      const files = provider._parsePropfindResponse(xml)
+      expect(files).toHaveLength(1)
+      expect(files[0].name).toBe('config-noprefix.json')
+      expect(files[0].size).toBe(4096)
+    })
   })
 
   describe('upload / download / delete / list / isAuthorized', () => {
@@ -666,6 +730,52 @@ describe('WebDAVProvider', () => {
       })
 
       await expect(provider.download('test.txt')).rejects.toThrow('WEBDAV_TIMEOUT')
+    })
+
+    // T-6: timeout vs error race condition — settled flag prevents double reject
+    it('should not double-reject when timeout destroy triggers both timeout and error', async () => {
+      let rejectCount = 0
+
+      requestSpy.mockImplementation(() => {
+        const r = {
+          on: vi.fn(),
+          write: vi.fn(),
+          end: vi.fn(),
+          setTimeout: vi.fn((ms, handler) => {
+            // Simulate timeout firing, then error event firing shortly after
+            process.nextTick(() => {
+              // First: setTimeout callback calls destroy
+              r.destroy(new Error('WEBDAV_TIMEOUT'))
+              // Second: error event fires again (race condition scenario)
+              process.nextTick(() => {
+                if (r._errorHandler) {
+                  r._errorHandler(new Error('ECONNRESET'))
+                }
+              })
+            })
+          }),
+          destroy: vi.fn((err) => {
+            // destroy triggers error event with WEBDAV_TIMEOUT
+            process.nextTick(() => r._errorHandler(err))
+          }),
+          _errorHandler: null,
+        }
+        r.on.mockImplementation((event, handler) => {
+          if (event === 'error') r._errorHandler = handler
+        })
+        return r
+      })
+
+      try {
+        await provider.download('test.txt')
+      } catch (e) {
+        rejectCount++
+        // Should only get WEBDAV_TIMEOUT, not ECONNRESET
+        expect(e.message).toBe('WEBDAV_TIMEOUT')
+      }
+
+      // Should have exactly one rejection, not two
+      expect(rejectCount).toBe(1)
     })
 
     function setupMockRequest(statusCode, body = '') {

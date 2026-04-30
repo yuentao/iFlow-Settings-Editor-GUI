@@ -7,9 +7,8 @@ describe('ServerPanel.vue', () => {
     name: 'Test Server',
     description: 'A test MCP server',
     command: 'npx',
-    cwd: '/project',
-    args: '--flag value',
-    env: 'DEBUG=true'
+    args: ['-y', 'package-name'],
+    env: { DEBUG: 'true' },
   };
 
   describe('Basic Rendering', () => {
@@ -97,11 +96,11 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      const inputs = wrapper.findAll('.form-input');
-      expect(inputs.length).toBeGreaterThan(0);
+      const nameInput = wrapper.findAll('.form-input').find(el => el.classes('field-key') === false)
+      expect(nameInput).toBeTruthy()
     });
 
-    it('has description input', () => {
+    it('has description textarea', () => {
       const wrapper = mount(ServerPanel, {
         props: {
           show: true,
@@ -115,11 +114,13 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      const inputs = wrapper.findAll('.form-input');
-      expect(inputs.length).toBeGreaterThanOrEqual(2);
+      // description textarea is the first .form-textarea that's not .field-value
+      const textareas = wrapper.findAll('.form-textarea')
+      const descTextarea = textareas.find(el => !el.classes('field-value'))
+      expect(descTextarea).toBeTruthy()
     });
 
-    it('has command input', () => {
+    it('renders custom fields from server data', () => {
       const wrapper = mount(ServerPanel, {
         props: {
           show: true,
@@ -133,11 +134,12 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      const inputs = wrapper.findAll('.form-input');
-      expect(inputs.length).toBeGreaterThanOrEqual(3);
+      // mockServerData has command, args, env => 3 custom fields
+      const fieldRows = wrapper.findAll('.custom-field-row')
+      expect(fieldRows.length).toBe(3)
     });
 
-    it('has working directory input', () => {
+    it('has add field button', () => {
       const wrapper = mount(ServerPanel, {
         props: {
           show: true,
@@ -151,11 +153,10 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      const inputs = wrapper.findAll('.form-input');
-      expect(inputs.length).toBeGreaterThanOrEqual(4);
-    });
+      expect(wrapper.find('.btn-add-field').exists()).toBe(true)
+    })
 
-    it('has args textarea', () => {
+    it('adds a new field when add button is clicked', async () => {
       const wrapper = mount(ServerPanel, {
         props: {
           show: true,
@@ -169,11 +170,12 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      const textareas = wrapper.findAll('.form-textarea');
-      expect(textareas.length).toBe(2); // args and env
-    });
+      const initialCount = wrapper.findAll('.custom-field-row').length
+      await wrapper.find('.btn-add-field').trigger('click')
+      expect(wrapper.findAll('.custom-field-row').length).toBe(initialCount + 1)
+    })
 
-    it('has env vars textarea', () => {
+    it('removes a field when remove button is clicked', async () => {
       const wrapper = mount(ServerPanel, {
         props: {
           show: true,
@@ -187,25 +189,18 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      const textareas = wrapper.findAll('.form-textarea');
-      expect(textareas.length).toBe(2);
-    });
+      const initialCount = wrapper.findAll('.custom-field-row').length
+      await wrapper.findAll('.btn-remove')[0].trigger('click')
+      expect(wrapper.findAll('.custom-field-row').length).toBe(initialCount - 1)
+    })
 
-    it('displays correct default values', async () => {
-      const defaultData = {
-        name: '',
-        description: '',
-        command: 'npx',
-        cwd: '.',
-        args: '',
-        env: ''
-      };
-
+    it('keeps at least one field when removing the last one', async () => {
+      const singleFieldData = { name: 'test', description: 'desc', command: 'npx' }
       const wrapper = mount(ServerPanel, {
         props: {
           show: true,
           isEditing: false,
-          data: defaultData
+          data: singleFieldData
         },
         global: {
           mocks: {
@@ -214,9 +209,10 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      const commandInput = wrapper.findAll('.form-input')[2];
-      expect(commandInput.element.value).toBe('npx');
-    });
+      expect(wrapper.findAll('.custom-field-row').length).toBe(1)
+      await wrapper.find('.btn-remove').trigger('click')
+      expect(wrapper.findAll('.custom-field-row').length).toBe(1)
+    })
   });
 
   describe('Actions', () => {
@@ -252,11 +248,11 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      await wrapper.find('.btn-secondary').trigger('click');
+      await wrapper.find('.btn-secondary:not(.btn-add-field)').trigger('click');
       expect(wrapper.emitted('close')).toBeTruthy();
     });
 
-    it('emits save with localData when save button is clicked', async () => {
+    it('emits save with correct data when save button is clicked', async () => {
       const wrapper = mount(ServerPanel, {
         props: {
           show: true,
@@ -272,7 +268,10 @@ describe('ServerPanel.vue', () => {
 
       await wrapper.find('.btn-primary').trigger('click');
       expect(wrapper.emitted('save')).toBeTruthy();
-      expect(wrapper.emitted('save')[0][0]).toEqual(mockServerData);
+      const savedData = wrapper.emitted('save')[0][0];
+      expect(savedData.name).toBe('Test Server');
+      expect(savedData.description).toBe('A test MCP server');
+      expect(savedData.command).toBe('npx');
     });
 
     it('shows delete button only when editing', () => {
@@ -473,11 +472,11 @@ describe('ServerPanel.vue', () => {
       const newData = { ...mockServerData, name: 'New Server Name' };
       await wrapper.setProps({ data: newData });
 
-      const nameInput = wrapper.findAll('.form-input')[0];
+      const nameInput = wrapper.findAll('.form-input').find(el => !el.classes('field-key'));
       expect(nameInput.element.value).toBe('New Server Name');
     });
 
-    it('saves modified data', async () => {
+    it('saves modified name', async () => {
       const wrapper = mount(ServerPanel, {
         props: {
           show: true,
@@ -491,7 +490,7 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      const nameInput = wrapper.findAll('.form-input')[0];
+      const nameInput = wrapper.findAll('.form-input').find(el => !el.classes('field-key'));
       await nameInput.setValue('Modified Name');
 
       await wrapper.find('.btn-primary').trigger('click');
@@ -499,6 +498,112 @@ describe('ServerPanel.vue', () => {
       const savedData = wrapper.emitted('save')[0][0];
       expect(savedData.name).toBe('Modified Name');
     });
+
+    it('parses JSON array values on save', async () => {
+      const dataWithArgs = {
+        name: 'test',
+        description: 'desc',
+        command: 'npx',
+        args: ['--flag', 'value'],
+      }
+      const wrapper = mount(ServerPanel, {
+        props: {
+          show: true,
+          isEditing: false,
+          data: dataWithArgs
+        },
+        global: {
+          mocks: {
+            $t: (key) => key,
+          },
+        },
+      });
+
+      await wrapper.find('.btn-primary').trigger('click');
+
+      const savedData = wrapper.emitted('save')[0][0];
+      expect(savedData.command).toBe('npx');
+      expect(savedData.args).toEqual(['--flag', 'value']);
+    });
+
+    it('keeps string values as strings on save', async () => {
+      const simpleData = {
+        name: 'test',
+        description: 'desc',
+        command: 'npx',
+      }
+      const wrapper = mount(ServerPanel, {
+        props: {
+          show: true,
+          isEditing: false,
+          data: simpleData
+        },
+        global: {
+          mocks: {
+            $t: (key) => key,
+          },
+        },
+      });
+
+      await wrapper.find('.btn-primary').trigger('click');
+
+      const savedData = wrapper.emitted('save')[0][0];
+      expect(savedData.command).toBe('npx');
+    });
+
+    it('hides internal fields starting with _ from UI', async () => {
+      const dataWithInternal = {
+        name: 'fetch',
+        description: 'Fetch service',
+        command: 'npx',
+        _lastModified: '2026-04-29T14:33:34.289Z',
+      }
+      const wrapper = mount(ServerPanel, {
+        props: {
+          show: true,
+          isEditing: false,
+          data: dataWithInternal
+        },
+        global: {
+          mocks: {
+            $t: (key) => key,
+          },
+        },
+      });
+
+      // Only "command" should appear as a custom field, NOT "_lastModified"
+      const fieldRows = wrapper.findAll('.custom-field-row')
+      expect(fieldRows.length).toBe(1)
+      const keyInput = fieldRows[0].find('.field-key')
+      expect(keyInput.element.value).toBe('command')
+    })
+
+    it('preserves internal fields on save', async () => {
+      const dataWithInternal = {
+        name: 'fetch',
+        description: 'Fetch service',
+        command: 'npx',
+        _lastModified: '2026-04-29T14:33:34.289Z',
+      }
+      const wrapper = mount(ServerPanel, {
+        props: {
+          show: true,
+          isEditing: false,
+          data: dataWithInternal
+        },
+        global: {
+          mocks: {
+            $t: (key) => key,
+          },
+        },
+      });
+
+      await wrapper.find('.btn-primary').trigger('click');
+
+      const savedData = wrapper.emitted('save')[0][0];
+      expect(savedData._lastModified).toBe('2026-04-29T14:33:34.289Z')
+      expect(savedData.command).toBe('npx')
+    })
   });
 
   describe('Escape Key', () => {
