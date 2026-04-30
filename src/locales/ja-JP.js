@@ -374,6 +374,8 @@ export default {
     setPassword: 'パスワードを設定',
     changePassword: 'パスワードを変更',
     passwordHint: '機密データの暗号化に使用します。安全に保管してください（復元不可）',
+    rememberPassword: '同期パスワードを記憶',
+    rememberPasswordDesc: '有効にするとパスワードがシステムにより安全に保存され、アプリ再起動後の再入力が不要になります',
     passwordMinLength: 'パスワードは8文字以上必要です',
     passwordMismatch: 'パスワードが一致しません',
     oldPassword: '旧パスワード',

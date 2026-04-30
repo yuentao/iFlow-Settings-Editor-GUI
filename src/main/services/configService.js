@@ -45,10 +45,14 @@ function readSettings() {
 function writeSettings(data) {
   const SETTINGS_FILE = getSettingsFile()
   try {
-    // 先创建备份
+    // 先创建备份（N-6：备份失败仅 warn，不阻塞主写入）
     if (fs.existsSync(SETTINGS_FILE)) {
       const backupPath = SETTINGS_FILE + '.bak'
-      fs.copyFileSync(SETTINGS_FILE, backupPath)
+      try {
+        fs.copyFileSync(SETTINGS_FILE, backupPath)
+      } catch (backupError) {
+        console.warn('Failed to create settings backup:', backupError.message)
+      }
     }
 
     // 确保目录存在

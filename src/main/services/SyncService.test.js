@@ -792,6 +792,156 @@ describe('SyncService', () => {
       expect(local.mcpServers['my-server']).toBeDefined()
       expect(local.mcpServers['my-server'].command).toBe('npx')
     })
+
+    // ─── N-3: 字段级合并测试 ─────────────────────────────────
+
+    describe('N-3: field-level merge for mcpServers', () => {
+      it('should preserve local-only env keys when remote server is newer', () => {
+        const local = createBaseSettings()
+        local.mcpServers['my-server']._lastModified = '2026-04-25T08:00:00Z'
+        local.mcpServers['my-server'].env = {
+          API_KEY: 'local-key',
+          LOCAL_ONLY_VAR: 'local-value',
+        }
+
+        const remoteConfigs = [{
+          deviceId: 'remote-1',
+          deviceName: 'RemotePC',
+          timestamp: '2026-04-25T10:00:00Z',
+          data: {
+            apiProfiles: {},
+            mcpServers: {
+              'my-server': {
+                command: 'npx',
+                args: ['-y', 'some-package'],
+                _lastModified: '2026-04-25T09:00:00Z',
+                env: {
+                  API_KEY: 'remote-key',
+                  REMOTE_ONLY_VAR: 'remote-value',
+                },
+              },
+            },
+            apiProfilesOrder: [],
+            currentApiProfile: 'default',
+          },
+        }]
+
+        service._mergeConfigs(local, remoteConfigs)
+        const server = local.mcpServers['my-server']
+        // 冲突键：远端更新，取远端值
+        expect(server.env.API_KEY).toBe('remote-key')
+        // 仅本地有的键：保留
+        expect(server.env.LOCAL_ONLY_VAR).toBe('local-value')
+        // 仅远端有的键：保留
+        expect(server.env.REMOTE_ONLY_VAR).toBe('remote-value')
+      })
+
+      it('should preserve local-only env keys when local server is newer', () => {
+        const local = createBaseSettings()
+        local.mcpServers['my-server']._lastModified = '2026-04-25T10:00:00Z'
+        local.mcpServers['my-server'].env = {
+          API_KEY: 'local-newer-key',
+          LOCAL_VAR: 'local-value',
+        }
+
+        const remoteConfigs = [{
+          deviceId: 'remote-1',
+          deviceName: 'RemotePC',
+          timestamp: '2026-04-25T10:00:00Z',
+          data: {
+            apiProfiles: {},
+            mcpServers: {
+              'my-server': {
+                command: 'npx',
+                args: ['-y', 'some-package'],
+                _lastModified: '2026-04-25T08:00:00Z',
+                env: {
+                  API_KEY: 'remote-older-key',
+                  REMOTE_VAR: 'remote-value',
+                },
+              },
+            },
+            apiProfilesOrder: [],
+            currentApiProfile: 'default',
+          },
+        }]
+
+        service._mergeConfigs(local, remoteConfigs)
+        const server = local.mcpServers['my-server']
+        // 本地更新，冲突键保留本地
+        expect(server.env.API_KEY).toBe('local-newer-key')
+        // 仅远端有的键：仍应保留
+        expect(server.env.REMOTE_VAR).toBe('remote-value')
+        // 仅本地有的键：保留
+        expect(server.env.LOCAL_VAR).toBe('local-value')
+      })
+
+      it('should preserve remote-only non-env fields when remote is newer', () => {
+        const local = createBaseSettings()
+        local.mcpServers['my-server']._lastModified = '2026-04-25T08:00:00Z'
+
+        const remoteConfigs = [{
+          deviceId: 'remote-1',
+          deviceName: 'RemotePC',
+          timestamp: '2026-04-25T10:00:00Z',
+          data: {
+            apiProfiles: {},
+            mcpServers: {
+              'my-server': {
+                command: 'npx',
+                args: ['-y', 'some-package'],
+                _lastModified: '2026-04-25T09:00:00Z',
+                description: 'A description', // 远端独有字段
+                env: { API_KEY: 'env-secret' },
+              },
+            },
+            apiProfilesOrder: [],
+            currentApiProfile: 'default',
+          },
+        }]
+
+        service._mergeConfigs(local, remoteConfigs)
+        expect(local.mcpServers['my-server'].description).toBe('A description')
+        // 原有字段保留
+        expect(local.mcpServers['my-server'].env.API_KEY).toBe('env-secret')
+      })
+    })
+
+    describe('N-3: field-level merge for apiProfiles', () => {
+      it('should preserve local-only fields when remote profile is newer', () => {
+        const local = createBaseSettings()
+        local.apiProfiles.default._lastModified = '2026-04-25T08:00:00Z'
+        local.apiProfiles.default.cna = 'local-cna'
+
+        const remoteConfigs = [{
+          deviceId: 'remote-1',
+          deviceName: 'RemotePC',
+          timestamp: '2026-04-25T10:00:00Z',
+          data: {
+            apiProfiles: {
+              default: {
+                apiKey: 'sk-remote',
+                baseUrl: 'https://remote.com',
+                _lastModified: '2026-04-25T09:00:00Z',
+                searchApiKey: 'remote-search-key', // 远端独有字段
+              },
+            },
+            mcpServers: {},
+            apiProfilesOrder: [],
+            currentApiProfile: 'default',
+          },
+        }]
+
+        service._mergeConfigs(local, remoteConfigs)
+        const profile = local.apiProfiles.default
+        // 冲突字段：远端更新，取远端
+        expect(profile.apiKey).toBe('sk-remote')
+        // 仅本地有的字段：保留
+        expect(profile.cna).toBe('local-cna')
+        // 仅远端有的字段：保留
+        expect(profile.searchApiKey).toBe('remote-search-key')
+      })
+    })
   })
 
   describe('push', () => {

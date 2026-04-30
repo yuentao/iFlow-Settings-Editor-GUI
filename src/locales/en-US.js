@@ -381,6 +381,8 @@ export default {
     setPassword: 'Set Password',
     changePassword: 'Change Password',
     passwordHint: 'Used to encrypt sensitive data. Keep it safe (cannot be recovered)',
+    rememberPassword: 'Remember Sync Password',
+    rememberPasswordDesc: 'When enabled, the password is securely stored by the system so you don\'t need to re-enter it after restarting',
     passwordMinLength: 'Password must be at least 8 characters',
     passwordMismatch: 'Passwords do not match',
     oldPassword: 'Old Password',

@@ -344,6 +344,16 @@
                 {{ cloudStore.status.hasPassword ? $t('cloudSync.changePassword') : $t('cloudSync.setPassword') }}
               </button>
             </div>
+            <div class="setting-item setting-item-main" v-if="cloudStore.status.hasPassword">
+              <div class="setting-info">
+                <label class="setting-label">{{ $t('cloudSync.rememberPassword') }}</label>
+                <p class="setting-desc">{{ $t('cloudSync.rememberPasswordDesc') }}</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" :checked="cloudStore.rememberPassword" @change="onToggleRememberPassword" />
+                <span class="slider"></span>
+              </label>
+            </div>
 
             <!-- 设备管理（内嵌在同一卡片） -->
             <template v-if="cloudStore.isConfigured">
@@ -689,6 +699,7 @@ onMounted(async () => {
 
   // 初始化云同步状态（开关状态由 localStorage 持久化，不从 settings.json 加载）
   await cloudStore.loadStatus()
+  await cloudStore.getRememberPassword()
   deviceName.value = cloudStore.status.deviceName || ''
   selectedProvider.value = cloudStore.status.provider || 'webdav'
   if (cloudStore.syncEnabled && cloudStore.isConfigured) {
@@ -1132,6 +1143,11 @@ function closePasswordDialog() {
   passwordDialog.value.onConfirm = null
   passwordDialog.value.onCancel = null
   if (cancel) cancel()
+}
+
+async function onToggleRememberPassword(event) {
+  const enabled = event.target.checked
+  await cloudStore.setRememberPasswordValue(enabled)
 }
 
 function handleSyncNow() {

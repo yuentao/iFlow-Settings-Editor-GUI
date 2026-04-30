@@ -659,6 +659,78 @@ class SyncService {
   }
 
   /**
+   * N-3 修复：对同一 item 做字段级深度合并，避免整条替换导致另一端独有的字段/键丢失。
+   *
+   * 合并规则：
+   * - `_lastModified` 取较新一方
+   * - 对于 `env` 对象：逐键合并，冲突键取 newerItem 的值，仅一方存在的键保留
+   * - 对于其他字段：冲突时取 newerItem 的值，仅一方存在的字段保留
+   *
+   * @param {object} localItem - 本地条目
+   * @param {object} remoteItem - 远端条目
+   * @param {boolean} remoteIsNewer - 远端是否更新
+   * @returns {object} 合并后的条目
+   */
+  _mergeItemFields(localItem, remoteItem, remoteIsNewer) {
+    const newer = remoteIsNewer ? remoteItem : localItem
+    const older = remoteIsNewer ? localItem : remoteItem
+    const result = {}
+
+    // 收集所有字段名（不含 _lastModified）
+    const allKeys = new Set([
+      ...Object.keys(localItem),
+      ...Object.keys(remoteItem),
+    ])
+
+    for (const key of allKeys) {
+      if (key === '_lastModified') {
+        // 取较新的时间戳
+        result._lastModified = newer._lastModified || older._lastModified
+        continue
+      }
+
+      const localVal = localItem[key]
+      const remoteVal = remoteItem[key]
+
+      // 仅一方有该字段 → 保留
+      if (localVal === undefined) {
+        result[key] = remoteVal
+        continue
+      }
+      if (remoteVal === undefined) {
+        result[key] = localVal
+        continue
+      }
+
+      // 两方都有该字段
+      if (
+        key === 'env' &&
+        localVal && remoteVal &&
+        typeof localVal === 'object' && !Array.isArray(localVal) &&
+        typeof remoteVal === 'object' && !Array.isArray(remoteVal)
+      ) {
+        // env 对象：逐键合并
+        const mergedEnv = { ...localVal }
+        for (const [ek, ev] of Object.entries(remoteVal)) {
+          if (ek in mergedEnv) {
+            // 冲突键取更新一方的值
+            mergedEnv[ek] = remoteIsNewer ? ev : mergedEnv[ek]
+          } else {
+            // 仅远端有的键，保留
+            mergedEnv[ek] = ev
+          }
+        }
+        result[key] = mergedEnv
+      } else {
+        // 其他字段：冲突时取更新一方的值
+        result[key] = newer[key]
+      }
+    }
+
+    return result
+  }
+
+  /**
    * 增量合并策略：按 profile/server 名称合并
    * 直接修改 localSettings
    * @param {object} localSettings
@@ -708,6 +780,8 @@ class SyncService {
     }
 
     // 合并 apiProfiles：按 profile 名称，比较 per-item _lastModified
+    // N-3 修复：无论哪端更新都做字段级深度合并，保留另一端独有的字段；
+    // 冲突字段由较新一方胜出。
     const mergedProfiles = { ...local.apiProfiles }
     for (const remote of remoteConfigs) {
       for (const [name, profile] of Object.entries(remote.data.apiProfiles || {})) {
@@ -730,7 +804,11 @@ class SyncService {
             ? new Date(mergedProfiles[name]._lastModified).getTime()
             : lastSyncAt
           if (remoteItemTime > localItemTime && (hasLocalTimestamp || lastSyncAt > 0)) {
-            mergedProfiles[name] = profile
+            // 远端更新 → 字段级合并，远端胜出冲突
+            mergedProfiles[name] = this._mergeItemFields(mergedProfiles[name], profile, true)
+          } else if (localItemTime > remoteItemTime && (hasLocalTimestamp || lastSyncAt > 0)) {
+            // N-3 修复：本地更新 → 字段级合并，本地胜出冲突，保留远端独有字段
+            mergedProfiles[name] = this._mergeItemFields(mergedProfiles[name], profile, false)
           }
         }
       }
@@ -751,6 +829,8 @@ class SyncService {
     }
 
     // 合并 mcpServers：按服务器名称，比较 per-item _lastModified
+    // N-3 修复：无论哪端更新都做字段级深度合并，保留另一端独有的字段/键；
+    // 冲突字段由较新一方胜出。
     const mergedServers = { ...local.mcpServers }
     for (const remote of remoteConfigs) {
       for (const [name, server] of Object.entries(remote.data.mcpServers || {})) {
@@ -769,7 +849,11 @@ class SyncService {
             ? new Date(mergedServers[name]._lastModified).getTime()
             : lastSyncAt
           if (remoteItemTime > localItemTime && (hasLocalTimestamp || lastSyncAt > 0)) {
-            mergedServers[name] = server
+            // 远端更新 → 字段级合并，远端胜出冲突
+            mergedServers[name] = this._mergeItemFields(mergedServers[name], server, true)
+          } else if (localItemTime > remoteItemTime && (hasLocalTimestamp || lastSyncAt > 0)) {
+            // N-3 修复：本地更新 → 字段级合并，本地胜出冲突，保留远端独有字段
+            mergedServers[name] = this._mergeItemFields(mergedServers[name], server, false)
           }
         }
       }

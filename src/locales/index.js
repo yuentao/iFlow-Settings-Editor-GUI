@@ -388,6 +388,8 @@ export default {
     setPassword: '设置密码',
     changePassword: '修改密码',
     passwordHint: '用于加密敏感配置，请妥善保管（无法找回）',
+    rememberPassword: '记住同步密码',
+    rememberPasswordDesc: '启用后密码将由系统安全存储，重启应用后无需重新输入',
     passwordMinLength: '密码至少 8 位',
     passwordMismatch: '两次输入的密码不一致',
     oldPassword: '旧密码',

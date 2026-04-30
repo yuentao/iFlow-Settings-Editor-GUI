@@ -42,6 +42,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   const isLoadingDevices = ref(false)
   const isTestingConnection = ref(false)
   const isSyncing = ref(false)
+  const rememberPassword = ref(false)
   const connectionTestResult = ref<{ success: boolean; message?: string } | null>(null)
 
   // 密码缓存（仅内存中，不持久化）
@@ -205,8 +206,6 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     const pwd = password || cachedPassword.value
     if (!pwd) return { success: false, error: 'passwordRequired' }
 
-    isSyncing.value = true
-    status.value.isSyncing = true
     try {
       const result = await window.electronAPI.cloudSyncSyncNow(pwd)
       if (result.success) {
@@ -220,18 +219,14 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     } catch (error) {
       status.value.lastSyncError = (error as Error).message
       return { success: false, error: (error as Error).message }
-    } finally {
-      isSyncing.value = false
-      status.value.isSyncing = false
     }
+    // N-7：不在此处手动置 isSyncing = false，完全依赖 IPC 广播
   }
 
   async function pull(password?: string) {
     const pwd = password || cachedPassword.value
     if (!pwd) return { success: false, error: 'passwordRequired' }
 
-    isSyncing.value = true
-    status.value.isSyncing = true
     try {
       const result = await window.electronAPI.cloudSyncPull(pwd)
       if (result.success) {
@@ -244,18 +239,14 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     } catch (error) {
       status.value.lastSyncError = (error as Error).message
       return { success: false, error: (error as Error).message }
-    } finally {
-      isSyncing.value = false
-      status.value.isSyncing = false
     }
+    // N-7：不在此处手动置 isSyncing = false，完全依赖 IPC 广播
   }
 
   async function push(password?: string) {
     const pwd = password || cachedPassword.value
     if (!pwd) return { success: false, error: 'passwordRequired' }
 
-    isSyncing.value = true
-    status.value.isSyncing = true
     try {
       const result = await window.electronAPI.cloudSyncPush(pwd)
       if (result.success) {
@@ -268,10 +259,8 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     } catch (error) {
       status.value.lastSyncError = (error as Error).message
       return { success: false, error: (error as Error).message }
-    } finally {
-      isSyncing.value = false
-      status.value.isSyncing = false
     }
+    // N-7：不在此处手动置 isSyncing = false，完全依赖 IPC 广播
   }
 
   async function clearCloud() {
@@ -340,6 +329,30 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     cachedPassword.value = null
   }
 
+  async function getRememberPassword() {
+    try {
+      const result = await window.electronAPI.cloudSyncGetRememberPassword()
+      if (result.success) {
+        rememberPassword.value = result.remember
+      }
+    } catch (error) {
+      console.error('[CloudSync] Failed to get remember password:', error)
+    }
+  }
+
+  async function setRememberPasswordValue(enabled: boolean) {
+    try {
+      const result = await window.electronAPI.cloudSyncSetRememberPassword(enabled)
+      if (result.success) {
+        rememberPassword.value = result.remember
+      }
+      return result
+    } catch (error) {
+      console.error('[CloudSync] Failed to set remember password:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  }
+
   return {
     status,
     devices,
@@ -371,5 +384,8 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     setDeviceName,
     removeDevice,
     clearCachedPassword,
+    rememberPassword,
+    getRememberPassword,
+    setRememberPasswordValue,
   }
 })

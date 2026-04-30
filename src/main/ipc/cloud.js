@@ -162,7 +162,7 @@ function registerCloudSyncIpcHandlers() {
     const salt = Buffer.from(cs.passwordSalt, 'base64')
     const key = cryptoMgr.deriveKey(password, salt)
     const hash = cryptoMgr.hashKey(key)
-    const valid = hash === cs.passwordHash
+    const valid = cryptoMgr.verifyHash(hash, cs.passwordHash)
 
     // 验证成功仅缓存密码；不更新 lastSyncAt（仅验证不等于完成同步，
     // 错误地推进时间线会让后续 pull 的兜底比较把远端实际更新当成"旧"，造成数据丢失）
@@ -187,7 +187,7 @@ function registerCloudSyncIpcHandlers() {
     const salt = Buffer.from(cs.passwordSalt, 'base64')
     const key = cryptoMgr.deriveKey(oldPassword, salt)
     const hash = cryptoMgr.hashKey(key)
-    if (hash !== cs.passwordHash) {
+    if (!cryptoMgr.verifyHash(hash, cs.passwordHash)) {
       return { success: false, error: 'SYNC_PASSWORD_INCORRECT' }
     }
 
