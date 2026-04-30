@@ -1,4 +1,4 @@
-# iFlow Settings Editor
+# iFlow Settings Editor v1.14.0
 
 一个用于编辑 iFlow CLI 配置文件的桌面应用程序。
 
@@ -19,7 +19,7 @@
 - 📦 **系统托盘** - 最小化到托盘，快速切换 API 配置
 - 🚀 **开机自启动** - 支持开机自动启动，可选后台静默启动
 - 📊 **仪表盘视图** - 直观展示当前配置状态和快捷操作
-- ☁️ **云同步功能** (实验性) - 支持 WebDAV 协议的云端配置同步，字段级加密保障数据安全，多设备间无缝同步设置
+- ☁️ **云同步功能** - 支持 WebDAV 协议的云端配置同步，端到端加密保障数据安全，多设备间无缝同步设置
 - 🔧 **TypeScript 类型安全** - 全面 TypeScript 迁移，提供完整的类型推导和编译时检查
 - 🧱 **模块化架构** - 主进程模块化重构，代码结构更清晰，维护性更高
 - 🧪 **完善测试覆盖** - 组件和 Store 单元测试全覆盖，确保功能稳定可靠
@@ -30,18 +30,23 @@
 
 | 技术 | 版本 |
 |------|------|
-| Electron | 28.x |
-| Vue | 3.4.x |
-| Vite | 8.x |
-| vue-i18n | 9.14.x |
-| Pinia | 3.0.x |
-| TypeScript | 6.0.x |
-| Less | 4.6.x |
-| Vitest | 4.1.x |
-| electron-builder | 24.13.x |
+| Electron | 28.0.0 |
+| Vue | 3.4.0 |
+| Vite | 8.0.8 |
+| vue-i18n | 9.14.5 |
+| Pinia | 3.0.4 |
+| TypeScript | 6.0.3 |
+| Less | 4.6.4 |
+| Vitest | 4.1.4 |
+| electron-builder | 24.13.3 |
 | @icon-park/vue-next | 1.4.2 |
-| @vueuse/core | 14.2.x |
+| @vueuse/core | 14.2.1 |
 | @iarna/toml | 2.2.5 |
+| fast-xml-parser | 5.7.2 |
+| marked | 18.0.2 |
+| adm-zip | 0.5.17 |
+| electron-log | 5.4.3 |
+| electron-updater | 6.8.3 |
 
 ## 支持的系统
 

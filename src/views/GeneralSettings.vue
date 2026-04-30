@@ -205,7 +205,6 @@
       <div class="section-header">
         <div class="section-header-left">
           <h2 class="section-title">{{ $t('general.sectionCloudSync') }}</h2>
-          <span class="experimental-badge">{{ $t('general.experimental') || '(实验性)' }}</span>
         </div>
         <div class="section-header-right">
           <label class="switch" @click.stop>
