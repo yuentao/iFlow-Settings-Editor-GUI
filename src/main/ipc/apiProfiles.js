@@ -3,7 +3,7 @@
  * 处理 API 配置相关的 IPC 通信
  */
 
-const { ipcMain } = require('electron')
+const { ipcMain, net } = require('electron')
 const { readSettings, writeSettings, API_FIELDS, extractApiConfig, applyApiConfig, stampModifiedItems, markDeletedProfile } = require('../services/configService')
 const { updateTrayMenu } = require('../tray')
 const { handleIpcError, wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
@@ -193,6 +193,66 @@ function registerApiProfilesIpcHandlers() {
     return successResult()
   }, 'rename-api-profile'))
 
+  // 获取模型列表（OpenAI 兼容 /models 接口）
+  ipcMain.handle('fetch-models', wrapIpcHandler(async (event, baseUrl, apiKey) => {
+    if (!baseUrl || !baseUrl.trim()) {
+      return { success: false, error: 'api.fetchModels.baseUrlRequired' }
+    }
+    if (!apiKey || !apiKey.trim()) {
+      return { success: false, error: 'api.fetchModels.apiKeyRequired' }
+    }
+
+    let url = baseUrl.trim().replace(/\/+$/, '') + '/models'
+
+    return new Promise((resolve) => {
+      const request = net.request({
+        url,
+        method: 'GET',
+      })
+
+      request.setHeader('Authorization', `Bearer ${apiKey.trim()}`)
+
+      let body = ''
+      request.on('response', (response) => {
+        const statusCode = response.statusCode
+        if (statusCode !== 200) {
+          request.destroy()
+          resolve({ success: false, error: 'api.fetchModels.httpError', code: statusCode, httpStatus: statusCode })
+          return
+        }
+
+        response.on('data', (chunk) => {
+          body += chunk.toString()
+        })
+
+        response.on('end', () => {
+          try {
+            const json = JSON.parse(body)
+            const models = (json.data || [])
+              .filter((m) => m && m.id)
+              .map((m) => ({ id: m.id, owned_by: m.owned_by || '' }))
+              .sort((a, b) => a.id.localeCompare(b.id))
+            resolve({ success: true, models })
+          } catch (e) {
+            resolve({ success: false, error: 'api.fetchModels.invalidResponse' })
+          }
+        })
+      })
+
+      request.on('error', (error) => {
+        resolve({ success: false, error: 'api.fetchModels.networkError' })
+      })
+
+      // 10 秒超时
+      setTimeout(() => {
+        request.destroy()
+        resolve({ success: false, error: 'api.fetchModels.timeout' })
+      }, 10000)
+
+      request.end()
+    })
+  }, 'fetch-models'))
+
   // 复制 API 配置
   ipcMain.handle('duplicate-api-profile', wrapIpcHandler(async (event, sourceName, newName) => {
     const settings = readSettings()
@@ -223,6 +283,41 @@ function registerApiProfilesIpcHandlers() {
     updateTrayMenu()
     return successResult()
   }, 'duplicate-api-profile'))
+
+  // 检测 API 配置连通性（测量延迟）
+  ipcMain.handle('ping-api-profile', wrapIpcHandler(async (event, baseUrl) => {
+    if (!baseUrl || !baseUrl.trim()) {
+      return { success: false, error: 'api.fetchModels.baseUrlRequired', latency: -1 }
+    }
+
+    const url = baseUrl.trim().replace(/\/+$/, '')
+
+    return new Promise((resolve) => {
+      const startTime = Date.now()
+      const request = net.request({
+        url,
+        method: 'HEAD',
+      })
+
+      request.on('response', (response) => {
+        const latency = Date.now() - startTime
+        request.destroy()
+        resolve({ success: true, latency, statusCode: response.statusCode })
+      })
+
+      request.on('error', () => {
+        resolve({ success: false, latency: -1 })
+      })
+
+      // 8 秒超时
+      setTimeout(() => {
+        request.destroy()
+        resolve({ success: false, latency: -1 })
+      }, 8000)
+
+      request.end()
+    })
+  }, 'ping-api-profile'))
 }
 
 module.exports = {

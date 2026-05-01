@@ -32,7 +32,19 @@
             <span class="profile-icon-text">{{ getProfileInitial(profile.name) }}</span>
           </div>
           <div class="profile-info">
-            <div class="profile-name">{{ profile.name }}</div>
+            <div class="profile-name-row">
+              <div class="profile-name">{{ profile.name }}</div>
+              <div
+                class="connectivity-indicator"
+                :class="'connectivity-' + getConnectivityLevel(profile.name)"
+                :title="getConnectivityTooltip(profile.name)"
+              >
+                <span class="connectivity-dot" :class="{ animated: getConnectivityLevel(profile.name) === 'checking' }"></span>
+                <span class="connectivity-label" v-if="getConnectivityLevel(profile.name) !== 'checking'">
+                  {{ getConnectivityLabel(profile.name) }}
+                </span>
+              </div>
+            </div>
             <div class="profile-url">{{ getProfileUrl(profile.name) }}</div>
           </div>
           <div class="profile-status" v-if="currentProfile === profile.name">
@@ -70,9 +82,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Add, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
+
+const { t } = useI18n()
 
 const props = defineProps({
   profiles: {
@@ -92,6 +107,96 @@ const props = defineProps({
 const emit = defineEmits(['create-profile', 'select-profile', 'edit-profile', 'duplicate-profile', 'delete-profile', 'reorder-profiles'])
 const dragIndex = ref(-1)
 const dragOverIndex = ref(-1)
+
+// --- 连通性监控 ---
+const connectivityMap = reactive({})  // { profileName: { level: 'excellent'|'good'|'slow'|'unreachable'|'checking', latency: number } }
+let connectivityTimer = null
+const POLL_INTERVAL = 30000  // 30 秒轮询
+const PING_TIMEOUT_THRESHOLD = 2000  // >2s 视为不可达
+
+function getConnectivityLevel(name) {
+  return connectivityMap[name]?.level || 'checking'
+}
+
+function getConnectivityTooltip(name) {
+  const info = connectivityMap[name]
+  if (!info || info.level === 'checking') return t('api.connectivity.checking')
+  const latencyStr = info.latency >= 0 ? t('api.connectivity.latency', { ms: info.latency }) : ''
+  const levelStr = t('api.connectivity.' + info.level)
+  return latencyStr ? `${levelStr} (${latencyStr})` : levelStr
+}
+
+function getConnectivityLabel(name) {
+  const info = connectivityMap[name]
+  if (!info || info.level === 'checking') return ''
+  if (info.level === 'unreachable') return t('api.connectivity.unreachable')
+  return t('api.connectivity.latency', { ms: info.latency })
+}
+
+function computeLevel(latency) {
+  if (latency < 0) return 'unreachable'
+  if (latency < 200) return 'excellent'
+  if (latency < 500) return 'good'
+  if (latency <= PING_TIMEOUT_THRESHOLD) return 'slow'
+  return 'unreachable'
+}
+
+async function pingProfile(name) {
+  const url = getProfileUrl(name)
+  if (!url) {
+    connectivityMap[name] = { level: 'unreachable', latency: -1 }
+    return
+  }
+  try {
+    connectivityMap[name] = { ...connectivityMap[name], level: 'checking' }
+    const result = await window.electronAPI.pingApiProfile(url)
+    if (result.success) {
+      connectivityMap[name] = { level: computeLevel(result.latency), latency: result.latency }
+    } else {
+      connectivityMap[name] = { level: 'unreachable', latency: -1 }
+    }
+  } catch {
+    connectivityMap[name] = { level: 'unreachable', latency: -1 }
+  }
+}
+
+async function pingAll() {
+  for (const profile of props.profiles) {
+    await pingProfile(profile.name)
+  }
+}
+
+function startPolling() {
+  stopPolling()
+  pingAll()
+  connectivityTimer = setInterval(pingAll, POLL_INTERVAL)
+}
+
+function stopPolling() {
+  if (connectivityTimer) {
+    clearInterval(connectivityTimer)
+    connectivityTimer = null
+  }
+}
+
+// profiles 变化时重新初始化连通性状态
+watch(() => props.profiles, () => {
+  // 清理已不存在的 profile 的连通性数据
+  const names = new Set(props.profiles.map(p => p.name))
+  for (const key of Object.keys(connectivityMap)) {
+    if (!names.has(key)) delete connectivityMap[key]
+  }
+  // 新增的 profile 加入检测
+  pingAll()
+}, { deep: true })
+
+onMounted(() => {
+  startPolling()
+})
+
+onUnmounted(() => {
+  stopPolling()
+})
 
 const onDragStart = (index) => {
   dragIndex.value = index
@@ -254,6 +359,12 @@ const getProfileIconStyle = name => {
   margin-left: 12px;
 }
 
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .profile-name {
   font-size: 13px;
   font-weight: 500;
@@ -271,6 +382,81 @@ const getProfileIconStyle = name => {
 
 .profile-status {
   margin-left: 10px;
+}
+
+// Connectivity indicator
+.connectivity-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+
+.connectivity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.3s ease;
+}
+
+.connectivity-dot.animated {
+  animation: breathing 1.5s ease-in-out infinite;
+}
+
+@keyframes breathing {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.connectivity-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+// 4 color levels
+.connectivity-excellent .connectivity-dot {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+
+.connectivity-good .connectivity-dot {
+  background: #3b82f6;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+}
+
+.connectivity-slow .connectivity-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+}
+
+.connectivity-unreachable .connectivity-dot {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+.connectivity-checking .connectivity-dot {
+  background: var(--text-tertiary);
+  animation: connectivity-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes connectivity-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 
 .status-badge {

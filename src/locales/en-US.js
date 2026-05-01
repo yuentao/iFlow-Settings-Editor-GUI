@@ -2,7 +2,8 @@ export default {
   app: {
     title: 'iFlow Settings Editor',
     name: 'iFlow Settings Editor',
-    company: 'Pandora Studio Co., Ltd.'
+    company: 'Pandora Studio Co., Ltd.',
+    retry: 'Retry'
   },
   window: {
     minimize: 'Minimize',
@@ -166,11 +167,31 @@ export default {
       api: 'API Key',
       openaiCompatible: 'OpenAI Compatible'
     },
+    fetchModelsBtn: 'Fetch model list',
+    noModelsFound: 'No matching models found',
+    noModelsAvailable: 'No models available from this endpoint',
+    fetchModelsFailed: 'Failed to fetch model list',
+    fetchModels: {
+      baseUrlRequired: 'Base URL is required',
+      apiKeyRequired: 'API Key is required',
+      httpError: 'Request failed (HTTP {status})',
+      invalidResponse: 'Server returned an invalid response',
+      networkError: 'Network error, please check your connection',
+      timeout: 'Request timed out, please try again later'
+    },
     validation: {
       nameNoSpecial: 'Name can only contain letters, numbers, Chinese, hyphens, and underscores, and cannot start with a digit',
       nameNoDigitStart: 'Name cannot start with a digit',
       urlFormat: 'Please enter a valid URL format, e.g. https://api.example.com',
       modelNoSpecial: 'Model name can only contain letters, digits, dots, hyphens, underscores, colons, and slashes'
+    },
+    connectivity: {
+      excellent: 'Excellent connectivity',
+      good: 'Good connectivity',
+      slow: 'High latency',
+      unreachable: 'Unreachable',
+      checking: 'Checking...',
+      latency: '{ms}ms'
     }
   },
   mcp: {
@@ -179,6 +200,7 @@ export default {
     serverList: 'Server List',
     addServer: 'Add Server',
     editServer: 'Edit Server',
+    edit: 'Edit',
     serverName: 'Server Name',
     serverNamePlaceholder: 'my-mcp-server',
     descriptionLabel: 'Description',
@@ -277,6 +299,8 @@ export default {
     noCommands: 'No Commands',
     addFirstCommand: 'Click the button above to add your first command',
     noCommandsInCategory: 'No commands match this category',
+    noDescription: 'No description',
+    noName: 'Command Name',
     edit: 'Edit',
     export: 'Export',
     delete: 'Delete',
@@ -459,6 +483,7 @@ export default {
     errorWebdavAuth: 'WebDAV authentication failed. Check your username and password.',
     errorPasswordRequired: 'Please set a sync password first',
     errorProviderRequired: 'Please configure a cloud provider first',
+    setAutoSyncFailed: 'Failed to set auto sync',
   },
   main: {
     tray: {

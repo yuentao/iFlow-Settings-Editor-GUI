@@ -2,7 +2,8 @@ export default {
   app: {
     title: 'iFlow 設定エディタ',
     name: 'iFlow 設定エディタ',
-    company: 'Pandora Studio Co., Ltd.'
+    company: 'Pandora Studio Co., Ltd.',
+    retry: '再試行'
   },
   window: {
     minimize: '最小化',
@@ -48,7 +49,15 @@ export default {
     hidden: '非表示',
     followSystem: 'システムに従う',
     manual: '手動',
-    manageCommands: 'コマンド管理'
+    manageCommands: 'コマンド管理',
+    edit: '編集',
+    notConfigured: '未設定',
+    quickActions: 'クイック操作',
+    switchConfig: '設定切替',
+    addServer: 'サーバーを追加',
+    importSkill: 'スキルを取込',
+    recentServers: '最近のサーバー',
+    viewAll: 'すべて表示'
   },
   general: {
     title: '一般設定',
@@ -159,11 +168,31 @@ export default {
       api: 'API Key',
       openaiCompatible: 'OpenAI 互換'
     },
+    fetchModelsBtn: 'モデル一覧を取得',
+    noModelsFound: '一致するモデルが見つかりません',
+    noModelsAvailable: 'このエンドポイントに利用可能なモデルがありません',
+    fetchModelsFailed: 'モデル一覧の取得に失敗しました',
+    fetchModels: {
+      baseUrlRequired: 'Base URL を入力してください',
+      apiKeyRequired: 'API Key を入力してください',
+      httpError: 'リクエスト失敗 (HTTP {status})',
+      invalidResponse: 'サーバーから無効なレスポンスが返されました',
+      networkError: 'ネットワークエラー、接続を確認してください',
+      timeout: 'リクエストがタイムアウトしました、後でもう一度お試しください'
+    },
     validation: {
       nameNoSpecial: '名前には英字、数字、漢字、ハイフン、アンダースコアのみ使用でき、数字で始めることはできません',
       nameNoDigitStart: '名前を数字で始めることはできません',
       urlFormat: '有効な URL 形式を入力してください（例: https://api.example.com）',
       modelNoSpecial: 'モデル名には英字、数字、ピリオド、ハイフン、アンダースコア、コロン、スラッシュのみ使用できます'
+    },
+    connectivity: {
+      excellent: '接続性極めて良好',
+      good: '接続性良好',
+      slow: '高遅延',
+      unreachable: '接続不可',
+      checking: '確認中...',
+      latency: '{ms}ms'
     }
   },
   mcp: {
@@ -172,6 +201,7 @@ export default {
     serverList: 'サーバー一覧',
     addServer: 'サーバーを追加',
     editServer: 'サーバーを編集',
+    edit: '編集',
     serverName: 'サーバー名',
     serverNamePlaceholder: 'my-mcp-server',
     descriptionLabel: '説明',
@@ -270,6 +300,8 @@ export default {
     noCommands: 'コマンドがありません',
     addFirstCommand: '上のボタンをクリックして最初のコマンドを追加',
     noCommandsInCategory: 'このカテゴリに一致するコマンドがありません',
+    noDescription: '説明なし',
+    noName: 'コマンド名',
     edit: '編集',
     export: 'エクスポート',
     delete: '削除',
@@ -452,6 +484,7 @@ export default {
     errorWebdavAuth: 'WebDAV認証に失敗しました。ユーザー名とパスワードを確認してください',
     errorPasswordRequired: '同期パスワードを先に設定してください',
     errorProviderRequired: 'クラウドサービスを先に設定してください',
+    setAutoSyncFailed: '自動同期の設定に失敗しました',
   },
   main: {
     tray: {
