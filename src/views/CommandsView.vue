@@ -57,15 +57,17 @@
                 <span class="command-author">{{ displayAuthor(cmd.author) }}</span>
               </div>
             </div>
-            <button class="btn btn-icon command-edit" @click.stop="editCommand(cmd)" :title="$t('commands.edit')">
-              <Edit size="14" />
-            </button>
-            <button class="btn btn-icon command-export" @click.stop="exportCommand(cmd)" :title="$t('commands.export')">
-              <Upload size="14" />
-            </button>
-            <button class="btn btn-icon command-delete" @click.stop="deleteCommand(cmd)" :title="$t('commands.delete')">
-              <Delete size="14" />
-            </button>
+            <div class="command-actions">
+              <button class="action-btn" @click.stop="editCommand(cmd)" :title="$t('commands.edit')">
+                <Edit size="14" />
+              </button>
+              <button class="action-btn" @click.stop="exportCommand(cmd)" :title="$t('commands.export')">
+                <Upload size="14" />
+              </button>
+              <button class="action-btn action-btn-danger" @click.stop="deleteCommand(cmd)" :title="$t('commands.delete')">
+                <Delete size="14" />
+              </button>
+            </div>
           </div>
         </template>
         <EmptyState
@@ -354,9 +356,7 @@ onMounted(() => {
   &:hover {
     background: var(--control-fill);
 
-    .command-edit,
-    .command-export,
-    .command-delete {
+    .command-actions {
       opacity: 1;
     }
   }
@@ -372,7 +372,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: var(--control-fill);
+  background: var(--bg-elevated);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -424,37 +424,36 @@ onMounted(() => {
   color: var(--text-tertiary);
 }
 
-.command-edit,
-.command-export,
-.command-delete {
+.command-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   opacity: 0;
   transition: opacity 0.15s ease;
+  flex-shrink: 0;
 }
 
-.command-edit {
-  color: var(--accent);
-  margin-right: 8px;
+.action-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.1s ease;
 
   &:hover {
-    background: var(--accent-light);
+    background: var(--control-fill);
+    color: var(--text-primary);
   }
-}
 
-.command-export {
-  color: var(--text-secondary);
-  margin-right: 8px;
-
-  &:hover {
-    background: var(--control-fill-hover);
-  }
-}
-
-.command-delete {
-  color: var(--danger);
-  margin-left: 12px;
-
-  &:hover {
-    background: var(--danger-bg);
+  &.action-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
   }
 }
 

@@ -3,7 +3,7 @@
  * 处理对话框相关的 IPC 通信
  */
 
-const { ipcMain } = require('electron')
+const { ipcMain, dialog } = require('electron')
 
 // 待处理的确认对话框回调
 const pendingConfirmDialogs = new Map()
@@ -48,6 +48,12 @@ function registerDialogsIpcHandlers() {
       resolver(confirmed)
       pendingConfirmDialogs.delete(requestId)
     }
+  })
+
+  // 文件选择对话框
+  ipcMain.handle('show-open-dialog', async (event, options) => {
+    const mainWindow = getMainWindowRef()
+    return dialog.showOpenDialog(mainWindow, options)
   })
 
   // 显示消息对话框

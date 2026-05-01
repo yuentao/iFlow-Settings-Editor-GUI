@@ -41,7 +41,7 @@
             @delete-profile="deleteApiProfile"
             @reorder-profiles="reorderApiProfiles" />
 
-          <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :selected-server="currentServerName" :server-count="serverCount" @add-server="addServer" @select-server="selectServer" />
+          <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :server-count="serverCount" @add-server="addServer" @quick-add="openQuickAddDialog" @edit-server="openEditServerPanel" @delete-server="deleteServerByName" />
 
           <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
 
@@ -62,6 +62,8 @@
       @save-edit="saveApiEdit" />
 
     <ServerPanel :show="showServerPanel" :is-editing="isEditingServer" :data="editingServerData" @close="closeServerPanel" @save="saveServerFromPanel" @delete="deleteServer" />
+
+    <QuickAddDialog :show="showQuickAddDialog" :existing-names="existingServerNames" @close="closeQuickAddDialog" @edit-server="handleQuickEditServer" @add-servers="handleQuickAddServers" />
 
     <InputDialog :dialog="showInputDialog" @confirm="handleInputConfirm" @cancel="closeInputDialog" />
 
@@ -92,6 +94,7 @@
       :progress="updateDownloadProgress"
       :version="latestUpdateVersion"
       :speed="updateDownloadSpeed"
+      :release-notes="updateReleaseNotes"
       @cancel="handleUpdateCancel"
       @install="handleInstallNow"
       @later="handleUpdateLater" />
@@ -119,6 +122,7 @@ import MessageDialog from './components/MessageDialog.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import ApiProfileDialog from './components/ApiProfileDialog.vue'
 import ServerPanel from './components/ServerPanel.vue'
+import QuickAddDialog from './components/QuickAddDialog.vue'
 import UpdateNotification from './components/UpdateNotification.vue'
 import UpdateProgress from './components/UpdateProgress.vue'
 import SkeletonLoader from './components/SkeletonLoader.vue'
@@ -223,6 +227,8 @@ const pendingConfirmResolve = ref(null)
 const showServerPanel = ref(false)
 const isEditingServer = ref(false)
 const editingServerData = ref({ name: '', description: '' })
+const showQuickAddDialog = ref(false)
+const existingServerNames = computed(() => Object.keys(settings.value.mcpServers || {}))
 
 // 标志：跳过下次 saveSettings，避免 profile 切换触发不必要的云同步覆盖
 const skipNextSaveSettings = ref(false)
@@ -624,6 +630,37 @@ const closeServerPanel = () => {
   showServerPanel.value = false
 }
 
+const openQuickAddDialog = () => {
+  showQuickAddDialog.value = true
+}
+
+const closeQuickAddDialog = () => {
+  showQuickAddDialog.value = false
+}
+
+const handleQuickEditServer = data => {
+  // 解析出单服务器，预填到 ServerPanel
+  isEditingServer.value = false
+  editingServerData.value = data
+  showServerPanel.value = true
+}
+
+const handleQuickAddServers = async servers => {
+  // 批量添加多个服务器
+  for (const { name, config } of servers) {
+    settings.value.mcpServers[name] = config
+  }
+  skipNextSaveSettings.value = true
+  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const result = await window.electronAPI.saveSettings(dataToSave)
+  skipNextSaveSettings.value = false
+  if (result.success) {
+    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    modified.value = false
+    await showMessage({ type: 'info', title: t('messages.success'), message: t('mcp.quickAddSuccess', { count: servers.length }) })
+  }
+}
+
 const saveServerFromPanel = async data => {
   const name = data.name.trim()
   if (!name) {
@@ -659,14 +696,21 @@ const addServer = () => {
 const deleteServer = async () => {
   const serverName = isEditingServer.value ? editingServerData.value.name : currentServerName.value
   if (!serverName) return
+  await deleteServerByName(serverName)
+}
+
+const deleteServerByName = async (serverName) => {
+  if (!serverName) return
   const confirmed = await new Promise(resolve => {
     showInputDialog.value = { show: true, title: t('mcp.delete'), placeholder: 'messages.confirmDeleteServer', name: serverName, callback: resolve, isConfirm: true }
   })
   if (!confirmed) return
   delete settings.value.mcpServers[serverName]
-  currentServerName.value = null
-  showServerPanel.value = false
-  skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
+  if (currentServerName.value === serverName) {
+    currentServerName.value = null
+    showServerPanel.value = false
+  }
+  skipNextSaveSettings.value = true
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false

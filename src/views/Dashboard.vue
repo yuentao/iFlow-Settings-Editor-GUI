@@ -308,29 +308,24 @@ onMounted(async () => {
 .stat-icon {
   width: 56px;
   height: 56px;
-  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 
   &.stat-icon-accent {
-    background: var(--accent-light);
     color: var(--accent);
   }
 
   &.stat-icon-success {
-    background: rgba(16, 185, 129, 0.12);
     color: var(--success);
   }
 
   &.stat-icon-warning {
-    background: rgba(245, 158, 11, 0.12);
     color: var(--warning);
   }
 
   &.stat-icon-info {
-    background: rgba(59, 130, 246, 0.12);
     color: var(--info);
   }
 }
@@ -395,12 +390,10 @@ onMounted(async () => {
 }
 
 .stat-icon-secondary {
-  background: var(--bg-secondary);
   color: var(--text-tertiary);
 }
 
 .stat-icon-danger {
-  background: rgba(239, 68, 68, 0.12);
   color: var(--danger);
 }
 
