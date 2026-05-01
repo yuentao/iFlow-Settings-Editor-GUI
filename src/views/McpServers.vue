@@ -10,6 +10,10 @@
           <Add size="14" />
           {{ $t('mcp.addServerBtn') }}
         </button>
+        <button class="btn btn-secondary" @click="$emit('quick-add')">
+          <Lightning size="14" />
+          {{ $t('mcp.quickAddBtn') }}
+        </button>
     </div>
     <div class="server-list">
         <template v-if="serverCount > 0">
@@ -42,7 +46,7 @@
 </template>
 
 <script setup>
-import { Server, Add } from '@icon-park/vue-next'
+import { Server, Add, Lightning } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 
 defineProps({
@@ -60,7 +64,7 @@ defineProps({
   }
 })
 
-defineEmits(['add-server', 'select-server'])
+defineEmits(['add-server', 'select-server', 'quick-add'])
 </script>
 
 <style lang="less" scoped>
