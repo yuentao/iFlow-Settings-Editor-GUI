@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSettings: (data) => ipcRenderer.invoke('save-settings', data),
   showMessage: (options) => ipcRenderer.invoke('show-message', options),
   showConfirmDialog: (options) => ipcRenderer.invoke('show-confirm-dialog', options),
+  showOpenDialog: (options) => ipcRenderer.invoke('show-open-dialog', options),
 
   // 确认对话框结果回调
   confirmDialogResult: (requestId, confirmed) => ipcRenderer.send('confirm-dialog-result', { requestId, confirmed }),
