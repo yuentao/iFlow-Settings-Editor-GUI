@@ -209,7 +209,7 @@ const handleBackground = () => {
   padding: var(--space-md);
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
-  max-height: 120px;
+  max-height: 240px;
   overflow-y: auto;
 }
 

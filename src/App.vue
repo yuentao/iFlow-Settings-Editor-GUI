@@ -92,6 +92,7 @@
       :progress="updateDownloadProgress"
       :version="latestUpdateVersion"
       :speed="updateDownloadSpeed"
+      :release-notes="updateReleaseNotes"
       @cancel="handleUpdateCancel"
       @install="handleInstallNow"
       @later="handleUpdateLater" />
