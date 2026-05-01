@@ -168,6 +168,13 @@
           </div>
           <div class="setting-item">
             <div class="setting-info">
+              <label class="setting-label">{{ $t('general.connectivityPollInterval') }}</label>
+              <p class="setting-desc">{{ $t('general.connectivityPollIntervalDesc') }}</p>
+            </div>
+            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.connectivityPollInterval" min="5" max="600" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
               <label class="setting-label">{{ $t('general.approvalMode') }}</label>
               <p class="setting-desc">{{ $t('general.approvalModeDesc') }}</p>
             </div>
@@ -632,6 +639,9 @@ const handleBackgroundProgress = progress => {
 }
 
 onMounted(async () => {
+  // 加载云同步设置（确保默认值正确显示）
+  await cloudStore.loadSettings()
+
   // 加载系统主题
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   systemTheme.value = isDark ? 'Dark' : 'Light'

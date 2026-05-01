@@ -58,6 +58,7 @@ export interface Settings {
   shellTimeout?: number
   approvalMode?: 'yolo' | 'plan' | 'autoEdit' | 'default'
   thinkingModeEnabled?: 'true' | 'false'
+  connectivityPollInterval?: number  // API 连通性检测间隔（秒），默认 30
   customThemes?: Record<string, CustomThemeConfig>
 }
 
