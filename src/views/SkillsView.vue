@@ -279,7 +279,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: var(--accent-light);
+  background: var(--bg-elevated);
   color: var(--accent);
   display: flex;
   align-items: center;

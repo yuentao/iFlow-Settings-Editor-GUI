@@ -372,7 +372,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: var(--control-fill);
+  background: var(--bg-elevated);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
