@@ -18,7 +18,7 @@
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
           <input type="text" class="form-input" :class="{ 'form-input--error': createNameError }" v-model="createData.name" :placeholder="$t('api.configNamePlaceholder')" />
-          <div v-if="createNameError" class="form-error">{{ $t(createNameError) }}</div>
+          <div class="form-error" :class="{ 'form-error--invisible': !createNameError }">{{ createNameError ? $t(createNameError) : '' }}</div>
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
@@ -31,7 +31,7 @@
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
           <input type="text" class="form-input" :class="{ 'form-input--error': createBaseUrlError }" v-model="createData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
-          <div v-if="createBaseUrlError" class="form-error">{{ $t(createBaseUrlError) }}</div>
+          <div class="form-error" :class="{ 'form-error--invisible': !createBaseUrlError }">{{ createBaseUrlError ? $t(createBaseUrlError) : '' }}</div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -40,8 +40,32 @@
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
-            <input type="text" class="form-input" :class="{ 'form-input--error': createModelError }" v-model="createData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
-            <div v-if="createModelError" class="form-error">{{ $t(createModelError) }}</div>
+            <div class="model-input-wrapper">
+              <input type="text" class="form-input model-input" :class="{ 'form-input--error': createModelError }" v-model="createData.modelName" :placeholder="$t('api.modelNamePlaceholder')" @focus="onModelInputFocus('create')" @input="onModelSearch('create')" />
+              <button type="button" class="model-fetch-btn" :class="{ 'is-loading': createModelsLoading }" :disabled="!canFetchCreate" @click="handleFetchModels('create')" :title="$t('api.fetchModelsBtn')">
+                <Loading v-if="createModelsLoading" size="14" class="spin-icon" />
+                <Refresh v-else size="14" />
+              </button>
+            </div>
+            <div class="form-error" :class="{ 'form-error--invisible': !createModelsError && !createModelError }">{{ createModelsError ? $t(createModelsError, createModelsErrorParams) : (createModelError ? $t(createModelError) : '') }}</div>
+            <!-- Model dropdown (teleported to body to avoid scrollbar) -->
+            <Teleport to="body">
+              <div v-if="showCreateDropdown" class="model-dropdown model-dropdown--fixed" :style="{ top: createDropdownPos.top + 'px', left: createDropdownPos.left + 'px', width: createDropdownPos.width + 'px' }">
+                <div v-if="filteredCreateModels.length === 0" class="model-dropdown-empty">
+                  {{ $t('api.noModelsFound') }}
+                </div>
+                <div
+                  v-for="model in filteredCreateModels"
+                  :key="model.id"
+                  class="model-dropdown-item"
+                  :class="{ 'is-active': createData.modelName === model.id }"
+                  @mousedown.prevent="selectCreateModel(model.id)"
+                >
+                  <span class="model-id">{{ model.id }}</span>
+                  <span v-if="model.owned_by" class="model-owner">{{ model.owned_by }}</span>
+                </div>
+              </div>
+            </Teleport>
           </div>
         </div>
       </div>
@@ -74,7 +98,7 @@
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
           <input type="text" class="form-input" :class="{ 'form-input--error': editNameError }" v-model="editData.name" :disabled="editData.name === currentProfileName" />
-          <div v-if="editNameError" class="form-error">{{ $t(editNameError) }}</div>
+          <div class="form-error" :class="{ 'form-error--invisible': !editNameError }">{{ editNameError ? $t(editNameError) : '' }}</div>
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
@@ -87,7 +111,7 @@
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
           <input type="text" class="form-input" :class="{ 'form-input--error': editBaseUrlError }" v-model="editData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
-          <div v-if="editBaseUrlError" class="form-error">{{ $t(editBaseUrlError) }}</div>
+          <div class="form-error" :class="{ 'form-error--invisible': !editBaseUrlError }">{{ editBaseUrlError ? $t(editBaseUrlError) : '' }}</div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -96,8 +120,32 @@
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
-            <input type="text" class="form-input" :class="{ 'form-input--error': editModelError }" v-model="editData.modelName" :placeholder="$t('api.modelNamePlaceholder')" />
-            <div v-if="editModelError" class="form-error">{{ $t(editModelError) }}</div>
+            <div class="model-input-wrapper">
+              <input type="text" class="form-input model-input" :class="{ 'form-input--error': editModelError }" v-model="editData.modelName" :placeholder="$t('api.modelNamePlaceholder')" @focus="onModelInputFocus('edit')" @input="onModelSearch('edit')" />
+              <button type="button" class="model-fetch-btn" :class="{ 'is-loading': editModelsLoading }" :disabled="!canFetchEdit" @click="handleFetchModels('edit')" :title="$t('api.fetchModelsBtn')">
+                <Loading v-if="editModelsLoading" size="14" class="spin-icon" />
+                <Refresh v-else size="14" />
+              </button>
+            </div>
+            <div class="form-error" :class="{ 'form-error--invisible': !editModelsError && !editModelError }">{{ editModelsError ? $t(editModelsError, editModelsErrorParams) : (editModelError ? $t(editModelError) : '') }}</div>
+            <!-- Model dropdown (teleported to body to avoid scrollbar) -->
+            <Teleport to="body">
+              <div v-if="showEditDropdown" class="model-dropdown model-dropdown--fixed" :style="{ top: editDropdownPos.top + 'px', left: editDropdownPos.left + 'px', width: editDropdownPos.width + 'px' }">
+                <div v-if="filteredEditModels.length === 0" class="model-dropdown-empty">
+                  {{ $t('api.noModelsFound') }}
+                </div>
+                <div
+                  v-for="model in filteredEditModels"
+                  :key="model.id"
+                  class="model-dropdown-item"
+                  :class="{ 'is-active': editData.modelName === model.id }"
+                  @mousedown.prevent="selectEditModel(model.id)"
+                >
+                  <span class="model-id">{{ model.id }}</span>
+                  <span v-if="model.owned_by" class="model-owner">{{ model.owned_by }}</span>
+                </div>
+              </div>
+            </Teleport>
           </div>
         </div>
       </div>
@@ -115,9 +163,10 @@
 <script setup lang="ts">
 /**
  * ApiProfileDialog - API 配置编辑对话框组件
+ * 支持从 OpenAI 兼容 /models 接口自动获取模型列表
  */
-import { computed } from 'vue'
-import { Key, Save } from '@icon-park/vue-next'
+import { computed, ref, watch } from 'vue'
+import { Key, Save, Refresh, Loading } from '@icon-park/vue-next'
 import type { AuthType } from '@/shared/types'
 
 interface ApiProfileData {
@@ -126,6 +175,11 @@ interface ApiProfileData {
   apiKey: string
   baseUrl: string
   modelName: string
+}
+
+interface ModelItem {
+  id: string
+  owned_by: string
 }
 
 interface Props {
@@ -150,6 +204,171 @@ const emit = defineEmits<{
   'close-edit': []
   'save-edit': [data: ApiProfileData]
 }>()
+
+// ---- Model fetch state ----
+const createModels = ref<ModelItem[]>([])
+const createModelsLoading = ref(false)
+const createModelsError = ref('')
+const createModelsErrorParams = ref<Record<string, any>>({})
+const showCreateDropdown = ref(false)
+
+const editModels = ref<ModelItem[]>([])
+const editModelsLoading = ref(false)
+const editModelsError = ref('')
+const editModelsErrorParams = ref<Record<string, any>>({})
+const showEditDropdown = ref(false)
+
+// Dropdown position (fixed, for Teleport)
+const createDropdownPos = ref({ top: 0, left: 0, width: 0 })
+const editDropdownPos = ref({ top: 0, left: 0, width: 0 })
+
+// ---- Can fetch computed ----
+const canFetchCreate = computed((): boolean => {
+  const d = props.createData
+  return !!(d && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
+    && d.apiKey && d.apiKey.trim() && !createModelsLoading.value)
+})
+
+const canFetchEdit = computed((): boolean => {
+  const d = props.editData
+  return !!(d && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
+    && d.apiKey && d.apiKey.trim() && !editModelsLoading.value)
+})
+
+// ---- Filtered models for dropdown ----
+const filteredCreateModels = computed((): ModelItem[] => {
+  const d = props.createData
+  if (!d || !d.modelName) return createModels.value
+  const q = d.modelName.toLowerCase()
+  return createModels.value.filter(m => m.id.toLowerCase().includes(q))
+})
+
+const filteredEditModels = computed((): ModelItem[] => {
+  const d = props.editData
+  if (!d || !d.modelName) return editModels.value
+  const q = d.modelName.toLowerCase()
+  return editModels.value.filter(m => m.id.toLowerCase().includes(q))
+})
+
+// ---- Fetch models from API ----
+async function handleFetchModels(mode: 'create' | 'edit'): Promise<void> {
+  const data = mode === 'create' ? props.createData : props.editData
+  if (!data) return
+
+  const loadingRef = mode === 'create' ? createModelsLoading : editModelsLoading
+  const errorRef = mode === 'create' ? createModelsError : editModelsError
+  const errorParamsRef = mode === 'create' ? createModelsErrorParams : editModelsErrorParams
+  const modelsRef = mode === 'create' ? createModels : editModels
+  const dropdownRef = mode === 'create' ? showCreateDropdown : showEditDropdown
+
+  loadingRef.value = true
+  errorRef.value = ''
+  errorParamsRef.value = {}
+  modelsRef.value = []
+
+  try {
+    const result = await window.electronAPI.fetchModels(data.baseUrl, data.apiKey)
+    if (result.success) {
+      modelsRef.value = result.models
+      if (result.models.length === 0) {
+        errorRef.value = 'api.noModelsAvailable'
+      } else {
+        updateDropdownPosition(mode)
+        dropdownRef.value = true
+      }
+    } else {
+      errorRef.value = result.error || 'api.fetchModelsFailed'
+      if (result.httpStatus) {
+        errorParamsRef.value = { status: result.httpStatus }
+      }
+    }
+  } catch (e: any) {
+    errorRef.value = 'api.fetchModelsFailed'
+  } finally {
+    loadingRef.value = false
+  }
+}
+
+// ---- Dropdown interactions ----
+function updateDropdownPosition(mode: 'create' | 'edit'): void {
+  const wrapper = document.querySelector(
+    mode === 'create' ? '.dialog-overlay-top .model-input-wrapper' : '.dialog-overlay-top:last-child .model-input-wrapper'
+  ) as HTMLElement | null
+  const posRef = mode === 'create' ? createDropdownPos : editDropdownPos
+  if (wrapper) {
+    const rect = wrapper.getBoundingClientRect()
+    posRef.value = { top: rect.bottom + 2, left: rect.left, width: rect.width }
+  }
+}
+
+function onModelInputFocus(mode: 'create' | 'edit'): void {
+  const modelsRef = mode === 'create' ? createModels : editModels
+  const dropdownRef = mode === 'create' ? showCreateDropdown : showEditDropdown
+  const canFetch = mode === 'create' ? canFetchCreate : canFetchEdit
+  if (modelsRef.value.length > 0) {
+    updateDropdownPosition(mode)
+    dropdownRef.value = true
+  } else if (canFetch.value) {
+    handleFetchModels(mode)
+  }
+}
+
+function onModelSearch(mode: 'create' | 'edit'): void {
+  const modelsRef = mode === 'create' ? createModels : editModels
+  const dropdownRef = mode === 'create' ? showCreateDropdown : showEditDropdown
+  if (modelsRef.value.length > 0) {
+    updateDropdownPosition(mode)
+    dropdownRef.value = true
+  }
+}
+
+function selectCreateModel(id: string): void {
+  if (props.createData) {
+    props.createData.modelName = id
+  }
+  showCreateDropdown.value = false
+}
+
+function selectEditModel(id: string): void {
+  if (props.editData) {
+    props.editData.modelName = id
+  }
+  showEditDropdown.value = false
+}
+
+// Close dropdowns when clicking outside
+function handleGlobalClick(e: MouseEvent): void {
+  const target = e.target as HTMLElement
+  if (target.closest('.model-dropdown') || target.closest('.model-input-wrapper')) {
+    return
+  }
+  showCreateDropdown.value = false
+  showEditDropdown.value = false
+}
+
+watch(() => props.showCreate, (val) => {
+  if (val) {
+    document.addEventListener('mousedown', handleGlobalClick)
+  } else {
+    document.removeEventListener('mousedown', handleGlobalClick)
+    createModels.value = []
+    createModelsError.value = ''
+    createModelsErrorParams.value = {}
+    showCreateDropdown.value = false
+  }
+})
+
+watch(() => props.showEdit, (val) => {
+  if (val) {
+    document.addEventListener('mousedown', handleGlobalClick)
+  } else {
+    document.removeEventListener('mousedown', handleGlobalClick)
+    editModels.value = []
+    editModelsError.value = ''
+    editModelsErrorParams.value = {}
+    showEditDropdown.value = false
+  }
+})
 
 // Validation helper functions
 const isNameValid = (name: string): boolean => {
@@ -285,6 +504,7 @@ const handleSaveEdit = (): void => {
   .form-group {
     margin-bottom: var(--space-lg);
     min-width: 0;
+    position: relative;
     
     &:last-child {
       margin-bottom: 0;
@@ -304,9 +524,137 @@ const handleSaveEdit = (): void => {
   color: var(--danger);
   margin-top: 4px;
   word-break: break-all;
+
+  &.form-error--invisible {
+    visibility: hidden;
+  }
 }
 
 .form-input--error {
   border-color: var(--danger) !important;
+}
+
+// ---- Model input with fetch button ----
+.model-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .model-input {
+    padding-right: 34px;
+  }
+}
+
+.model-fetch-btn {
+  position: absolute;
+  right: 1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  &:active:not(:disabled) {
+    color: var(--accent-pressed);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &.is-loading {
+    color: var(--accent);
+  }
+
+  .iconpark-icon {
+    display: flex;
+  }
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// ---- Model dropdown ----
+.model-dropdown {
+  z-index: 9999;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  animation: fadeInDown 0.15s ease;
+
+  &.model-dropdown--fixed {
+    position: fixed;
+  }
+
+  .dark & {
+    background: var(--bg-elevated);
+    border-color: var(--border);
+  }
+}
+
+.model-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  transition: background 0.1s ease;
+  gap: 8px;
+
+  &:hover {
+    background: var(--control-fill-hover);
+  }
+
+  &.is-active {
+    background: var(--accent-light);
+    color: var(--accent-text);
+  }
+
+  .model-id {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .model-owner {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+  }
+}
+
+.model-dropdown-empty {
+  padding: 12px;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }
 </style>

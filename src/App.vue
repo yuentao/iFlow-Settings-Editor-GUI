@@ -136,7 +136,7 @@ const loadingComponent = {
 }
 
 const errorComponent = {
-  template: '<div class="async-error"><p>{{ error }}</p><button @click="$emit(\'retry\')">重试</button></div>',
+  template: '<div class="async-error"><p>{{ error }}</p><button @click="$emit(\'retry\')">{{ $t(\'app.retry\') }}</button></div>',
   props: ['error'],
   emits: ['retry'],
 }

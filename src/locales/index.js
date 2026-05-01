@@ -2,7 +2,8 @@ export default {
   app: {
     title: 'iFlow 设置编辑器',
     name: 'iFlow 设置编辑器',
-    company: '上海潘哆呐科技有限公司'
+    company: '上海潘哆呐科技有限公司',
+    retry: '重试'
   },
   window: {
     minimize: '最小化',
@@ -167,6 +168,18 @@ export default {
       api: 'API Key',
       openaiCompatible: 'OpenAI 兼容'
     },
+    fetchModelsBtn: '获取模型列表',
+    noModelsFound: '未找到匹配的模型',
+    noModelsAvailable: '该接口没有可用的模型',
+    fetchModelsFailed: '获取模型列表失败',
+    fetchModels: {
+      baseUrlRequired: '请先填写 Base URL',
+      apiKeyRequired: '请先填写 API Key',
+      httpError: '请求失败 (HTTP {status})',
+      invalidResponse: '服务器返回了无效的响应',
+      networkError: '网络错误，请检查网络连接',
+      timeout: '请求超时，请稍后重试'
+    },
     validation: {
       nameNoSpecial: '配置名称只能包含字母、数字、中文、中划线和下划线，且不能以数字开头',
       nameNoDigitStart: '配置名称不能以数字开头',
@@ -180,6 +193,7 @@ export default {
     serverList: '服务器列表',
     addServer: '添加服务器',
     editServer: '编辑服务器',
+    edit: '编辑',
     serverName: '服务器名称',
     serverNamePlaceholder: 'my-mcp-server',
     descriptionLabel: '描述',
@@ -470,6 +484,7 @@ export default {
     errorWebdavAuth: 'WebDAV 认证失败，请检查用户名和密码',
     errorPasswordRequired: '请先设置同步密码',
     errorProviderRequired: '请先配置云存储服务',
+    setAutoSyncFailed: '设置自动同步失败',
   },
   main: {
     tray: {
@@ -492,6 +507,7 @@ export default {
     dialogs: {
       importSkill: '导入技能',
       exportSkill: '导出技能到',
+      exportCommand: '导出命令',
       selectExportLocation: '选择导出位置',
       skillArchive: '技能压缩包',
       allFiles: '所有文件',
