@@ -283,6 +283,41 @@ function registerApiProfilesIpcHandlers() {
     updateTrayMenu()
     return successResult()
   }, 'duplicate-api-profile'))
+
+  // 检测 API 配置连通性（测量延迟）
+  ipcMain.handle('ping-api-profile', wrapIpcHandler(async (event, baseUrl) => {
+    if (!baseUrl || !baseUrl.trim()) {
+      return { success: false, error: 'api.fetchModels.baseUrlRequired', latency: -1 }
+    }
+
+    const url = baseUrl.trim().replace(/\/+$/, '')
+
+    return new Promise((resolve) => {
+      const startTime = Date.now()
+      const request = net.request({
+        url,
+        method: 'HEAD',
+      })
+
+      request.on('response', (response) => {
+        const latency = Date.now() - startTime
+        request.destroy()
+        resolve({ success: true, latency, statusCode: response.statusCode })
+      })
+
+      request.on('error', () => {
+        resolve({ success: false, latency: -1 })
+      })
+
+      // 8 秒超时
+      setTimeout(() => {
+        request.destroy()
+        resolve({ success: false, latency: -1 })
+      }, 8000)
+
+      request.end()
+    })
+  }, 'ping-api-profile'))
 }
 
 module.exports = {

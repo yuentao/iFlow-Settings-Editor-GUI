@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   renameApiProfile: (oldName, newName) => ipcRenderer.invoke('rename-api-profile', oldName, newName),
   duplicateApiProfile: (sourceName, newName) => ipcRenderer.invoke('duplicate-api-profile', sourceName, newName),
   fetchModels: (baseUrl, apiKey) => ipcRenderer.invoke('fetch-models', baseUrl, apiKey),
+  pingApiProfile: (baseUrl) => ipcRenderer.invoke('ping-api-profile', baseUrl),
 
   // 托盘事件监听
   onApiProfileSwitched: (callback) => {

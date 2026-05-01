@@ -102,6 +102,8 @@ export default {
     skipNextSpeakerCheckDesc: '跳过任务结束检测',
     shellTimeout: 'Shell 超时时间',
     shellTimeoutDesc: 'Shell 工具执行的超时时间（毫秒）',
+    connectivityPollInterval: '连通性检测间隔',
+    connectivityPollIntervalDesc: '定期检测 API 配置连通性的时间间隔（秒）',
     approvalMode: '审批模式',
     approvalModeDesc: 'CLI 启动时默认模式',
     approvalModeYolo: 'Yolo',
@@ -185,6 +187,14 @@ export default {
       nameNoDigitStart: '配置名称不能以数字开头',
       urlFormat: '请输入有效的 URL 格式，如 https://api.example.com',
       modelNoSpecial: '模型名称只能包含字母、数字、点号、中划线、下划线、冒号和斜杠'
+    },
+    connectivity: {
+      excellent: '连通性极好',
+      good: '连通性良好',
+      slow: '延迟较高',
+      unreachable: '无法连通',
+      checking: '检测中...',
+      latency: '{ms}ms'
     }
   },
   mcp: {

@@ -184,6 +184,14 @@ export default {
       nameNoDigitStart: 'Name cannot start with a digit',
       urlFormat: 'Please enter a valid URL format, e.g. https://api.example.com',
       modelNoSpecial: 'Model name can only contain letters, digits, dots, hyphens, underscores, colons, and slashes'
+    },
+    connectivity: {
+      excellent: 'Excellent connectivity',
+      good: 'Good connectivity',
+      slow: 'High latency',
+      unreachable: 'Unreachable',
+      checking: 'Checking...',
+      latency: '{ms}ms'
     }
   },
   mcp: {

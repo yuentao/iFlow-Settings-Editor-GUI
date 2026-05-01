@@ -185,6 +185,14 @@ export default {
       nameNoDigitStart: '名前を数字で始めることはできません',
       urlFormat: '有効な URL 形式を入力してください（例: https://api.example.com）',
       modelNoSpecial: 'モデル名には英字、数字、ピリオド、ハイフン、アンダースコア、コロン、スラッシュのみ使用できます'
+    },
+    connectivity: {
+      excellent: '接続性極めて良好',
+      good: '接続性良好',
+      slow: '高遅延',
+      unreachable: '接続不可',
+      checking: '確認中...',
+      latency: '{ms}ms'
     }
   },
   mcp: {
