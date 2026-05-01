@@ -21,14 +21,19 @@
             v-for="(config, name) in servers"
             :key="name"
             class="server-item"
-            :class="{ selected: selectedServer === name }"
-            @click="$emit('select-server', name)"
           >
             <div class="server-info">
               <div class="server-name">{{ name }}</div>
               <div class="server-desc">{{ config.description || $t('mcp.noDescription') }}</div>
             </div>
-            <div class="server-status"></div>
+            <div class="server-actions">
+              <button class="action-btn" @click.stop="$emit('edit-server', name)" :title="$t('mcp.edit')">
+                <Edit size="14" />
+              </button>
+              <button class="action-btn action-btn-danger" @click.stop="$emit('delete-server', name)" :title="$t('mcp.delete')">
+                <Delete size="14" />
+              </button>
+            </div>
           </div>
         </template>
         <EmptyState
@@ -46,7 +51,7 @@
 </template>
 
 <script setup>
-import { Server, Add, Lightning } from '@icon-park/vue-next'
+import { Server, Add, Lightning, Delete, Edit } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 
 defineProps({
@@ -54,17 +59,13 @@ defineProps({
     type: Object,
     default: () => ({})
   },
-  selectedServer: {
-    type: String,
-    default: null
-  },
   serverCount: {
     type: Number,
     default: 0
   }
 })
 
-defineEmits(['add-server', 'select-server', 'quick-add'])
+defineEmits(['add-server', 'quick-add', 'edit-server', 'delete-server'])
 </script>
 
 <style lang="less" scoped>
@@ -107,13 +108,6 @@ defineEmits(['add-server', 'select-server', 'quick-add'])
   
   &:hover {
     background: var(--control-fill);
-    transform: translateX(2px);
-  }
-  
-  &.selected {
-    background: var(--accent-light);
-    border-left: 2px solid var(--accent);
-    padding-left: 12px;
   }
 }
 
@@ -137,12 +131,39 @@ defineEmits(['add-server', 'select-server', 'quick-add'])
   white-space: nowrap;
 }
 
-.server-status {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 4px rgba(16, 185, 129, 0.4);
+.server-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+
+  .server-item:hover & {
+    opacity: 1;
+  }
+}
+
+.action-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.1s ease;
+
+  &:hover {
+    background: var(--control-fill);
+    color: var(--text-primary);
+  }
+
+  &.action-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+  }
 }
 
 @keyframes fadeIn {

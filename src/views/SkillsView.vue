@@ -32,12 +32,14 @@
                 <span class="skill-size">{{ formatFileSize(skill.size) }}</span>
               </div>
             </div>
-            <button class="btn btn-icon skill-export" @click.stop="exportSkill(skill)" :title="$t('skills.export')">
-              <Upload size="14" />
-            </button>
-            <button class="btn btn-icon skill-delete" @click.stop="deleteSkill(skill)" :title="$t('skills.delete')">
-              <Delete size="14" />
-            </button>
+            <div class="skill-actions">
+              <button class="action-btn" @click.stop="exportSkill(skill)" :title="$t('skills.export')">
+                <Upload size="14" />
+              </button>
+              <button class="action-btn action-btn-danger" @click.stop="deleteSkill(skill)" :title="$t('skills.delete')">
+                <Delete size="14" />
+              </button>
+            </div>
           </div>
         </template>
         <EmptyState
@@ -261,8 +263,7 @@ onMounted(() => {
   &:hover {
     background: var(--control-fill);
 
-    .skill-export,
-    .skill-delete {
+    .skill-actions {
       opacity: 1;
     }
   }
@@ -319,25 +320,36 @@ onMounted(() => {
   font-family: var(--font-mono);
 }
 
-.skill-export {
+.skill-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   opacity: 0;
   transition: opacity 0.15s ease;
-  color: var(--accent);
-  margin-right: 8px;
-
-  &:hover {
-    background: var(--accent-light);
-  }
+  flex-shrink: 0;
 }
 
-.skill-delete {
-  opacity: 0;
-  margin-left: 12px;
-  transition: opacity 0.15s ease;
-  color: var(--danger);
+.action-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.1s ease;
 
   &:hover {
-    background: var(--danger-bg);
+    background: var(--control-fill);
+    color: var(--text-primary);
+  }
+
+  &.action-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
   }
 }
 

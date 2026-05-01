@@ -41,7 +41,7 @@
             @delete-profile="deleteApiProfile"
             @reorder-profiles="reorderApiProfiles" />
 
-          <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :selected-server="currentServerName" :server-count="serverCount" @add-server="addServer" @select-server="selectServer" @quick-add="openQuickAddDialog" />
+          <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :server-count="serverCount" @add-server="addServer" @quick-add="openQuickAddDialog" @edit-server="openEditServerPanel" @delete-server="deleteServerByName" />
 
           <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
 
@@ -696,14 +696,21 @@ const addServer = () => {
 const deleteServer = async () => {
   const serverName = isEditingServer.value ? editingServerData.value.name : currentServerName.value
   if (!serverName) return
+  await deleteServerByName(serverName)
+}
+
+const deleteServerByName = async (serverName) => {
+  if (!serverName) return
   const confirmed = await new Promise(resolve => {
     showInputDialog.value = { show: true, title: t('mcp.delete'), placeholder: 'messages.confirmDeleteServer', name: serverName, callback: resolve, isConfirm: true }
   })
   if (!confirmed) return
   delete settings.value.mcpServers[serverName]
-  currentServerName.value = null
-  showServerPanel.value = false
-  skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
+  if (currentServerName.value === serverName) {
+    currentServerName.value = null
+    showServerPanel.value = false
+  }
+  skipNextSaveSettings.value = true
   const dataToSave = JSON.parse(JSON.stringify(settings.value))
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
