@@ -13,7 +13,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 监听主进程的确认对话框请求
   onShowConfirmRequest: (callback) => {
-    ipcRenderer.on('show-confirm-request', (event, request) => callback(request))
+    const handler = (event, request) => callback(request)
+    ipcRenderer.on('show-confirm-request', handler)
+    return () => ipcRenderer.removeListener('show-confirm-request', handler)
   },
 
   // 开机自启动
@@ -42,7 +44,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 托盘事件监听
   onApiProfileSwitched: (callback) => {
-    ipcRenderer.on('api-profile-switched', (event, profileName) => callback(profileName))
+    const handler = (event, profileName) => callback(profileName)
+    ipcRenderer.on('api-profile-switched', handler)
+    return () => ipcRenderer.removeListener('api-profile-switched', handler)
   },
 
   // 语言切换通知
@@ -78,28 +82,42 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 更新事件监听
   onUpdateStatusChanged: (callback) => {
-    ipcRenderer.on('update-status-changed', (event, state) => callback(state))
+    const handler = (event, state) => callback(state)
+    ipcRenderer.on('update-status-changed', handler)
+    return () => ipcRenderer.removeListener('update-status-changed', handler)
   },
   onUpdateAvailable: (callback) => {
-    ipcRenderer.on('update-available', (event, info) => callback(info))
+    const handler = (event, info) => callback(info)
+    ipcRenderer.on('update-available', handler)
+    return () => ipcRenderer.removeListener('update-available', handler)
   },
   onUpdateDownloadProgress: (callback) => {
-    ipcRenderer.on('update-download-progress', (event, progress) => callback(progress))
+    const handler = (event, progress) => callback(progress)
+    ipcRenderer.on('update-download-progress', handler)
+    return () => ipcRenderer.removeListener('update-download-progress', handler)
   },
   onUpdateDownloaded: (callback) => {
-    ipcRenderer.on('update-downloaded', (event) => callback())
+    const handler = (event) => callback()
+    ipcRenderer.on('update-downloaded', handler)
+    return () => ipcRenderer.removeListener('update-downloaded', handler)
   },
   onUpdateBackgroundComplete: (callback) => {
-    ipcRenderer.on('update-background-complete', (event, info) => callback(info))
+    const handler = (event, info) => callback(info)
+    ipcRenderer.on('update-background-complete', handler)
+    return () => ipcRenderer.removeListener('update-background-complete', handler)
   },
   removeUpdateListener: (channel, callback) => {
     ipcRenderer.removeListener(channel, callback)
   },
   onAutoCheckUpdate: (callback) => {
-    ipcRenderer.on('auto-check-update', (event) => callback())
+    const handler = (event) => callback()
+    ipcRenderer.on('auto-check-update', handler)
+    return () => ipcRenderer.removeListener('auto-check-update', handler)
   },
   onInstallUpdate: (callback) => {
-    ipcRenderer.on('install-update', (event) => callback())
+    const handler = (event) => callback()
+    ipcRenderer.on('install-update', handler)
+    return () => ipcRenderer.removeListener('install-update', handler)
   },
 
   // 待安装更新相关 API
@@ -151,12 +169,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 云同步事件监听
   onCloudSyncStatusChanged: (callback) => {
-    ipcRenderer.on('cloud-sync:status-changed', (_event, state) => callback(state))
+    const handler = (_event, state) => callback(state)
+    ipcRenderer.on('cloud-sync:status-changed', handler)
+    return () => ipcRenderer.removeListener('cloud-sync:status-changed', handler)
   },
   onCloudSyncProgress: (callback) => {
-    ipcRenderer.on('cloud-sync:sync-progress', (_event, progress) => callback(progress))
+    const handler = (_event, progress) => callback(progress)
+    ipcRenderer.on('cloud-sync:sync-progress', handler)
+    return () => ipcRenderer.removeListener('cloud-sync:sync-progress', handler)
   },
   onCloudSyncConflict: (callback) => {
-    ipcRenderer.on('cloud-sync:conflict-detected', (_event, info) => callback(info))
+    const handler = (_event, info) => callback(info)
+    ipcRenderer.on('cloud-sync:conflict-detected', handler)
+    return () => ipcRenderer.removeListener('cloud-sync:conflict-detected', handler)
   },
 })

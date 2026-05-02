@@ -90,7 +90,7 @@ describe('SyncService', () => {
 
   beforeEach(() => {
     mockReadSettings = vi.fn(() => createBaseSettings())
-    mockWriteSettings = vi.fn()
+    mockWriteSettings = vi.fn(() => Promise.resolve())
     mockLogger = createMockLogger()
     mockProvider = createMockProvider()
     mockSafeStorage = {
@@ -1532,47 +1532,47 @@ describe('SyncService', () => {
     })
 
     describe('cachePassword / clearCachedPassword', () => {
-      it('should cache and retrieve password', () => {
-        service.cachePassword('my-secret', { persist: false })
+      it('should cache and retrieve password', async () => {
+        await service.cachePassword('my-secret', { persist: false })
         expect(service._cachedPassword).toBe('my-secret')
       })
 
-      it('should clear cached password', () => {
-        service.cachePassword('my-secret', { persist: false })
-        service.clearCachedPassword()
+      it('should clear cached password', async () => {
+        await service.cachePassword('my-secret', { persist: false })
+        await service.clearCachedPassword()
         expect(service._cachedPassword).toBeNull()
       })
 
-      it('should persist encrypted password when persist option is true', () => {
-        service.cachePassword('my-secret', { persist: true })
+      it('should persist encrypted password when persist option is true', async () => {
+        await service.cachePassword('my-secret', { persist: true })
         expect(service._cachedPassword).toBe('my-secret')
         // 验证 writeSettings 被调用来持久化加密密码
         const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
         expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeDefined()
       })
 
-      it('should not persist password when persist option is false', () => {
+      it('should not persist password when persist option is false', async () => {
         const beforeCount = mockWriteSettings.mock.calls.length
-        service.cachePassword('my-secret', { persist: false })
+        await service.cachePassword('my-secret', { persist: false })
         // cachePassword 不应额外调用 writeSettings
         expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
       })
 
-      it('should NOT persist password by default (M-1: secure default)', () => {
+      it('should NOT persist password by default (M-1: secure default)', async () => {
         const beforeCount = mockWriteSettings.mock.calls.length
         // 不传 options，使用默认值
-        service.cachePassword('my-secret')
+        await service.cachePassword('my-secret')
         expect(service._cachedPassword).toBe('my-secret')
         // 默认不持久化：writeSettings 不应被额外调用
         expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
       })
 
-      it('should clear persisted password on clearCachedPassword', () => {
-        service.cachePassword('my-secret', { persist: true })
+      it('should clear persisted password on clearCachedPassword', async () => {
+        await service.cachePassword('my-secret', { persist: true })
         // 让 mockReadSettings 返回包含加密密码的设置
         const persistedSettings = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
         mockReadSettings.mockReturnValue(persistedSettings)
-        service.clearCachedPassword()
+        await service.clearCachedPassword()
         expect(service._cachedPassword).toBeNull()
         // 验证持久化密码被清除
         const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
@@ -1580,22 +1580,22 @@ describe('SyncService', () => {
       })
 
       // L-9：公共方法替代外部访问私有字段
-      it('hasCachedPassword() returns true after cachePassword (L-9)', () => {
+      it('hasCachedPassword() returns true after cachePassword (L-9)', async () => {
         expect(service.hasCachedPassword()).toBe(false)
-        service.cachePassword('my-secret', { persist: false })
+        await service.cachePassword('my-secret', { persist: false })
         expect(service.hasCachedPassword()).toBe(true)
       })
 
-      it('hasCachedPassword() returns false after clearCachedPassword (L-9)', () => {
-        service.cachePassword('my-secret', { persist: false })
-        service.clearCachedPassword()
+      it('hasCachedPassword() returns false after clearCachedPassword (L-9)', async () => {
+        await service.cachePassword('my-secret', { persist: false })
+        await service.clearCachedPassword()
         expect(service.hasCachedPassword()).toBe(false)
       })
 
-      it('persistCachedPassword() persists existing cached password (L-9)', () => {
-        service.cachePassword('my-secret', { persist: false })
+      it('persistCachedPassword() persists existing cached password (L-9)', async () => {
+        await service.cachePassword('my-secret', { persist: false })
         const beforeCount = mockWriteSettings.mock.calls.length
-        const result = service.persistCachedPassword()
+        const result = await service.persistCachedPassword()
         expect(result).toBe(true)
         // 应触发一次 writeSettings 写入加密密码
         expect(mockWriteSettings.mock.calls.length).toBe(beforeCount + 1)
@@ -1603,21 +1603,21 @@ describe('SyncService', () => {
         expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeDefined()
       })
 
-      it('persistCachedPassword() returns false and writes nothing when no cache (L-9)', () => {
+      it('persistCachedPassword() returns false and writes nothing when no cache (L-9)', async () => {
         const beforeCount = mockWriteSettings.mock.calls.length
-        const result = service.persistCachedPassword()
+        const result = await service.persistCachedPassword()
         expect(result).toBe(false)
         expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
       })
 
-      it('clearPersistedPassword() clears disk-only, keeps memory cache (L-9)', () => {
+      it('clearPersistedPassword() clears disk-only, keeps memory cache (L-9)', async () => {
         // 先持久化
-        service.cachePassword('my-secret', { persist: true })
+        await service.cachePassword('my-secret', { persist: true })
         const persistedSettings =
           mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
         mockReadSettings.mockReturnValue(persistedSettings)
 
-        service.clearPersistedPassword()
+        await service.clearPersistedPassword()
 
         // 内存缓存仍在
         expect(service.hasCachedPassword()).toBe(true)
@@ -1628,9 +1628,9 @@ describe('SyncService', () => {
     })
 
     describe('restorePersistedPassword', () => {
-      it('should restore password from persistent storage', () => {
+      it('should restore password from persistent storage', async () => {
         // 先持久化一个密码
-        service.cachePassword('restored-pass', { persist: true })
+        await service.cachePassword('restored-pass', { persist: true })
         // 获取持久化后的设置
         const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
         // 让 mockReadSettings 返回包含加密密码的设置

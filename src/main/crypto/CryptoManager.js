@@ -1,6 +1,16 @@
 const crypto = require('crypto')
 
-const SENSITIVE_KEYS = new Set(['apiKey'])
+// P0-03：扩展敏感字段集合，涵盖所有凭据类字段
+// 云同步加密时会递归匹配这些 key 进行字段级加密
+const SENSITIVE_KEYS = new Set([
+  'apiKey',
+  'password',
+  'token',
+  'secret',
+  'credential',
+  'accessToken',
+  'refreshToken',
+])
 const ENC_PREFIX = '$enc:'
 
 class CryptoManager {
@@ -97,10 +107,16 @@ class CryptoManager {
       const result = {}
       for (const [k, v] of Object.entries(obj)) {
         if (k === '_salt') continue
+        // P0-03: env 和 headers 的所有值都应加密（可能包含 API token / 凭据）
         if (k === 'env' && v && typeof v === 'object') {
           result[k] = {}
           for (const [ek, ev] of Object.entries(v)) {
             result[k][ek] = this.encryptField(String(ev), key)
+          }
+        } else if (k === 'headers' && v && typeof v === 'object') {
+          result[k] = {}
+          for (const [hk, hv] of Object.entries(v)) {
+            result[k][hk] = this.encryptField(String(hv), key)
           }
         } else if (SENSITIVE_KEYS.has(k) && typeof v === 'string') {
           result[k] = this.encryptField(v, key)
@@ -127,12 +143,20 @@ class CryptoManager {
       const result = {}
       for (const [k, v] of Object.entries(obj)) {
         if (k === '_salt') continue
+        // P0-03: env 和 headers 的值在加密时全部加密，解密时逐个还原
         if (k === 'env' && v && typeof v === 'object') {
           result[k] = {}
           for (const [ek, ev] of Object.entries(v)) {
             result[k][ek] = typeof ev === 'string' && ev.startsWith(ENC_PREFIX)
               ? this.decryptField(ev, key)
               : ev
+          }
+        } else if (k === 'headers' && v && typeof v === 'object') {
+          result[k] = {}
+          for (const [hk, hv] of Object.entries(v)) {
+            result[k][hk] = typeof hv === 'string' && hv.startsWith(ENC_PREFIX)
+              ? this.decryptField(hv, key)
+              : hv
           }
         } else if (typeof v === 'string' && v.startsWith(ENC_PREFIX)) {
           result[k] = this.decryptField(v, key)

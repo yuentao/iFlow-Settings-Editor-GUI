@@ -3,7 +3,7 @@
  * 处理云同步相关的 IPC 通信
  */
 
-const { ipcMain, BrowserWindow } = require('electron')
+const { ipcMain, BrowserWindow, safeStorage } = require('electron')
 const crypto = require('crypto')
 const { wrapIpcHandler } = require('../utils/errors')
 const SyncService = require('../services/SyncService')
@@ -15,6 +15,49 @@ const { createLogger } = require('../utils/logger')
 const logger = createLogger('CloudSync')
 const syncService = new SyncService()
 const cryptoMgr = new CryptoManager()
+
+// P0-03：providerConfig 密码加密前缀，标识 safeStorage 加密的数据
+const _ENC_PROVIDER_PREFIX = '$encProvider:'
+
+/**
+ * P0-03：加密 providerConfig 中的敏感字段（password）
+ * 使用 Electron safeStorage（Windows DPAPI / macOS Keychain / Linux libsecret）
+ * @param {object} config - 原始 providerConfig
+ * @returns {object} 加密后的 providerConfig（password 被替换为加密值）
+ */
+function encryptProviderConfig(config) {
+  if (!config || !config.password) return config
+  if (!safeStorage.isEncryptionAvailable()) {
+    logger.warn('safeStorage not available, WebDAV password will be stored in plaintext')
+    return config
+  }
+  const encrypted = safeStorage.encryptString(config.password)
+  return { ...config, password: _ENC_PROVIDER_PREFIX + encrypted.toString('base64') }
+}
+
+/**
+ * P0-03：解密 providerConfig 中的敏感字段（password）
+ * @param {object} config - 可能含加密 password 的 providerConfig
+ * @returns {object} 解密后的 providerConfig
+ */
+function decryptProviderConfig(config) {
+  if (!config || !config.password) return config
+  if (typeof config.password === 'string' && config.password.startsWith(_ENC_PROVIDER_PREFIX)) {
+    if (!safeStorage.isEncryptionAvailable()) {
+      logger.warn('safeStorage not available, cannot decrypt WebDAV password')
+      return { ...config, password: '' }
+    }
+    try {
+      const encrypted = Buffer.from(config.password.slice(_ENC_PROVIDER_PREFIX.length), 'base64')
+      const decrypted = safeStorage.decryptString(encrypted)
+      return { ...config, password: decrypted }
+    } catch (err) {
+      logger.warn('Failed to decrypt WebDAV password (safeStorage key may have changed):', err && err.message ? err.message : err)
+      return { ...config, password: '' }
+    }
+  }
+  return config
+}
 
 /**
  * L-10：把最新同步状态广播到所有渲染窗口
@@ -49,7 +92,9 @@ function initProvider() {
 
   if (cs.provider === 'webdav') {
     try {
-      const provider = new WebDAVProvider(cs.providerConfig)
+      // P0-03：解密 providerConfig 中的密码后再创建 provider
+      const decryptedConfig = decryptProviderConfig(cs.providerConfig)
+      const provider = new WebDAVProvider(decryptedConfig)
       syncService.setProvider(provider)
     } catch (err) {
       logger.error('Failed to init WebDAV provider', err)
@@ -105,8 +150,9 @@ function registerCloudSyncIpcHandlers() {
     const settings = readSettings() || {}
     settings.cloudSync = settings.cloudSync || {}
     settings.cloudSync.provider = provider
-    settings.cloudSync.providerConfig = config
-    writeSettings(settings)
+    // P0-03：加密 providerConfig 中的密码后再持久化
+    settings.cloudSync.providerConfig = encryptProviderConfig(config)
+    await writeSettings(settings)
     initProvider()
     // 不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理
     return { success: true }
@@ -124,7 +170,7 @@ function registerCloudSyncIpcHandlers() {
     const settings = readSettings() || {}
     settings.cloudSync = settings.cloudSync || {}
     delete settings.cloudSync.providerConfig
-    writeSettings(settings)
+    await writeSettings(settings)
     syncService.setProvider(null)
     syncService.clearCachedPassword()
     // 不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理
@@ -145,7 +191,7 @@ function registerCloudSyncIpcHandlers() {
     settings.cloudSync = settings.cloudSync || {}
     settings.cloudSync.passwordHash = hash
     settings.cloudSync.passwordSalt = salt.toString('base64')
-    writeSettings(settings)
+    await writeSettings(settings)
 
     // 缓存密码（持久化与否由 rememberSyncPassword 开关决定，M-1）
     cachePasswordWithSettings(password)
@@ -197,7 +243,7 @@ function registerCloudSyncIpcHandlers() {
     const newHash = cryptoMgr.hashKey(newKey)
     settings.cloudSync.passwordHash = newHash
     settings.cloudSync.passwordSalt = newSalt.toString('base64')
-    writeSettings(settings)
+    await writeSettings(settings)
 
     // 缓存新密码（持久化与否由 rememberSyncPassword 开关决定，M-1）
     cachePasswordWithSettings(newPassword)
@@ -243,7 +289,7 @@ function registerCloudSyncIpcHandlers() {
     const settings = readSettings() || {}
     settings.cloudSync = settings.cloudSync || {}
     settings.cloudSync.rememberSyncPassword = enabled
-    writeSettings(settings)
+    await writeSettings(settings)
 
     if (enabled) {
       // 用户明确启用：若当前内存中有密码则立即持久化
@@ -289,7 +335,7 @@ function registerCloudSyncIpcHandlers() {
         delete settings.cloudSync.autoSyncEncryptedPassword
         cleared = true
       }
-      if (cleared) writeSettings(settings)
+      if (cleared) await writeSettings(settings)
     }
 
     return { success: true, cleared }
@@ -306,7 +352,7 @@ function registerCloudSyncIpcHandlers() {
     const settings = readSettings() || {}
     settings.cloudSync = settings.cloudSync || {}
     settings.cloudSync.deviceName = name
-    writeSettings(settings)
+    await writeSettings(settings)
     return { success: true }
   }, 'cloud-sync:set-device-name'))
 

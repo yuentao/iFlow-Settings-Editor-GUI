@@ -13,6 +13,12 @@ const { wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 // 技能文件夹路径
 const SKILLS_FOLDER = path.join(app.getPath('home'), '.iflow', 'skills')
 
+// P0-04：防止路径遍历攻击，确保用户输入的名称不会逃逸出目标目录
+function isPathSafe(baseDir, userInput) {
+  const resolved = path.resolve(baseDir, userInput)
+  return resolved.startsWith(baseDir + path.sep) || resolved === baseDir
+}
+
 // 确保技能文件夹存在
 function ensureSkillsFolder() {
   if (!fs.existsSync(SKILLS_FOLDER)) {
@@ -236,6 +242,10 @@ function registerSkillsIpcHandlers() {
     const { URL } = require('url')
 
     ensureSkillsFolder()
+    // P0-04：防止路径遍历
+    if (!isPathSafe(SKILLS_FOLDER, name)) {
+      return { success: false, error: t('messages.skillNotFound', { name }), code: ErrorCodes.SKILL_NOT_FOUND }
+    }
     const destPath = path.join(SKILLS_FOLDER, name)
 
     if (fs.existsSync(destPath)) {
@@ -278,6 +288,10 @@ function registerSkillsIpcHandlers() {
     const mainWindow = getMainWindow()
 
 
+    // P0-04：防止路径遍历
+    if (!isPathSafe(SKILLS_FOLDER, folderName)) {
+      return { success: false, error: t('messages.skillNotFound', { name }), code: ErrorCodes.SKILL_NOT_FOUND }
+    }
     const skillPath = path.join(SKILLS_FOLDER, folderName)
     if (!fs.existsSync(skillPath)) {
       return { success: false, error: t('messages.skillNotFound', { name }), code: ErrorCodes.SKILL_NOT_FOUND }
@@ -304,6 +318,10 @@ function registerSkillsIpcHandlers() {
 
   // 删除技能
   ipcMain.handle('delete-skill', wrapIpcHandler(async (event, name) => {
+    // P0-04：防止路径遍历
+    if (!isPathSafe(SKILLS_FOLDER, name)) {
+      return { success: false, error: t('messages.skillNotFound', { name }), code: ErrorCodes.SKILL_NOT_FOUND }
+    }
     const skillPath = path.join(SKILLS_FOLDER, name)
     if (!fs.existsSync(skillPath)) {
       return { success: false, error: t('messages.skillNotFound', { name }), code: ErrorCodes.SKILL_NOT_FOUND }

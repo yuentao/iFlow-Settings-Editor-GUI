@@ -19,10 +19,10 @@ function getAutoLaunchSettings() {
  * 设置开机自启动
  * @param {boolean} enabled - 是否启用
  */
-function setAutoLaunchEnabled(enabled) {
+async function setAutoLaunchEnabled(enabled) {
   const settings = readSettings() || {}
   settings.autoLaunch = enabled
-  writeSettings(settings)
+  await writeSettings(settings)
 
   // 设置 Electron 的自启动
   if (app.isReady()) {
