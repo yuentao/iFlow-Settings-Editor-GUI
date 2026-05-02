@@ -130,7 +130,8 @@ function registerCloudSyncIpcHandlers() {
   // ====== 同步状态 ======
 
   ipcMain.handle('cloud-sync:get-status', wrapIpcHandler(async () => {
-    return { success: true, ...syncService.getStatus() }
+    const status = syncService.getStatus()
+    return { success: true, ...status }
   }, 'cloud-sync:get-status'))
 
   ipcMain.handle('cloud-sync:set-auto-sync', wrapIpcHandler(async (_event, enabled) => {

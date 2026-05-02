@@ -410,6 +410,7 @@ class SyncService {
       lastSyncAt: cs.lastSyncAt || null,
       lastSyncError: cs.lastSyncError || null,
       isSyncing: this.isSyncing,
+      rememberSyncPassword: cs.rememberSyncPassword === true,
     }
   }
 

@@ -356,7 +356,7 @@
                 <p class="setting-desc">{{ $t('cloudSync.rememberPasswordDesc') }}</p>
               </div>
               <label class="switch">
-                <input type="checkbox" :checked="cloudStore.rememberPassword" @change="onToggleRememberPassword" />
+                <input type="checkbox" :checked="cloudStore.rememberSyncPassword" @change="onToggleRememberPassword" />
                 <span class="slider"></span>
               </label>
             </div>

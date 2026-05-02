@@ -43,6 +43,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   const isTestingConnection = ref(false)
   const isSyncing = ref(false)
   const rememberPassword = ref(false)
+  const rememberSyncPassword = ref(false)
   const connectionTestResult = ref<{ success: boolean; message?: string } | null>(null)
 
   // 密码缓存（仅内存中，不持久化）
@@ -79,6 +80,18 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   })
 
   // Actions
+  async function loadSettings(): Promise<void> {
+    try {
+      const result = await window.electronAPI.loadSettings()
+      if (result.success && result.data) {
+        // 从完整设置中读取 rememberSyncPassword
+        rememberSyncPassword.value = result.data.cloudSync?.rememberSyncPassword === true
+      }
+    } catch (error) {
+      console.error('[CloudSync] Failed to load settings:', error)
+    }
+  }
+
   async function loadStatus() {
     try {
       const result = await window.electronAPI.cloudSyncGetStatus()
@@ -88,6 +101,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
         // 即使写入也无副作用，但为避免污染 status 形状，此处显式排除）
         const { success: _success, ...rest } = result
         Object.assign(status.value, rest)
+        rememberSyncPassword.value = rest.rememberSyncPassword || false
       }
     } catch (error) {
       console.error('[CloudSync] Failed to load status:', error)
@@ -365,6 +379,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     statusText,
     syncEnabled,
     autoSyncEnabled,
+    loadSettings,
     loadStatus,
     setAutoSync,
     setSyncEnabled,
@@ -381,10 +396,12 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     push,
     clearCloud,
     loadDevices,
+    loadSettings,
     setDeviceName,
     removeDevice,
     clearCachedPassword,
     rememberPassword,
+    rememberSyncPassword,
     getRememberPassword,
     setRememberPasswordValue,
   }
