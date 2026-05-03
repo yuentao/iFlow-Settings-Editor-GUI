@@ -9,7 +9,7 @@
     </div>
 
     <main class="main">
-      <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" @navigate="showSection" />
+      <SideBar :current-section="currentSection" @navigate="showSection" />
 
       <div class="content">
         <template v-if="isLoading">
