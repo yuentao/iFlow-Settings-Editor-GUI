@@ -18,7 +18,8 @@ export default {
     advanced: 'Advanced',
     mcpServers: 'MCP Servers',
     skills: 'Skills',
-    commands: 'Commands'
+    commands: 'Commands',
+    docs: 'Docs'
   },
   dashboard: {
     title: 'Dashboard',
@@ -512,4 +513,32 @@ export default {
       allFiles: 'All Files',
     },
   },
+  docs: {
+    title: 'Documentation',
+    description: 'Complete iFlow CLI documentation and guides',
+    quickStart: 'Quick Start',
+    coreFeatures: 'Core Features',
+    advancedFeatures: 'Advanced Features',
+    configuration: 'Configuration',
+    reference: 'Reference',
+    basicUsage: 'Basic Usage',
+    interactiveMode: 'Interactive Mode',
+    keyboardShortcuts: 'Keyboard Shortcuts',
+    slashCommands: 'Slash Commands',
+    mcp: 'MCP Servers',
+    subAgent: 'Sub Agent',
+    subCommand: 'Sub Command',
+    hooks: 'Hooks',
+    workflow: 'Workflow',
+    skill: 'Skill',
+    planMode: 'Plan Mode',
+    cliConfig: 'CLI Config',
+    bestPractices: 'Best Practices',
+    glossary: 'Glossary',
+    scenarios: 'Scenarios',
+    changelog: 'Changelog',
+    docNotFound: 'Document not found',
+    loadFailed: 'Failed to load document',
+    retry: 'Retry'
+  }
 }

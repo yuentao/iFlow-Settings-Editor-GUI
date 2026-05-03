@@ -33,6 +33,10 @@
           <span class="nav-item-text">{{ $t('sidebar.commands') }}</span>
           <span class="nav-item-badge" v-show="!collapsed">{{ commandCount }}</span>
         </div>
+        <div class="nav-item" :class="{ active: currentSection === 'docs' }" @click="$emit('navigate', 'docs')">
+          <Book size="16" />
+          <span class="nav-item-text">{{ $t('sidebar.docs') }}</span>
+        </div>
       </div>
     </div>
     <div class="collapse-btn" @click="toggleCollapse">
@@ -46,7 +50,7 @@
  * SideBar - 侧边导航栏组件
  */
 import { ref } from 'vue'
-import { Config, Key, Server, Star, Dashboard, Command } from '@icon-park/vue-next'
+import { Config, Key, Server, Star, Dashboard, Command, Book } from '@icon-park/vue-next'
 
 interface Props {
   currentSection?: string

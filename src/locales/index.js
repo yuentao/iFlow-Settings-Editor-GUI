@@ -18,7 +18,8 @@ export default {
     advanced: '高级',
     mcpServers: 'MCP 服务器',
     skills: '技能',
-    commands: '命令'
+    commands: '命令',
+    docs: '使用指南'
   },
   dashboard: {
     title: '仪表盘',
@@ -523,4 +524,32 @@ export default {
       allFiles: '所有文件',
     },
   },
+  docs: {
+    title: '使用指南',
+    description: 'iFlow CLI 完整文档和操作指南',
+    quickStart: '快速入门',
+    coreFeatures: '核心功能',
+    advancedFeatures: '高级功能',
+    configuration: '配置管理',
+    reference: '参考文档',
+    basicUsage: '基础用法',
+    interactiveMode: '交互模式',
+    keyboardShortcuts: '键盘快捷键',
+    slashCommands: '斜杠命令',
+    mcp: 'MCP 服务器',
+    subAgent: 'Sub Agent',
+    subCommand: 'Sub Command',
+    hooks: 'Hooks',
+    workflow: 'Workflow',
+    skill: 'Skill',
+    planMode: '计划模式',
+    cliConfig: 'CLI 配置',
+    bestPractices: '最佳实践',
+    glossary: '术语词汇表',
+    scenarios: '场景案例',
+    changelog: '变更日志',
+    docNotFound: '文档未找到',
+    loadFailed: '加载文档失败',
+    retry: '重试'
+  }
 }

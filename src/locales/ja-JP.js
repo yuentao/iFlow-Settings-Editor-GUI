@@ -18,7 +18,8 @@ export default {
     advanced: '詳細',
     mcpServers: 'MCP サーバー',
     skills: 'スキル',
-    commands: 'コマンド'
+    commands: 'コマンド',
+    docs: 'ドキュメント'
   },
   dashboard: {
     title: 'ダッシュボード',
@@ -513,4 +514,32 @@ export default {
       allFiles: 'すべてのファイル',
     },
   },
+  docs: {
+    title: 'ドキュメント',
+    description: 'iFlow CLI 完全ドキュメントとガイド',
+    quickStart: 'クイックスタート',
+    coreFeatures: 'コア機能',
+    advancedFeatures: '詳細機能',
+    configuration: '設定',
+    reference: 'リファレンス',
+    basicUsage: '基本用法',
+    interactiveMode: 'インタラクティブモード',
+    keyboardShortcuts: 'キーボードショートカット',
+    slashCommands: 'スラッシュコマンド',
+    mcp: 'MCP サーバー',
+    subAgent: 'Sub Agent',
+    subCommand: 'Sub Command',
+    hooks: 'Hooks',
+    workflow: 'Workflow',
+    skill: 'Skill',
+    planMode: '計画モード',
+    cliConfig: 'CLI 設定',
+    bestPractices: 'ベストプラクティス',
+    glossary: '用語集',
+    scenarios: 'シナリオ',
+    changelog: '変更ログ',
+    docNotFound: 'ドキュメントが見つかりません',
+    loadFailed: 'ドキュメントの読み込みに失敗しました',
+    retry: '再試行'
+  }
 }

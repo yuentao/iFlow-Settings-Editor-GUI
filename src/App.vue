@@ -46,6 +46,8 @@
           <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
 
           <CommandsView v-if="currentSection === 'commands'" @show-message="showMessage" @show-input-dialog="showInput" @commands-changed="onCommandsChanged" />
+
+          <DocsView v-if="currentSection === 'docs'" />
         </template>
       </div>
     </main>
@@ -173,6 +175,12 @@ const SkillsView = defineAsyncComponent({
 })
 const CommandsView = defineAsyncComponent({
   loader: () => import('./views/CommandsView.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200,
+})
+const DocsView = defineAsyncComponent({
+  loader: () => import('./views/DocsView.vue'),
   loadingComponent,
   errorComponent,
   delay: 200,
