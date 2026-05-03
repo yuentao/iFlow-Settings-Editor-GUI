@@ -280,6 +280,13 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   async function clearCloud() {
     try {
       const result = await window.electronAPI.cloudSyncClearCloud()
+      if (result.success) {
+        // 清空云端后从主进程重新加载完整状态，确保 UI 全部刷新
+        devices.value = []
+        setAutoSyncEnabled(false)
+        await window.electronAPI.cloudSyncSetAutoSync(false)
+        await loadStatus()
+      }
       return result
     } catch (error) {
       console.error('[CloudSync] Failed to clear cloud:', error)

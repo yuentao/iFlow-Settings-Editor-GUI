@@ -197,7 +197,7 @@ describe('SyncService', () => {
       const data = service._extractSyncData(settings)
 
       expect(data.apiProfiles).toEqual(settings.apiProfiles)
-      expect(data.currentApiProfile).toBe('default')
+      expect(data.currentApiProfile).toBeUndefined()
       expect(data.mcpServers).toEqual(settings.mcpServers)
       expect(data.apiProfilesOrder).toEqual(['default'])
       // 不应包含设备偏好
@@ -208,7 +208,7 @@ describe('SyncService', () => {
     it('should handle missing fields with defaults', () => {
       const data = service._extractSyncData({})
       expect(data.apiProfiles).toEqual({})
-      expect(data.currentApiProfile).toBe('default')
+      expect(data.currentApiProfile).toBeUndefined()
       expect(data.mcpServers).toEqual({})
       expect(data.apiProfilesOrder).toEqual([])
     })
@@ -328,8 +328,9 @@ describe('SyncService', () => {
       expect(local.apiProfilesOrder).toEqual(['default', 'staging', 'production'])
     })
 
-    it('should take currentApiProfile from latest remote', () => {
+    it('should NOT sync currentApiProfile from remote (device-level preference)', () => {
       const local = createBaseSettings()
+      local.currentApiProfile = 'default'
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
@@ -344,7 +345,8 @@ describe('SyncService', () => {
       }]
 
       service._mergeConfigs(local, remoteConfigs)
-      expect(local.currentApiProfile).toBe('production')
+      // currentApiProfile 是设备级偏好，不应被远端值覆盖
+      expect(local.currentApiProfile).toBe('default')
     })
 
     it('should handle multiple remote configs (sorted by timestamp desc)', () => {
@@ -380,8 +382,8 @@ describe('SyncService', () => {
       // 两个远程 profile 都应该被加入
       expect(local.apiProfiles.old).toBeDefined()
       expect(local.apiProfiles.new).toBeDefined()
-      // currentApiProfile 应取最新的远程值
-      expect(local.currentApiProfile).toBe('new')
+      // currentApiProfile 是设备级偏好，不应被远端值覆盖
+      expect(local.currentApiProfile).toBe('default')
     })
 
     it('should not modify localSettings when no remote configs', () => {
@@ -389,37 +391,6 @@ describe('SyncService', () => {
       const originalDefault = local.apiProfiles.default
       service._mergeConfigs(local, [])
       expect(local.apiProfiles.default).toBe(originalDefault)
-    })
-
-    it('should sync top-level API fields after merge', () => {
-      const local = createBaseSettings()
-      // local profile 的 _lastModified 未设置（默认为 0）
-      local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
-      // 顶层字段是旧值
-      local.apiKey = 'sk-old-key'
-      local.baseUrl = 'https://old.com'
-      local.modelName = 'old-model'
-
-      const remoteConfigs = [{
-        deviceId: 'remote-1',
-        deviceName: 'RemotePC',
-        timestamp: '2026-04-25T10:00:00Z',
-        data: {
-          apiProfiles: {
-            default: { apiKey: 'sk-merged-key', baseUrl: 'https://merged.com', modelName: 'merged-model', _lastModified: '2026-04-25T09:00:00Z' },
-          },
-          mcpServers: {},
-          apiProfilesOrder: [],
-          currentApiProfile: 'default',
-        },
-      }]
-
-      service._mergeConfigs(local, remoteConfigs)
-
-      // 顶层 API 字段应该与 apiProfiles.default 的合并数据一致
-      expect(local.apiKey).toBe('sk-merged-key')
-      expect(local.baseUrl).toBe('https://merged.com')
-      expect(local.modelName).toBe('merged-model')
     })
 
     it('should merge mcpServers with overwrite-when-newer strategy', () => {
@@ -594,7 +565,7 @@ describe('SyncService', () => {
       expect(local._deletedServers['my-server']).toBeDefined()
     })
 
-    it('should fall back currentApiProfile to default if it was tombstoned', () => {
+    it('should NOT change currentApiProfile even if the profile it points to is tombstoned (device-level preference)', () => {
       const local = createBaseSettings()
       local.apiProfiles = {
         default: local.apiProfiles.default,
@@ -612,7 +583,7 @@ describe('SyncService', () => {
           },
           mcpServers: {},
           apiProfilesOrder: ['default'],
-          currentApiProfile: 'staging',
+          currentApiProfile: 'production',
           _deletedProfiles: {
             staging: { deletedAt: '2026-04-26T12:00:00Z' },
           },
@@ -622,7 +593,8 @@ describe('SyncService', () => {
 
       service._mergeConfigs(local, remoteConfigs)
       expect(local.apiProfiles.staging).toBeUndefined()
-      expect(local.currentApiProfile).toBe('default')
+      // currentApiProfile 是设备级偏好，即使指向的 profile 被 tombstone 也不自动切换
+      expect(local.currentApiProfile).toBe('staging')
     })
 
     // ─── N-1 修复：旧数据迁移 + 从未同步场景 ───────────

@@ -652,9 +652,9 @@ class SyncService {
    */
   _extractSyncData(settings) {
     // 不再在这里为 item 添加 _lastModified，避免影响合并比较
+    // currentApiProfile 是设备级偏好（每台设备可能使用不同配置），不参与同步
     return {
       apiProfiles: settings.apiProfiles || {},
-      currentApiProfile: settings.currentApiProfile || 'default',
       mcpServers: settings.mcpServers || {},
       apiProfilesOrder: settings.apiProfilesOrder || [],
       // tombstone 一并上传，让其他设备据此物理删除已删条目
@@ -889,25 +889,13 @@ class SyncService {
       for (const name of (remote.data.apiProfilesOrder || [])) _pushOrder(name)
     }
 
-    // currentApiProfile：取最新远程值；若被 tombstone 显式删除则回退到 default 或任一存活 profile
-    const latestRemote = remoteConfigs[0]
-    let mergedCurrent = latestRemote
-      ? latestRemote.data.currentApiProfile || local.currentApiProfile
-      : local.currentApiProfile
-    if (mergedCurrent && _profileTombT(mergedCurrent) > 0) {
-      if ('default' in mergedProfiles) {
-        mergedCurrent = 'default'
-      } else {
-        const survivors = Object.keys(mergedProfiles)
-        mergedCurrent = survivors[0] || 'default'
-      }
-    }
+    // currentApiProfile 是设备级偏好，不参与同步，保留本地值
 
     // 应用合并结果
     localSettings.apiProfiles = mergedProfiles
     localSettings.mcpServers = mergedServers
     localSettings.apiProfilesOrder = mergedOrder
-    localSettings.currentApiProfile = mergedCurrent
+    // currentApiProfile 不写入合并结果，保持本地原值
     localSettings._deletedProfiles = mergedDeletedProfiles
     localSettings._deletedServers = mergedDeletedServers
 
@@ -917,18 +905,6 @@ class SyncService {
       pruneOldTombstones(localSettings)
     } catch (_) {
       // 测试环境可能未注入 configService，忽略
-    }
-
-    // 同步顶层 API 字段：确保当前配置的顶层快捷字段与 apiProfiles 中一致
-    // 否则 switch-api-profile 的 extractApiConfig 会用旧的顶层字段覆盖已合并的数据
-    const currentProfile = mergedProfiles[mergedCurrent]
-    if (currentProfile) {
-      const API_FIELDS = require('../constants').API_FIELDS
-      for (const field of API_FIELDS) {
-        if (currentProfile[field] !== undefined) {
-          localSettings[field] = currentProfile[field]
-        }
-      }
     }
   }
 
