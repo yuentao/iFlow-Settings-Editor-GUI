@@ -149,7 +149,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 云同步
   cloudSyncGetStatus: () => ipcRenderer.invoke('cloud-sync:get-status'),
   cloudSyncSetAutoSync: (enabled) => ipcRenderer.invoke('cloud-sync:set-auto-sync', enabled),
-  cloudSyncConfigureProvider: (provider, config) => ipcRenderer.invoke('cloud-sync:configure-provider', provider, config),
+  cloudSyncConfigureProvider: (provider, config, testOnly) => ipcRenderer.invoke('cloud-sync:configure-provider', provider, config, testOnly),
   cloudSyncTestConnection: () => ipcRenderer.invoke('cloud-sync:test-connection'),
   cloudSyncRevokeAuth: () => ipcRenderer.invoke('cloud-sync:revoke-auth'),
   cloudSyncSetPassword: (password) => ipcRenderer.invoke('cloud-sync:set-password', password),

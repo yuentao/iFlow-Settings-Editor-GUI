@@ -3,7 +3,7 @@
  * 处理云同步相关的 IPC 通信
  */
 
-const { ipcMain, BrowserWindow, safeStorage } = require('electron')
+const { ipcMain, BrowserWindow } = require('electron')
 const crypto = require('crypto')
 const { wrapIpcHandler } = require('../utils/errors')
 const SyncService = require('../services/SyncService')
@@ -16,46 +16,21 @@ const logger = createLogger('CloudSync')
 const syncService = new SyncService()
 const cryptoMgr = new CryptoManager()
 
-// P0-03：providerConfig 密码加密前缀，标识 safeStorage 加密的数据
-const _ENC_PROVIDER_PREFIX = '$encProvider:'
-
 /**
- * P0-03：加密 providerConfig 中的敏感字段（password）
- * 使用 Electron safeStorage（Windows DPAPI / macOS Keychain / Linux libsecret）
+ * WebDAV 密码直接明文存储（不加密）
  * @param {object} config - 原始 providerConfig
- * @returns {object} 加密后的 providerConfig（password 被替换为加密值）
+ * @returns {object} 不做加密，直接返回
  */
 function encryptProviderConfig(config) {
-  if (!config || !config.password) return config
-  if (!safeStorage.isEncryptionAvailable()) {
-    logger.warn('safeStorage not available, WebDAV password will be stored in plaintext')
-    return config
-  }
-  const encrypted = safeStorage.encryptString(config.password)
-  return { ...config, password: _ENC_PROVIDER_PREFIX + encrypted.toString('base64') }
+  return config
 }
 
 /**
- * P0-03：解密 providerConfig 中的敏感字段（password）
- * @param {object} config - 可能含加密 password 的 providerConfig
- * @returns {object} 解密后的 providerConfig
+ * WebDAV 密码直接明文读取
+ * @param {object} config - 含密码的 providerConfig
+ * @returns {object} 不做解密，直接返回
  */
 function decryptProviderConfig(config) {
-  if (!config || !config.password) return config
-  if (typeof config.password === 'string' && config.password.startsWith(_ENC_PROVIDER_PREFIX)) {
-    if (!safeStorage.isEncryptionAvailable()) {
-      logger.warn('safeStorage not available, cannot decrypt WebDAV password')
-      return { ...config, password: '' }
-    }
-    try {
-      const encrypted = Buffer.from(config.password.slice(_ENC_PROVIDER_PREFIX.length), 'base64')
-      const decrypted = safeStorage.decryptString(encrypted)
-      return { ...config, password: decrypted }
-    } catch (err) {
-      logger.warn('Failed to decrypt WebDAV password (safeStorage key may have changed):', err && err.message ? err.message : err)
-      return { ...config, password: '' }
-    }
-  }
   return config
 }
 
@@ -147,7 +122,19 @@ function registerCloudSyncIpcHandlers() {
 
   // ====== 云服务配置 ======
 
-  ipcMain.handle('cloud-sync:configure-provider', wrapIpcHandler(async (_event, provider, config) => {
+  ipcMain.handle('cloud-sync:configure-provider', wrapIpcHandler(async (_event, provider, config, testOnly) => {
+    if (testOnly) {
+      // 仅测试模式：不保存配置，直接用临时 provider 测试连接
+      const providerInstance = provider === 'webdav' ? new WebDAVProvider(config) : null
+      if (!providerInstance) return { success: false, error: 'PROVIDER_TYPE_NOT_SUPPORTED' }
+      try {
+        const authorized = await providerInstance.isAuthorized()
+        return { success: true, authorized }
+      } catch (err) {
+        return { success: false, error: err.message || String(err) }
+      }
+    }
+    // 正常模式：保存配置并初始化
     const settings = readSettings() || {}
     settings.cloudSync = settings.cloudSync || {}
     settings.cloudSync.provider = provider
@@ -155,7 +142,6 @@ function registerCloudSyncIpcHandlers() {
     settings.cloudSync.providerConfig = encryptProviderConfig(config)
     await writeSettings(settings)
     initProvider()
-    // 不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理
     return { success: true }
   }, 'cloud-sync:configure-provider'))
 

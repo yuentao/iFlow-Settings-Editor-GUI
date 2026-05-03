@@ -122,10 +122,8 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   async function configureProvider(provider: string, config: Record<string, string>) {
     try {
       const result = await window.electronAPI.cloudSyncConfigureProvider(provider, config)
-      if (result.success) {
-        status.value.provider = provider
-        status.value.isAuthorized = true
-      }
+      // isAuthorized 和 provider 由 testConnection 成功后 caller 负责设置，
+      // 此处不擅自更新，避免测试失败但 settings 写入成功时误将 isAuthorized 置为 true
       return result
     } catch (error) {
       console.error('[CloudSync] Failed to configure provider:', error)

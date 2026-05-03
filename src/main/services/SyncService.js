@@ -610,10 +610,22 @@ class SyncService {
    */
   async getDevices() {
     if (!this.provider) return []
-    const files = await this.provider.list('devices/')
+    let files = []
+    try {
+      files = await this.provider.list('devices/')
+    } catch (error) {
+      // 认证失败或其他 WebDAV 错误：记录详细原因后返回空设备列表
+      this.logger.warn(`Failed to list devices directory: ${error.message}`)
+      return []
+    }
+
+    this.logger.info(`getDevices: found ${files.length} entries in devices/`)
+
     const configFiles = files.filter(
       (f) => f.name.startsWith('config-') && f.name.endsWith('.json')
     )
+
+    this.logger.info(`getDevices: ${configFiles.length} config files after filtering`)
 
     const devices = []
     for (const file of configFiles) {
@@ -913,12 +925,25 @@ class SyncService {
    * @returns {string} UUID
    */
   _getOrCreateDeviceId() {
-    const settings = this.readSettings() || {}
-    if (settings.cloudSync?.deviceId) return settings.cloudSync.deviceId
+    const settings = this.readSettings()
+    if (settings?.cloudSync?.deviceId) return settings.cloudSync.deviceId
+
+    // 如果无法读取现有设置（文件损坏/不存在），生成临时 ID 但不写入
+    // 避免写入只有 deviceId 的不完整数据导致数据丢失
+    if (!settings) {
+      this.logger.warn('Cannot read existing settings, using ephemeral deviceId')
+      return crypto.randomUUID()
+    }
+
     const id = crypto.randomUUID()
-    const updated = this.readSettings() || {}
-    updated.cloudSync = updated.cloudSync || {}
-    updated.cloudSync.deviceId = id
+    // 使用结构化扩展确保完整保留现有数据
+    const updated = {
+      ...settings,
+      cloudSync: {
+        ...(settings.cloudSync || {}),
+        deviceId: id
+      }
+    }
     // Fire-and-forget: deviceId 已缓存在内存，写入失败不影响使用
     this.writeSettings(updated).catch(err => {
       this.logger.error('Failed to persist deviceId:', err.message)
