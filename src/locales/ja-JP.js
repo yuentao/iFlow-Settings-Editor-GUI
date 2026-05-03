@@ -565,6 +565,7 @@ export default {
     changelog: '変更ログ',
     docNotFound: 'ドキュメントが見つかりません',
     loadFailed: 'ドキュメントの読み込みに失敗しました',
-    retry: '再試行'
+    retry: '再試行',
+    toc: '目次'
   }
 }

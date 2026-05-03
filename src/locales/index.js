@@ -575,6 +575,7 @@ export default {
     changelog: '变更日志',
     docNotFound: '文档未找到',
     loadFailed: '加载文档失败',
-    retry: '重试'
+    retry: '重试',
+    toc: '目录'
   }
 }

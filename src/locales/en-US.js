@@ -564,6 +564,7 @@ export default {
     changelog: 'Changelog',
     docNotFound: 'Document not found',
     loadFailed: 'Failed to load document',
-    retry: 'Retry'
+    retry: 'Retry',
+    toc: 'Contents'
   }
 }
