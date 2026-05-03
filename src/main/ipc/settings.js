@@ -86,7 +86,7 @@ function registerSettingsIpcHandlers() {
     // 这是云同步增量合并策略能正确工作的前提
     stampModifiedItems(existing, merged)
 
-    writeSettings(merged)
+    await writeSettings(merged)
 
     // 通知云同步服务：设置已保存，可能需要自动同步
     const { syncService } = require('./cloud')

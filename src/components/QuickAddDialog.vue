@@ -95,7 +95,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { parseMcpInput, ensureUniqueName } from '../main/utils/mcpParser'
+import { parseMcpInput, ensureUniqueName } from '../shared/mcpParser'
 
 const props = defineProps({
   show: Boolean,

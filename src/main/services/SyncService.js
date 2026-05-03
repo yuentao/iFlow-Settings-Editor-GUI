@@ -163,19 +163,19 @@ class SyncService {
    * @param {object} [options]
    * @param {boolean} [options.persist=false] - 是否持久化加密密码
    */
-  cachePassword(password, options = {}) {
+  async cachePassword(password, options = {}) {
     this._cachedPassword = password
     // 默认不持久化；调用方需根据用户设置（如 rememberSyncPassword）显式传 persist:true
     const shouldPersist = options.persist === true
     if (shouldPersist && password) {
-      this._persistEncryptedPassword(password)
+      await this._persistEncryptedPassword(password)
     }
   }
 
   /** 清除缓存的密码，同时清除持久化的加密密码 */
-  clearCachedPassword() {
+  async clearCachedPassword() {
     this._cachedPassword = null
-    this._clearPersistedPassword()
+    await this._clearPersistedPassword()
   }
 
   /**
@@ -191,9 +191,9 @@ class SyncService {
    * 仅当存在缓存时才执行；否则静默返回 false。
    * @returns {boolean} 是否触发了持久化
    */
-  persistCachedPassword() {
+  async persistCachedPassword() {
     if (!this._cachedPassword) return false
-    this._persistEncryptedPassword(this._cachedPassword)
+    await this._persistEncryptedPassword(this._cachedPassword)
     return true
   }
 
@@ -201,8 +201,8 @@ class SyncService {
    * 清除磁盘上持久化的加密密码（保留内存缓存）
    * L-9：暴露公共方法，避免外部访问下划线开头的私有清理函数。
    */
-  clearPersistedPassword() {
-    this._clearPersistedPassword()
+  async clearPersistedPassword() {
+    await this._clearPersistedPassword()
   }
 
   /**
@@ -210,7 +210,7 @@ class SyncService {
    * 使用 Electron safeStorage（操作系统级加密，Windows DPAPI / macOS Keychain）
    * @param {string} password
    */
-  _persistEncryptedPassword(password) {
+  async _persistEncryptedPassword(password) {
     try {
       if (!this.safeStorage.isEncryptionAvailable()) {
         this.logger.warn('safeStorage encryption not available, cannot persist password')
@@ -220,7 +220,7 @@ class SyncService {
       const settings = this.readSettings() || {}
       settings.cloudSync = settings.cloudSync || {}
       settings.cloudSync.autoSyncEncryptedPassword = encrypted.toString('base64')
-      this.writeSettings(settings)
+      await this.writeSettings(settings)
       this.logger.info('Auto-sync password persisted (encrypted)')
     } catch (err) {
       this.logger.error('Failed to persist auto-sync password:', err)
@@ -228,12 +228,12 @@ class SyncService {
   }
 
   /** 清除设置文件中持久化的加密密码 */
-  _clearPersistedPassword() {
+  async _clearPersistedPassword() {
     try {
       const settings = this.readSettings() || {}
       if (settings.cloudSync?.autoSyncEncryptedPassword) {
         delete settings.cloudSync.autoSyncEncryptedPassword
-        this.writeSettings(settings)
+        await this.writeSettings(settings)
       }
     } catch (err) {
       this.logger.error('Failed to clear persisted password:', err)
@@ -410,6 +410,7 @@ class SyncService {
       lastSyncAt: cs.lastSyncAt || null,
       lastSyncError: cs.lastSyncError || null,
       isSyncing: this.isSyncing,
+      rememberSyncPassword: cs.rememberSyncPassword === true,
     }
   }
 
@@ -422,8 +423,9 @@ class SyncService {
     if (!this.provider) throw new Error('SYNC_PROVIDER_REQUIRED')
 
     return this._runExclusive(async () => {
+      let settings = null
       try {
-        const settings = this.readSettings() || {}
+        settings = this.readSettings() || {}
         const syncData = this._extractSyncData(settings)
         const encrypted = this.crypto.encryptSyncData(syncData, password)
 
@@ -439,23 +441,23 @@ class SyncService {
 
         await this.provider.upload(`devices/config-${this.deviceId}.json`, fileContent)
 
-        // 更新元数据
-        const updated = this.readSettings() || {}
-        updated.cloudSync = updated.cloudSync || {}
-        updated.cloudSync.lastSyncAt = new Date().toISOString()
-        updated.cloudSync.lastSyncError = null
+        // 更新元数据（P0-02：直接复用 settings 对象，避免 TOCTOU 二次读取）
+        settings.cloudSync = settings.cloudSync || {}
+        settings.cloudSync.lastSyncAt = new Date().toISOString()
+        settings.cloudSync.lastSyncError = null
         // N-2 修复：push 成功后清除 pushPending 标记
-        delete updated.cloudSync.pushPending
-        this.writeSettings(updated)
+        delete settings.cloudSync.pushPending
+        await this.writeSettings(settings)
 
         this.logger.info('Push succeeded')
         return { success: true }
       } catch (error) {
         this.logger.error('Push failed:', error)
-        const updated = this.readSettings() || {}
-        updated.cloudSync = updated.cloudSync || {}
-        updated.cloudSync.lastSyncError = error.message
-        this.writeSettings(updated)
+        // P0-02：优先复用已有的 settings 对象，避免 TOCTOU 二次读取
+        const errSettings = settings || this.readSettings() || {}
+        errSettings.cloudSync = errSettings.cloudSync || {}
+        errSettings.cloudSync.lastSyncError = error.message
+        await this.writeSettings(errSettings)
         return { success: false, error: error.message }
       }
     })
@@ -470,6 +472,7 @@ class SyncService {
     if (!this.provider) throw new Error('SYNC_PROVIDER_REQUIRED')
 
     return this._runExclusive(async () => {
+      let settings = null
       try {
         const files = await this.provider.list('devices/')
         const configFiles = files.filter(
@@ -522,7 +525,7 @@ class SyncService {
         }
 
         // 合并
-        const settings = this.readSettings() || {}
+        settings = this.readSettings() || {}
         this._mergeConfigs(settings, remoteConfigs)
 
         // 更新元数据并一次性落盘（H-4：合并原本相邻的两次 writeSettings）
@@ -535,7 +538,7 @@ class SyncService {
         if (remoteConfigs.length > 0) {
           settings.cloudSync.pushPending = true
         }
-        this.writeSettings(settings)
+        await this.writeSettings(settings)
 
         this.logger.info(`Pull succeeded, merged ${remoteConfigs.length} remote config(s)`)
         return {
@@ -544,10 +547,12 @@ class SyncService {
         }
       } catch (error) {
         this.logger.error('Pull failed:', error)
-        const updated = this.readSettings() || {}
-        updated.cloudSync = updated.cloudSync || {}
-        updated.cloudSync.lastSyncError = error.message
-        this.writeSettings(updated)
+        // P0-02：优先复用已有的 settings 对象，避免 TOCTOU 二次读取
+        // settings 可能未初始化（错误发生在 readSettings 之前），此时才回退到重新读取
+        const errSettings = settings || this.readSettings() || {}
+        errSettings.cloudSync = errSettings.cloudSync || {}
+        errSettings.cloudSync.lastSyncError = error.message
+        await this.writeSettings(errSettings)
         return { success: false, error: error.message }
       }
     })
@@ -605,10 +610,22 @@ class SyncService {
    */
   async getDevices() {
     if (!this.provider) return []
-    const files = await this.provider.list('devices/')
+    let files = []
+    try {
+      files = await this.provider.list('devices/')
+    } catch (error) {
+      // 认证失败或其他 WebDAV 错误：记录详细原因后返回空设备列表
+      this.logger.warn(`Failed to list devices directory: ${error.message}`)
+      return []
+    }
+
+    this.logger.info(`getDevices: found ${files.length} entries in devices/`)
+
     const configFiles = files.filter(
       (f) => f.name.startsWith('config-') && f.name.endsWith('.json')
     )
+
+    this.logger.info(`getDevices: ${configFiles.length} config files after filtering`)
 
     const devices = []
     for (const file of configFiles) {
@@ -647,9 +664,9 @@ class SyncService {
    */
   _extractSyncData(settings) {
     // 不再在这里为 item 添加 _lastModified，避免影响合并比较
+    // currentApiProfile 是设备级偏好（每台设备可能使用不同配置），不参与同步
     return {
       apiProfiles: settings.apiProfiles || {},
-      currentApiProfile: settings.currentApiProfile || 'default',
       mcpServers: settings.mcpServers || {},
       apiProfilesOrder: settings.apiProfilesOrder || [],
       // tombstone 一并上传，让其他设备据此物理删除已删条目
@@ -884,25 +901,13 @@ class SyncService {
       for (const name of (remote.data.apiProfilesOrder || [])) _pushOrder(name)
     }
 
-    // currentApiProfile：取最新远程值；若被 tombstone 显式删除则回退到 default 或任一存活 profile
-    const latestRemote = remoteConfigs[0]
-    let mergedCurrent = latestRemote
-      ? latestRemote.data.currentApiProfile || local.currentApiProfile
-      : local.currentApiProfile
-    if (mergedCurrent && _profileTombT(mergedCurrent) > 0) {
-      if ('default' in mergedProfiles) {
-        mergedCurrent = 'default'
-      } else {
-        const survivors = Object.keys(mergedProfiles)
-        mergedCurrent = survivors[0] || 'default'
-      }
-    }
+    // currentApiProfile 是设备级偏好，不参与同步，保留本地值
 
     // 应用合并结果
     localSettings.apiProfiles = mergedProfiles
     localSettings.mcpServers = mergedServers
     localSettings.apiProfilesOrder = mergedOrder
-    localSettings.currentApiProfile = mergedCurrent
+    // currentApiProfile 不写入合并结果，保持本地原值
     localSettings._deletedProfiles = mergedDeletedProfiles
     localSettings._deletedServers = mergedDeletedServers
 
@@ -913,18 +918,6 @@ class SyncService {
     } catch (_) {
       // 测试环境可能未注入 configService，忽略
     }
-
-    // 同步顶层 API 字段：确保当前配置的顶层快捷字段与 apiProfiles 中一致
-    // 否则 switch-api-profile 的 extractApiConfig 会用旧的顶层字段覆盖已合并的数据
-    const currentProfile = mergedProfiles[mergedCurrent]
-    if (currentProfile) {
-      const API_FIELDS = require('../constants').API_FIELDS
-      for (const field of API_FIELDS) {
-        if (currentProfile[field] !== undefined) {
-          localSettings[field] = currentProfile[field]
-        }
-      }
-    }
   }
 
   /**
@@ -932,13 +925,29 @@ class SyncService {
    * @returns {string} UUID
    */
   _getOrCreateDeviceId() {
-    const settings = this.readSettings() || {}
-    if (settings.cloudSync?.deviceId) return settings.cloudSync.deviceId
+    const settings = this.readSettings()
+    if (settings?.cloudSync?.deviceId) return settings.cloudSync.deviceId
+
+    // 如果无法读取现有设置（文件损坏/不存在），生成临时 ID 但不写入
+    // 避免写入只有 deviceId 的不完整数据导致数据丢失
+    if (!settings) {
+      this.logger.warn('Cannot read existing settings, using ephemeral deviceId')
+      return crypto.randomUUID()
+    }
+
     const id = crypto.randomUUID()
-    const updated = this.readSettings() || {}
-    updated.cloudSync = updated.cloudSync || {}
-    updated.cloudSync.deviceId = id
-    this.writeSettings(updated)
+    // 使用结构化扩展确保完整保留现有数据
+    const updated = {
+      ...settings,
+      cloudSync: {
+        ...(settings.cloudSync || {}),
+        deviceId: id
+      }
+    }
+    // Fire-and-forget: deviceId 已缓存在内存，写入失败不影响使用
+    this.writeSettings(updated).catch(err => {
+      this.logger.error('Failed to persist deviceId:', err.message)
+    })
     return id
   }
 }

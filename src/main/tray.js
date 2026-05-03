@@ -156,7 +156,7 @@ function updateTrayMenu() {
  * 从托盘切换 API 配置
  * @param {string} profileName
  */
-function switchApiProfileFromTray(profileName) {
+async function switchApiProfileFromTray(profileName) {
   try {
     const { readSettings, writeSettings, API_FIELDS, extractApiConfig, applyApiConfig } = require('./services/configService')
     const { getMainWindow } = require('./window')
@@ -179,7 +179,7 @@ function switchApiProfileFromTray(profileName) {
     applyApiConfig(settings, newConfig)
     settings.currentApiProfile = profileName
     settings.apiProfiles = profiles
-    writeSettings(settings)
+    await writeSettings(settings)
 
     updateTrayMenu()
 

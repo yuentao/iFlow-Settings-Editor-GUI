@@ -43,6 +43,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   const isTestingConnection = ref(false)
   const isSyncing = ref(false)
   const rememberPassword = ref(false)
+  const rememberSyncPassword = ref(false)
   const connectionTestResult = ref<{ success: boolean; message?: string } | null>(null)
 
   // 密码缓存（仅内存中，不持久化）
@@ -79,6 +80,18 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   })
 
   // Actions
+  async function loadSettings(): Promise<void> {
+    try {
+      const result = await window.electronAPI.loadSettings()
+      if (result.success && result.data) {
+        // 从完整设置中读取 rememberSyncPassword
+        rememberSyncPassword.value = result.data.cloudSync?.rememberSyncPassword === true
+      }
+    } catch (error) {
+      console.error('[CloudSync] Failed to load settings:', error)
+    }
+  }
+
   async function loadStatus() {
     try {
       const result = await window.electronAPI.cloudSyncGetStatus()
@@ -88,6 +101,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
         // 即使写入也无副作用，但为避免污染 status 形状，此处显式排除）
         const { success: _success, ...rest } = result
         Object.assign(status.value, rest)
+        rememberSyncPassword.value = rest.rememberSyncPassword || false
       }
     } catch (error) {
       console.error('[CloudSync] Failed to load status:', error)
@@ -108,10 +122,8 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   async function configureProvider(provider: string, config: Record<string, string>) {
     try {
       const result = await window.electronAPI.cloudSyncConfigureProvider(provider, config)
-      if (result.success) {
-        status.value.provider = provider
-        status.value.isAuthorized = true
-      }
+      // isAuthorized 和 provider 由 testConnection 成功后 caller 负责设置，
+      // 此处不擅自更新，避免测试失败但 settings 写入成功时误将 isAuthorized 置为 true
       return result
     } catch (error) {
       console.error('[CloudSync] Failed to configure provider:', error)
@@ -266,6 +278,13 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   async function clearCloud() {
     try {
       const result = await window.electronAPI.cloudSyncClearCloud()
+      if (result.success) {
+        // 清空云端后从主进程重新加载完整状态，确保 UI 全部刷新
+        devices.value = []
+        setAutoSyncEnabled(false)
+        await window.electronAPI.cloudSyncSetAutoSync(false)
+        await loadStatus()
+      }
       return result
     } catch (error) {
       console.error('[CloudSync] Failed to clear cloud:', error)
@@ -365,6 +384,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     statusText,
     syncEnabled,
     autoSyncEnabled,
+    loadSettings,
     loadStatus,
     setAutoSync,
     setSyncEnabled,
@@ -381,10 +401,12 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     push,
     clearCloud,
     loadDevices,
+    loadSettings,
     setDeviceName,
     removeDevice,
     clearCachedPassword,
     rememberPassword,
+    rememberSyncPassword,
     getRememberPassword,
     setRememberPasswordValue,
   }

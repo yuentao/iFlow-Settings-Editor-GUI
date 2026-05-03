@@ -67,7 +67,7 @@ function registerApiProfilesIpcHandlers() {
     settings.currentApiProfile = profileName
     settings.apiProfiles = profiles
     stampModifiedItems(oldSnapshot, settings)
-    writeSettings(settings)
+    await writeSettings(settings)
 
     updateTrayMenu()
     return successResult(settings)
@@ -107,7 +107,7 @@ function registerApiProfilesIpcHandlers() {
       delete settings._deletedProfiles[name]
     }
     stampModifiedItems(oldSnapshot, settings)
-    writeSettings(settings)
+    await writeSettings(settings)
 
     updateTrayMenu()
     return successResult()
@@ -144,7 +144,7 @@ function registerApiProfilesIpcHandlers() {
     }
 
     stampModifiedItems(oldSnapshot, settings)
-    writeSettings(settings)
+    await writeSettings(settings)
     updateTrayMenu()
     return successResult(settings)
   }, 'delete-api-profile'))
@@ -188,7 +188,7 @@ function registerApiProfilesIpcHandlers() {
     }
 
     stampModifiedItems(oldSnapshot, settings)
-    writeSettings(settings)
+    await writeSettings(settings)
     updateTrayMenu()
     return successResult()
   }, 'rename-api-profile'))
@@ -278,7 +278,7 @@ function registerApiProfilesIpcHandlers() {
       delete settings._deletedProfiles[newName]
     }
     stampModifiedItems(oldSnapshot, settings)
-    writeSettings(settings)
+    await writeSettings(settings)
 
     updateTrayMenu()
     return successResult()

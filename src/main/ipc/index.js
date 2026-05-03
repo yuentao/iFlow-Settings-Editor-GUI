@@ -88,7 +88,7 @@ function registerIpcHandlers(getMainWindow, t) {
     try {
       const settings = readSettings() || {}
       settings.autoUpdate = enabled
-      writeSettings(settings)
+      await writeSettings(settings)
       return { success: true }
     } catch (error) {
       return { success: false, error: error.message }

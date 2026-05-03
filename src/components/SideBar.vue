@@ -21,17 +21,18 @@
         <div class="nav-item" :class="{ active: currentSection === 'mcp' }" @click="$emit('navigate', 'mcp')">
           <Server size="16" />
           <span class="nav-item-text">{{ $t('sidebar.mcpServers') }}</span>
-          <span class="nav-item-badge" v-show="!collapsed">{{ serverCount }}</span>
         </div>
         <div class="nav-item" :class="{ active: currentSection === 'skills' }" @click="$emit('navigate', 'skills')">
           <Star size="16" />
           <span class="nav-item-text">{{ $t('sidebar.skills') }}</span>
-          <span class="nav-item-badge" v-show="!collapsed">{{ skillCount }}</span>
         </div>
         <div class="nav-item" :class="{ active: currentSection === 'commands' }" @click="$emit('navigate', 'commands')">
           <Command size="16" />
           <span class="nav-item-text">{{ $t('sidebar.commands') }}</span>
-          <span class="nav-item-badge" v-show="!collapsed">{{ commandCount }}</span>
+        </div>
+        <div class="nav-item" :class="{ active: currentSection === 'docs' }" @click="$emit('navigate', 'docs')">
+          <Book size="16" />
+          <span class="nav-item-text">{{ $t('sidebar.docs') }}</span>
         </div>
       </div>
     </div>
@@ -46,20 +47,14 @@
  * SideBar - 侧边导航栏组件
  */
 import { ref } from 'vue'
-import { Config, Key, Server, Star, Dashboard, Command } from '@icon-park/vue-next'
+import { Config, Key, Server, Star, Dashboard, Command, Book } from '@icon-park/vue-next'
 
 interface Props {
   currentSection?: string
-  serverCount?: number
-  skillCount?: number
-  commandCount?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   currentSection: 'dashboard',
-  serverCount: 0,
-  skillCount: 0,
-  commandCount: 0,
 })
 
 const emit = defineEmits<{
@@ -187,19 +182,4 @@ const toggleCollapse = (): void => {
   }
 }
 
-.nav-item-badge {
-  margin-left: auto;
-  background: var(--control-fill);
-  color: var(--text-tertiary);
-  padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 500;
-  min-width: 24px;
-  text-align: center;
-
-  .sidebar.collapsed & {
-    display: none;
-  }
-}
 </style>

@@ -17,6 +17,24 @@ const syncService = new SyncService()
 const cryptoMgr = new CryptoManager()
 
 /**
+ * WebDAV 密码直接明文存储（不加密）
+ * @param {object} config - 原始 providerConfig
+ * @returns {object} 不做加密，直接返回
+ */
+function encryptProviderConfig(config) {
+  return config
+}
+
+/**
+ * WebDAV 密码直接明文读取
+ * @param {object} config - 含密码的 providerConfig
+ * @returns {object} 不做解密，直接返回
+ */
+function decryptProviderConfig(config) {
+  return config
+}
+
+/**
  * L-10：把最新同步状态广播到所有渲染窗口
  * 渲染端通过 onCloudSyncStatusChanged 订阅，确保 isSyncing 等字段
  * 始终以主进程 SyncService 为单一来源，消除两端 desync。
@@ -49,7 +67,9 @@ function initProvider() {
 
   if (cs.provider === 'webdav') {
     try {
-      const provider = new WebDAVProvider(cs.providerConfig)
+      // P0-03：解密 providerConfig 中的密码后再创建 provider
+      const decryptedConfig = decryptProviderConfig(cs.providerConfig)
+      const provider = new WebDAVProvider(decryptedConfig)
       syncService.setProvider(provider)
     } catch (err) {
       logger.error('Failed to init WebDAV provider', err)
@@ -85,7 +105,8 @@ function registerCloudSyncIpcHandlers() {
   // ====== 同步状态 ======
 
   ipcMain.handle('cloud-sync:get-status', wrapIpcHandler(async () => {
-    return { success: true, ...syncService.getStatus() }
+    const status = syncService.getStatus()
+    return { success: true, ...status }
   }, 'cloud-sync:get-status'))
 
   ipcMain.handle('cloud-sync:set-auto-sync', wrapIpcHandler(async (_event, enabled) => {
@@ -101,14 +122,26 @@ function registerCloudSyncIpcHandlers() {
 
   // ====== 云服务配置 ======
 
-  ipcMain.handle('cloud-sync:configure-provider', wrapIpcHandler(async (_event, provider, config) => {
+  ipcMain.handle('cloud-sync:configure-provider', wrapIpcHandler(async (_event, provider, config, testOnly) => {
+    if (testOnly) {
+      // 仅测试模式：不保存配置，直接用临时 provider 测试连接
+      const providerInstance = provider === 'webdav' ? new WebDAVProvider(config) : null
+      if (!providerInstance) return { success: false, error: 'PROVIDER_TYPE_NOT_SUPPORTED' }
+      try {
+        const authorized = await providerInstance.isAuthorized()
+        return { success: true, authorized }
+      } catch (err) {
+        return { success: false, error: err.message || String(err) }
+      }
+    }
+    // 正常模式：保存配置并初始化
     const settings = readSettings() || {}
     settings.cloudSync = settings.cloudSync || {}
     settings.cloudSync.provider = provider
-    settings.cloudSync.providerConfig = config
-    writeSettings(settings)
+    // P0-03：加密 providerConfig 中的密码后再持久化
+    settings.cloudSync.providerConfig = encryptProviderConfig(config)
+    await writeSettings(settings)
     initProvider()
-    // 不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理
     return { success: true }
   }, 'cloud-sync:configure-provider'))
 
@@ -124,7 +157,7 @@ function registerCloudSyncIpcHandlers() {
     const settings = readSettings() || {}
     settings.cloudSync = settings.cloudSync || {}
     delete settings.cloudSync.providerConfig
-    writeSettings(settings)
+    await writeSettings(settings)
     syncService.setProvider(null)
     syncService.clearCachedPassword()
     // 不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理
@@ -145,7 +178,7 @@ function registerCloudSyncIpcHandlers() {
     settings.cloudSync = settings.cloudSync || {}
     settings.cloudSync.passwordHash = hash
     settings.cloudSync.passwordSalt = salt.toString('base64')
-    writeSettings(settings)
+    await writeSettings(settings)
 
     // 缓存密码（持久化与否由 rememberSyncPassword 开关决定，M-1）
     cachePasswordWithSettings(password)
@@ -197,7 +230,7 @@ function registerCloudSyncIpcHandlers() {
     const newHash = cryptoMgr.hashKey(newKey)
     settings.cloudSync.passwordHash = newHash
     settings.cloudSync.passwordSalt = newSalt.toString('base64')
-    writeSettings(settings)
+    await writeSettings(settings)
 
     // 缓存新密码（持久化与否由 rememberSyncPassword 开关决定，M-1）
     cachePasswordWithSettings(newPassword)
@@ -243,7 +276,7 @@ function registerCloudSyncIpcHandlers() {
     const settings = readSettings() || {}
     settings.cloudSync = settings.cloudSync || {}
     settings.cloudSync.rememberSyncPassword = enabled
-    writeSettings(settings)
+    await writeSettings(settings)
 
     if (enabled) {
       // 用户明确启用：若当前内存中有密码则立即持久化
@@ -289,7 +322,7 @@ function registerCloudSyncIpcHandlers() {
         delete settings.cloudSync.autoSyncEncryptedPassword
         cleared = true
       }
-      if (cleared) writeSettings(settings)
+      if (cleared) await writeSettings(settings)
     }
 
     return { success: true, cleared }
@@ -306,7 +339,7 @@ function registerCloudSyncIpcHandlers() {
     const settings = readSettings() || {}
     settings.cloudSync = settings.cloudSync || {}
     settings.cloudSync.deviceName = name
-    writeSettings(settings)
+    await writeSettings(settings)
     return { success: true }
   }, 'cloud-sync:set-device-name'))
 

@@ -90,7 +90,7 @@ describe('SyncService', () => {
 
   beforeEach(() => {
     mockReadSettings = vi.fn(() => createBaseSettings())
-    mockWriteSettings = vi.fn()
+    mockWriteSettings = vi.fn(() => Promise.resolve())
     mockLogger = createMockLogger()
     mockProvider = createMockProvider()
     mockSafeStorage = {
@@ -197,7 +197,7 @@ describe('SyncService', () => {
       const data = service._extractSyncData(settings)
 
       expect(data.apiProfiles).toEqual(settings.apiProfiles)
-      expect(data.currentApiProfile).toBe('default')
+      expect(data.currentApiProfile).toBeUndefined()
       expect(data.mcpServers).toEqual(settings.mcpServers)
       expect(data.apiProfilesOrder).toEqual(['default'])
       // 不应包含设备偏好
@@ -208,7 +208,7 @@ describe('SyncService', () => {
     it('should handle missing fields with defaults', () => {
       const data = service._extractSyncData({})
       expect(data.apiProfiles).toEqual({})
-      expect(data.currentApiProfile).toBe('default')
+      expect(data.currentApiProfile).toBeUndefined()
       expect(data.mcpServers).toEqual({})
       expect(data.apiProfilesOrder).toEqual([])
     })
@@ -328,8 +328,9 @@ describe('SyncService', () => {
       expect(local.apiProfilesOrder).toEqual(['default', 'staging', 'production'])
     })
 
-    it('should take currentApiProfile from latest remote', () => {
+    it('should NOT sync currentApiProfile from remote (device-level preference)', () => {
       const local = createBaseSettings()
+      local.currentApiProfile = 'default'
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
@@ -344,7 +345,8 @@ describe('SyncService', () => {
       }]
 
       service._mergeConfigs(local, remoteConfigs)
-      expect(local.currentApiProfile).toBe('production')
+      // currentApiProfile 是设备级偏好，不应被远端值覆盖
+      expect(local.currentApiProfile).toBe('default')
     })
 
     it('should handle multiple remote configs (sorted by timestamp desc)', () => {
@@ -380,8 +382,8 @@ describe('SyncService', () => {
       // 两个远程 profile 都应该被加入
       expect(local.apiProfiles.old).toBeDefined()
       expect(local.apiProfiles.new).toBeDefined()
-      // currentApiProfile 应取最新的远程值
-      expect(local.currentApiProfile).toBe('new')
+      // currentApiProfile 是设备级偏好，不应被远端值覆盖
+      expect(local.currentApiProfile).toBe('default')
     })
 
     it('should not modify localSettings when no remote configs', () => {
@@ -389,37 +391,6 @@ describe('SyncService', () => {
       const originalDefault = local.apiProfiles.default
       service._mergeConfigs(local, [])
       expect(local.apiProfiles.default).toBe(originalDefault)
-    })
-
-    it('should sync top-level API fields after merge', () => {
-      const local = createBaseSettings()
-      // local profile 的 _lastModified 未设置（默认为 0）
-      local.cloudSync.lastSyncAt = '2026-04-25T08:00:00Z'
-      // 顶层字段是旧值
-      local.apiKey = 'sk-old-key'
-      local.baseUrl = 'https://old.com'
-      local.modelName = 'old-model'
-
-      const remoteConfigs = [{
-        deviceId: 'remote-1',
-        deviceName: 'RemotePC',
-        timestamp: '2026-04-25T10:00:00Z',
-        data: {
-          apiProfiles: {
-            default: { apiKey: 'sk-merged-key', baseUrl: 'https://merged.com', modelName: 'merged-model', _lastModified: '2026-04-25T09:00:00Z' },
-          },
-          mcpServers: {},
-          apiProfilesOrder: [],
-          currentApiProfile: 'default',
-        },
-      }]
-
-      service._mergeConfigs(local, remoteConfigs)
-
-      // 顶层 API 字段应该与 apiProfiles.default 的合并数据一致
-      expect(local.apiKey).toBe('sk-merged-key')
-      expect(local.baseUrl).toBe('https://merged.com')
-      expect(local.modelName).toBe('merged-model')
     })
 
     it('should merge mcpServers with overwrite-when-newer strategy', () => {
@@ -594,7 +565,7 @@ describe('SyncService', () => {
       expect(local._deletedServers['my-server']).toBeDefined()
     })
 
-    it('should fall back currentApiProfile to default if it was tombstoned', () => {
+    it('should NOT change currentApiProfile even if the profile it points to is tombstoned (device-level preference)', () => {
       const local = createBaseSettings()
       local.apiProfiles = {
         default: local.apiProfiles.default,
@@ -612,7 +583,7 @@ describe('SyncService', () => {
           },
           mcpServers: {},
           apiProfilesOrder: ['default'],
-          currentApiProfile: 'staging',
+          currentApiProfile: 'production',
           _deletedProfiles: {
             staging: { deletedAt: '2026-04-26T12:00:00Z' },
           },
@@ -622,7 +593,8 @@ describe('SyncService', () => {
 
       service._mergeConfigs(local, remoteConfigs)
       expect(local.apiProfiles.staging).toBeUndefined()
-      expect(local.currentApiProfile).toBe('default')
+      // currentApiProfile 是设备级偏好，即使指向的 profile 被 tombstone 也不自动切换
+      expect(local.currentApiProfile).toBe('staging')
     })
 
     // ─── N-1 修复：旧数据迁移 + 从未同步场景 ───────────
@@ -1532,47 +1504,47 @@ describe('SyncService', () => {
     })
 
     describe('cachePassword / clearCachedPassword', () => {
-      it('should cache and retrieve password', () => {
-        service.cachePassword('my-secret', { persist: false })
+      it('should cache and retrieve password', async () => {
+        await service.cachePassword('my-secret', { persist: false })
         expect(service._cachedPassword).toBe('my-secret')
       })
 
-      it('should clear cached password', () => {
-        service.cachePassword('my-secret', { persist: false })
-        service.clearCachedPassword()
+      it('should clear cached password', async () => {
+        await service.cachePassword('my-secret', { persist: false })
+        await service.clearCachedPassword()
         expect(service._cachedPassword).toBeNull()
       })
 
-      it('should persist encrypted password when persist option is true', () => {
-        service.cachePassword('my-secret', { persist: true })
+      it('should persist encrypted password when persist option is true', async () => {
+        await service.cachePassword('my-secret', { persist: true })
         expect(service._cachedPassword).toBe('my-secret')
         // 验证 writeSettings 被调用来持久化加密密码
         const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
         expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeDefined()
       })
 
-      it('should not persist password when persist option is false', () => {
+      it('should not persist password when persist option is false', async () => {
         const beforeCount = mockWriteSettings.mock.calls.length
-        service.cachePassword('my-secret', { persist: false })
+        await service.cachePassword('my-secret', { persist: false })
         // cachePassword 不应额外调用 writeSettings
         expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
       })
 
-      it('should NOT persist password by default (M-1: secure default)', () => {
+      it('should NOT persist password by default (M-1: secure default)', async () => {
         const beforeCount = mockWriteSettings.mock.calls.length
         // 不传 options，使用默认值
-        service.cachePassword('my-secret')
+        await service.cachePassword('my-secret')
         expect(service._cachedPassword).toBe('my-secret')
         // 默认不持久化：writeSettings 不应被额外调用
         expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
       })
 
-      it('should clear persisted password on clearCachedPassword', () => {
-        service.cachePassword('my-secret', { persist: true })
+      it('should clear persisted password on clearCachedPassword', async () => {
+        await service.cachePassword('my-secret', { persist: true })
         // 让 mockReadSettings 返回包含加密密码的设置
         const persistedSettings = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
         mockReadSettings.mockReturnValue(persistedSettings)
-        service.clearCachedPassword()
+        await service.clearCachedPassword()
         expect(service._cachedPassword).toBeNull()
         // 验证持久化密码被清除
         const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
@@ -1580,22 +1552,22 @@ describe('SyncService', () => {
       })
 
       // L-9：公共方法替代外部访问私有字段
-      it('hasCachedPassword() returns true after cachePassword (L-9)', () => {
+      it('hasCachedPassword() returns true after cachePassword (L-9)', async () => {
         expect(service.hasCachedPassword()).toBe(false)
-        service.cachePassword('my-secret', { persist: false })
+        await service.cachePassword('my-secret', { persist: false })
         expect(service.hasCachedPassword()).toBe(true)
       })
 
-      it('hasCachedPassword() returns false after clearCachedPassword (L-9)', () => {
-        service.cachePassword('my-secret', { persist: false })
-        service.clearCachedPassword()
+      it('hasCachedPassword() returns false after clearCachedPassword (L-9)', async () => {
+        await service.cachePassword('my-secret', { persist: false })
+        await service.clearCachedPassword()
         expect(service.hasCachedPassword()).toBe(false)
       })
 
-      it('persistCachedPassword() persists existing cached password (L-9)', () => {
-        service.cachePassword('my-secret', { persist: false })
+      it('persistCachedPassword() persists existing cached password (L-9)', async () => {
+        await service.cachePassword('my-secret', { persist: false })
         const beforeCount = mockWriteSettings.mock.calls.length
-        const result = service.persistCachedPassword()
+        const result = await service.persistCachedPassword()
         expect(result).toBe(true)
         // 应触发一次 writeSettings 写入加密密码
         expect(mockWriteSettings.mock.calls.length).toBe(beforeCount + 1)
@@ -1603,21 +1575,21 @@ describe('SyncService', () => {
         expect(lastWrite.cloudSync.autoSyncEncryptedPassword).toBeDefined()
       })
 
-      it('persistCachedPassword() returns false and writes nothing when no cache (L-9)', () => {
+      it('persistCachedPassword() returns false and writes nothing when no cache (L-9)', async () => {
         const beforeCount = mockWriteSettings.mock.calls.length
-        const result = service.persistCachedPassword()
+        const result = await service.persistCachedPassword()
         expect(result).toBe(false)
         expect(mockWriteSettings.mock.calls.length).toBe(beforeCount)
       })
 
-      it('clearPersistedPassword() clears disk-only, keeps memory cache (L-9)', () => {
+      it('clearPersistedPassword() clears disk-only, keeps memory cache (L-9)', async () => {
         // 先持久化
-        service.cachePassword('my-secret', { persist: true })
+        await service.cachePassword('my-secret', { persist: true })
         const persistedSettings =
           mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
         mockReadSettings.mockReturnValue(persistedSettings)
 
-        service.clearPersistedPassword()
+        await service.clearPersistedPassword()
 
         // 内存缓存仍在
         expect(service.hasCachedPassword()).toBe(true)
@@ -1628,9 +1600,9 @@ describe('SyncService', () => {
     })
 
     describe('restorePersistedPassword', () => {
-      it('should restore password from persistent storage', () => {
+      it('should restore password from persistent storage', async () => {
         // 先持久化一个密码
-        service.cachePassword('restored-pass', { persist: true })
+        await service.cachePassword('restored-pass', { persist: true })
         // 获取持久化后的设置
         const lastWrite = mockWriteSettings.mock.calls[mockWriteSettings.mock.calls.length - 1][0]
         // 让 mockReadSettings 返回包含加密密码的设置

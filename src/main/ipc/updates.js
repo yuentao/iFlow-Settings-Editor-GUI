@@ -51,12 +51,12 @@ let updateState = {
  * 持久化待安装更新信息到 settings.json
  * @param {Object} pendingInfo - { version, downloadPath, downloadName }
  */
-function savePendingUpdate(pendingInfo) {
+async function savePendingUpdate(pendingInfo) {
   try {
     const { readSettings, writeSettings } = require('../services/configService')
     const settings = readSettings() || {}
     settings.pendingUpdate = pendingInfo
-    writeSettings(settings)
+    await writeSettings(settings)
   } catch (e) {
     console.error('Failed to save pending update:', e)
   }
@@ -65,12 +65,12 @@ function savePendingUpdate(pendingInfo) {
 /**
  * 清除持久化的待安装更新信息
  */
-function clearPendingUpdate() {
+async function clearPendingUpdate() {
   try {
     const { readSettings, writeSettings } = require('../services/configService')
     const settings = readSettings() || {}
     delete settings.pendingUpdate
-    writeSettings(settings)
+    await writeSettings(settings)
   } catch (e) {
     console.error('Failed to clear pending update:', e)
   }
@@ -416,7 +416,7 @@ function registerUpdatesIpcHandlers() {
       })
 
       // 持久化待安装更新信息
-      savePendingUpdate({
+      await savePendingUpdate({
         version: updateState.info.version,
         downloadPath: destPath,
         downloadName: updateState.info.downloadName,
@@ -470,7 +470,7 @@ function registerUpdatesIpcHandlers() {
       console.log(`[AutoUpdate][IPC] Background download complete: ${destPath}`)
 
       // 持久化待安装更新信息，下次启动时可恢复
-      savePendingUpdate({
+      await savePendingUpdate({
         version: updateState.info.version,
         downloadPath: destPath,
         downloadName: updateState.info.downloadName,
@@ -516,7 +516,7 @@ function registerUpdatesIpcHandlers() {
       }
 
       // 清除持久化的待安装更新
-      clearPendingUpdate()
+      await clearPendingUpdate()
 
       shell.openPath(updateState.downloadPath)
       app.exit(0)
@@ -553,7 +553,7 @@ function registerUpdatesIpcHandlers() {
     }
     // 检查下载文件是否还存在
     if (pending.downloadPath && !fs.existsSync(pending.downloadPath)) {
-      clearPendingUpdate()
+      await clearPendingUpdate()
       return { success: true, pending: null }
     }
     return { success: true, pending }
@@ -561,7 +561,7 @@ function registerUpdatesIpcHandlers() {
 
   // 清除待安装更新（用户选择"稍后安装"时不清除，只是标记已提醒过）
   ipcMain.handle('clear-pending-update', async () => {
-    clearPendingUpdate()
+    await clearPendingUpdate()
     return { success: true }
   })
 
@@ -573,7 +573,7 @@ function registerUpdatesIpcHandlers() {
     }
     // 检查下载文件是否还存在
     if (pending.downloadPath && !fs.existsSync(pending.downloadPath)) {
-      clearPendingUpdate()
+      await clearPendingUpdate()
       return { success: true, restored: false }
     }
     // 恢复更新状态

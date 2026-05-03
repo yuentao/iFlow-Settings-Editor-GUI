@@ -9,7 +9,7 @@
     </div>
 
     <main class="main">
-      <SideBar :current-section="currentSection" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" @navigate="showSection" />
+      <SideBar :current-section="currentSection" @navigate="showSection" />
 
       <div class="content">
         <template v-if="isLoading">
@@ -46,6 +46,8 @@
           <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
 
           <CommandsView v-if="currentSection === 'commands'" @show-message="showMessage" @show-input-dialog="showInput" @commands-changed="onCommandsChanged" />
+
+          <DocsView v-if="currentSection === 'docs'" />
         </template>
       </div>
     </main>
@@ -173,6 +175,12 @@ const SkillsView = defineAsyncComponent({
 })
 const CommandsView = defineAsyncComponent({
   loader: () => import('./views/CommandsView.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200,
+})
+const DocsView = defineAsyncComponent({
+  loader: () => import('./views/DocsView.vue'),
   loadingComponent,
   errorComponent,
   delay: 200,
@@ -726,6 +734,9 @@ const minimize = () => window.electronAPI.minimize()
 const maximize = () => window.electronAPI.maximize()
 const close = () => window.electronAPI.close()
 
+// P0-05 + P0-06：收集所有事件监听器的清理函数，组件卸载时统一移除
+const cleanupFns = []
+
 // 更新相关处理函数
 const initUpdateListeners = () => {
   // 获取当前应用版本
@@ -734,7 +745,7 @@ const initUpdateListeners = () => {
   })
 
   // 监听更新状态变化
-  window.electronAPI.onUpdateStatusChanged(state => {
+  cleanupFns.push(window.electronAPI.onUpdateStatusChanged(state => {
     console.log('[AutoUpdate][Renderer] Update status changed:', JSON.stringify(state))
     if (state.status === 'available' && state.info) {
       latestUpdateVersion.value = state.info.version || ''
@@ -757,18 +768,16 @@ const initUpdateListeners = () => {
       isBackgroundDownloading.value = false
       showUpdateProgress.value = false
     }
-  })
+  }))
 
   // 监听发现新版本
-  window.electronAPI.onUpdateAvailable(info => {
+  cleanupFns.push(window.electronAPI.onUpdateAvailable(info => {
     latestUpdateVersion.value = info.version || ''
     updateReleaseNotes.value = info.releaseNotes || ''
     showUpdateNotification.value = true
     showUpdateProgress.value = false
-  })
-
-  // 监听下载进度
-  window.electronAPI.onUpdateDownloadProgress(progress => {
+  }))
+  cleanupFns.push(window.electronAPI.onUpdateDownloadProgress(progress => {
     updateDownloadProgress.value = progress
     if (!isBackgroundDownloading.value) {
       showUpdateProgress.value = true
@@ -776,27 +785,27 @@ const initUpdateListeners = () => {
       updateProgressStatus.value = 'downloading'
     }
     // 后台下载时不显示进度窗，进度由 GeneralSettings 自行处理
-  })
+  }))
 
   // 监听下载完成
-  window.electronAPI.onUpdateDownloaded(() => {
+  cleanupFns.push(window.electronAPI.onUpdateDownloaded(() => {
     updateProgressStatus.value = 'downloaded'
     updateDownloadProgress.value = 100
-  })
+  }))
 
   // 监听自动检查更新（自动触发，不显示"已是最新"提示）
-  window.electronAPI.onAutoCheckUpdate(() => {
+  cleanupFns.push(window.electronAPI.onAutoCheckUpdate(() => {
     console.log('[AutoUpdate][Renderer] Received auto-check-update event from main process')
     checkForUpdatesAuto()
-  })
+  }))
 
   // 监听安装更新
-  window.electronAPI.onInstallUpdate(() => {
+  cleanupFns.push(window.electronAPI.onInstallUpdate(() => {
     window.electronAPI.installUpdate()
-  })
+  }))
 
   // 监听后台下载完成
-  window.electronAPI.onUpdateBackgroundComplete(info => {
+  cleanupFns.push(window.electronAPI.onUpdateBackgroundComplete(info => {
     console.log('[AutoUpdate][Renderer] Background download complete:', JSON.stringify(info))
     // 后台下载完成，弹出安装提示让用户选择
     latestUpdateVersion.value = info?.version || ''
@@ -804,7 +813,7 @@ const initUpdateListeners = () => {
     updateDownloadProgress.value = 100
     showUpdateProgress.value = true
     isBackgroundDownloading.value = false
-  })
+  }))
 }
 
 // 自动检查更新（不显示"已是最新"提示，发现新版本后自动后台下载）
@@ -985,7 +994,10 @@ onMounted(async () => {
   window.electronAPI.sendTranslation(translations)
 
   // 监听系统主题变化
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateSystemTheme)
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  mediaQuery.addEventListener('change', updateSystemTheme)
+  // P0-05：保存清理函数，onUnmounted 时移除监听
+  cleanupFns.push(() => mediaQuery.removeEventListener('change', updateSystemTheme))
 
   const cls = themeClass.value
   if (cls) {
@@ -1007,16 +1019,16 @@ onMounted(async () => {
   }
 
   // 监听主进程的确认对话框请求
-  window.electronAPI.onShowConfirmRequest(request => {
+  cleanupFns.push(window.electronAPI.onShowConfirmRequest(request => {
     pendingConfirmRequest.value = request
-  })
+  }))
 
-  window.electronAPI.onApiProfileSwitched(async profileName => {
+  cleanupFns.push(window.electronAPI.onApiProfileSwitched(async profileName => {
     skipNextSaveSettings.value = true
     currentApiProfile.value = profileName
     await loadSettings()
     skipNextSaveSettings.value = false
-  })
+  }))
 
   // 恢复自动同步定时器（由 cloudSync store 统一管理，包括 localStorage 持久化）
   if (cloudSyncStore.autoSyncEnabled) {
@@ -1027,7 +1039,13 @@ onMounted(async () => {
   }
 })
 
-onUnmounted(() => {})
+onUnmounted(() => {
+  // P0-05 + P0-06：移除所有事件监听器，防止内存泄漏
+  for (const cleanup of cleanupFns) {
+    try { cleanup() } catch (_) { /* ignore */ }
+  }
+  cleanupFns.length = 0
+})
 </script>
 
 <style lang="less">

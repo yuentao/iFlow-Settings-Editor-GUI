@@ -1,6 +1,12 @@
 /**
  * 配置服务模块
  * 负责配置文件的读写操作
+ *
+ * P0-01 修复：
+ *   - 写入串行化：所有 writeSettings 调用通过链式 Promise 队列依次执行，
+ *     防止多个 IPC handler 并发写导致 read-modify-write 竞态。
+ *   - 原子写入：先写入临时文件，再 fs.renameSync 替换目标文件，
+ *     防止进程崩溃时留下半写文件导致数据丢失。
  */
 
 const path = require('path')
@@ -19,6 +25,10 @@ function getSettingsFile() {
   }
   return _SETTINGS_FILE
 }
+
+// ─── 写入队列：串行化所有 writeSettings 调用 ──────
+// 链式 Promise：每个新写入追加到队列尾部，保证任意时刻只有一个写入在执行。
+let _writeQueue = Promise.resolve()
 
 /**
  * 读取设置文件
@@ -39,11 +49,29 @@ function readSettings() {
 }
 
 /**
- * 写入设置文件（带备份）
+ * 原子写入设置文件（带备份 + 串行化）
+ *
+ * 流程：
+ *   1. 写入临时文件 `settings.json.tmp`
+ *   2. `fs.renameSync` 原子替换目标文件（POSIX 保证原子性；Windows 上 rename
+ *      在同卷同目录下也是原子替换）
+ *   3. 所有写入通过链式 Promise 队列串行执行，消除并发竞态
+ *
  * @param {Object} data - 要写入的数据
+ * @returns {Promise<void>}
  */
 function writeSettings(data) {
+  // 将写入操作加入队列，返回 Promise 供调用方 await
+  const task = _writeQueue.then(() => _doWrite(data))
+  // 防止前一个 task 的 rejection 中断后续写入
+  _writeQueue = task.catch(() => {})
+  return task
+}
+
+/** 实际执行写入（内部方法，仅由 writeSettings 队列调用） */
+function _doWrite(data) {
   const SETTINGS_FILE = getSettingsFile()
+  const tmpFile = SETTINGS_FILE + '.tmp'
   try {
     // 先创建备份（N-6：备份失败仅 warn，不阻塞主写入）
     if (fs.existsSync(SETTINGS_FILE)) {
@@ -61,9 +89,12 @@ function writeSettings(data) {
       fs.mkdirSync(dir, { recursive: true })
     }
 
-    // 写入新配置
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2), 'utf-8')
+    // 原子写入：先写临时文件，再 rename 替换
+    fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8')
+    fs.renameSync(tmpFile, SETTINGS_FILE)
   } catch (error) {
+    // 清理可能残留的临时文件
+    try { fs.unlinkSync(tmpFile) } catch (_) { /* ignore */ }
     console.error('Failed to write settings:', error)
     throw error
   }

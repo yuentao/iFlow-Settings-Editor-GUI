@@ -56,23 +56,11 @@ class WebDAVProvider {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       getLogger().debug(`upload: PUT attempt ${attempt}`)
       try {
-        // L-3：首次 PUT 带 If-Match: * 头，兼容部分 WebDAV 服务器要求；
-        // 重试（DELETE 后文件已不存在）不带 If-Match，避免 412。
-        const headers = (attempt === 1) ? { 'If-Match': '*' } : {}
+        // 移除 If-Match 头以兼容坚果云等 WebDAV 服务器
+        const headers = {}
         return await this._request('PUT', url, content, headers)
       } catch (error) {
         getLogger().debug(`upload: PUT attempt ${attempt} failed: ${error.message}`)
-        // L-3：If-Match: * 导致 412 Precondition Failed → 文件不存在，重试不带 If-Match
-        if (error.message === 'WEBDAV_ERROR_412' && attempt < maxRetries) {
-          continue
-        }
-        if (error.message !== 'WEBDAV_ERROR_409' || attempt === maxRetries) {
-          // L-3：重试耗尽且仍为 409 → 抛出更具体的错误码
-          if (error.message === 'WEBDAV_ERROR_409' && attempt === maxRetries) {
-            throw new Error('WEBDAV_PUT_CONFLICT_AFTER_RETRIES')
-          }
-          throw error
-        }
         // PUT 返回 409：某些服务器在文件已存在时返回冲突而不支持覆盖
         // 尝试先删除再重试
         getLogger().debug('upload: trying DELETE before retry')
@@ -81,7 +69,14 @@ class WebDAVProvider {
         } catch {
           // 删除失败（可能不存在），忽略
         }
-        // 重试 PUT（不带 If-Match，因为文件已被删除）
+        // 重试 PUT（DELETE 后文件已不存在）
+        if (attempt === maxRetries) {
+          // 重试耗尽且仍为 409 → 抛出更具体的错误码
+          if (error.message === 'WEBDAV_ERROR_409') {
+            throw new Error('WEBDAV_PUT_CONFLICT_AFTER_RETRIES')
+          }
+          throw error
+        }
       }
     }
   }
