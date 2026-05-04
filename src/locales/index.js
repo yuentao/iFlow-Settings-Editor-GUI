@@ -576,6 +576,7 @@ export default {
     docNotFound: '文档未找到',
     loadFailed: '加载文档失败',
     retry: '重试',
-    toc: '目录'
+    toc: '目录',
+    navHint: '将鼠标悬停在左侧标识条可打开文档导航'
   }
 }

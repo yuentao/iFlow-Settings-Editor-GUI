@@ -566,6 +566,7 @@ export default {
     docNotFound: 'ドキュメントが見つかりません',
     loadFailed: 'ドキュメントの読み込みに失敗しました',
     retry: '再試行',
-    toc: '目次'
+    toc: '目次',
+    navHint: '左側のストライプにホバーするとドキュメントナビゲーションが開きます'
   }
 }

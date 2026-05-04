@@ -565,6 +565,7 @@ export default {
     docNotFound: 'Document not found',
     loadFailed: 'Failed to load document',
     retry: 'Retry',
-    toc: 'Contents'
+    toc: 'Contents',
+    navHint: 'Hover over the left stripe to open the document navigation'
   }
 }

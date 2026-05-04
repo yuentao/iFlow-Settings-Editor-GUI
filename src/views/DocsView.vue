@@ -26,6 +26,7 @@
         </div>
         <div v-else v-html="renderedContent" class="markdown-body" @click="handleContentClick"></div>
       </div>
+      <p class="docs-nav-hint">{{ t('docs.navHint') }}</p>
     </main>
 
     <!-- 文档导航侧边栏（默认收起为标识条，hover 展开） -->
@@ -517,6 +518,22 @@ onBeforeUnmount(() => {
   }
 }
 
+// ── 导航提示 ───────────────────────────────────────────
+.docs-nav-hint {
+  position: sticky;
+  bottom: 0;
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  background: rgba(2551, 255, 255, 0.95);
+  border-top: 1px solid var(--border-light);
+  text-align: center;
+  user-select: none;
+  z-index: 2;
+}
+
 // ── 动画 ───────────────────────────────────────────────
 @keyframes pulse {
   0%,
@@ -669,6 +686,8 @@ onBeforeUnmount(() => {
   height: 100%;
   z-index: 20;
   display: flex;
+  width: 4px; // 默认仅标识条宽度
+  transition: width 0.2s ease;
 
   // 标识条（默认可见，带呼吸动画提示可交互）
   .docs-nav-stripe {
@@ -682,6 +701,7 @@ onBeforeUnmount(() => {
     transition: opacity 0.25s ease;
     position: relative;
     overflow: hidden;
+    cursor: pointer;
 
     // 光扫效果（与呼吸同步 2.5s）
     &::after {
@@ -696,10 +716,21 @@ onBeforeUnmount(() => {
     }
   }
 
-  // hover 时呼吸动画暂停，标识条变亮
-  &:hover .docs-nav-stripe {
-    animation-play-state: paused;
-    opacity: 0.6;
+  // hover 时：整个导航栏展开，呼吸动画暂停，标识条变亮
+  &:hover,
+  &:has(.docs-nav-stripe:hover) {
+    width: 220px; // 4(stripe) + 216(body)
+
+    .docs-nav-stripe {
+      animation-play-state: paused;
+      opacity: 0.6;
+    }
+
+    .docs-nav-body {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
   }
 
   // 导航栏主体（默认隐藏）
@@ -711,19 +742,12 @@ onBeforeUnmount(() => {
     background: var(--docs-nav-bg, #f9f9f9);
     border-right: 1px solid var(--border-light);
     opacity: 0;
-    transform: translateX(-100%);
+    transform: translateX(-8px);
     pointer-events: none;
     transition:
       opacity 0.2s ease,
       transform 0.2s ease;
     overflow: hidden;
-  }
-
-  // hover 时展开
-  &:hover .docs-nav-body {
-    opacity: 1;
-    transform: translateX(0);
-    pointer-events: auto;
   }
 }
 
@@ -784,7 +808,7 @@ onBeforeUnmount(() => {
 
   li {
     position: relative;
-    padding: 7px 12px 7px 20px;
+    padding: 7px 12px 7px 15px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
@@ -793,6 +817,9 @@ onBeforeUnmount(() => {
       background 0.15s ease,
       color 0.15s ease;
     user-select: none;
+    display: flex;
+    align-items: center;
+    line-height: 2;
 
     &:hover {
       background: var(--control-fill);
@@ -806,17 +833,12 @@ onBeforeUnmount(() => {
 
       .nav-indicator {
         opacity: 1;
-        transform: scaleY(1);
       }
     }
   }
 }
 
 .nav-indicator {
-  position: absolute;
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%) scaleY(0);
   width: 3px;
   height: 16px;
   border-radius: 2px;
@@ -825,6 +847,7 @@ onBeforeUnmount(() => {
   transition:
     opacity 0.2s ease,
     transform 0.2s ease;
+  margin-right: 5px;
 }
 
 .dark .docs-nav .docs-nav-body {
