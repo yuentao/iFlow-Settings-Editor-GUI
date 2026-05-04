@@ -95,9 +95,12 @@ function registerIpcHandlers(getMainWindow, t) {
     }
   })
 
-  // 外部链接：在系统浏览器中打开
+  // 外部链接：在系统浏览器中打开（仅允许 http/https 协议）
   ipcMain.handle('open-external', async (event, url) => {
     try {
+      if (typeof url !== 'string' || !(/^https?:\/\//i.test(url))) {
+        return { success: false, error: 'Only http:// and https:// URLs are allowed' }
+      }
       await shell.openExternal(url)
       return { success: true }
     } catch (error) {

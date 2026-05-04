@@ -86,21 +86,25 @@ const slugify = (text: string): string => {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '-') // 空格转连字符
-    .replace(/[^\w\u4e00-\u9fff-]/g, '') // 保留字母数字、中文、连字符
+    .replace(/[^\w\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af-]/g, '') // 保留字母数字、CJK、日文、韩文、连字符
 }
+
+// 全局标题序号，用于空 slug 时生成回退 id
+let headingFallbackIndex = 0
 
 // 配置 marked：自定义 heading renderer，生成语义化 id
 marked.use({
   renderer: {
     heading({ tokens, depth }: { tokens: any[]; depth: number }) {
       const text = (this as any).parser.parseInline(tokens)
-      const baseId = slugify(text)
+      const baseId = slugify(text) || `heading-${headingFallbackIndex++}`
       // 处理重复标题：追加序号
       const idCounts = (marked as any).__headingIdCounts || ((marked as any).__headingIdCounts = {})
       const count = idCounts[baseId] || 0
       idCounts[baseId] = count + 1
       const id = count > 0 ? `${baseId}-${count}` : baseId
-      return `<h${depth} id="${id}">${text}</h${depth}>\n`
+      const escapedId = id.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      return `<h${depth} id="${escapedId}">${text}</h${depth}>\n`
     },
   },
 })
@@ -171,6 +175,7 @@ const loadDoc = async (docName: string) => {
   isLoading.value = true
   error.value = ''
   ;(marked as any).__headingIdCounts = {}
+  headingFallbackIndex = 0
 
   try {
     const response = await fetch(path)
