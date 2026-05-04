@@ -296,5 +296,4 @@ MCP 服务器在后台透明工作，增强 iFlow 的能力，在大多数情况
 完成MCP配置后，建议继续学习：
 
 1. **[子代理配置](/cli/examples/subagent)** - 配置专业化AI助手
-2. **[最佳实践](/cli/examples/best-practices)** - 工作流优化技巧
 3. **[高级配置](/cli/configuration/settings)** - 深度定制设置

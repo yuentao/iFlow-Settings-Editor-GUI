@@ -167,6 +167,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cloudSyncSetDeviceName: (name) => ipcRenderer.invoke('cloud-sync:set-device-name', name),
   cloudSyncRemoveDevice: (deviceId) => ipcRenderer.invoke('cloud-sync:remove-device', deviceId),
 
+  // 外部链接
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+
   // 云同步事件监听
   onCloudSyncStatusChanged: (callback) => {
     const handler = (_event, state) => callback(state)

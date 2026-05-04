@@ -24,7 +24,7 @@
           <p class="docs-error-msg">{{ error }}</p>
           <button class="docs-error-btn" @click="loadDoc(currentDoc)">{{ $t('docs.retry') }}</button>
         </div>
-        <div v-else v-html="renderedContent" class="markdown-body"></div>
+        <div v-else v-html="renderedContent" class="markdown-body" @click="handleContentClick"></div>
       </div>
     </main>
 
@@ -74,18 +74,31 @@ interface TocItem {
 
 const tocItems = ref<TocItem[]>([])
 const activeHeadingId = ref('')
-let headingCounter = 0
 let observer: IntersectionObserver | null = null
 
 // ── 导航栏配置 ──────────────────────────────────────────
 // 导航栏默认收起为左侧标识条，hover 时 CSS 展开展开，无需 JS 控制
 
-// 配置 marked：自定义 heading renderer，生成 id 并收集 TOC 数据
+// 根据标题文本生成 slug，与 Markdown 锚点链接匹配（如 ## 核心命令 → id="核心命令"）
+const slugify = (text: string): string => {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-') // 空格转连字符
+    .replace(/[^\w\u4e00-\u9fff-]/g, '') // 保留字母数字、中文、连字符
+}
+
+// 配置 marked：自定义 heading renderer，生成语义化 id
 marked.use({
   renderer: {
     heading({ tokens, depth }: { tokens: any[]; depth: number }) {
       const text = (this as any).parser.parseInline(tokens)
-      const id = `toc-heading-${headingCounter++}`
+      const baseId = slugify(text)
+      // 处理重复标题：追加序号
+      const idCounts = (marked as any).__headingIdCounts || ((marked as any).__headingIdCounts = {})
+      const count = idCounts[baseId] || 0
+      idCounts[baseId] = count + 1
+      const id = count > 0 ? `${baseId}-${count}` : baseId
       return `<h${depth} id="${id}">${text}</h${depth}>\n`
     },
   },
@@ -156,7 +169,7 @@ const loadDoc = async (docName: string) => {
 
   isLoading.value = true
   error.value = ''
-  headingCounter = 0
+  ;(marked as any).__headingIdCounts = {}
 
   try {
     const response = await fetch(path)
@@ -240,6 +253,60 @@ const scrollToHeading = (id: string) => {
   const el = contentRef.value.querySelector(`#${CSS.escape(id)}`)
   if (el) {
     el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+// /cli/ 路径到文档 key 的映射
+const cliPathToDocKey: Record<string, string> = {
+  '/cli/quickstart': 'quickstart',
+  '/cli/examples/basic-usage': 'basic-usage',
+  '/cli/features/interactive': 'interactive',
+  '/cli/examples/keyboard-shortcuts': 'keyboard-shortcuts',
+  '/cli/examples/slash-commands': 'slash-commands',
+  '/cli/examples/mcp': 'mcp',
+  '/cli/examples/subagent': 'subagent',
+  '/cli/examples/subcommand': 'subcommand',
+  '/cli/examples/hooks': 'hooks',
+  '/cli/examples/workflow': 'workflow',
+  '/cli/examples/skill': 'skill',
+  '/cli/examples/plan-mode': 'plan-mode',
+  '/cli/configuration/settings': 'settings',
+}
+
+// 拦截 Markdown 内容中的所有链接点击
+const handleContentClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  const anchor = target.closest('a') as HTMLAnchorElement | null
+  if (!anchor) return
+
+  const href = anchor.getAttribute('href')
+  if (!href) return
+
+  // 1) 锚点链接：页内滚动
+  if (href.startsWith('#')) {
+    e.preventDefault()
+    const id = href.slice(1)
+    if (!id || !contentRef.value) return
+    const el = contentRef.value.querySelector(`#${CSS.escape(id)}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
+
+  // 2) /cli/ 内部文档链接：导航到对应文档
+  if (href.startsWith('/cli/')) {
+    e.preventDefault()
+    const docKey = cliPathToDocKey[href.replace(/\/+$/, '')] // 去除末尾斜杠
+    if (docKey) {
+      navigateTo(docKey)
+    }
+    return
+  }
+
+  // 3) 外部链接：在系统浏览器中打开
+  if (href.startsWith('http://') || href.startsWith('https://')) {
+    e.preventDefault()
+    window.electronAPI.openExternal?.(href)
+    return
   }
 }
 
@@ -624,12 +691,7 @@ onBeforeUnmount(() => {
       left: 0;
       width: 100%;
       height: 40%;
-      background: linear-gradient(
-        180deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.45) 50%,
-        transparent 100%
-      );
+      background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
       animation: stripe-sweep 2.5s ease-in-out infinite;
     }
   }
@@ -649,7 +711,7 @@ onBeforeUnmount(() => {
     background: var(--docs-nav-bg, #f9f9f9);
     border-right: 1px solid var(--border-light);
     opacity: 0;
-    transform: translateX(-8px);
+    transform: translateX(-100%);
     pointer-events: none;
     transition:
       opacity 0.2s ease,
@@ -777,7 +839,8 @@ onBeforeUnmount(() => {
 
 // ── 标识条呼吸动画关键帧 ─────────────────────────────────
 @keyframes stripe-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.35;
     filter: brightness(1);
   }

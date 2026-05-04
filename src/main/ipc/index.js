@@ -3,7 +3,7 @@
  * 统一注册所有 IPC 处理器
  */
 
-const { ipcMain } = require('electron')
+const { ipcMain, shell } = require('electron')
 const { registerSettingsIpcHandlers } = require('./settings')
 const { registerApiProfilesIpcHandlers } = require('./apiProfiles')
 const { registerSkillsIpcHandlers } = require('./skills')
@@ -89,6 +89,16 @@ function registerIpcHandlers(getMainWindow, t) {
       const settings = readSettings() || {}
       settings.autoUpdate = enabled
       await writeSettings(settings)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  // 外部链接：在系统浏览器中打开
+  ipcMain.handle('open-external', async (event, url) => {
+    try {
+      await shell.openExternal(url)
       return { success: true }
     } catch (error) {
       return { success: false, error: error.message }
