@@ -98,6 +98,24 @@ function createWindow() {
   console.log('Loading index.html...')
   mainWindow.loadURL(getEntryHtmlPath())
 
+  // 阻止渲染进程中的链接点击导致页面导航（防止跳转到仪表盘等问题）
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    // 开发模式：允许 Vite HMR (localhost)
+    if (url.startsWith('http://localhost')) return
+    // 生产模式：允许应用自身的 file:// 入口
+    if (url.startsWith('file://') && url.endsWith('index.html')) return
+    // 阻止所有其他导航
+    event.preventDefault()
+  })
+
+  // 在新窗口中打开外部链接（使用系统浏览器）
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      require('electron').shell.openExternal(url)
+    }
+    return { action: 'deny' }
+  })
+
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     console.error('Failed to load:', errorCode, errorDescription)
   })

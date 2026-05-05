@@ -16,6 +16,7 @@ export interface CloudSyncStatus {
   lastSyncAt: string | null
   lastSyncError: string | null
   isSyncing: boolean
+  tombstoneRetentionDays: number
 }
 
 export interface CloudDeviceInfo {
@@ -36,6 +37,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     lastSyncAt: null,
     lastSyncError: null,
     isSyncing: false,
+    tombstoneRetentionDays: 30,
   })
 
   const devices = ref<CloudDeviceInfo[]>([])

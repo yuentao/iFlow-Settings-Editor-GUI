@@ -497,6 +497,9 @@ export default {
     configSectionDevices: 'Device Management',
     webdavPasswordHintTag: '(WebDAV login password)',
     syncPasswordHintTag: '(Encrypts sync data, unrelated to WebDAV password)',
+    configSectionAdvanced: 'Advanced Sync Settings',
+    tombstoneRetentionDays: 'Deletion Record Retention Days',
+    tombstoneRetentionDaysDesc: 'Sync deletions will propagate to other devices within this period. Expired records are auto-cleaned. Too short may cause offline devices to miss deletions; too long increases config file size',
     setAutoSyncFailed: 'Failed to set auto sync',
     wizardTitle: 'Cloud Sync Setup Wizard',
     wizardStep1: 'Connect Cloud Service',
@@ -565,6 +568,7 @@ export default {
     docNotFound: 'Document not found',
     loadFailed: 'Failed to load document',
     retry: 'Retry',
-    toc: 'Contents'
+    toc: 'Contents',
+    navHint: 'Hover over the left stripe to open the document navigation'
   }
 }

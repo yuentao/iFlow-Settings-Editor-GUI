@@ -21,7 +21,6 @@ iFlow CLI 是一款终端AI助手，可以分析代码、执行编程任务、�
 | **Sub Command** | 命令行扩展 |
 | **context left** | CLI右下角的提示信息，代表模型在对话过程中剩余的上下文长度 |
 
-> 💡 **更多术语**：查看完整的 [术语词汇表](/cli/glossary) 了解所有概念定义
 
 ## 第1步：安装（2分钟）
 
@@ -217,5 +216,3 @@ curl -I https://apis.iflow.cn/v1
 2.  **[交互模式](/cli/features/interactive)** - 学习高效交互方式（15分钟）
 3.  **[MCP扩展](/cli/examples/mcp)** - 扩展AI能力（15分钟）
 4.  **[最佳实践](/cli/examples/best-practices)** - 提升工作效率（20分钟）
-
-> **获得帮助**：遇到问题？查看 [完整文档](/cli/examples/) 或 [提交反馈](https://github.com/iflow-ai/iflow-cli/issues)

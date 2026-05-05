@@ -411,6 +411,7 @@ class SyncService {
       lastSyncError: cs.lastSyncError || null,
       isSyncing: this.isSyncing,
       rememberSyncPassword: cs.rememberSyncPassword === true,
+      tombstoneRetentionDays: cs.tombstoneRetentionDays || 30,
     }
   }
 
@@ -912,9 +913,11 @@ class SyncService {
     localSettings._deletedServers = mergedDeletedServers
 
     // 清理超过保留期的墓碑，避免无限增长
+    // 优先使用用户在云同步设置中配置的保留天数，默认 30 天
     try {
       const { pruneOldTombstones } = require('../services/configService')
-      pruneOldTombstones(localSettings)
+      const retentionDays = localSettings.cloudSync?.tombstoneRetentionDays
+      pruneOldTombstones(localSettings, retentionDays && retentionDays > 0 ? retentionDays : undefined)
     } catch (_) {
       // 测试环境可能未注入 configService，忽略
     }

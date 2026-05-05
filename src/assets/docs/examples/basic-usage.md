@@ -19,7 +19,6 @@
 
 *   🔰 新手入门：[快速开始](/cli/quickstart)
 *   🚀 进阶学习：[交互模式](/cli/features/interactive)
-*   💡 专家技巧：[最佳实践](/cli/examples/best-practices)
 
 ## 核心命令
 
@@ -214,17 +213,4 @@ A: 当切换到不同项目、开始新任务，或者对话变得过长影响�
 
 ### 💼 实战应用
 
-*   **[最佳实践指南](/cli/examples/best-practices)** - 团队协作和工作流优化
 *   **[高级配置](/cli/configuration/settings)** - 深度定制和性能调优
-
-### 📚 参考资料
-
-*   **[术语词汇表](/cli/glossary)** - 查询专业术语定义
-
----
-
-**需要帮助？**
-
-*   💬 [社区讨论](https://github.com/iflow-ai/iflow-cli/discussions)
-*   🐛 [问题反馈](https://github.com/iflow-ai/iflow-cli/issues)
-*   📧 [官方文档](https://docs.iflow.cn/)

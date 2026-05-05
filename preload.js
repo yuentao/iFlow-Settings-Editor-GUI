@@ -165,7 +165,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cloudSyncClearCloud: () => ipcRenderer.invoke('cloud-sync:clear-cloud'),
   cloudSyncGetDevices: () => ipcRenderer.invoke('cloud-sync:get-devices'),
   cloudSyncSetDeviceName: (name) => ipcRenderer.invoke('cloud-sync:set-device-name', name),
+  cloudSyncSetTombstoneRetentionDays: (days) => ipcRenderer.invoke('cloud-sync:set-tombstone-retention-days', days),
   cloudSyncRemoveDevice: (deviceId) => ipcRenderer.invoke('cloud-sync:remove-device', deviceId),
+
+  // 外部链接
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
 
   // 云同步事件监听
   onCloudSyncStatusChanged: (callback) => {

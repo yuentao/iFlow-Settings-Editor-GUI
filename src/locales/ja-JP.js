@@ -498,6 +498,9 @@ export default {
     configSectionDevices: 'デバイス管理',
     webdavPasswordHintTag: '（WebDAVログインパスワード）',
     syncPasswordHintTag: '（同期データを暗号化、WebDAVパスワードとは無関係）',
+    configSectionAdvanced: '高度な同期設定',
+    tombstoneRetentionDays: '削除記録保持日数',
+    tombstoneRetentionDaysDesc: '同期削除操作はこの日数内に他のデバイスに伝播されます。期限切れ後は自動クリーンアップされます。短すぎるとオフラインデバイスが削除を見逃す可能性があり、長すぎると設定ファイルのサイズが増加します',
     setAutoSyncFailed: '自動同期の設定に失敗しました',
     wizardTitle: 'クラウド同期設定ウィザード',
     wizardStep1: 'クラウドサービス接続',
@@ -566,6 +569,7 @@ export default {
     docNotFound: 'ドキュメントが見つかりません',
     loadFailed: 'ドキュメントの読み込みに失敗しました',
     retry: '再試行',
-    toc: '目次'
+    toc: '目次',
+    navHint: '左側のストライプにホバーするとドキュメントナビゲーションが開きます'
   }
 }

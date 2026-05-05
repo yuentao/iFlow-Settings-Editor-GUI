@@ -24,8 +24,9 @@
           <p class="docs-error-msg">{{ error }}</p>
           <button class="docs-error-btn" @click="loadDoc(currentDoc)">{{ $t('docs.retry') }}</button>
         </div>
-        <div v-else v-html="renderedContent" class="markdown-body"></div>
+        <div v-else v-html="renderedContent" class="markdown-body" @click="handleContentClick"></div>
       </div>
+      <p class="docs-nav-hint">{{ t('docs.navHint') }}</p>
     </main>
 
     <!-- 文档导航侧边栏（默认收起为标识条，hover 展开） -->
@@ -74,53 +75,75 @@ interface TocItem {
 
 const tocItems = ref<TocItem[]>([])
 const activeHeadingId = ref('')
-let headingCounter = 0
 let observer: IntersectionObserver | null = null
 
 // ── 导航栏配置 ──────────────────────────────────────────
 // 导航栏默认收起为左侧标识条，hover 时 CSS 展开展开，无需 JS 控制
 
-// 配置 marked：自定义 heading renderer，生成 id 并收集 TOC 数据
+// 根据标题文本生成 slug，与 Markdown 锚点链接匹配（如 ## 核心命令 → id="核心命令"）
+const slugify = (text: string): string => {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-') // 空格转连字符
+    .replace(/[^\w\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af-]/g, '') // 保留字母数字、CJK、日文、韩文、连字符
+}
+
+// 全局标题序号，用于空 slug 时生成回退 id
+let headingFallbackIndex = 0
+
+// 配置 marked：自定义 heading renderer，生成语义化 id
 marked.use({
   renderer: {
     heading({ tokens, depth }: { tokens: any[]; depth: number }) {
       const text = (this as any).parser.parseInline(tokens)
-      const id = `toc-heading-${headingCounter++}`
-      return `<h${depth} id="${id}">${text}</h${depth}>\n`
+      const baseId = slugify(text) || `heading-${headingFallbackIndex++}`
+      // 处理重复标题：追加序号
+      const idCounts = (marked as any).__headingIdCounts || ((marked as any).__headingIdCounts = {})
+      const count = idCounts[baseId] || 0
+      idCounts[baseId] = count + 1
+      const id = count > 0 ? `${baseId}-${count}` : baseId
+      const escapedId = id.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      return `<h${depth} id="${escapedId}">${text}</h${depth}>\n`
     },
   },
 })
 
-// 导航配置（数据驱动，合并路径）
+// ── Vite 构建时静态导入所有 markdown 文件 ──────────────────
+// import.meta.glob + ?raw 将 markdown 内容在构建时打包进 JS，
+// 彻底避免 Electron file:// 协议下 fetch 失败的问题
+const docModules = import.meta.glob<{ default: string }>('../assets/docs/**/*.md', { eager: true, query: '?raw', import: 'default' })
+
+// 导航配置（数据驱动，path 匹配 glob 键）
 const navSections = computed(() => [
   {
     titleKey: 'docs.quickStart',
-    items: [{ key: 'quickstart', labelKey: 'docs.quickStart', path: '/docs/quickstart.md' }],
+    items: [{ key: 'quickstart', labelKey: 'docs.quickStart', path: '../assets/docs/quickstart.md' }],
   },
   {
     titleKey: 'docs.coreFeatures',
     items: [
-      { key: 'basic-usage', labelKey: 'docs.basicUsage', path: '/docs/examples/basic-usage.md' },
-      { key: 'interactive', labelKey: 'docs.interactiveMode', path: '/docs/features/interactive.md' },
-      { key: 'keyboard-shortcuts', labelKey: 'docs.keyboardShortcuts', path: '/docs/examples/keyboard-shortcuts.md' },
+      { key: 'basic-usage', labelKey: 'docs.basicUsage', path: '../assets/docs/examples/basic-usage.md' },
+      { key: 'interactive', labelKey: 'docs.interactiveMode', path: '../assets/docs/features/interactive.md' },
+      { key: 'keyboard-shortcuts', labelKey: 'docs.keyboardShortcuts', path: '../assets/docs/examples/keyboard-shortcuts.md' },
     ],
   },
   {
     titleKey: 'docs.advancedFeatures',
     items: [
-      { key: 'slash-commands', labelKey: 'docs.slashCommands', path: '/docs/examples/slash-commands.md' },
-      { key: 'mcp', labelKey: 'docs.mcp', path: '/docs/examples/mcp.md' },
-      { key: 'subagent', labelKey: 'docs.subAgent', path: '/docs/examples/subagent.md' },
-      { key: 'subcommand', labelKey: 'docs.subCommand', path: '/docs/examples/subcommand.md' },
-      { key: 'hooks', labelKey: 'docs.hooks', path: '/docs/examples/hooks.md' },
-      { key: 'workflow', labelKey: 'docs.workflow', path: '/docs/examples/workflow.md' },
-      { key: 'skill', labelKey: 'docs.skill', path: '/docs/examples/skill.md' },
-      { key: 'plan-mode', labelKey: 'docs.planMode', path: '/docs/examples/plan-mode.md' },
+      { key: 'slash-commands', labelKey: 'docs.slashCommands', path: '../assets/docs/examples/slash-commands.md' },
+      { key: 'mcp', labelKey: 'docs.mcp', path: '../assets/docs/examples/mcp.md' },
+      { key: 'subagent', labelKey: 'docs.subAgent', path: '../assets/docs/examples/subagent.md' },
+      { key: 'subcommand', labelKey: 'docs.subCommand', path: '../assets/docs/examples/subcommand.md' },
+      { key: 'hooks', labelKey: 'docs.hooks', path: '../assets/docs/examples/hooks.md' },
+      { key: 'workflow', labelKey: 'docs.workflow', path: '../assets/docs/examples/workflow.md' },
+      { key: 'skill', labelKey: 'docs.skill', path: '../assets/docs/examples/skill.md' },
+      { key: 'plan-mode', labelKey: 'docs.planMode', path: '../assets/docs/examples/plan-mode.md' },
     ],
   },
   {
     titleKey: 'docs.configuration',
-    items: [{ key: 'settings', labelKey: 'docs.cliConfig', path: '/docs/configuration/settings.md' }],
+    items: [{ key: 'settings', labelKey: 'docs.cliConfig', path: '../assets/docs/configuration/settings.md' }],
   },
 ])
 
@@ -154,16 +177,19 @@ const loadDoc = async (docName: string) => {
     return
   }
 
+  // 从 Vite 构建时打包的模块中读取 markdown 内容（不再使用 fetch）
+  const markdown = docModules[path]
+  if (!markdown) {
+    error.value = t('docs.docNotFound')
+    return
+  }
+
   isLoading.value = true
   error.value = ''
-  headingCounter = 0
+  ;(marked as any).__headingIdCounts = {}
+  headingFallbackIndex = 0
 
   try {
-    const response = await fetch(path)
-    if (!response.ok) {
-      throw new Error(t('docs.loadFailed'))
-    }
-    const markdown = await response.text()
     const html = marked(markdown) as string
     renderedContent.value = html
 
@@ -240,6 +266,60 @@ const scrollToHeading = (id: string) => {
   const el = contentRef.value.querySelector(`#${CSS.escape(id)}`)
   if (el) {
     el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+// /cli/ 路径到文档 key 的映射
+const cliPathToDocKey: Record<string, string> = {
+  '/cli/quickstart': 'quickstart',
+  '/cli/examples/basic-usage': 'basic-usage',
+  '/cli/features/interactive': 'interactive',
+  '/cli/examples/keyboard-shortcuts': 'keyboard-shortcuts',
+  '/cli/examples/slash-commands': 'slash-commands',
+  '/cli/examples/mcp': 'mcp',
+  '/cli/examples/subagent': 'subagent',
+  '/cli/examples/subcommand': 'subcommand',
+  '/cli/examples/hooks': 'hooks',
+  '/cli/examples/workflow': 'workflow',
+  '/cli/examples/skill': 'skill',
+  '/cli/examples/plan-mode': 'plan-mode',
+  '/cli/configuration/settings': 'settings',
+}
+
+// 拦截 Markdown 内容中的所有链接点击
+const handleContentClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  const anchor = target.closest('a') as HTMLAnchorElement | null
+  if (!anchor) return
+
+  const href = anchor.getAttribute('href')
+  if (!href) return
+
+  // 1) 锚点链接：页内滚动
+  if (href.startsWith('#')) {
+    e.preventDefault()
+    const id = href.slice(1)
+    if (!id || !contentRef.value) return
+    const el = contentRef.value.querySelector(`#${CSS.escape(id)}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
+
+  // 2) /cli/ 内部文档链接：导航到对应文档
+  if (href.startsWith('/cli/')) {
+    e.preventDefault()
+    const docKey = cliPathToDocKey[href.replace(/\/+$/, '')] // 去除末尾斜杠
+    if (docKey) {
+      navigateTo(docKey)
+    }
+    return
+  }
+
+  // 3) 外部链接：在系统浏览器中打开
+  if (href.startsWith('http://') || href.startsWith('https://')) {
+    e.preventDefault()
+    window.electronAPI.openExternal?.(href)
+    return
   }
 }
 
@@ -450,6 +530,22 @@ onBeforeUnmount(() => {
   }
 }
 
+// ── 导航提示 ───────────────────────────────────────────
+.docs-nav-hint {
+  position: sticky;
+  bottom: 0;
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  background: rgba(2551, 255, 255, 0.95);
+  border-top: 1px solid var(--border-light);
+  text-align: center;
+  user-select: none;
+  z-index: 2;
+}
+
 // ── 动画 ───────────────────────────────────────────────
 @keyframes pulse {
   0%,
@@ -602,6 +698,8 @@ onBeforeUnmount(() => {
   height: 100%;
   z-index: 20;
   display: flex;
+  width: 4px; // 默认仅标识条宽度
+  transition: width 0.2s ease;
 
   // 标识条（默认可见，带呼吸动画提示可交互）
   .docs-nav-stripe {
@@ -615,6 +713,7 @@ onBeforeUnmount(() => {
     transition: opacity 0.25s ease;
     position: relative;
     overflow: hidden;
+    cursor: pointer;
 
     // 光扫效果（与呼吸同步 2.5s）
     &::after {
@@ -624,20 +723,26 @@ onBeforeUnmount(() => {
       left: 0;
       width: 100%;
       height: 40%;
-      background: linear-gradient(
-        180deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.45) 50%,
-        transparent 100%
-      );
+      background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
       animation: stripe-sweep 2.5s ease-in-out infinite;
     }
   }
 
-  // hover 时呼吸动画暂停，标识条变亮
-  &:hover .docs-nav-stripe {
-    animation-play-state: paused;
-    opacity: 0.6;
+  // hover 时：整个导航栏展开，呼吸动画暂停，标识条变亮
+  &:hover,
+  &:has(.docs-nav-stripe:hover) {
+    width: 220px; // 4(stripe) + 216(body)
+
+    .docs-nav-stripe {
+      animation-play-state: paused;
+      opacity: 0.6;
+    }
+
+    .docs-nav-body {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
   }
 
   // 导航栏主体（默认隐藏）
@@ -655,13 +760,6 @@ onBeforeUnmount(() => {
       opacity 0.2s ease,
       transform 0.2s ease;
     overflow: hidden;
-  }
-
-  // hover 时展开
-  &:hover .docs-nav-body {
-    opacity: 1;
-    transform: translateX(0);
-    pointer-events: auto;
   }
 }
 
@@ -722,7 +820,7 @@ onBeforeUnmount(() => {
 
   li {
     position: relative;
-    padding: 7px 12px 7px 20px;
+    padding: 7px 12px 7px 15px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
@@ -731,6 +829,9 @@ onBeforeUnmount(() => {
       background 0.15s ease,
       color 0.15s ease;
     user-select: none;
+    display: flex;
+    align-items: center;
+    line-height: 2;
 
     &:hover {
       background: var(--control-fill);
@@ -744,17 +845,12 @@ onBeforeUnmount(() => {
 
       .nav-indicator {
         opacity: 1;
-        transform: scaleY(1);
       }
     }
   }
 }
 
 .nav-indicator {
-  position: absolute;
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%) scaleY(0);
   width: 3px;
   height: 16px;
   border-radius: 2px;
@@ -763,6 +859,7 @@ onBeforeUnmount(() => {
   transition:
     opacity 0.2s ease,
     transform 0.2s ease;
+  margin-right: 5px;
 }
 
 .dark .docs-nav .docs-nav-body {
@@ -777,7 +874,8 @@ onBeforeUnmount(() => {
 
 // ── 标识条呼吸动画关键帧 ─────────────────────────────────
 @keyframes stripe-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.35;
     filter: brightness(1);
   }

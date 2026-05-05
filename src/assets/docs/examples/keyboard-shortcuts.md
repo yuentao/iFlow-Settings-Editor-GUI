@@ -128,9 +128,3 @@ iFlow CLI 提供丰富的键盘快捷键，帮助您更高效地使用 CLI。本
 建议使用支持快捷键的现代化终端（如 Windows Terminal、iTerm2、VS Code Terminal），以获得最佳体验。
 
 ---
-
-**需要帮助？**
-
-*   💬 [社区讨论](https://github.com/iflow-ai/iflow-cli/discussions)
-*   🐛 [问题反馈](https://github.com/iflow-ai/iflow-cli/issues)
-*   📧 [官方文档](https://docs.iflow.cn/)

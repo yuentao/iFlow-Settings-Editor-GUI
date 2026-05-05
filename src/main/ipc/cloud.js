@@ -3,8 +3,10 @@
  * 处理云同步相关的 IPC 通信
  */
 
-const { ipcMain, BrowserWindow } = require('electron')
+const { ipcMain, BrowserWindow, app } = require('electron')
 const crypto = require('crypto')
+const path = require('path')
+const fs = require('fs')
 const { wrapIpcHandler } = require('../utils/errors')
 const SyncService = require('../services/SyncService')
 const CryptoManager = require('../crypto/CryptoManager')
@@ -16,22 +18,82 @@ const logger = createLogger('CloudSync')
 const syncService = new SyncService()
 const cryptoMgr = new CryptoManager()
 
-/**
- * WebDAV 密码直接明文存储（不加密）
- * @param {object} config - 原始 providerConfig
- * @returns {object} 不做加密，直接返回
- */
-function encryptProviderConfig(config) {
-  return config
+// ── 机器级加密密钥 ──────────────────────────────────────
+// 首次使用时在 ~/.iflow/.enc_key 生成随机 32 字节密钥，
+// 用于加密 WebDAV 等凭据，避免明文存储在 settings.json 中。
+let _machineKey = null
+
+function getMachineKeyFile() {
+  // 延迟计算，避免模块加载时 app 不可用
+  return path.join(app.getPath('home'), '.iflow', '.enc_key')
+}
+
+function getOrCreateMachineKey() {
+  if (_machineKey) return _machineKey
+  const keyFile = getMachineKeyFile()
+  try {
+    if (fs.existsSync(keyFile)) {
+      const data = fs.readFileSync(keyFile)
+      if (data.length === 32) {
+        _machineKey = data
+        return _machineKey
+      }
+      logger.warn('Machine key file has invalid length, regenerating')
+    }
+  } catch (err) {
+    logger.warn('Failed to read machine key file, regenerating:', err.message)
+  }
+  // 生成新密钥
+  _machineKey = crypto.randomBytes(32)
+  try {
+    const dir = path.dirname(keyFile)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(keyFile, _machineKey)
+  } catch (err) {
+    logger.error('Failed to write machine key file:', err.message)
+    // 密钥仍在内存中可用，但重启后凭据需重新输入
+  }
+  return _machineKey
 }
 
 /**
- * WebDAV 密码直接明文读取
- * @param {object} config - 含密码的 providerConfig
- * @returns {object} 不做解密，直接返回
+ * 加密 WebDAV providerConfig 中的密码字段
+ * 使用机器级密钥 + CryptoManager AES-256-GCM 加密
+ * @param {object} config - 原始 providerConfig
+ * @returns {object} 密码已加密的 providerConfig
+ */
+function encryptProviderConfig(config) {
+  if (!config || typeof config !== 'object') return config
+  const key = getOrCreateMachineKey()
+  const result = { ...config }
+  if (result.password && typeof result.password === 'string' && !result.password.startsWith('$enc:')) {
+    try {
+      result.password = cryptoMgr.encryptField(result.password, key)
+    } catch (err) {
+      logger.error('Failed to encrypt WebDAV password:', err.message)
+    }
+  }
+  return result
+}
+
+/**
+ * 解密 WebDAV providerConfig 中的密码字段
+ * @param {object} config - 含加密密码的 providerConfig
+ * @returns {object} 密码已解密的 providerConfig
  */
 function decryptProviderConfig(config) {
-  return config
+  if (!config || typeof config !== 'object') return config
+  const key = getOrCreateMachineKey()
+  const result = { ...config }
+  if (result.password && typeof result.password === 'string' && result.password.startsWith('$enc:')) {
+    try {
+      result.password = cryptoMgr.decryptField(result.password, key)
+    } catch (err) {
+      logger.error('Failed to decrypt WebDAV password:', err.message)
+      // 解密失败保留原值，让用户重新输入凭据
+    }
+  }
+  return result
 }
 
 /**
@@ -342,6 +404,15 @@ function registerCloudSyncIpcHandlers() {
     await writeSettings(settings)
     return { success: true }
   }, 'cloud-sync:set-device-name'))
+
+  ipcMain.handle('cloud-sync:set-tombstone-retention-days', wrapIpcHandler(async (_event, days) => {
+    const clamped = Math.max(1, Math.min(365, Number(days) || 30))
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.tombstoneRetentionDays = clamped
+    await writeSettings(settings)
+    return { success: true, tombstoneRetentionDays: clamped }
+  }, 'cloud-sync:set-tombstone-retention-days'))
 
   ipcMain.handle('cloud-sync:remove-device', wrapIpcHandler(async (_event, deviceId) => {
     await syncService.removeDevice(deviceId)

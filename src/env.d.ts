@@ -91,5 +91,8 @@ interface Window {
     // ─── 翻译 ─────────────────────────────────────────────
     getTranslation: (localeData: any) => any
     sendTranslation: (translations: any) => void
+
+    // ─── 外部链接 ─────────────────────────────────────────
+    openExternal: (url: string) => Promise<import('./shared/types').IpcResult>
   }
 }
