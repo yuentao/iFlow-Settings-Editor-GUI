@@ -29,7 +29,15 @@ function registerApiProfilesIpcHandlers() {
       profiles.default = {}
     }
 
-    const profileList = Object.keys(profiles).map(name => ({
+    // 按 apiProfilesOrder 排序，未在排序列表中的配置追加到末尾
+    const order = settings.apiProfilesOrder || []
+    const allNames = Object.keys(profiles)
+    const orderedNames = [
+      ...order.filter(name => profiles[name]),
+      ...allNames.filter(name => !order.includes(name)),
+    ]
+
+    const profileList = orderedNames.map(name => ({
       name,
       isDefault: name === 'default',
     }))
@@ -102,6 +110,11 @@ function registerApiProfilesIpcHandlers() {
       }
     }
     settings.apiProfiles[name] = newConfig
+    // 维护 apiProfilesOrder：追加新配置名
+    if (!settings.apiProfilesOrder) settings.apiProfilesOrder = []
+    if (!settings.apiProfilesOrder.includes(name)) {
+      settings.apiProfilesOrder.push(name)
+    }
     // 用户先删除再重建：移除同名 tombstone，避免合并时被云端误删
     if (settings._deletedProfiles && settings._deletedProfiles[name]) {
       delete settings._deletedProfiles[name]
@@ -134,6 +147,10 @@ function registerApiProfilesIpcHandlers() {
     markDeletedProfile(settings, name)
     delete profiles[name]
     settings.apiProfiles = profiles
+    // 维护 apiProfilesOrder：移除已删除的配置名
+    if (Array.isArray(settings.apiProfilesOrder)) {
+      settings.apiProfilesOrder = settings.apiProfilesOrder.filter(n => n !== name)
+    }
 
     // 如果删除的是当前配置，切换到 default
     if (settings.currentApiProfile === name) {
@@ -182,6 +199,15 @@ function registerApiProfilesIpcHandlers() {
       delete settings._deletedProfiles[newName]
     }
     settings.apiProfiles = profiles
+    // 维护 apiProfilesOrder：将旧名替换为新名
+    if (Array.isArray(settings.apiProfilesOrder)) {
+      const idx = settings.apiProfilesOrder.indexOf(oldName)
+      if (idx !== -1) {
+        settings.apiProfilesOrder[idx] = newName
+      } else if (!settings.apiProfilesOrder.includes(newName)) {
+        settings.apiProfilesOrder.push(newName)
+      }
+    }
 
     if (settings.currentApiProfile === oldName) {
       settings.currentApiProfile = newName
@@ -274,6 +300,11 @@ function registerApiProfilesIpcHandlers() {
     delete cloned._lastModified // 由 stampModifiedItems 重新打时间戳
     profiles[newName] = cloned
     settings.apiProfiles = profiles
+    // 维护 apiProfilesOrder：追加新配置名
+    if (!settings.apiProfilesOrder) settings.apiProfilesOrder = []
+    if (!settings.apiProfilesOrder.includes(newName)) {
+      settings.apiProfilesOrder.push(newName)
+    }
     if (settings._deletedProfiles && settings._deletedProfiles[newName]) {
       delete settings._deletedProfiles[newName]
     }
