@@ -109,36 +109,41 @@ marked.use({
   },
 })
 
-// 导航配置（数据驱动，合并路径）
+// ── Vite 构建时静态导入所有 markdown 文件 ──────────────────
+// import.meta.glob + ?raw 将 markdown 内容在构建时打包进 JS，
+// 彻底避免 Electron file:// 协议下 fetch 失败的问题
+const docModules = import.meta.glob<{ default: string }>('../assets/docs/**/*.md', { eager: true, query: '?raw', import: 'default' })
+
+// 导航配置（数据驱动，path 匹配 glob 键）
 const navSections = computed(() => [
   {
     titleKey: 'docs.quickStart',
-    items: [{ key: 'quickstart', labelKey: 'docs.quickStart', path: '/docs/quickstart.md' }],
+    items: [{ key: 'quickstart', labelKey: 'docs.quickStart', path: '../assets/docs/quickstart.md' }],
   },
   {
     titleKey: 'docs.coreFeatures',
     items: [
-      { key: 'basic-usage', labelKey: 'docs.basicUsage', path: '/docs/examples/basic-usage.md' },
-      { key: 'interactive', labelKey: 'docs.interactiveMode', path: '/docs/features/interactive.md' },
-      { key: 'keyboard-shortcuts', labelKey: 'docs.keyboardShortcuts', path: '/docs/examples/keyboard-shortcuts.md' },
+      { key: 'basic-usage', labelKey: 'docs.basicUsage', path: '../assets/docs/examples/basic-usage.md' },
+      { key: 'interactive', labelKey: 'docs.interactiveMode', path: '../assets/docs/features/interactive.md' },
+      { key: 'keyboard-shortcuts', labelKey: 'docs.keyboardShortcuts', path: '../assets/docs/examples/keyboard-shortcuts.md' },
     ],
   },
   {
     titleKey: 'docs.advancedFeatures',
     items: [
-      { key: 'slash-commands', labelKey: 'docs.slashCommands', path: '/docs/examples/slash-commands.md' },
-      { key: 'mcp', labelKey: 'docs.mcp', path: '/docs/examples/mcp.md' },
-      { key: 'subagent', labelKey: 'docs.subAgent', path: '/docs/examples/subagent.md' },
-      { key: 'subcommand', labelKey: 'docs.subCommand', path: '/docs/examples/subcommand.md' },
-      { key: 'hooks', labelKey: 'docs.hooks', path: '/docs/examples/hooks.md' },
-      { key: 'workflow', labelKey: 'docs.workflow', path: '/docs/examples/workflow.md' },
-      { key: 'skill', labelKey: 'docs.skill', path: '/docs/examples/skill.md' },
-      { key: 'plan-mode', labelKey: 'docs.planMode', path: '/docs/examples/plan-mode.md' },
+      { key: 'slash-commands', labelKey: 'docs.slashCommands', path: '../assets/docs/examples/slash-commands.md' },
+      { key: 'mcp', labelKey: 'docs.mcp', path: '../assets/docs/examples/mcp.md' },
+      { key: 'subagent', labelKey: 'docs.subAgent', path: '../assets/docs/examples/subagent.md' },
+      { key: 'subcommand', labelKey: 'docs.subCommand', path: '../assets/docs/examples/subcommand.md' },
+      { key: 'hooks', labelKey: 'docs.hooks', path: '../assets/docs/examples/hooks.md' },
+      { key: 'workflow', labelKey: 'docs.workflow', path: '../assets/docs/examples/workflow.md' },
+      { key: 'skill', labelKey: 'docs.skill', path: '../assets/docs/examples/skill.md' },
+      { key: 'plan-mode', labelKey: 'docs.planMode', path: '../assets/docs/examples/plan-mode.md' },
     ],
   },
   {
     titleKey: 'docs.configuration',
-    items: [{ key: 'settings', labelKey: 'docs.cliConfig', path: '/docs/configuration/settings.md' }],
+    items: [{ key: 'settings', labelKey: 'docs.cliConfig', path: '../assets/docs/configuration/settings.md' }],
   },
 ])
 
@@ -172,17 +177,19 @@ const loadDoc = async (docName: string) => {
     return
   }
 
+  // 从 Vite 构建时打包的模块中读取 markdown 内容（不再使用 fetch）
+  const markdown = docModules[path]
+  if (!markdown) {
+    error.value = t('docs.docNotFound')
+    return
+  }
+
   isLoading.value = true
   error.value = ''
   ;(marked as any).__headingIdCounts = {}
   headingFallbackIndex = 0
 
   try {
-    const response = await fetch(path)
-    if (!response.ok) {
-      throw new Error(t('docs.loadFailed'))
-    }
-    const markdown = await response.text()
     const html = marked(markdown) as string
     renderedContent.value = html
 
