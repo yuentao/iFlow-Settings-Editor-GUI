@@ -390,6 +390,22 @@
               </div>
             </template>
 
+            <!-- 高级同步设置 -->
+            <template v-if="cloudStore.isConfigured">
+              <div class="setting-divider"></div>
+              <div class="sub-section-header">
+                {{ $t('cloudSync.configSectionAdvanced') }}
+              </div>
+
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label">{{ $t('cloudSync.tombstoneRetentionDays') }}</label>
+                  <p class="setting-desc">{{ $t('cloudSync.tombstoneRetentionDaysDesc') }}</p>
+                </div>
+                <input type="number" class="form-input setting-input-number" v-model.number="tombstoneRetentionDays" min="1" max="365" @blur="handleSetTombstoneRetentionDays" @change="handleSetTombstoneRetentionDays" />
+              </div>
+            </template>
+
             <!-- 设备管理 -->
             <template v-if="cloudStore.isConfigured">
               <div class="setting-divider"></div>
@@ -599,6 +615,7 @@ const messageDialog = ref({
 // 云同步状态（由 cloudSync store 统一管理，包括 localStorage 持久化）
 const selectedProvider = ref('webdav')
 const deviceName = ref('')
+const tombstoneRetentionDays = ref(30)
 const webdavConfig = ref({
   serverUrl: '',
   username: '',
@@ -743,6 +760,7 @@ onMounted(async () => {
   await cloudStore.getRememberPassword()
   deviceName.value = cloudStore.status.deviceName || ''
   selectedProvider.value = cloudStore.status.provider || 'webdav'
+  tombstoneRetentionDays.value = cloudStore.status.tombstoneRetentionDays || 30
   if (cloudStore.syncEnabled && cloudStore.isConfigured) {
     await cloudStore.loadDevices()
   }
@@ -1086,6 +1104,20 @@ async function handleRevokeAuth() {
 async function handleSetDeviceName() {
   if (deviceName.value.trim() && deviceName.value !== cloudStore.status.deviceName) {
     await cloudStore.setDeviceName(deviceName.value.trim())
+  }
+}
+
+async function handleSetTombstoneRetentionDays() {
+  let days = tombstoneRetentionDays.value
+  if (!days || days < 1) days = 1
+  if (days > 365) days = 365
+  tombstoneRetentionDays.value = days
+  const result = await window.electronAPI.loadSettings()
+  if (result.success && result.data) {
+    const settings = result.data
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.tombstoneRetentionDays = days
+    await window.electronAPI.saveSettings(settings)
   }
 }
 
