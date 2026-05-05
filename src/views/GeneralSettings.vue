@@ -1112,12 +1112,9 @@ async function handleSetTombstoneRetentionDays() {
   if (!days || days < 1) days = 1
   if (days > 365) days = 365
   tombstoneRetentionDays.value = days
-  const result = await window.electronAPI.loadSettings()
-  if (result.success && result.data) {
-    const settings = result.data
-    settings.cloudSync = settings.cloudSync || {}
-    settings.cloudSync.tombstoneRetentionDays = days
-    await window.electronAPI.saveSettings(settings)
+  const result = await window.electronAPI.cloudSyncSetTombstoneRetentionDays(days)
+  if (result.success && result.tombstoneRetentionDays) {
+    tombstoneRetentionDays.value = result.tombstoneRetentionDays
   }
 }
 

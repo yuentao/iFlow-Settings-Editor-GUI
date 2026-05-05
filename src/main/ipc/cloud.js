@@ -405,6 +405,15 @@ function registerCloudSyncIpcHandlers() {
     return { success: true }
   }, 'cloud-sync:set-device-name'))
 
+  ipcMain.handle('cloud-sync:set-tombstone-retention-days', wrapIpcHandler(async (_event, days) => {
+    const clamped = Math.max(1, Math.min(365, Number(days) || 30))
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.tombstoneRetentionDays = clamped
+    await writeSettings(settings)
+    return { success: true, tombstoneRetentionDays: clamped }
+  }, 'cloud-sync:set-tombstone-retention-days'))
+
   ipcMain.handle('cloud-sync:remove-device', wrapIpcHandler(async (_event, deviceId) => {
     await syncService.removeDevice(deviceId)
     return { success: true }
