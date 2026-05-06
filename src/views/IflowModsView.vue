@@ -93,6 +93,16 @@
 
           <!-- Right: Actions -->
           <div class="mod-actions">
+            <!-- Conditional actions (only when disabled) -->
+            <template v-if="!mod.enabled && !isApplying">
+              <button class="action-btn" @click.stop="exportMod(mod.id)" :title="$t('iflow.mods.export')">
+                <Download size="14" />
+              </button>
+              <button class="action-btn action-btn-danger" @click.stop="deleteMod(mod.id)" :title="$t('iflow.mods.delete')">
+                <Delete size="14" />
+              </button>
+            </template>
+
             <!-- Enable/Disable Toggle -->
             <label class="toggle-switch" :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')">
               <input
@@ -103,16 +113,6 @@
               />
               <span class="toggle-slider"></span>
             </label>
-
-            <!-- Conditional actions (only when disabled) -->
-            <template v-if="!mod.enabled && !isApplying">
-              <button class="action-btn" @click.stop="exportMod(mod.id)" :title="$t('iflow.mods.export')">
-                <Download size="14" />
-              </button>
-              <button class="action-btn action-btn-danger" @click.stop="deleteMod(mod.id)" :title="$t('iflow.mods.delete')">
-                <Delete size="14" />
-              </button>
-            </template>
           </div>
         </div>
       </div>
@@ -622,6 +622,7 @@ onMounted(() => {
   width: 36px;
   height: 20px;
   cursor: pointer;
+  flex-shrink: 0;
 
   input {
     opacity: 0;
@@ -629,10 +630,13 @@ onMounted(() => {
     height: 0;
 
     &:checked + .toggle-slider {
-      background-color: var(--accent);
+      background-color: var(--toggle-on, var(--accent));
+      box-shadow: 0 0 0 2px var(--toggle-on-border, rgba(0, 120, 212, 0.3));
 
       &::before {
         transform: translateX(16px);
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
       }
     }
 
@@ -649,7 +653,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--control-fill);
+  background-color: var(--toggle-off, var(--control-fill));
   border-radius: 10px;
   transition: 0.2s;
 
@@ -660,7 +664,7 @@ onMounted(() => {
     width: 16px;
     left: 2px;
     bottom: 2px;
-    background-color: white;
+    background-color: var(--toggle-thumb, #fff);
     border-radius: 50%;
     transition: 0.2s;
   }
