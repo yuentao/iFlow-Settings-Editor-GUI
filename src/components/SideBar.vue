@@ -25,6 +25,7 @@
         <div class="nav-item" :class="{ active: currentSection === 'iflow' }" @click="$emit('navigate', 'iflow')">
           <Puzzle size="16" />
           <span class="nav-item-text">{{ $t('sidebar.iflowMod') }}</span>
+          <span class="experimental-badge">{{ $t('sidebar.experimental') }}</span>
         </div>
         <div class="nav-item" :class="{ active: currentSection === 'skills' }" @click="$emit('navigate', 'skills')">
           <Star size="16" />
@@ -186,4 +187,18 @@ const toggleCollapse = (): void => {
   }
 }
 
+.experimental-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--warning-bg, rgba(255, 185, 83, 0.15));
+  color: var(--warning, #FFB953);
+  border: 1px solid var(--warning-border, rgba(255, 185, 83, 0.3));
+  flex-shrink: 0;
+
+  .sidebar.collapsed & {
+    display: none;
+  }
+}
 </style>

@@ -18,6 +18,7 @@ export default {
     advanced: 'Advanced',
     mcpServers: 'MCP Servers',
     iflowMod: 'iFlow Mod',
+    experimental: 'Experimental',
     skills: 'Skills',
     commands: 'Commands',
     docs: 'Docs'

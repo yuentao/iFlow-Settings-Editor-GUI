@@ -18,6 +18,7 @@ export default {
     advanced: '詳細',
     mcpServers: 'MCP サーバー',
     iflowMod: 'iFlow Mod',
+    experimental: '実験中',
     skills: 'スキル',
     commands: 'コマンド',
     docs: 'ドキュメント'

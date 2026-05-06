@@ -18,6 +18,7 @@ export default {
     advanced: '高级',
     mcpServers: 'MCP 服务器',
     iflowMod: 'iFlow Mod',
+    experimental: '实验性',
     skills: '技能',
     commands: '命令',
     docs: '使用指南'
