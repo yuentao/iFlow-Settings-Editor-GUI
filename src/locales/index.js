@@ -17,6 +17,8 @@ export default {
     apiConfig: 'API 配置',
     advanced: '高级',
     mcpServers: 'MCP 服务器',
+    iflowMod: 'iFlow Mod',
+    experimental: '实验性',
     skills: '技能',
     commands: '命令',
     docs: '使用指南'
@@ -551,6 +553,71 @@ export default {
       skillArchive: '技能压缩包',
       allFiles: '所有文件',
     },
+  },
+  iflow: {
+    title: 'iFlow Mod 管理',
+    description: '管理 iFlow 核心文件的修改模块',
+    fileStatus: '文件状态',
+    enabledMods: '已启用 Mod',
+    statusFound: '已找到',
+    statusNotFound: '未找到',
+    mods: {
+      title: '已安装的 Mod',
+      import: '导入 Mod',
+      export: '导出',
+      delete: '删除',
+      enable: '启用',
+      disable: '禁用',
+      emptyTitle: '暂无 Mod',
+      emptyDesc: '导入 Mod 来修改 iFlow 核心文件的功能',
+      enableSuccess: '已启用 "{name}"',
+      disableSuccess: '已禁用 "{name}"',
+      deleteSuccess: '已删除 "{name}"',
+      exportSuccess: '已导出 "{name}"',
+      importSuccess: '已导入 {count} 个 Mod',
+      confirmDelete: '确定要删除 Mod "{name}" 吗？此操作不可撤销。',
+      types: {
+        replace: '替换',
+        append: '追加',
+        prepend: '前置',
+        patch: '补丁'
+      }
+    },
+    applying: {
+      enabling: '正在启用 Mod…',
+      disabling: '正在禁用 Mod…'
+    },
+    category: {
+      all: '全部'
+    },
+    compatibility: {
+      tooOld: '需要 iFlow v{required}，当前 v{current} 版本过低',
+      tooNew: '需要 iFlow v{required}，当前 v{current} 版本过高',
+      exactRequired: '需要 iFlow v{required}，当前 v{current} 不匹配',
+      versionUnavailable: '无法检测 iFlow 版本，跳过兼容性检查'
+    },
+    errors: {
+      missingModJson: 'Mod 包缺少 mod.json 文件',
+      invalidModJson: 'mod.json 格式无效',
+      missingRequiredField: 'mod.json 缺少必填字段: {field}',
+      invalidModType: '无效的 Mod 类型: {type}',
+      missingMainFile: 'Mod 包缺少主文件: {file}',
+      modNotFound: '未找到 Mod: {id}',
+      iflowPathNotFound: '未找到 iFlow 安装路径',
+      iflowNotFound: '未找到 iFlow.js 文件，请确认 iFlow 已正确安装',
+      invalidModId: '无效的 Mod ID',
+      modDirNotFound: 'Mod 目录不存在',
+      noOriginalBackup: '未找到原始备份文件，无法恢复',
+      patchNotSupported: '补丁类型 Mod 暂不支持'
+    },
+    exportDialog: {
+      title: '导出 Mod'
+    },
+    importExport: {
+      importTitle: '导入 Mod',
+      overwriteConfirm: '已存在同名 Mod "{name}"，是否覆盖？',
+      importError: '导入 Mod 失败: {error}'
+    }
   },
   docs: {
     title: '使用指南',

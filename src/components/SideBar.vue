@@ -22,6 +22,11 @@
           <Server size="16" />
           <span class="nav-item-text">{{ $t('sidebar.mcpServers') }}</span>
         </div>
+        <div class="nav-item" :class="{ active: currentSection === 'iflow' }" @click="$emit('navigate', 'iflow')">
+          <Puzzle size="16" />
+          <span class="nav-item-text">{{ $t('sidebar.iflowMod') }}</span>
+          <span class="experimental-badge">{{ $t('sidebar.experimental') }}</span>
+        </div>
         <div class="nav-item" :class="{ active: currentSection === 'skills' }" @click="$emit('navigate', 'skills')">
           <Star size="16" />
           <span class="nav-item-text">{{ $t('sidebar.skills') }}</span>
@@ -47,7 +52,7 @@
  * SideBar - 侧边导航栏组件
  */
 import { ref } from 'vue'
-import { Config, Key, Server, Star, Dashboard, Command, Book } from '@icon-park/vue-next'
+import { Config, Key, Server, Star, Dashboard, Command, Book, Puzzle } from '@icon-park/vue-next'
 
 interface Props {
   currentSection?: string
@@ -182,4 +187,18 @@ const toggleCollapse = (): void => {
   }
 }
 
+.experimental-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--warning-bg, rgba(255, 185, 83, 0.15));
+  color: var(--warning, #FFB953);
+  border: 1px solid var(--warning-border, rgba(255, 185, 83, 0.3));
+  flex-shrink: 0;
+
+  .sidebar.collapsed & {
+    display: none;
+  }
+}
 </style>

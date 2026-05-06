@@ -17,6 +17,8 @@ export default {
     apiConfig: 'API 設定',
     advanced: '詳細',
     mcpServers: 'MCP サーバー',
+    iflowMod: 'iFlow Mod',
+    experimental: '実験中',
     skills: 'スキル',
     commands: 'コマンド',
     docs: 'ドキュメント'
@@ -541,6 +543,71 @@ export default {
       skillArchive: 'スキルアーカイブ',
       allFiles: 'すべてのファイル',
     },
+  },
+  iflow: {
+    title: 'iFlow Mod 管理',
+    description: 'iFlow コアファイルの変更モジュールを管理',
+    fileStatus: 'ファイル状態',
+    enabledMods: '有効な Mod',
+    statusFound: '検出済み',
+    statusNotFound: '未検出',
+    mods: {
+      title: 'インストール済み Mod',
+      import: 'Mod をインポート',
+      export: 'エクスポート',
+      delete: '削除',
+      enable: '有効化',
+      disable: '無効化',
+      emptyTitle: 'Mod なし',
+      emptyDesc: 'Mod をインポートして iFlow コアファイルの機能を変更',
+      enableSuccess: '"{name}" を有効化しました',
+      disableSuccess: '"{name}" を無効化しました',
+      deleteSuccess: '"{name}" を削除しました',
+      exportSuccess: '"{name}" をエクスポートしました',
+      importSuccess: '{count} 個の Mod をインポートしました',
+      confirmDelete: 'Mod「{name}」を削除しますか？この操作は取り消せません。',
+      types: {
+        replace: '置換',
+        append: '追加',
+        prepend: '先頭追加',
+        patch: 'パッチ'
+      }
+    },
+    applying: {
+      enabling: 'Mod を有効化中…',
+      disabling: 'Mod を無効化中…'
+    },
+    category: {
+      all: 'すべて'
+    },
+    compatibility: {
+      tooOld: 'iFlow v{required} が必要、現在の v{current} は古すぎます',
+      tooNew: 'iFlow v{required} が必要、現在の v{current} は新しすぎます',
+      exactRequired: 'iFlow v{required} が必要、現在の v{current} は一致しません',
+      versionUnavailable: 'iFlow バージョンを検出できません、互換性チェックをスキップ'
+    },
+    errors: {
+      missingModJson: 'Mod パッケージに mod.json がありません',
+      invalidModJson: 'mod.json の形式が無効です',
+      missingRequiredField: 'mod.json に必須フィールドがありません: {field}',
+      invalidModType: '無効な Mod タイプ: {type}',
+      missingMainFile: 'Mod パッケージにメインファイルがありません: {file}',
+      modNotFound: 'Mod が見つかりません: {id}',
+      iflowPathNotFound: 'iFlow のインストールパスが見つかりません',
+      iflowNotFound: 'iFlow.js ファイルが見つかりません。iFlow が正しくインストールされているか確認してください',
+      invalidModId: '無効な Mod ID',
+      modDirNotFound: 'Mod ディレクトリが存在しません',
+      noOriginalBackup: 'オリジナルバックアップファイルが見つかりません、復元できません',
+      patchNotSupported: 'パッチタイプの Mod はまだサポートされていません'
+    },
+    exportDialog: {
+      title: 'Mod をエクスポート'
+    },
+    importExport: {
+      importTitle: 'Mod をインポート',
+      overwriteConfirm: 'Mod「{name}」は既に存在します。上書きしますか？',
+      importError: 'Mod のインポートに失敗しました: {error}'
+    }
   },
   docs: {
     title: 'ドキュメント',

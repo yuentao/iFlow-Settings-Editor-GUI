@@ -17,6 +17,8 @@ export default {
     apiConfig: 'API Config',
     advanced: 'Advanced',
     mcpServers: 'MCP Servers',
+    iflowMod: 'iFlow Mod',
+    experimental: 'Experimental',
     skills: 'Skills',
     commands: 'Commands',
     docs: 'Docs'
@@ -540,6 +542,71 @@ export default {
       skillArchive: 'Skill Archive',
       allFiles: 'All Files',
     },
+  },
+  iflow: {
+    title: 'iFlow Mod Manager',
+    description: 'Manage modification modules for the iFlow core file',
+    fileStatus: 'File Status',
+    enabledMods: 'Enabled Mods',
+    statusFound: 'Found',
+    statusNotFound: 'Not Found',
+    mods: {
+      title: 'Installed Mods',
+      import: 'Import Mod',
+      export: 'Export',
+      delete: 'Delete',
+      enable: 'Enable',
+      disable: 'Disable',
+      emptyTitle: 'No Mods',
+      emptyDesc: 'Import mods to modify iFlow core file functionality',
+      enableSuccess: 'Enabled "{name}"',
+      disableSuccess: 'Disabled "{name}"',
+      deleteSuccess: 'Deleted "{name}"',
+      exportSuccess: 'Exported "{name}"',
+      importSuccess: '{count} mod(s) imported',
+      confirmDelete: 'Are you sure you want to delete mod "{name}"? This action cannot be undone.',
+      types: {
+        replace: 'Replace',
+        append: 'Append',
+        prepend: 'Prepend',
+        patch: 'Patch'
+      }
+    },
+    applying: {
+      enabling: 'Enabling mod…',
+      disabling: 'Disabling mod…'
+    },
+    category: {
+      all: 'All'
+    },
+    compatibility: {
+      tooOld: 'Requires iFlow v{required}, current v{current} is too old',
+      tooNew: 'Requires iFlow v{required}, current v{current} is too new',
+      exactRequired: 'Requires iFlow v{required}, current v{current} does not match',
+      versionUnavailable: 'Cannot detect iFlow version, skipping compatibility check'
+    },
+    errors: {
+      missingModJson: 'Mod package is missing mod.json file',
+      invalidModJson: 'Invalid mod.json format',
+      missingRequiredField: 'mod.json is missing required field: {field}',
+      invalidModType: 'Invalid mod type: {type}',
+      missingMainFile: 'Mod package is missing main file: {file}',
+      modNotFound: 'Mod not found: {id}',
+      iflowPathNotFound: 'iFlow installation path not found',
+      iflowNotFound: 'iFlow.js file not found, please verify iFlow is installed correctly',
+      invalidModId: 'Invalid mod ID',
+      modDirNotFound: 'Mod directory does not exist',
+      noOriginalBackup: 'Original backup file not found, cannot restore',
+      patchNotSupported: 'Patch type mods are not yet supported'
+    },
+    exportDialog: {
+      title: 'Export Mod'
+    },
+    importExport: {
+      importTitle: 'Import Mod',
+      overwriteConfirm: 'Mod "{name}" already exists. Overwrite?',
+      importError: 'Failed to import mod: {error}'
+    }
   },
   docs: {
     title: 'Documentation',

@@ -94,5 +94,16 @@ interface Window {
 
     // ─── 外部链接 ─────────────────────────────────────────
     openExternal: (url: string) => Promise<import('./shared/types').IpcResult>
+
+    // ─── iFlow Mod 管理 ──────────────────────────────────
+    iflowGetIflowVersion: () => Promise<import('./shared/types').IflowVersionResult>
+    iflowListMods: () => Promise<import('./shared/types').ListModsResult>
+    iflowGetModCompatibility: (modId: string) => Promise<import('./shared/types').ModCompatibilityResult>
+    iflowEnableMod: (modId: string, enabled: boolean) => Promise<import('./shared/types').IpcResult>
+    iflowDeleteMod: (modId: string) => Promise<import('./shared/types').IpcResult>
+    iflowExportMod: (modId: string) => Promise<import('./shared/types').ExportModResult>
+    iflowImportMod: (filePath: string) => Promise<import('./shared/types').ImportModResult>
+    iflowOpenImportDialog: () => Promise<import('./shared/types').IpcResult<{ canceled: boolean; filePaths: string[] }>>
+    iflowCheckIflowStatus: () => Promise<import('./shared/types').IpcResult<{ exists: boolean; path: string | null; version: string | null }>>
   }
 }
