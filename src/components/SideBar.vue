@@ -22,6 +22,10 @@
           <Server size="16" />
           <span class="nav-item-text">{{ $t('sidebar.mcpServers') }}</span>
         </div>
+        <div class="nav-item" :class="{ active: currentSection === 'iflow' }" @click="$emit('navigate', 'iflow')">
+          <Puzzle size="16" />
+          <span class="nav-item-text">{{ $t('sidebar.iflowMod') }}</span>
+        </div>
         <div class="nav-item" :class="{ active: currentSection === 'skills' }" @click="$emit('navigate', 'skills')">
           <Star size="16" />
           <span class="nav-item-text">{{ $t('sidebar.skills') }}</span>
@@ -47,7 +51,7 @@
  * SideBar - 侧边导航栏组件
  */
 import { ref } from 'vue'
-import { Config, Key, Server, Star, Dashboard, Command, Book } from '@icon-park/vue-next'
+import { Config, Key, Server, Star, Dashboard, Command, Book, Puzzle } from '@icon-park/vue-next'
 
 interface Props {
   currentSection?: string

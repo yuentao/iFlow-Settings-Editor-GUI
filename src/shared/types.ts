@@ -242,3 +242,60 @@ export interface ImportCommandResult extends IpcResult {
 export interface AppVersionResult extends IpcResult {
   version?: string
 }
+
+// ─── iFlow Mod ──────────────────────────────────────────
+
+export type IflowModType = 'patch' | 'replace' | 'append' | 'prepend'
+
+export interface IflowMod {
+  id: string
+  name: string
+  version: string
+  type: IflowModType
+  description: string
+  author: string
+  category: string
+  enabled: boolean
+  installedAt: number
+  iflowVersion?: string
+  iflowVersionConstraint?: string
+  icon?: string
+  tags?: string[]
+  homepage?: string
+  repository?: string
+  license?: string
+  lastModified?: number
+}
+
+export interface ModsMetadata {
+  version: number
+  timestamp: number
+  mods: IflowMod[]
+}
+
+export interface IflowVersionResult extends IpcResult {
+  version?: string
+}
+
+export interface ListModsResult extends IpcResult {
+  mods?: IflowMod[]
+}
+
+export interface ImportModResult extends IpcResult {
+  imported?: number
+  failed?: number
+  errors?: string[]
+  modIds?: string[]
+}
+
+export interface ExportModResult extends IpcResult {
+  filePath?: string
+}
+
+export interface ModCompatibilityResult extends IpcResult {
+  compatible?: boolean
+  currentVersion?: string
+  modVersion?: string
+  constraint?: string
+  reason?: string
+}

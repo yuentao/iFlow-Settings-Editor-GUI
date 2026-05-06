@@ -171,6 +171,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 外部链接
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 
+  // iFlow Mod 管理
+  iflowGetIflowVersion: () => ipcRenderer.invoke('iflow:get-version'),
+  iflowListMods: () => ipcRenderer.invoke('iflow:list-mods'),
+  iflowGetModCompatibility: (modId) => ipcRenderer.invoke('iflow:get-mod-compatibility', modId),
+  iflowEnableMod: (modId, enabled) => ipcRenderer.invoke('iflow:enable-mod', modId, enabled),
+  iflowDeleteMod: (modId) => ipcRenderer.invoke('iflow:delete-mod', modId),
+  iflowExportMod: (modId) => ipcRenderer.invoke('iflow:export-mod', modId),
+  iflowImportMod: (filePath) => ipcRenderer.invoke('iflow:import-mod', filePath),
+  iflowOpenImportDialog: () => ipcRenderer.invoke('iflow:open-import-dialog'),
+  iflowCheckIflowStatus: () => ipcRenderer.invoke('iflow:check-iflow-status'),
+
   // 云同步事件监听
   onCloudSyncStatusChanged: (callback) => {
     const handler = (_event, state) => callback(state)
