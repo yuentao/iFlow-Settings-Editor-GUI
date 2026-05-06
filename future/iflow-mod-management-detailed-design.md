@@ -18,8 +18,8 @@ iFlow CLI 的核心逻辑集中在 `iflow.js` 文件中。该文件位于全局 
 类似 **ModOrganizer** 的设计理念，本方案聚焦于 **Mod 包的导入/导出/启用禁用管理**，不涉及 Mod 的创建、编辑和应用过程。用户可通过外部工具创建 Mod 包，然后通过本系统进行集中管理。
 
 ### 1.2 核心目标
-1. **Mod 包导入**：支持从本地文件（`.iflow-mod` ZIP 包）导入 Mod，自动验证结构并解析元数据
-2. **Mod 包导出**：支持将 Mod 打包为标准化 `.iflow-mod` 格式（ZIP），便于分享和备份
+1. **Mod 包导入**：支持从本地文件（`.iflow-mod` 包）导入 Mod，自动验证结构并解析元数据
+2. **Mod 包导出**：支持将 Mod 打包为标准化 `.iflow-mod` 格式，便于分享和备份
 3. **Mod 启用/禁用**：通过开关控制 Mod 是否生效（启用=应用到 iflow.js，禁用=从 iflow.js 移除）
 4. **Mod 列表管理**：集中展示已安装的 Mod，显示元数据、状态、启用时间等信息
 5. **路径自动解析**：动态获取 npm 全局路径，定位 `iflow.js` 文件位置
@@ -40,9 +40,7 @@ iFlow CLI 的核心逻辑集中在 `iflow.js` 文件中。该文件位于全局 
 │  └─────────────────────────────────────────────────────────┘ │
 │  ┌─────────────────────────────────────────────────────────┐ │
 │  │  useIflowModsStore (Pinia 状态管理)                      │ │
-│  │  ├─ mods: IflowMod[]                                    │ │
-│  │  ├─ iflowPath: string                                   │ │
-│  │  └─ actions: importMod/exportMod/toggleMod/...          │ │
+│  │  └─ mods.json 读写操作（通过 IPC 调用）                  │ │
 │  └─────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                             ↕ IPC (preload.js)
@@ -50,7 +48,8 @@ iFlow CLI 的核心逻辑集中在 `iflow.js` 文件中。该文件位于全局 
 │                    Electron 主进程 (Node.js)                 │
 │  ┌─────────────────────────────────────────────────────────┐ │
 │  │  src/main/ipc/iflow.js (IPC 处理器)                      │ │
-│  │  ├─ getIflowPath() → 动态路径解析                       │ │
+│  │  ├─ getIflowVersion() → 获取 iflow.js 版本号            │ │
+│  │  ├─ getModCompatibility() → 版本兼容性检查              │ │
 │  │  ├─ importMod() → 导入 Mod 包                           │ │
 │  │  ├─ exportMod() → 导出 Mod 包                           │ │
 │  │  ├─ toggleMod() → 启用/禁用 Mod                         │ │
@@ -63,13 +62,15 @@ iFlow CLI 的核心逻辑集中在 `iflow.js` 文件中。该文件位于全局 
 │  │  ├─ parseModMetadata() → 解析 mod.json                  │ │
 │  │  ├─ packModToZip() → 打包 Mod 为 ZIP                    │ │
 │  │  ├─ unzipModPackage() → 解压 Mod 包                     │ │
+│  │  ├─ checkVersionCompatibility() → 版本兼容性验证       │ │
 │  │  └─ validateModStructure() → 目录结构验证               │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │  ┌─────────────────────────────────────────────────────────┐ │
 │  │  文件系统层                                              │ │
 │  │  ├─ {npm_prefix}/node_modules/@iflow-ai/.../iflow.js   │ │
 │  │  │   (目标文件，路径通过 npm config get prefix 获取)    │ │
-│  │  └─ ~/.iflow/mods/iflow/ (Mod 存储目录)                 │ │
+│  │  ├─ ~/.iflow/settings.json        # 应用配置            │ │
+│  │  └─ ~/.iflow/mods/iflow/mods.json  # Mod 元数据索引     │ │
 │  └─────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -79,64 +80,89 @@ iFlow CLI 的核心逻辑集中在 `iflow.js` 文件中。该文件位于全局 
 | 模块 | 职责 | 技术实现 |
 |------|------|----------|
 | **UI 层** | Mod 列表展示、启用/禁用开关、导入/导出操作 | Vue 3 + Composition API + `<script setup>` |
-| **状态管理层** | Mod 列表状态管理、iflow 路径缓存 | Pinia Store (useIflowModsStore) |
+| **状态管理层** | Mod 列表状态管理、元数据索引读写 | Pinia Store (useIflowModsStore) |
 | **IPC 通信层** | 主进程与渲染进程安全通信 | contextBridge + ipcRenderer/ipcMain |
-| **业务逻辑层** | Mod 包解析、ZIP 打包/解压、路径动态获取 | 主进程服务 (iflowService.js) |
-| **数据持久层** | Mod 元数据存储（settings.json） | configService.js + 文件系统 API |
+| **业务逻辑层** | Mod 包解析、ZIP 打包/解压、路径动态获取、版本兼容性验证 | 主进程服务 (iflowService.js) |
+| **数据持久层** | Mod 元数据存储（mods.json） | configService.js + 文件系统 API |
 
 ---
 
 ## 📊 3. 数据模型详细设计
 
-### 3.1 Settings 扩展字段
+### 3.1 数据存储架构
 
-在 `src/shared/types.ts` 的 `Settings` 接口中添加：
+#### 3.1.1 文件存储结构
 
-```typescript
-export interface Settings {
-  // ... 现有字段 ...
+```
+~/.iflow/
+├── settings.json          # 主配置文件（不包含 Mod 数据）
+├── mods/
+│   └── iflow/
+│       ├── mods.json      # Mod 元数据索引文件（唯一数据源）
+│       ├── {mod-id-1}/
+│       │   ├── mod.json          # 必需：Mod 元数据
+│       │   ├── code.js           # 或 patch.diff（根据 type 决定）
+│       │   ├── README.md         # 可选
+│       │   ├── LICENSE           # 可选
+│       │   └── icon.png          # 可选
+│       ├── {mod-id-2}/
+│       │   └── ...
+│       └── index.json            # 索引（可选，实际数据在 mods.json）
+└── logs/
+    └── iflow-mods.log     # Mod 操作日志（可选）
+```
 
-  // iFlow Mod 管理（简化版：仅导入/导出/启用禁用）
-  iflowMods?: Record<string, IflowMod>      // Mod 列表（key=Mod ID）
-  iflowPath?: string                         // iflow.js 文件路径（缓存）
+#### 3.1.2 核心类型定义
+
+**mods.json 结构**：
+```json
+{
+  "version": 1,
+  "timestamp": 1714982400000,
+  "mods": [
+    {
+      "id": "ui-enhancement-001",
+      "name": "UI 增强 - 深色模式优化",
+      "version": "1.2.0",
+      "type": "replace",
+      "description": "为 iFlow 界面添加深色模式支持",
+      "author": "张三",
+      "category": "UI",
+      "enabled": true,
+      "installedAt": 1714982400000,
+      "iflowVersion": "0.5.19",
+      "iflowVersionConstraint": "0.5.19+",
+      "icon": "🎨",
+      "tags": ["UI", "主题", "深色模式"],
+      "homepage": "https://github.com/user/iflow-ui-enhancement",
+      "repository": "https://github.com/user/iflow-ui-enhancement",
+      "license": "MIT"
+    }
+  ]
 }
 ```
 
-### 3.2 核心类型定义
+**说明**：
+- `mods.json` 是唯一数据源，存储 Mod 元数据（位于 `~/.iflow/mods/iflow/mods.json`）
+- `settings.json` 不包含 Mod 数据，仅存储应用级配置
+- 文件系统仅存储 Mod 包的实际文件（mod.json + 主体文件 + 可选文件）
+- `index.json` 可选的目录索引，用于快速扫描（目前不使用，依赖 mods.json）
 
-#### 3.2.1 IflowMod（Mod 配置）
+### 3.2 mods.json 类型定义
 
 ```typescript
-export interface IflowMod {
-  // 基础信息（必需）
-  id: string                    // 唯一标识（UUID 或时间戳）
-  name: string                  // Mod 显示名称
-  version: string               // Mod 版本（如 "1.2.0"）
-  type: 'patch' | 'replace' | 'append' | 'prepend'
-  description: string           // 详细描述
-
-  // 作者与分类（可选）
-  author?: string               // 作者/维护者
-  category?: string             // 分类（如 "UI"、"性能"、"功能增强"）
-  icon?: string                 // 图标（emoji 如 "🚀" 或图标名）
-
-  // Mod 内容
-  content: string               // 根据类型存储不同内容：
-                                // - patch: unified diff 格式文本
-                                // - replace: 完整 JavaScript 代码
-                                // - append/prepend: 要追加/插入的代码片段
-
-  // 状态
-  enabled: boolean              // 是否启用（启用=应用到 iflow.js，禁用=移除）
-  installedAt: number           // 安装时间戳（用于排序）
-
-  // 可选元数据
-  tags?: string[]               // 标签：["UI优化", "性能", "实验性"]
-  homepage?: string             // 项目主页 URL
-  repository?: string           // 代码仓库 URL
-  license?: string              // 许可证
+export interface ModsMetadata {
+  version: number               // 元数据版本号
+  timestamp: number             // 最后修改时间戳（毫秒）
+  mods: IflowMod[]              // Mod 列表
 }
 ```
+
+**版本兼容性规则**：
+- `iflowVersionConstraint` 默认值为 `'0.5.19+'`（向后兼容）
+- 导入时如果未指定 `iflowVersionConstraint`，默认为 `'0.5.19+'`
+- 启用 Mod 前检查当前 iflow.js 版本是否满足兼容性约束
+- 版本不兼容时，显示友好提示，阻止启用操作
 
 **启用/禁用逻辑**：
 - `enabled: true`：Mod 已启用，其内容已应用到 iflow.js
@@ -144,12 +170,17 @@ export interface IflowMod {
 - 启用/禁用通过 IPC 调用 `toggleMod(modId, enabled)` 实现
 - 实际应用逻辑在 `iflowService.js` 中根据 `modsEnabled` 顺序重新生成 iflow.js
 
-### 3.3 IPC 结果类型（简化）
+### 3.3 IPC 结果类型
 
 ```typescript
 // Mod 列表
 export interface ListModsResult extends IpcResult {
   mods?: IflowMod[]
+}
+
+// 获取 iflow.js 版本
+export interface GetIflowVersionResult extends IpcResult {
+  version?: string
 }
 
 // 导出 Mod 结果
@@ -170,7 +201,7 @@ export interface ImportModResult extends IpcResult<{ imported: number; failed: n
 **触发方式**：
 1. 点击"导入 Mod"按钮
 2. 弹出文件选择对话框
-3. 用户选择单个 `.iflow-mod`（ZIP 格式）或 `.zip` 文件
+3. 用户选择单个 `.iflow-mod` 文件
 
 **解析流程**：
 ```
@@ -189,7 +220,7 @@ export interface ImportModResult extends IpcResult<{ imported: number; failed: n
    ├─ mod.json（必需）
    ├─ code.js 或 patch.diff（必需，根据 type 决定）
    └─ 其他可选文件（README.md、LICENSE、icon.png 等）
-7. 在 settings.json 的 iflowMods 中创建记录
+7. 在 mods.json 中创建记录
 8. 默认状态：enabled: false（禁用状态，用户手动启用）
 9. 刷新 UI 列表
 ```
@@ -197,22 +228,23 @@ export interface ImportModResult extends IpcResult<{ imported: number; failed: n
 **导入验证规则**：
 - **文件完整性**：ZIP 必须包含 mod.json
 - **类型匹配**：type='patch' 必须有 patch.diff；type='replace'/'append'/'prepend' 必须有 code.js
-- **元数据必填**：name, author, category, description, type, version 不能为空
+- **元数据必填**：name, type, version 不能为空（author、category、description 为可选）
 - **ID 冲突**：相同 ID 的 Mod 不能重复导入（除非覆盖）
 - **文件大小限制**：整个 Mod 包不超过 50MB（可配置）
+- **格式兼容**：支持 `.zip` 和 `.iflow-mod` 两种格式（导入时自动识别）
 
 **错误处理**：
 - ZIP 解压失败 → 提示"文件损坏或格式不正确"
 - mod.json 缺失 → 提示"缺少 mod.json 文件"
 - 主体文件缺失 → 提示"缺少主体文件（code.js 或 patch.diff）"
-- 元数据不完整 → 提示"mod.json 缺少必需字段：XXX"
+- 元数据不完整 → 提示"mod.json 缺少必需字段：name、type、version"
 - 磁盘空间不足 → 提示"存储空间不足"
 
 #### 4.1.2 导入 UI 交互
 
 **文件选择对话框**：
 - 使用 `dialog.showOpenDialog`（IPC 调用）
-- 过滤器：`.iflow-mod`, `.zip`
+- 过滤器：`.zip, .iflow-mod`（支持 ZIP 和 .iflow-mod 两种格式）
 
 **导入进度**：
 - 显示导入中的 Mod 数量（如 "正在导入 3/10"）
@@ -236,26 +268,22 @@ export interface ImportModResult extends IpcResult<{ imported: number; failed: n
 
 **打包流程**：
 ```
-1. 读取 Mod 配置（从 iflowMods[modId]）
+1. 读取 Mod 配置（从 mods.json）
 2. 定位 Mod 文件目录：~/.iflow/mods/iflow/{mod-id}/
 3. 读取 mod.json 和所有关联文件（code.js/patch.diff + 可选文件）
-4. 创建 ZIP 压缩包：
+4. 创建 ZIP 压缩包（完整导出，包含所有文件）：
    ├─ mod.json（放在根目录）
    ├─ code.js 或 patch.diff（放在根目录）
    ├─ README.md（可选）
    ├─ LICENSE（可选）
    ├─ icon.png / icon.svg（可选）
    └─ 其他文件（tests/, src/ 等）
-5. 生成文件名：{mod-name}-v{version}.iflow-mod.zip
+5. 生成文件名：{mod-name}-v{version}.iflow-mod
    （特殊字符替换：空格→连字符，/ \ ? * : | " < > 移除）
 6. 弹出"另存为"对话框，用户选择保存位置
 7. 写入 ZIP 文件
 8. 提示"导出成功"
 ```
-
-**导出选项**：
-- **完整导出**：包含所有文件（mod.json + 主体文件 + 可选文件）
-- **精简导出**：仅包含 mod.json + 主体文件（用于分享核心功能）
 
 #### 4.2.2 导出 UI 交互
 
@@ -271,19 +299,15 @@ export interface ImportModResult extends IpcResult<{ imported: number; failed: n
 │  Mod 版本：1.2.0                                    │
 │  Mod ID：ui-enhancement-001                         │
 │                                                     │
-│  导出范围：                                         │
-│  ○ 完整导出（包含 README、LICENSE、图标等）        │
-│  ● 精简导出（仅 mod.json + 主体文件）               │
-│                                                     │
 │  保存位置：[选择文件夹...]                          │
-│  文件名：ui-enhancement-v1.2.0.iflow-mod.zip       │
+│  文件名：ui-enhancement-v1.2.0.iflow-mod           │
 │                                                     │
 │  [取消] [导出]                                      │
 └─────────────────────────────────────────────────────┘
 ```
 
 **导出成功反馈**：
-- Toast 提示：`✅ 导出成功: ui-enhancement-v1.2.0.iflow-mod.zip`
+- Toast 提示：`✅ 导出成功: ui-enhancement-v1.2.0.iflow-mod`
 - 可选：打开文件所在文件夹
 
 ---
@@ -297,21 +321,43 @@ export interface ImportModResult extends IpcResult<{ imported: number; failed: n
 - `enabled: false`：Mod 已禁用，其内容未应用到 iflow.js
 - 启用/禁用通过 IPC 调用 `toggleMod(modId, enabled)` 实现
 
+**进度显示设计**：
+- 由于 iflow.js 可能达到 10MB+，流式读写需要一定时间
+- 操作过程中显示模态进度对话框，防止用户误操作（关闭窗口、切换页面等）
+- 进度对话框包含：当前阶段描述、进度百分比、取消按钮（可取消操作）
+
+**进度对话框 UI**：
+```
+┌─────────────────────────────────────────────────────┐
+│  正在应用 Mod                                        │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  正在读取 iflow.js 文件...                          │
+│  ████████████░░░░░░░░░░░░░░░░░  45%               │
+│                                                     │
+│  当前 Mod：UI 增强 - 深色模式优化                   │
+│  操作：启用                                          │
+│                                                     │
+│           [取消操作]                                 │
+└─────────────────────────────────────────────────────┘
+```
+
 **应用流程**（启用 Mod 时）：
 ```
-1. 流式读取 iflow.js → baseContent（大文件优化）
-2. 获取所有启用的 Mod（按 installedAt 升序，即安装时间顺序）
-3. 遍历启用的 Mod，根据 type 应用变更：
+1. 显示进度对话框（防止误操作）
+2. 流式读取 iflow.js → baseContent（大文件优化）
+3. 获取所有启用的 Mod（按 installedAt 升序，即安装时间顺序）
+4. 遍历启用的 Mod，根据 type 应用变更：
    ├─ patch: 使用 diff 库（applyPatch）应用补丁
    │         └─ 如果应用失败（冲突），提示错误，终止操作
    ├─ replace: 直接替换为 Mod 的 content
    │         └─ 后续 Mod 被忽略（因为文件已完全替换）
    ├─ append: baseContent += mod.content
    └─ prepend: baseContent = mod.content + baseContent
-
-4. 流式原子写入 iflow.js（临时文件 + rename）
-5. 更新 Mod 的 enabled 状态
-6. 刷新 UI 状态
+5. 流式写入 iflow.js（显示写入进度）
+6. 更新 Mod 的 enabled 状态
+7. 关闭进度对话框
+8. 刷新 UI 状态
 ```
 
 **原子写入保护**（流式异步版本）：
@@ -352,7 +398,7 @@ async function readFileStream(filePath: string): Promise<string> {
 
 ---
 
-## 🎨 5. UI/UX 详细设计（简化版）
+## 🎨 5. UI/UX 详细设计
 
 ### 5.1 导航结构
 
@@ -395,7 +441,7 @@ export default {
 
 ---
 
-### 5.2 IflowModsView 主界面（简化版）
+### 5.2 IflowModsView 主界面
 
 **布局结构**（类似 API 配置列表的行布局）：
 
@@ -630,11 +676,11 @@ onMounted(() => {
 
 ---
 
-### 5.3 关键组件设计（简化版）
+### 5.3 关键组件设计
 
 #### 5.3.1 ImportModDialog（导入对话框）
 
-**功能**：选择并导入 `.iflow-mod` 或 `.zip` Mod 包
+**功能**：选择并导入 `.iflow-mod` Mod 包
 
 **UI 结构**：
 ```vue
@@ -655,7 +701,7 @@ onMounted(() => {
         <input
           type="file"
           ref="fileInput"
-          accept=".iflow-mod,.zip"
+          accept=".zip,.iflow-mod"
           multiple
           @change="onFileSelected"
           style="display: none"
@@ -789,7 +835,7 @@ onMounted(() => {
 
 #### 5.3.2 ExportModDialog（导出对话框）
 
-**功能**：将单个 Mod 导出为 `.iflow-mod` ZIP 文件
+**功能**：将单个 Mod 导出为 `.iflow-mod` 文件（完整导出）
 
 **UI 结构**：
 ```vue
@@ -816,24 +862,6 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 导出选项 -->
-      <div class="export-options">
-        <RadioGroup v-model="exportMode">
-          <Radio value="full">
-            <div>
-              <div class="radio-label">{{ $t('iflow.exportDialog.full') }}</div>
-              <div class="radio-desc">{{ $t('iflow.exportDialog.fullDesc') }}</div>
-            </div>
-          </Radio>
-          <Radio value="minimal">
-            <div>
-              <div class="radio-label">{{ $t('iflow.exportDialog.minimal') }}</div>
-              <div class="radio-desc">{{ $t('iflow.exportDialog.minimalDesc') }}</div>
-            </div>
-          </Radio>
-        </RadioGroup>
-      </div>
-
       <!-- 保存路径 -->
       <div class="save-path">
         <label>{{ $t('iflow.exportDialog.saveTo') }}</label>
@@ -849,6 +877,10 @@ onMounted(() => {
             <FolderOpen size="14" />
           </button>
         </div>
+        <div class="file-name-preview">
+          <span>文件名：</span>
+          <span class="file-name">{{ fileName }}</span>
+        </div>
       </div>
     </div>
 
@@ -856,12 +888,13 @@ onMounted(() => {
       <button class="btn btn-secondary" @click="$emit('close')">
         {{ $t('common.cancel') }}
       </button>
-      <button class="btn btn-primary" @click="$emit('export', { modId, exportMode, savePath })" :disabled="!savePath">
+      <button class="btn btn-primary" @click="$emit('export', { modId, savePath })" :disabled="!savePath">
         <Download size="14" /> {{ $t('iflow.export') }}
       </button>
     </template>
   </Dialog>
 </template>
+```
 
 
 <script setup>
@@ -957,7 +990,7 @@ onMounted(() => {
 
 ---
 
-## 🔌 6. IPC 接口详细设计（简化版）
+## 🔌 6. IPC 接口详细设计
 
 ### 6.1 接口清单
 
@@ -967,7 +1000,9 @@ onMounted(() => {
 // preload.js 中新增的 API
 contextBridge.exposeInMainWorld('electronAPI', {
   // ── iFlow Mod 管理 ───────────────────────────────────────
+  iflowGetIflowVersion(): Promise<IflowVersionResult>
   iflowListMods(): Promise<ListModsResult>
+  iflowGetModCompatibility(modId: string): Promise<ModCompatibilityResult>
   iflowEnableMod(modId: string, enabled: boolean): Promise<IpcResult>
   iflowDeleteMod(modId: string): Promise<IpcResult>
   iflowExportMod(modId: string): Promise<ExportModResult>
@@ -976,6 +1011,52 @@ contextBridge.exposeInMainWorld('electronAPI', {
 ```
 
 ### 6.2 接口详细定义
+
+#### 6.2.0 iflowGetIflowVersion（新增）
+
+**说明**：获取当前安装的 iflow.js 版本号
+
+**参数**：无
+
+**返回值**：
+```typescript
+interface IflowVersionResult extends IpcResult {
+  version?: string  // iflow.js 版本号（如 "0.5.19"）
+}
+```
+
+**实现方式**：
+- 在主进程中执行 `iflow -v` 命令获取版本号
+- 使用 `child_process.exec` 执行命令
+- 捕获标准输出并解析版本号
+- 处理命令执行失败的情况
+
+**示例实现**：
+```javascript
+async function getIflowVersion() {
+  try {
+    const { stdout, stderr } = await execAsync('iflow -v', {
+      timeout: 5000,
+      windowsHide: true
+    })
+
+    if (stderr && !stdout) {
+      throw new Error('Failed to get iflow version')
+    }
+
+    const version = stdout.trim()
+    return { success: true, version }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      code: 'IFLOW_VERSION_ERROR'
+    }
+  }
+}
+```
+
+---
 
 #### 6.2.1 iflowListMods
 
@@ -994,9 +1075,62 @@ interface ListModsResult extends IpcResult {
 
 ---
 
-#### 6.2.2 iflowEnableMod
+#### 6.2.2 iflowGetModCompatibility（新增）
 
-**说明**：启用或禁用 Mod
+**说明**：检查 Mod 是否与当前 iflow.js 版本兼容
+
+**参数**：
+```typescript
+{
+  modId: string
+}
+```
+
+**返回值**：
+```typescript
+interface ModCompatibilityResult extends IpcResult {
+  compatible: boolean        // 是否兼容
+  currentVersion?: string    // 当前 iflow.js 版本号
+  modVersion?: string        // Mod 声明的兼容版本
+  constraint?: string        // 版本约束
+  reason?: string            // 不兼容原因（如果 incompatible）
+}
+```
+
+**兼容性检查逻辑**：
+1. 调用 `iflowGetIflowVersion()` 获取当前版本
+2. 读取 Mod 的 `iflowVersion` 和 `iflowVersionConstraint`
+3. 根据 `iflowVersionConstraint` 的值进行版本比较：
+   - `0.5.19+`：检查 `currentVersion >= iflowVersion`
+   - `0.5.19-`：检查 `currentVersion <= iflowVersion`
+   - `0.5.19`：检查 `currentVersion === iflowVersion`
+   - `*`：始终返回 `compatible: true`（不推荐使用）
+
+4. 返回兼容性检查结果
+
+**示例**：
+```javascript
+// 示例 1：兼容
+// iflow.js 版本：0.5.19
+// Mod 声明：iflowVersion: "0.5.19", constraint: "0.5.19+"
+// 结果：compatible: true
+
+// 示例 2：不兼容（版本过新）
+// iflow.js 版本：0.6.0
+// Mod 声明：iflowVersion: "0.5.19", constraint: "0.5.19+"
+// 结果：compatible: false, reason: "Mod requires iflow.js 0.5.19 or later, but current version is 0.6.0"
+
+// 示例 3：不兼容（版本过旧）
+// iflow.js 版本：0.5.18
+// Mod 声明：iflowVersion: "0.5.19", constraint: "0.5.19+"
+// 结果：compatible: false, reason: "Mod requires iflow.js 0.5.19 or later, but current version is 0.5.18"
+```
+
+---
+
+#### 6.2.3 iflowEnableMod
+
+**说明**：启用或禁用 Mod（启用前会自动检查版本兼容性）
 
 **参数**：
 ```typescript
@@ -1016,21 +1150,24 @@ interface IpcResult {
 ```
 
 **处理流程**：
-1. 更新 `settings.iflowMods[modId].enabled = enabled`
-2. 重新计算所有启用的 Mod 的应用顺序（按 `installedAt` 升序）
-3. 流式读取 iflow.js 原始内容（大文件优化）
-4. 遍历启用的 Mod，根据 `type` 应用变更：
+1. 调用 `iflowGetIflowVersion()` 获取当前 iflow.js 版本
+2. 调用 `iflowGetModCompatibility(modId)` 检查版本兼容性
+3. 如果 `!compatible`，返回错误并提示用户
+4. 更新 `mods[modId].enabled = enabled`
+5. 重新计算所有启用的 Mod 的应用顺序（按 `installedAt` 升序）
+6. 流式读取 iflow.js 原始内容（大文件优化）
+7. 遍历启用的 Mod，根据 `type` 应用变更：
    - `replace`：直接替换整个文件
    - `append`：追加到文件末尾
    - `prepend`：插入到文件开头
    - `patch`：（暂不实现，需要 diff 库）
-5. 流式原子写入 iflow.js（`.tmp` + `rename`，异步流式写入）
-6. 保存 settings.json
-7. 刷新 UI
+8. 流式原子写入 iflow.js（`.tmp` + `rename`，异步流式写入）
+9. 保存 mods.json
+10. 刷新 UI
 
 ---
 
-#### 6.2.3 iflowDeleteMod
+#### 6.2.4 iflowDeleteMod
 
 **说明**：删除 Mod
 
@@ -1044,15 +1181,18 @@ interface IpcResult {
 **返回值**：`IpcResult`
 
 **处理流程**：
-1. 如果 Mod 当前已启用，先禁用（从 iflow.js 中移除其变更）
-2. 删除 Mod 目录：`~/.iflow/mods/iflow/{mod-id}/`
-3. 从 `settings.iflowMods` 中删除该 Mod
-4. 保存 settings.json
-5. 刷新 UI
+1. 调用 `iflowGetIflowVersion()` 获取当前 iflow.js 版本
+2. 调用 `iflowGetModCompatibility(modId)` 检查版本兼容性
+3. 如果 `!compatible`，返回错误并提示用户
+4. 如果 Mod 当前已启用，先禁用（从 iflow.js 中移除其变更）
+5. 删除 Mod 目录：`~/.iflow/mods/iflow/{mod-id}/`
+6. 从 `mods.json` 中移除该 Mod 记录
+7. 保存 mods.json
+8. 刷新 UI
 
 ---
 
-#### 6.2.4 iflowExportMod
+#### 6.2.5 iflowExportMod
 
 **说明**：导出单个 Mod 为 ZIP 文件
 
@@ -1071,7 +1211,7 @@ interface ExportModResult extends IpcResult {
 ```
 
 **处理流程**：
-1. 从 `settings.iflowMods[modId]` 读取 Mod 元数据
+1. 从 `mods.json` 读取 Mod 元数据
 2. 定位 Mod 目录：`~/.iflow/mods/iflow/{mod-id}/`
 3. 读取所有文件（mod.json + 主体文件 + 可选文件）
 4. 创建 ZIP 压缩包
@@ -1081,20 +1221,25 @@ interface ExportModResult extends IpcResult {
 
 **文件名生成规则**：
 ```
-{mod-name}-v{version}.iflow-mod.zip
-// 示例：ui-enhancement-v1.2.0.iflow-mod.zip
+{mod-name}-v{version}.iflow-mod
+// 示例：ui-enhancement-v1.2.0.iflow-mod
 ```
+
+**说明**：
+- 导出格式直接使用 `.iflow-mod` 扩展名（不包含 `.zip`）
+- 文件实际上是 ZIP 格式，但扩展名简化为 `.iflow-mod`
+- 导入时支持 `.zip` 和 `.iflow-mod` 两种格式（向后兼容）
 
 ---
 
-#### 6.2.5 iflowImportMod
+#### 6.2.6 iflowImportMod
 
 **说明**：导入一个或多个 Mod 包
 
 **参数**：
 ```typescript
 {
-  filePath: string  // 用户选择的 ZIP 文件完整路径
+  filePath: string  // 用户选择的文件完整路径（支持 .zip 或 .iflow-mod 格式）
 }
 ```
 
@@ -1109,14 +1254,30 @@ interface ImportModResult extends IpcResult {
 ```
 
 **处理流程**：
-1. 使用 `adm-zip` 库解压 ZIP
+1. 使用 `adm-zip` 库解压文件（自动识别 .zip 和 .iflow-mod 格式）
 2. 验证 mod.json 和主体文件（根据 type 字段）
-3. 验证 mod.json 字段完整性（id, name, author, category, description, type, version）
+3. 验证 mod.json 字段完整性（id, name, type, version 不能为空，author、category、description 为可选）
 4. 检查 ID 冲突
 5. 移动文件到 `~/.iflow/mods/iflow/{mod-id}/`
-6. 更新 `settings.iflowMods[modId]`
+6. 更新 `mods.json` 中的 Mod 元数据（写入 `mods.json` 文件）
 7. 保存 settings.json
 8. 返回统计信息
+
+**版本兼容性验证**：
+- 导入时检查 `iflowVersion` 和 `iflowVersionConstraint` 是否存在
+- 如果存在，验证当前 iflow.js 版本是否兼容
+- 如果不兼容，返回错误并提示用户：
+  ```json
+  {
+    "success": false,
+    "error": "Mod requires iflow.js 0.5.19 or later, but current version is 0.5.18",
+    "code": "IFLOW_VERSION_INCOMPATIBLE",
+    "modId": "ui-enhancement-001",
+    "requiredVersion": "0.5.19",
+    "currentVersion": "1.13.0",
+    "constraint": "compatible-or-later"
+  }
+  ```
 
 ---
 
@@ -1128,8 +1289,10 @@ interface ImportModResult extends IpcResult {
 contextBridge.exposeInMainWorld('electronAPI', {
   // ... 现有 API ...
 
-  // iFlow Mod 管理（简化版）
+  // iFlow Mod 管理
+  iflowGetIflowVersion: () => ipcRenderer.invoke('iflow:get-version'),
   iflowListMods: () => ipcRenderer.invoke('iflow:list-mods'),
+  iflowGetModCompatibility: (modId) => ipcRenderer.invoke('iflow:get-mod-compatibility', modId),
   iflowEnableMod: (modId, enabled) => ipcRenderer.invoke('iflow:enable-mod', modId, enabled),
   iflowDeleteMod: (modId) => ipcRenderer.invoke('iflow:delete-mod', modId),
   iflowExportMod: (modId) => ipcRenderer.invoke('iflow:export-mod', modId),
@@ -1147,7 +1310,7 @@ const { registerIflowIpcHandlers } = require('./iflow')
 function registerIpcHandlers(getMainWindow, t) {
   // ... 现有注册 ...
 
-  // 注册 iFlow Mod 管理处理器（简化版）
+    // 注册 iFlow Mod 管理处理器
   registerIflowIpcHandlers()
 }
 ```
@@ -1167,9 +1330,10 @@ registerIpcHandlers(getMainWindow, t)
 
 ```
 ~/.iflow/
-├── settings.json          # 主配置文件（包含 iflowMods 字段）
+├── settings.json          # 主配置文件（不包含 Mod 数据）
 ├── mods/
 │   └── iflow/
+│       ├── mods.json      # Mod 元数据索引文件（唯一数据源）
 │       ├── {mod-id-1}/
 │       │   ├── mod.json          # 必需：Mod 元数据
 │       │   ├── code.js           # 或 patch.diff（根据 type 决定）
@@ -1178,15 +1342,16 @@ registerIpcHandlers(getMainWindow, t)
 │       │   └── icon.png          # 可选
 │       ├── {mod-id-2}/
 │       │   └── ...
-│       └── index.json            # 索引（可选，实际数据在 settings.json）
+│       └── index.json            # 索引（可选，实际数据在 mods.json）
 └── logs/
     └── iflow-mods.log     # Mod 操作日志（可选）
 ```
 
 **说明**：
-- `settings.json` 是唯一数据源，存储 Mod 元数据（`iflowMods` 对象）
+- `mods.json` 是唯一数据源，存储 Mod 元数据（位于 `~/.iflow/mods/iflow/mods.json`）
+- `settings.json` 不包含 Mod 数据，仅存储应用级配置
 - 文件系统仅存储 Mod 包的实际文件（mod.json + 主体文件 + 可选文件）
-- `index.json` 可选的目录索引，用于快速扫描（目前不使用，依赖 settings.json）
+- `index.json` 可选的目录索引，用于快速扫描（目前不使用，依赖 mods.json）
 
 ### 7.2 Mod 包目录结构规范
 
@@ -1204,14 +1369,14 @@ registerIpcHandlers(getMainWindow, t)
 export interface IflowModMetadata {
   // ── 基础信息（必需） ───────────────────────────────────
   id: string              // 唯一标识符（导入时生成 UUID）
-  name: string            // Mod 显示名称（用户要求：mod名）
-  author: string          // 作者/维护者（用户要求：mod作者）
-  category: string        // 分类（用户要求：mod分类）
-  description: string     // 详细描述（用户要求：mod描述）
+  name: string            // Mod 显示名称
   type: 'patch' | 'replace' | 'append' | 'prepend'  // Mod 类型
   version: string         // 版本号（语义化版本，如 "1.2.0"）
 
   // ── 可选字段 ───────────────────────────────────────────
+  author?: string         // 作者/维护者
+  category?: string       // 分类（如 "UI"、"性能"、"功能增强"）
+  description?: string    // 详细描述
   icon?: string           // 图标（emoji 如 "🚀" 或图标名）
   tags?: string[]         // 标签数组
   homepage?: string       // 项目主页 URL
@@ -1223,11 +1388,13 @@ export interface IflowModMetadata {
 **字段说明**：
 - `id`：导入时自动生成 UUID v4，确保全局唯一
 - `name`：显示名称，最多 50 字符
-- `author`：作者名，最多 50 字符
-- `category`：分类，建议使用预设值（"UI"、"性能"、"功能增强"、"其他"）
-- `description`：详细描述，最多 200 字符
 - `type`：决定主体文件的类型（见下表）
 - `version`：语义化版本号（SemVer）
+- `author`：作者/维护者，最多 50 字符（可选）
+- `category`：分类（如 "UI"、"性能"、"功能增强"、"其他"），最多 30 字符（可选）
+- `description`：详细描述，最多 200 字符（可选）
+- `iflowVersion`：兼容的 iflow.js 版本号（可选，推荐填写）
+- `iflowVersionConstraint`：版本兼容性约束（可选，默认为 "0.5.19+"）
 
 #### 7.2.3 Mod 类型与主体文件映射
 
@@ -1243,7 +1410,49 @@ export interface IflowModMetadata {
 - 如果 `type: 'replace'`，则必须存在 `code.js`，`patch.diff` 可以不存在
 - `append`/`prepend` 类型同理
 
-#### 7.2.4 可选文件
+#### 7.2.4 版本兼容性字段（新增）
+
+在 `mod.json` 中添加 `iflowVersion` 和 `iflowVersionConstraint` 字段（可选）：
+
+```json
+{
+  "id": "ui-enhancement-001",
+  "name": "UI 增强 - 深色模式优化",
+  "author": "张三",
+  "category": "UI",
+  "description": "为 iFlow 界面添加深色模式支持",
+  "type": "replace",
+  "version": "1.2.0",
+  "iflowVersion": "0.5.19",
+  "iflowVersionConstraint": "0.5.19+",
+  "icon": "🎨",
+  "tags": ["UI", "主题", "深色模式"],
+  "homepage": "https://github.com/user/iflow-ui-enhancement",
+  "license": "MIT"
+}
+```
+
+**字段说明**：
+- `iflowVersion`: Mod 开发时使用的 iflow.js 版本号（如 "0.5.19"）
+- `iflowVersionConstraint`: 版本兼容性约束（见下方详细说明）
+
+**版本兼容性约束说明** (`iflowVersionConstraint`):
+
+| 约束值 | 说明 | 兼容性判断 |
+|--------|------|------------|
+| `0.5.19+` | 兼容当前版本或更新版本（默认） | `currentVersion >= iflowVersion` |
+| `0.5.19-` | 兼容当前版本或更旧版本 | `currentVersion <= iflowVersion` |
+| `0.5.19` | 仅兼容指定版本 | `currentVersion === iflowVersion` |
+| `*` | 兼容所有版本（不推荐） | 始终返回 `compatible: true` |
+
+**版本号格式**：
+- 使用语义化版本号（SemVer）：`主版本.次版本.修订号`（如 `0.5.19`）
+- 比较规则：先比较主版本号，主版本号相同则比较次版本号，以此类推
+- 示例：
+  - `0.5.19` 兼容 `0.5.19`、`0.5.20`、`0.6.0`
+  - `0.5.19` **不兼容** `0.5.18`、`0.5.17`
+
+#### 7.2.5 可选文件
 
 | 文件/目录 | 说明 |
 |-----------|------|
@@ -1291,8 +1500,91 @@ ui-enhancement-001/
    - 根据 `type` 字段，必须存在对应的主体文件（`code.js` 或 `patch.diff`）
 
 2. **mod.json 字段检查**：
-   - 必需字段：`id`, `name`, `author`, `category`, `description`, `type`, `version`
-   - 字段非空且类型正确
+   - 必需字段：`id`, `name`, `type`, `version`
+   - 可选字段：`author`, `category`, `description`, `iflowVersion`, `iflowVersionConstraint`
+   - 必需字段非空且类型正确
+   - `type` 值必须是有效的枚举值
+   - `iflowVersion` 和 `iflowVersionConstraint` 如果填写必须符合版本号格式
+
+3. **文件大小限制**：
+   - ZIP 包总大小不超过 50MB
+
+4. **文件名安全**：
+   - 不使用特殊字符（`/ \ ? * : | " < >`）
+   - 不使用保留文件名（`CON`, `PRN`, `AUX`, `NUL` 等 Windows 保留名）
+
+5. **内容安全（可选）**：
+   - 检查是否包含可疑代码（如 `eval`, `Function` 构造函数）
+   - 检查是否访问敏感 API（如 `fs`, `child_process`，Mod 不应拥有这些权限）
+
+6. **版本兼容性检查**：
+   - 如果 Mod 声明了 `iflowVersion`，则必须检查当前 iflow.js 版本是否兼容
+   - 如果不兼容，返回错误并提示用户（见 6.2.6 节）
+   - 如果 `iflowVersionConstraint` 未填写，默认使用 `'0.5.19+'`
+
+#### 7.3.2 mods.json 元数据索引文件（写入 `mods.json` 文件）
+
+**文件路径**：`~/.iflow/mods/iflow/mods.json`
+
+**文件结构**：
+```json
+{
+  "version": 1,
+  "mods": {
+    "ui-enhancement-001": {
+      "id": "ui-enhancement-001",
+      "name": "UI 增强 - 深色模式优化",
+      "version": "1.2.0",
+      "type": "replace",
+      "description": "为 iFlow 界面添加深色模式支持",
+      "author": "张三",
+      "category": "UI",
+      "iflowVersion": "0.5.19",
+      "iflowVersionConstraint": "0.5.19+",
+      "enabled": false,
+      "installedAt": 1746432000000
+    },
+    "performance-optimization-002": {
+      "id": "performance-optimization-002",
+      "name": "性能优化 - 启动加速",
+      "version": "1.0.0",
+      "type": "append",
+      "description": "优化 iFlow CLI 启动速度",
+      "author": "李四",
+      "category": "Performance",
+      "iflowVersion": "1.13.0",
+      "iflowVersionConstraint": "1.13+",
+      "enabled": true,
+      "installedAt": 1746300000000
+    }
+  },
+  "updatedAt": 1746432000000,
+  "totalMods": 2
+}
+```
+
+**字段说明**：
+- `version`: 元数据索引文件版本号（当前为 1）
+- `mods`: Mod 对象字典（key = Mod ID）
+- `updatedAt`: 最后更新时间戳（毫秒）
+- `totalMods`: Mod 总数（用于快速统计）
+
+**读写操作**：
+- **写入**：每次导入/删除/启用/禁用 Mod 时，更新 `mods.json`
+- **读取**：通过 IPC 调用 `iflowListMods()` 读取 `mods.json`
+- **原子性**：使用临时文件（`.tmp`）+ `rename` 保证写入原子性
+- **错误恢复**：如果 `mods.json` 损坏，清空文件并重建
+
+系统在加载 Mod 包时会进行以下验证：
+
+1. **目录结构检查**：
+   - 必须存在 `mod.json` 文件
+   - 根据 `type` 字段，必须存在对应的主体文件（`code.js` 或 `patch.diff`）
+
+2. **mod.json 字段检查**：
+   - 必需字段：`id`, `name`, `type`, `version`
+   - 可选字段：`author`, `category`, `description`
+   - 必需字段非空且类型正确
    - `type` 值必须是有效的枚举值
 
 3. **文件大小限制**：
@@ -1308,25 +1600,46 @@ ui-enhancement-001/
 
 ---
 
-### 7.3 settings.json 扩展字段
+### 7.3 文件存储结构
 
-在 `src/shared/types.ts` 的 `Settings` 接口中添加：
+#### 7.3.1 目录布局
 
-```typescript
-export interface Settings {
-  // ... 现有字段 ...
-
-  // iFlow Mod 管理（简化版：仅导入/导出/启用禁用）
-  iflowMods?: Record<string, IflowMod>      // Mod 列表（key=Mod ID）
-  iflowPath?: string                         // iflow.js 文件路径（缓存）
-}
+```
+~/.iflow/
+├── settings.json          # 主配置文件（不包含 Mod 数据）
+├── mods/
+│   └── iflow/
+│       ├── mods.json      # Mod 元数据索引文件
+│       ├── {mod-id-1}/
+│       │   ├── mod.json          # 必需：Mod 元数据
+│       │   ├── code.js           # 或 patch.diff（根据 type 决定）
+│       │   ├── README.md         # 可选
+│       │   ├── LICENSE           # 可选
+│       │   └── icon.png          # 可选
+│       ├── {mod-id-2}/
+│       │   └── ...
+│       └── index.json            # 索引（可选，实际数据在 mods.json）
+└── logs/
+    └── iflow-mods.log     # Mod 操作日志（可选）
 ```
 
-**存储示例**：
+**说明**：
+- `settings.json` 仅存储应用配置（API 配置、云同步、UI 设置等），不包含 Mod 元数据
+- `mods.json` 是 Mod 的唯一元数据索引文件（位于 `~/.iflow/mods/iflow/mods.json`）
+- 文件系统仅存储 Mod 包的实际文件（mod.json + 主体文件 + 可选文件）
+- `index.json` 可选的目录索引，用于快速扫描（目前不使用，依赖 mods.json）
+
+#### 7.3.2 mods.json 元数据索引文件
+
+`mods.json` 是 Mod 元数据的集中索引文件，存储在 `~/.iflow/mods/iflow/mods.json`，用于快速查找和管理已安装的 Mod。
+
+**文件结构**：
 ```json
 {
-  "iflowMods": {
-    "ui-enhancement-001": {
+  "version": 1,
+  "timestamp": 1746432000000,
+  "mods": [
+    {
       "id": "ui-enhancement-001",
       "name": "UI 增强 - 深色模式优化",
       "version": "1.2.0",
@@ -1334,13 +1647,99 @@ export interface Settings {
       "description": "为 iFlow 界面添加深色模式支持",
       "author": "张三",
       "category": "UI",
+      "iflowVersion": "1.14.0",
+      "iflowVersionConstraint": "1.14+",
       "enabled": false,
-      "installedAt": 1746432000000
+      "installedAt": 1746432000000,
+      "lastModified": 1746432000000
+    },
+    {
+      "id": "command-shortcut-002",
+      "name": "命令快捷键增强",
+      "version": "0.8.0",
+      "type": "patch",
+      "description": "增强命令快捷键功能",
+      "author": "李四",
+      "category": "Commands",
+      "iflowVersion": "1.13.0",
+      "iflowVersionConstraint": "1.13-",
+      "enabled": true,
+      "installedAt": 1746345600000,
+      "lastModified": 1746345600000
     }
-  },
-  "iflowPath": "C:\\Users\\张三\\AppData\\Roaming\\npm\\node_modules\\@iflow-ai\\iflow-cli\\bundle\\iflow.js"
+  ]
 }
 ```
+
+**字段说明**：
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `version` | number | 是 | 文件格式版本号（当前为 1） |
+| `timestamp` | number | 是 | 元数据更新时间戳（毫秒） |
+| `mods` | IflowMod[] | 是 | Mod 对象数组（见 3.2.1 节定义） |
+| `id` | string | 是 | Mod 唯一标识符（见 3.1 节命名规范） |
+| `name` | string | 是 | Mod 显示名称 |
+| `version` | string | 是 | Mod 版本号（SemVer 格式） |
+| `type` | 'replace' \| 'patch' | 是 | Mod 类型（见 3.3 节） |
+| `description` | string | 是 | Mod 描述 |
+| `author` | string | 是 | Mod 作者 |
+| `category` | string | 是 | Mod 分类（见 3.1 节分类规范） |
+| `iflowVersion` | string | 否 | Mod 开发时使用的 iflow.js 版本号 |
+| `iflowVersionConstraint` | '0.5.19+' \| '0.5.19-' \| '0.5.19' \| '*' | 否 | 兼容性约束（见 6.2 节） |
+| `enabled` | boolean | 是 | 是否已启用 |
+| `installedAt` | number | 是 | 安装时间戳（毫秒） |
+| `lastModified` | number | 是 | 最后修改时间戳（毫秒） |
+
+**更新机制**：
+
+1. **原子写入**：修改 `mods.json` 时先写入临时文件，成功后再重命名覆盖原文件
+2. **时间戳同步**：每次写入时更新 `timestamp` 和 `lastModified` 字段
+3. **备份机制**：生成 `.bak` 备份文件（如 `mods.json.bak`）
+4. **懒加载**：应用启动时仅读取 `mods.json`，Mod 具体数据按需加载
+
+**与 settings.json 的区别**：
+
+- `settings.json`：存储应用配置（API、云同步、界面偏好等），不包含 Mod 数据
+- `mods.json`：存储 Mod 元数据（仅元数据，不包含代码），独立于 `settings.json`
+- 两者通过 `id` 字段关联，但数据完全分离，互不影响
+
+**索引文件（可选）**：
+
+`index.json` 是可选的索引文件，用于加速大文件系统的查询性能：
+
+```json
+{
+  "version": 1,
+  "mods": {
+    "ui-enhancement-001": {
+      "name": "UI 增强 - 深色模式优化",
+      "version": "1.2.0",
+      "enabled": false,
+      "path": "mods/iflow/ui-enhancement-001"
+    },
+    "command-shortcut-002": {
+      "name": "命令快捷键增强",
+      "version": "0.8.0",
+      "enabled": true,
+      "path": "mods/iflow/command-shortcut-002"
+    }
+  }
+}
+```
+
+**使用场景**：
+
+- **快速查找**：通过 `id` 查找 Mod 元数据
+- **批量操作**：遍历 `mods` 数组进行批量启用/禁用/删除
+- **版本管理**：检查 Mod 版本、作者、描述等元信息
+- **冲突检测**：基于 `lastModified` 字段判断数据冲突
+
+**注意事项**：
+
+1. `mods.json` 必须是有效的 JSON 格式，否则应用无法启动
+2. `id` 字段必须唯一，重复 `id` 会导致覆盖冲突
+ 3. `iflowVersionConstraint` 必须使用简化符号（`0.5.19+`、`0.5.19-`、`0.5.19`、`*`）4. `timestamp` 和 `lastModified` 使用 Unix 时间戳（毫秒）
 
 
 
@@ -1569,7 +1968,7 @@ npm install adm-zip
 
 **目标**：搭建基础框架，实现核心 IPC 接口
 
-1. **类型定义** ✅（已完成设计）
+1. **类型定义**（待实现）
    - 扩展 `types.ts` 添加 Mod 管理接口
 
 2. **Store 实现**（待实现）
@@ -1595,7 +1994,7 @@ npm install adm-zip
 
 **验证**：
 - 打开 iFlow Mod 页面，显示状态卡片
-- 导入 Mod 后列表更新
+- 导入 Mod 包（.zip 或 .iflow-mod 格式）后列表更新
 - 启用/禁用 Mod 后 iflow.js 内容变化
 
 ---
@@ -1621,6 +2020,7 @@ npm install adm-zip
 4. **文档**
    - 更新 README 添加 Mod 管理章节
    - 编写用户指南（docs/features/iflow-mods.md）
+   - 说明支持 .zip 和 .iflow-mod 两种导入格式
 
 5. **代码审查**
    - 代码格式化（Prettier）
@@ -1652,6 +2052,7 @@ npm install adm-zip
 4. **无依赖检测**：Mod 之间可能存在依赖冲突，需要用户自行处理。
 5. **无版本控制**：不提供版本快照和回滚功能，用户需手动备份 iflow.js。
 6. **大文件性能**：iflow.js 可能达到 10MB+，全量读写可能导致卡顿。已采用流式读写和增量合并优化，但超大文件（>50MB）仍可能影响性能。
+7. **版本兼容性检查**：依赖 `iflow -v` 命令，如果 iflow 命令不可用或执行失败，将无法获取版本号（已提供降级方案：如果获取失败，默认允许导入/启用）。
 
 ### 15.2 用户教育
 
@@ -1684,7 +2085,7 @@ npm install adm-zip
 
 1. ✅ 用户可以查看 iflow.js 文件状态（存在/路径/大小）
 2. ✅ 用户可以导入 Mod 包（ZIP 格式，自动验证结构）
-3. ✅ 用户可以导出 Mod 为标准化 `.iflow-mod` ZIP 文件
+3. ✅ 用户可以导出 Mod 为标准化 `.iflow-mod` 文件（ZIP 压缩包）
 4. ✅ 用户可以启用/禁用 Mod（实时应用到 iflow.js）
 5. ✅ 用户可以删除 Mod（自动清理文件和配置）
 6. ✅ Mod 按安装时间顺序（`installedAt` 升序）应用
@@ -1723,6 +2124,6 @@ npm install adm-zip
 
 ---
 
-**文档版本**：v2.0（简化版）  
+**文档版本**：v2.0  
 **最后更新**：2026-05-06  
 **作者**：iFlow 团队
