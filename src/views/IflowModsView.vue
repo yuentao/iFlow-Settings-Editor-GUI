@@ -653,7 +653,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--toggle-off, var(--control-fill));
+  background-color: var(--toggle-off, var(--border));
   border-radius: 10px;
   transition: 0.2s;
 
