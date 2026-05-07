@@ -261,6 +261,7 @@ const deleteMod = async (modId) => {
 
   if (!confirmed) return
 
+  isApplying.value = true
   try {
     const result = await window.electronAPI.iflowDeleteMod(modId)
     if (result.success) {
@@ -276,6 +277,8 @@ const deleteMod = async (modId) => {
     }
   } catch (error) {
     emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+  } finally {
+    isApplying.value = false
   }
 }
 
