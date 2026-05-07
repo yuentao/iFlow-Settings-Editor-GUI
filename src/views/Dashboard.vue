@@ -274,6 +274,7 @@ onMounted(async () => {
 // Card animation
 .card-appear {
   animation: fadeInUp 0.3s ease backwards;
+  animation-name: fadeInUp, subtleFloat;
 }
 
 // Stats grid - 最大化显示，2x2 网格
@@ -322,6 +323,10 @@ onMounted(async () => {
 
     &::before {
       opacity: 1;
+    }
+
+    .stat-icon {
+      animation: iconPulse 0.6s ease-in-out;
     }
   }
 }
@@ -448,5 +453,31 @@ onMounted(async () => {
   font-size: var(--font-size-xs);
   color: var(--danger);
   margin-top: var(--space-sm);
+}
+
+// 轻微浮动动画（卡片进入时）
+@keyframes subtleFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 图标脉冲动画（hover时）
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
 }
 </style>
