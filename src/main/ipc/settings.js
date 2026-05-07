@@ -88,6 +88,10 @@ function registerSettingsIpcHandlers() {
 
     await writeSettings(merged)
 
+    // 更新托盘菜单
+    const { updateTrayMenu } = require('../tray')
+    updateTrayMenu()
+
     // 通知云同步服务：设置已保存，可能需要自动同步
     const { syncService } = require('./cloud')
     syncService.onSettingsSaved()

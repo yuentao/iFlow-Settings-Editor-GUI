@@ -62,7 +62,7 @@
             <button class="action-btn" @click.stop="$emit('duplicate-profile', profile.name)" :title="$t('api.duplicate')">
               <Copy size="14" />
             </button>
-            <button class="action-btn action-btn-danger" v-if="profile.name !== 'default'" @click.stop="$emit('delete-profile', profile.name)" :title="$t('api.delete')">
+            <button class="action-btn action-btn-danger" v-if="index !== 0" @click.stop="$emit('delete-profile', profile.name)" :title="$t('api.delete')">
               <Delete size="14" />
             </button>
           </div>

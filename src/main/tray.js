@@ -114,7 +114,11 @@ function updateTrayMenu() {
   const settings = readSettings()
   const profiles = settings?.apiProfiles || {}
   const currentProfile = settings?.currentApiProfile || 'default'
-  const profileList = Object.keys(profiles).length > 0 ? Object.keys(profiles) : ['default']
+  const order = settings?.apiProfilesOrder || []
+  // 按 apiProfilesOrder 排序，未在排序列表中的配置追加到末尾
+  const profileList = order.length > 0
+    ? [...order, ...Object.keys(profiles).filter(n => !order.includes(n))]
+    : Object.keys(profiles).length > 0 ? Object.keys(profiles) : ['default']
 
   const profileMenuItems = profileList.map(name => ({
     label: name + (name === currentProfile ? ' ✓' : ''),
