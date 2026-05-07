@@ -8,6 +8,9 @@
   padding: 0;
   box-sizing: border-box;
 }
+span.i-icon {
+  line-height: 0;
+}
 
 :root {
   // Windows UI Kit - Light Mode Color System
@@ -798,9 +801,11 @@ body {
 
 .empty-state-icon {
   font-size: 48px;
-  margin-bottom: var(--space-md);
   opacity: 0.4;
   color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .empty-state-title {

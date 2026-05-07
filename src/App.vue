@@ -17,7 +17,7 @@
             <div class="skeleton-header-title"></div>
             <div class="skeleton-header-desc"></div>
           </div>
-          <SkeletonLoader v-if="currentSection === 'dashboard'" type="card" :count="4" :columns="2" />
+          <SkeletonLoader v-if="currentSection === 'dashboard'" type="card" :count="6" :columns="2" />
           <SkeletonLoader v-else-if="currentSection === 'api'" type="profile" :count="3" />
           <SkeletonLoader v-else-if="currentSection === 'mcp'" type="list" :count="3" />
           <SkeletonLoader v-else-if="currentSection === 'skills'" type="list" :count="3" />
@@ -26,7 +26,7 @@
           <SkeletonLoader v-else type="form" :count="4" />
         </template>
         <template v-else>
-          <Dashboard v-if="currentSection === 'dashboard'" :settings="settings" :current-api-profile="currentApiProfile" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" @navigate="showSection" />
+          <Dashboard v-if="currentSection === 'dashboard'" :settings="settings" :current-api-profile="currentApiProfile" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" :mod-count="modCount" @navigate="showSection" />
 
           <GeneralSettings v-if="currentSection === 'general'" :settings="settings" @update:settings="updateSettings" />
 
@@ -570,6 +570,8 @@ const skillCount = ref(0)
 
 const commandCount = ref(0)
 
+const modCount = ref(0)
+
 const loadSkillCount = async () => {
   try {
     const result = await window.electronAPI.listSkills()
@@ -597,6 +599,17 @@ const loadCommandCount = async () => {
     }
   } catch (error) {
     console.error('Failed to load command count:', error)
+  }
+}
+
+const loadModCount = async () => {
+  try {
+    const result = await window.electronAPI.iflowListMods()
+    if (result.success) {
+      modCount.value = result.mods ? result.mods.length : 0
+    }
+  } catch (error) {
+    console.error('Failed to load mod count:', error)
   }
 }
 
@@ -993,6 +1006,7 @@ onMounted(async () => {
   await loadSettings()
   await loadSkillCount()
   await loadCommandCount()
+  await loadModCount()
   locale.value = settings.value.language
 
   // 初始化系统主题

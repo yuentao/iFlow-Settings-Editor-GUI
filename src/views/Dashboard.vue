@@ -73,6 +73,23 @@
         </div>
       </div>
 
+      <!-- iFlow Mod -->
+      <div class="stat-card card-appear" style="animation-delay: 0.09s" @click="$emit('navigate', 'iflow')">
+        <div class="stat-icon stat-icon-accent">
+          <Puzzle size="28" />
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">{{ $t('dashboard.iflowMod') }}</div>
+          <div class="stat-value">{{ modCount }}</div>
+          <div class="stat-sub" v-if="modCount > 0">
+            {{ $t('dashboard.installed') }}
+          </div>
+          <div class="stat-sub stat-sub-empty" v-else>
+            {{ $t('dashboard.noMods') }}
+          </div>
+        </div>
+      </div>
+
       <!-- 云同步 -->
       <div class="stat-card card-appear" style="animation-delay: 0.1s" @click="$emit('navigate', 'general', { section: 'cloudSync' })">
         <div class="stat-icon" :class="cloudSyncStatusClass">
@@ -132,7 +149,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Key, Server, Star, Command, Refresh, Loading } from '@icon-park/vue-next'
+import { Key, Server, Star, Command, Refresh, Loading, Puzzle } from '@icon-park/vue-next'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 
 const { t } = useI18n()
@@ -165,6 +182,10 @@ const props = defineProps({
     default: 0,
   },
   commandCount: {
+    type: Number,
+    default: 0,
+  },
+  modCount: {
     type: Number,
     default: 0,
   },

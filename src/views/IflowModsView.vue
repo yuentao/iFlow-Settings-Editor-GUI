@@ -5,7 +5,7 @@
       <p class="content-desc">{{ $t('iflow.description') }}</p>
 
       <!-- Status Cards -->
-      <div class="status-cards">
+      <div class="status-cards" v-if="!isLoading">
         <div class="status-card" :class="{ warning: !iflowStatus.exists }">
           <div class="status-card-icon">
             <Success v-if="iflowStatus.exists" size="20" theme="filled" fill="var(--success)" />
@@ -36,7 +36,7 @@
 
     <div class="form-group">
       <!-- Actions Bar -->
-      <div class="page-actions">
+      <div class="page-actions" v-if="mods.length > 0">
         <button class="btn btn-primary" @click="openImportDialog" :disabled="isApplying">
           <FolderOpen size="14" />
           {{ $t('iflow.mods.import') }}
@@ -261,6 +261,7 @@ const deleteMod = async (modId) => {
 
   if (!confirmed) return
 
+  isApplying.value = true
   try {
     const result = await window.electronAPI.iflowDeleteMod(modId)
     if (result.success) {
@@ -276,6 +277,8 @@ const deleteMod = async (modId) => {
     }
   } catch (error) {
     emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+  } finally {
+    isApplying.value = false
   }
 }
 
