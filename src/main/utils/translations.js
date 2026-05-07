@@ -230,16 +230,34 @@ function updateTranslations(localeData) {
 /**
  * 获取翻译
  * @param {string} key - 翻译键，格式 'section.key' 或 'section.subkey'
+ *                         也支持 'main.section.key' 格式（会尝试在 main 下查找）
  * @param {Object} params - 替换参数
  * @returns {string} 翻译后的文本
  */
 function t(key, params = {}) {
   const keys = key.split('.')
   let value = translations
+
+  // 先尝试直接查找
   for (const k of keys) {
     value = value?.[k]
     if (value === undefined) break
   }
+
+  // 如果没找到且键以 main. 开头，尝试在 main 下查找
+  if (value === undefined && keys[0] === 'main') {
+    value = translations
+    for (let i = 1; i < keys.length; i++) {
+      value = value?.[keys[i]]
+      if (value === undefined) break
+    }
+  }
+
+  // 如果仍然没找到，尝试在 main.tray 下查找（兼容 tray.xxx 格式）
+  if (value === undefined && keys[0] === 'tray') {
+    value = translations?.main?.tray?.[keys[1]]
+  }
+
   if (typeof value === 'string') {
     for (const [paramKey, paramValue] of Object.entries(params)) {
       value = value.replace(`{${paramKey}}`, paramValue)
