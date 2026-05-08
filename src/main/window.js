@@ -79,6 +79,8 @@ function createWindow() {
       nodeIntegration: false,
       webSecurity: process.env.NODE_ENV === 'production',
     },
+    // 禁用双击标题栏最大化
+    maximizable: false,
   })
 
   // 非开发模式下阻止开发者工具快捷键
@@ -166,19 +168,6 @@ function minimize() {
 }
 
 /**
- * 窗口最大化/还原
- */
-function toggleMaximize() {
-  if (mainWindow) {
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize()
-    } else {
-      mainWindow.maximize()
-    }
-  }
-}
-
-/**
  * 关闭窗口
  * @param {boolean} isQuitting - 是否正在退出应用
  */
@@ -250,7 +239,6 @@ module.exports = {
   getMainWindow,
   isMaximized,
   minimize,
-  toggleMaximize,
   close,
   showAndFocus,
   getLoadUrl,

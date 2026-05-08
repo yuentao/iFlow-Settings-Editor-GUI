@@ -125,6 +125,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearPendingUpdate: () => ipcRenderer.invoke('clear-pending-update'),
   restorePendingUpdate: () => ipcRenderer.invoke('restore-pending-update'),
 
+  // 更新历史相关 API
+  getUpdateHistory: () => ipcRenderer.invoke('get-update-history'),
+  saveUpdateHistory: (history) => ipcRenderer.invoke('save-update-history', history),
+
   // 移除更新事件监听
   removeAllUpdateListeners: () => {
     ipcRenderer.removeAllListeners('update-status-changed')

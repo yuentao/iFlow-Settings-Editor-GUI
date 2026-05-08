@@ -173,6 +173,10 @@ export interface UpdateInfo {
   downloadUrl?: string | null
   downloadName?: string
   size?: number
+  isDelta?: boolean       // 是否为差分更新
+  deltaSize?: number      // 差分更新大小
+  fullSize?: number       // 完整包大小
+  blockMap?: string       // blockMap 文件内容（用于差分更新验证）
 }
 
 export interface UpdateState {
@@ -182,6 +186,9 @@ export interface UpdateState {
   error?: string | null
   downloadPath?: string | null
   isBackground?: boolean
+  bytesPerSecond?: number // 下载速度
+  transferred?: number    // 已传输字节数
+  total?: number          // 总字节数
 }
 
 /** 持久化的待安装更新信息（保存在 settings.json 中） */
@@ -189,6 +196,17 @@ export interface PendingUpdateInfo {
   version: string
   downloadPath: string
   downloadName?: string
+  isDelta?: boolean
+}
+
+/** 更新历史记录条目 */
+export interface UpdateHistoryEntry {
+  version: string
+  timestamp: number
+  type: 'full' | 'delta' | 'failed'
+  size?: number
+  duration?: number  // 下载耗时（毫秒）
+  error?: string
 }
 
 export interface CheckUpdateResult extends IpcResult {
@@ -197,6 +215,9 @@ export interface CheckUpdateResult extends IpcResult {
   releaseNotes?: string
   releaseUrl?: string
   downloadUrl?: string | null
+  isDelta?: boolean
+  deltaSize?: number
+  fullSize?: number
 }
 
 export interface DownloadProgress {
@@ -204,6 +225,30 @@ export interface DownloadProgress {
   transferred: number
   total: number
   bytesPerSecond: number
+}
+
+/** 更新检查结果（包含差分更新信息） */
+export interface CheckForUpdatesResult extends IpcResult {
+  hasUpdate?: boolean
+  version?: string
+  releaseNotes?: string
+  releaseUrl?: string
+  downloadUrl?: string | null
+  isDelta?: boolean
+  deltaSize?: number
+  fullSize?: number
+}
+
+/** 下载更新结果 */
+export interface DownloadUpdateResult extends IpcResult {
+  downloadPath?: string
+  isDelta?: boolean
+  downloadedSize?: number
+}
+
+/** 获取更新历史结果 */
+export interface GetUpdateHistoryResult extends IpcResult {
+  history?: UpdateHistoryEntry[]
 }
 
 // ─── API Profile IPC 专用结果 ────────────────────────────

@@ -7,7 +7,7 @@
     <div class="form-group">
       <div class="page-actions">
         <button class="btn btn-primary" @click="$emit('add-server')">
-          <Add size="14" />
+          <Plus size="14" />
           {{ $t('mcp.addServerBtn') }}
         </button>
         <button class="btn btn-secondary" @click="$emit('quick-add')">
@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { Server, Add, Lightning, Delete, Edit } from '@icon-park/vue-next'
+import { Server, Plus, Lightning, Delete, Edit } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 
 defineProps({

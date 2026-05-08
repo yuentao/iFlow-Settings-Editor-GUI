@@ -136,7 +136,7 @@ export default {
   },
   api: {
     title: 'API 配置',
-    description: '配置 AI 服务和搜索 API',
+    description: '配置 AI 服务',
     currentConfig: '当前配置',
     createTitle: '新建 API 配置',
     editTitle: '编辑 API 配置',
