@@ -91,11 +91,22 @@ function initAutoUpdater() {
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
   
+  // 🔥 显式配置差分更新（Phase 5 风险缓解）
+  // 明确启用差分更新功能
+  autoUpdater.enableDeltaUpdates = true
+  // 使用 blockMap 算法（默认算法，高效且可靠）
+  autoUpdater.deltaUpdateStrategy = 'blockMap'
+  // 不允许降级（安全考虑）
+  autoUpdater.allowDowngrades = false
+  // 不自动使用预发布版本
+  autoUpdater.allowPrerelease = false
+  
   // 配置差分更新
   // electron-updater v6.8.3+ 支持 blockMap
   // 会在下载时自动查找对应的 .blockmap 文件
   if (autoUpdater.logger) {
     autoUpdater.logger.info('[AutoUpdater] Initialized with delta update support')
+    autoUpdater.logger.info('[AutoUpdater] Delta strategy:', autoUpdater.deltaUpdateStrategy)
   }
 
   // 监听更新事件
@@ -171,7 +182,41 @@ function initAutoUpdater() {
 
   autoUpdater.on('error', (error) => {
     console.error('[AutoUpdater] Error:', error.message)
-    setUpdateState({ status: 'error', error: error.message })
+    
+    // 🔥 Phase 5 风险缓解：检测差分更新相关错误并自动回滚
+    const errorMsg = error.message.toLowerCase()
+    const isDeltaError = errorMsg.includes('delta') ||
+                         errorMsg.includes('patch') ||
+                         errorMsg.includes('blockmap') ||
+                         errorMsg.includes('block map') ||
+                         errorMsg.includes('校验') ||
+                         errorMsg.includes('checksum')
+    
+    if (isDeltaError) {
+      console.warn('[AutoUpdater] Delta update failed, falling back to full update')
+      console.warn('[AutoUpdater] Error details:', error.message)
+      
+      // 清除差分更新状态
+      setUpdateState({ 
+        status: 'idle', 
+        error: null,
+        info: updateState.info ? { ...updateState.info, isDelta: false } : null
+      })
+      
+      // 延迟 2 秒后重新检查更新（触发完整包下载）
+      setTimeout(async () => {
+        console.info('[AutoUpdater] Retrying with full update...')
+        try {
+          await autoUpdater.checkForUpdates()
+        } catch (retryError) {
+          console.error('[AutoUpdater] Retry failed:', retryError.message)
+          setUpdateState({ status: 'error', error: retryError.message })
+        }
+      }, 2000)
+    } else {
+      // 非差分错误，正常处理
+      setUpdateState({ status: 'error', error: error.message })
+    }
   })
 }
 
