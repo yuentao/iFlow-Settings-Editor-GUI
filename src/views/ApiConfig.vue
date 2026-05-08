@@ -7,7 +7,7 @@
     <div class="form-group">
       <div class="page-actions">
         <button class="btn btn-primary" @click="$emit('create-profile')">
-          <Add size="14" />
+          <Plus size="14" />
           {{ $t('api.newProfile') }}
         </button>
       </div>
@@ -24,29 +24,29 @@
           @dragover.prevent="onDragOver(index)"
           @drop="onDrop(index)"
           @dragend="onDragEnd"
-          @click="$emit('select-profile', profile.name)"
-        >
-          <div class="drag-handle" :title="$t('api.dragToSort')">
-                        ⋮⋮
-                      </div>          <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
+          @click="$emit('select-profile', profile.name)">
+          <div class="drag-handle" :title="$t('api.dragToSort')"> ⋮⋮ </div>
+          <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
             <span class="profile-icon-text">{{ getProfileInitial(profile.name) }}</span>
           </div>
-          <div class="profile-info">
-            <div class="profile-name-row">
-              <div class="profile-name">{{ profile.name }}</div>
-              <div
-                class="connectivity-indicator"
-                :class="'connectivity-' + getConnectivityLevel(profile.name)"
-                :title="getConnectivityTooltip(profile.name)"
-              >
-                <span class="connectivity-dot" :class="{ animated: getConnectivityLevel(profile.name) === 'checking' }"></span>
-                <span class="connectivity-label" v-if="getConnectivityLevel(profile.name) !== 'checking'">
-                  {{ getConnectivityLabel(profile.name) }}
-                </span>
-              </div>
-            </div>
-            <div class="profile-url">{{ getProfileUrl(profile.name) }}</div>
-          </div>
+                    <div class="profile-info">
+                      <div class="profile-name-row">
+                        <div class="profile-name">{{ profile.name }}</div>
+                        <div
+                          class="connectivity-indicator"
+                          :class="'connectivity-' + getConnectivityLevel(profile.name)"
+                          :title="getConnectivityTooltip(profile.name)"
+                        >
+                          <span class="connectivity-dot" :class="{ animated: getConnectivityLevel(profile.name) === 'checking' }"></span>
+                          <span class="connectivity-label" v-if="getConnectivityLevel(profile.name) !== 'checking'">
+                            {{ getConnectivityLabel(profile.name) }}
+                          </span>
+                        </div>
+                      </div>
+                      <div class="profile-model" :class="{ active: currentProfile === profile.name }" v-if="getProfileModel(profile.name)">
+                        {{ getProfileModel(profile.name) }}
+                      </div>
+                    </div>
           <div class="profile-status" v-if="currentProfile === profile.name">
             <span class="status-badge">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
@@ -69,22 +69,14 @@
         </div>
       </div>
     </div>
-    <EmptyState
-      v-else
-      :icon="Exchange"
-      :title="$t('api.noProfiles')"
-      :description="$t('api.addFirstProfile')"
-      :actionText="$t('api.newProfile')"
-      embedded
-      @action="$emit('create-profile')"
-    />
+    <EmptyState v-else :icon="Exchange" :title="$t('api.noProfiles')" :description="$t('api.addFirstProfile')" :actionText="$t('api.newProfile')" embedded @action="$emit('create-profile')" />
   </section>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Add, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
+import { Plus, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 
 const { t } = useI18n()
@@ -109,10 +101,10 @@ const dragIndex = ref(-1)
 const dragOverIndex = ref(-1)
 
 // --- 连通性监控 ---
-const connectivityMap = reactive({})  // { profileName: { level: 'excellent'|'good'|'slow'|'unreachable'|'checking', latency: number } }
+const connectivityMap = reactive({}) // { profileName: { level: 'excellent'|'good'|'slow'|'unreachable'|'checking', latency: number } }
 let connectivityTimer = null
-const POLL_INTERVAL = 30000  // 30 秒轮询
-const PING_TIMEOUT_THRESHOLD = 2000  // >2s 视为不可达
+const POLL_INTERVAL = 30000 // 30 秒轮询
+const PING_TIMEOUT_THRESHOLD = 2000 // >2s 视为不可达
 
 function getConnectivityLevel(name) {
   return connectivityMap[name]?.level || 'checking'
@@ -180,15 +172,19 @@ function stopPolling() {
 }
 
 // profiles 变化时重新初始化连通性状态
-watch(() => props.profiles, () => {
-  // 清理已不存在的 profile 的连通性数据
-  const names = new Set(props.profiles.map(p => p.name))
-  for (const key of Object.keys(connectivityMap)) {
-    if (!names.has(key)) delete connectivityMap[key]
-  }
-  // 新增的 profile 加入检测
-  pingAll()
-}, { deep: true })
+watch(
+  () => props.profiles,
+  () => {
+    // 清理已不存在的 profile 的连通性数据
+    const names = new Set(props.profiles.map(p => p.name))
+    for (const key of Object.keys(connectivityMap)) {
+      if (!names.has(key)) delete connectivityMap[key]
+    }
+    // 新增的 profile 加入检测
+    pingAll()
+  },
+  { deep: true },
+)
 
 onMounted(() => {
   startPolling()
@@ -198,15 +194,15 @@ onUnmounted(() => {
   stopPolling()
 })
 
-const onDragStart = (index) => {
+const onDragStart = index => {
   dragIndex.value = index
 }
 
-const onDragOver = (index) => {
+const onDragOver = index => {
   dragOverIndex.value = index
 }
 
-const onDrop = (index) => {
+const onDrop = index => {
   if (dragIndex.value !== -1 && dragIndex.value !== index) {
     const newProfiles = [...props.profiles]
     const [removed] = newProfiles.splice(dragIndex.value, 1)
@@ -242,10 +238,15 @@ const getProfileUrl = name => {
   return profile.baseUrl || ''
 }
 
-const getProfileIconStyle = name => {
-  if (name === 'default') {
-    return { background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' }
+const getProfileModel = name => {
+  if (!props.settings.apiProfiles || !props.settings.apiProfiles[name]) {
+    return ''
   }
+  const profile = props.settings.apiProfiles[name]
+  return profile.modelName || ''
+}
+
+const getProfileIconStyle = name => {
   let hash = 0
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash)
@@ -371,13 +372,23 @@ const getProfileIconStyle = name => {
   color: var(--text-primary);
 }
 
-.profile-url {
+.profile-model {
   font-size: 11px;
-  color: var(--text-tertiary);
-  margin-top: 2px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.profile-model.active {
+  color: var(--accent);
+  background: var(--accent-light);
 }
 
 .profile-status {
@@ -406,7 +417,8 @@ const getProfileIconStyle = name => {
 }
 
 @keyframes breathing {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
     transform: scale(0.9);
   }
@@ -449,7 +461,8 @@ const getProfileIconStyle = name => {
 }
 
 @keyframes connectivity-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
     transform: scale(0.8);
   }

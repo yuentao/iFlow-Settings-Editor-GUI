@@ -337,10 +337,7 @@ const saveApiCreate = async data => {
 
 const deleteApiProfile = async name => {
   const profileName = name || currentApiProfile.value
-  if (profileName === 'default') {
-    await showMessage({ type: 'warning', title: t('messages.warning'), message: t('messages.cannotDeleteDefault') })
-    return
-  }
+  
   const confirmed = await new Promise(resolve => {
     showInputDialog.value = { show: true, title: t('api.delete'), placeholder: 'messages.confirmDeleteConfig', name: profileName, callback: resolve, isConfirm: true }
   })

@@ -120,12 +120,19 @@ function updateTrayMenu() {
     ? [...order, ...Object.keys(profiles).filter(n => !order.includes(n))]
     : Object.keys(profiles).length > 0 ? Object.keys(profiles) : ['default']
 
-  const profileMenuItems = profileList.map(name => ({
-    label: name + (name === currentProfile ? ' ✓' : ''),
-    type: 'radio',
-    checked: name === currentProfile,
-    click: () => switchApiProfileFromTray(name),
-  }))
+  const profileMenuItems = profileList.map(name => {
+    const profile = profiles[name] || {}
+    const modelName = profile.modelName || ''
+    const label = modelName
+      ? `${name} - ${modelName}${name === currentProfile ? ' ✓' : ''}`
+      : name + (name === currentProfile ? ' ✓' : '')
+    return {
+      label,
+      type: 'radio',
+      checked: name === currentProfile,
+      click: () => switchApiProfileFromTray(name),
+    }
+  })
 
   const contextMenu = Menu.buildFromTemplate([
     {
