@@ -134,7 +134,7 @@ function registerApiProfilesIpcHandlers() {
     }
     const oldSnapshot = JSON.parse(JSON.stringify(settings))
 
-    if (name === 'default') {
+    if (!settings.apiProfilesOrder || settings.apiProfilesOrder.length === 0 || name === settings.apiProfilesOrder[0]) {
       return { success: false, error: t('errors.cannotDeleteDefault'), code: ErrorCodes.CANNOT_DELETE_DEFAULT }
     }
 
@@ -173,10 +173,6 @@ function registerApiProfilesIpcHandlers() {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
     const oldSnapshot = JSON.parse(JSON.stringify(settings))
-
-    if (oldName === 'default') {
-      return { success: false, error: t('errors.cannotRenameDefault'), code: ErrorCodes.CANNOT_RENAME_DEFAULT }
-    }
 
     const profiles = settings.apiProfiles || {}
     if (!profiles[oldName]) {

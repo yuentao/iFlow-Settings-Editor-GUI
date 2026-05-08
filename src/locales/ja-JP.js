@@ -75,6 +75,8 @@ export default {
     showMemoryUsageDesc: 'ステータスバー下部にCLI現在のメモリ使用量を表示',
     maxSessionTurns: '最大セッションターン数',
     maxSessionTurnsDesc: 'セッションの最大ターン数を設定。セッションがこの制限を超えると、CLI は処理を停止し、新しいチャットを開始します。',
+    connectivityPollInterval: '接続確認間隔',
+    connectivityPollIntervalDesc: 'API接続確認の定期実行間隔（秒）',
     excludeTools: '除外ツール',
     excludeToolsDesc: 'CLIから除外するコアツール名のリストを指定できます。ShellToolなどのサポートされているツールに対してコマンド固有の制限を指定することもできます。例えば、"excludeTools": ["ShellTool(rm -rf)"] はrm -rfコマンドをブロックします。デフォルト：ツールは除外されません。',
     excludeToolsSecurityNote: 'この機能は単純な文字列マッチングに基づいており、轻易にバイパスできます。信頼できないコードの安全な実行を指望するために依赖することはできません。',

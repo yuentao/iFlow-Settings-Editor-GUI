@@ -74,6 +74,8 @@ export default {
     showMemoryUsageDesc: 'Display CLI memory usage at the bottom status bar',
     maxSessionTurns: 'Max Session Turns',
     maxSessionTurnsDesc: 'Set the maximum number of session turns. If the session exceeds this limit, the CLI will stop processing and start a new chat.',
+    connectivityPollInterval: 'Connectivity Poll Interval',
+    connectivityPollIntervalDesc: 'Time interval (in seconds) for periodic API connectivity checks.',
     excludeTools: 'Exclude Tools',
     excludeToolsDesc: 'Specify a list of core tool names to exclude from the CLI. You can also specify command-specific restrictions for supported tools like ShellTool. For example, "excludeTools": ["ShellTool(rm -rf)"] would block the rm -rf command. Default: no tools excluded.',
     excludeToolsSecurityNote: 'Command-specific restrictions for ShellTool are based on simple string matching and can be easily bypassed. This is not a security mechanism and should not be relied upon for safe execution of untrusted code.',
