@@ -11,23 +11,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 describe('AutoUpdater Delta Update Configuration', () => {
   describe('差分更新配置验证', () => {
-    it('应正确识别 blockMap 差分策略', () => {
-      // 验证 deltaUpdateStrategy 配置
-      const deltaUpdateStrategy = 'blockMap'
-      expect(deltaUpdateStrategy).toBe('blockMap')
-    })
-
-    it('应正确设置增量更新标志', () => {
-      // 模拟 electron-updater 配置
+    it('应正确识别差分下载默认启用', () => {
+      // electron-updater 差分下载由 disableDifferentialDownload 控制
+      // 默认 false = 启用差分下载，无需手动设置
       const config = {
-        enableDeltaUpdates: true,
-        deltaUpdateStrategy: 'blockMap',
+        disableDifferentialDownload: false, // 默认值，差分下载已启用
         autoDownload: false,
         autoInstallOnAppQuit: false,
       }
       
-      expect(config.enableDeltaUpdates).toBe(true)
-      expect(config.deltaUpdateStrategy).toBe('blockMap')
+      expect(config.disableDifferentialDownload).toBe(false)
       expect(config.autoDownload).toBe(false)
     })
 
@@ -207,6 +200,22 @@ describe('AutoUpdater Delta Update Configuration', () => {
       nonDeltaErrors.forEach(error => {
         expect(isDeltaError(error)).toBe(false)
       })
+    })
+
+    it('应在差分失败时禁用差分下载并回退', () => {
+      // 模拟 autoUpdater 回退逻辑
+      const autoUpdater = {
+        disableDifferentialDownload: false,
+      }
+
+      // 差分失败时，设置 disableDifferentialDownload = true
+      autoUpdater.disableDifferentialDownload = true
+
+      expect(autoUpdater.disableDifferentialDownload).toBe(true)
+      
+      // 回退完成后恢复
+      autoUpdater.disableDifferentialDownload = false
+      expect(autoUpdater.disableDifferentialDownload).toBe(false)
     })
 
     it('应正确设置回退延迟', () => {

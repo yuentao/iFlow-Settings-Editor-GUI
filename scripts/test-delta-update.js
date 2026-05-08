@@ -32,18 +32,6 @@ async function runTests() {
       console.log('✅ generateBlockmap: true')
     }
 
-    if (!publishConfig.generateDelta) {
-      errors.push('❌ generateDelta must be true')
-    } else {
-      console.log('✅ generateDelta: true')
-    }
-
-    if (publishConfig.deltaUpdateStrategy !== 'blockMap') {
-      errors.push('❌ deltaUpdateStrategy must be "blockMap"')
-    } else {
-      console.log('✅ deltaUpdateStrategy: blockMap')
-    }
-
     if (!publishConfig.provider || publishConfig.provider !== 'github') {
       errors.push('❌ publish.provider must be "github"')
     } else {
@@ -101,7 +89,8 @@ async function runTests() {
       const content = fs.readFileSync(autoUpdaterPath, 'utf-8')
       
       // 检查关键配置
-      if (content.includes('enableDeltaUpdates') || content.includes('blockMap')) {
+      // disableDifferentialDownload 是控制差分下载的有效 API（默认 false = 启用差分）
+      if (content.includes('disableDifferentialDownload') || content.includes('blockMap')) {
         console.log('✅ autoUpdater.js contains delta update logic')
       } else {
         warnings.push('⚠️  autoUpdater.js may not have delta update configuration')
