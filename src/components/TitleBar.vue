@@ -7,9 +7,6 @@
       <button class="titlebar-btn" @click="minimize" :title="$t('window.minimize')">
         <svg viewBox="0 0 10 1"><line x1="0" y1="0.5" x2="10" y2="0.5" /></svg>
       </button>
-      <button class="titlebar-btn" @click="maximize" :title="$t('window.maximize')">
-        <svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" stroke-width="1" stroke="currentColor" fill="none" /></svg>
-      </button>
       <button class="titlebar-btn close" @click="close" :title="$t('window.close')">
         <svg viewBox="0 0 10 10">
           <line x1="0" y1="0" x2="10" y2="10" />
@@ -23,15 +20,11 @@
 <script setup lang="ts">
 /**
  * TitleBar - 窗口标题栏组件
- * 提供最小化、最大化、关闭按钮
+ * 提供最小化、关闭按钮
  */
 
 const minimize = (): void => {
   window.electronAPI.minimize()
-}
-
-const maximize = (): void => {
-  window.electronAPI.maximize()
 }
 
 const close = (): void => {
