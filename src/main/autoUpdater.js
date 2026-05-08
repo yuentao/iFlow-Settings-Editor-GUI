@@ -91,22 +91,16 @@ function initAutoUpdater() {
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
   
-  // 🔥 显式配置差分更新（Phase 5 风险缓解）
-  // 明确启用差分更新功能
-  autoUpdater.enableDeltaUpdates = true
-  // 使用 blockMap 算法（默认算法，高效且可靠）
-  autoUpdater.deltaUpdateStrategy = 'blockMap'
+  // 差分更新：electron-updater 默认启用 blockMap 差分下载
+  // 控制属性为 disableDifferentialDownload（默认 false，即启用差分）
+  // 无需手动设置 enableDeltaUpdates / deltaUpdateStrategy（非有效 API）
   // 不允许降级（安全考虑）
   autoUpdater.allowDowngrades = false
   // 不自动使用预发布版本
   autoUpdater.allowPrerelease = false
   
-  // 配置差分更新
-  // electron-updater v6.8.3+ 支持 blockMap
-  // 会在下载时自动查找对应的 .blockmap 文件
   if (autoUpdater.logger) {
-    autoUpdater.logger.info('[AutoUpdater] Initialized with delta update support')
-    autoUpdater.logger.info('[AutoUpdater] Delta strategy:', autoUpdater.deltaUpdateStrategy)
+    autoUpdater.logger.info('[AutoUpdater] Initialized with delta update support (blockMap, default enabled)')
   }
 
   // 监听更新事件
@@ -196,6 +190,9 @@ function initAutoUpdater() {
       console.warn('[AutoUpdater] Delta update failed, falling back to full update')
       console.warn('[AutoUpdater] Error details:', error.message)
       
+      // 禁用差分下载，确保重试时走完整包
+      autoUpdater.disableDifferentialDownload = true
+      
       // 清除差分更新状态
       setUpdateState({ 
         status: 'idle', 
@@ -211,6 +208,9 @@ function initAutoUpdater() {
         } catch (retryError) {
           console.error('[AutoUpdater] Retry failed:', retryError.message)
           setUpdateState({ status: 'error', error: retryError.message })
+        } finally {
+          // 重试完成后恢复差分下载（下次更新可继续使用差分）
+          autoUpdater.disableDifferentialDownload = false
         }
       }, 2000)
     } else {
