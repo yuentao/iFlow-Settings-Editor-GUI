@@ -2,9 +2,9 @@
 
 ## 项目概述
 
-**iFlow 设置编辑器** 是一个用于编辑 iFlow CLI 配置文件 (`~/.iflow/settings.json`) 的桌面应用程序，采用 **Electron + Vue 3** 技术栈构建，支持多语言（中文/英文/日文）、云同步（WebDAV）和自动更新功能。
+**iFlow 设置编辑器** 是一个用于编辑 iFlow CLI 配置文件 (`~/.iflow/settings.json`) 的桌面应用程序，采用 **Electron + Vue 3** 技术栈构建，支持多语言（中文/英文/日文）、云同步（WebDAV）、iFlow Mod 模组管理和自动更新功能。
 
-**当前版本**: v1.14.8 (2026-05-02)
+**当前版本**: v1.17.0 (2026-05-08)
 
 ### 技术栈
 
@@ -40,6 +40,7 @@
 │    ├── window.js        - 窗口生命周期管理                │
 │    ├── tray.js          - 系统托盘菜单                    │
 │    ├── constants.js     - 常量定义（API 字段等）          │
+│    ├── autoUpdater.js   - 自动更新模块（差分更新支持）     │
 │    │                                                    │
 │    ├── ipc/              - IPC 通信处理器（按模块拆分）    │
 │    │   ├── index.js     - IPC 处理器聚合与注册           │
@@ -49,12 +50,14 @@
 │    │   ├── commands.js  - 命令 CRUD（无执行功能）        │
 │    │   ├── cloud.js     - 云同步 IPC 桥接                │
 │    │   ├── dialogs.js   - 对话框控制（消息/确认/输入）   │
-│    │   └── updates.js   - 自动更新检查/下载/安装         │
+│    │   ├── updates.js   - 自动更新检查/下载/安装         │
+│    │   └── iflow.js     - iFlow Mod 管理                │
 │    │                                                    │
 │    ├── services/        - 业务逻辑层                      │
 │    │   ├── configService.js   - 配置文件读写封装         │
-│    │   ├── autoLaunchService.js - 开机自启管理（强制静默）│
-│    │   ├── SyncService.js     - 云同步核心逻辑（增量合并）│
+│    │   ├── autoLaunchService.js - 开机自启管理          │
+│    │   ├── SyncService.js     - 云同步核心逻辑          │
+│    │   ├── iflowService.js    - iFlow Mod 业务逻辑     │
 │    │   └── cloud/             - 云存储适配器层           │
 │    │       └── WebDAVProvider.js - WebDAV 协议实现      │
 │    │                                                    │
@@ -64,7 +67,7 @@
 │    └── utils/           - 工具函数                       │
 │        ├── errors.js    - 错误类型定义                   │
 │        ├── logger.js    - 日志记录                       │
-│        ├── translations.js - 国际化加载                 │
+│        ├── translations.js - 国际化加载                   │
 │        ├── validator.js - 表单验证                       │
 │        └── mcpParser.js - MCP 配置解析（JSON/CMD/URL）  │
 │                                                          │
@@ -76,7 +79,7 @@
 │    ├── main.js          - Vue 应用入口                    │
 │    │                                                    │
 │    ├── components/      - 可复用 UI 组件                 │
-│    │   ├── TitleBar.vue        - 自定义标题栏（窗口控制）│
+│    │   ├── TitleBar.vue        - 自定义标题栏（最小化/关闭）│
 │    │   ├── SideBar.vue         - 侧边导航栏              │
 │    │   ├── InputDialog.vue     - 文本输入对话框          │
 │    │   ├── MessageDialog.vue   - 消息提示对话框          │
@@ -88,7 +91,8 @@
 │    │   ├── EmptyState.vue      - 空状态占位符            │
 │    │   ├── SkeletonLoader.vue  - 骨架屏加载             │
 │    │   ├── UpdateNotification.vue - 更新可用通知         │
-│    │   └── UpdateProgress.vue  - 下载进度显示            │
+│    │   ├── UpdateProgress.vue  - 下载进度显示            │
+│    │   └── CloudSyncWizard.vue - 云同步引导向导         │
 │    │                                                    │
 │    ├── views/           - 页面视图（按导航切换）          │
 │    │   ├── Dashboard.vue       - 仪表盘（概览+快捷操作） │
@@ -96,7 +100,9 @@
 │    │   ├── ApiConfig.vue       - API 配置管理（含实时连通性监控）│
 │    │   ├── McpServers.vue      - MCP 服务器管理（快速添加+高级配置）│
 │    │   ├── SkillsView.vue      - 技能管理（本地/在线导入导出）│
-│    │   └── CommandsView.vue    - 命令管理（CRUD+分类筛选）│
+│    │   ├── CommandsView.vue    - 命令管理（CRUD+分类筛选）│
+│    │   ├── IflowModsView.vue   - iFlow Mod 管理（实验性）│
+│    │   └── DocsView.vue        - 文档查看器              │
 │    │                                                    │
 │    ├── stores/          - Pinia 状态管理（TypeScript）    │
 │    │   ├── settings.ts         - 设置状态（持久化到 JSON）│
@@ -104,8 +110,13 @@
 │    │   ├── skills.ts           - 技能状态                 │
 │    │   ├── commands.ts         - 命令状态                 │
 │    │   ├── cloudSync.ts        - 云同步状态（WebDAV）     │
+│    │   ├── iflowMods.ts        - iFlow Mod 状态          │
 │    │   ├── ui.ts               - UI 状态（导航/弹窗）     │
 │    │   └── index.js            - Store 聚合入口           │
+│    │                                                    │
+│    ├── composables/     - Vue 组合式函数                  │
+│    │   ├── useLocale.ts   - 国际化支持                   │
+│    │   └── useSettings.ts - 设置操作封装                 │
 │    │                                                    │
 │    ├── locales/         - 国际化语言包（i18n）            │
 │    │   ├── index.js    - 中文（简体，默认）              │
@@ -116,7 +127,15 @@
 │    │   └── global.less - Windows 11 Fluent Design 设计系统│
 │    │                                                    │
 │    └── shared/          - 主进程与渲染进程共享类型定义    │
-│        └── types.ts    - TypeScript 类型声明（Settings、API、Commands 等）│
+│        ├── types.ts    - TypeScript 类型声明             │
+│        ├── errors.js    - 错误常量                        │
+│        └── mcpParser.js - MCP 配置解析                   │
+│                                                          │
+│    assets/docs/         - 内置帮助文档                    │
+│    ├── quickstart.md    - 快速入门                        │
+│    ├── configuration/settings.md - 配置说明               │
+│    ├── examples/        - 使用示例                        │
+│    └── features/        - 功能特性                        │
 │                                                          │
 └───────────────────────────────────────────────────────────┘
 ```
@@ -126,6 +145,7 @@
 - **主配置**: `~/.iflow/settings.json` (UTF-8 JSON)
 - **自动备份**: 修改时生成 `.bak` 备份文件
 - **技能目录**: `~/.iflow/skills/`
+- **iFlow Mod 目录**: `~/.iflow/mods/iflow/`
 - **云同步配置**: 存储在 `settings.json` 的 `cloudSync` 字段下
 
 ## 开发命令
@@ -162,6 +182,12 @@ npm run build:mac-zip  # ZIP 压缩包
 
 # 打包全部平台 (根据配置)
 npm run dist
+
+# 发布到 GitHub Releases (需配置 GH_TOKEN)
+npm run publish
+
+# 清理更新缓存
+npm run clean:updates
 
 # 运行测试
 npm run test          # 监听模式
@@ -213,7 +239,7 @@ src/
 ├── main.js              # Vue 应用入口 (渲染进程)
 ├── App.vue              # 根组件
 ├── components/          # 可复用组件
-│   ├── TitleBar.vue     # 标题栏 (窗口控制按钮)
+│   ├── TitleBar.vue     # 标题栏 (最小化/关闭按钮)
 │   ├── TitleBar.test.js
 │   ├── SideBar.vue      # 侧边导航栏
 │   ├── SideBar.test.js
@@ -231,7 +257,9 @@ src/
 │   ├── SkeletonLoader.test.js
 │   ├── UpdateNotification.vue # 更新通知
 │   ├── UpdateProgress.vue   # 下载进度
-│   └── CommandEditorDialog.vue # 命令编辑器 (新增)
+│   ├── CommandEditorDialog.vue # 命令编辑器
+│   ├── CloudSyncWizard.vue  # 云同步引导向导 (新增)
+│   └── QuickAddDialog.vue   # 快速添加对话框
 ├── views/               # 页面视图
 │   ├── Dashboard.vue    # 仪表盘
 │   ├── Dashboard.test.js
@@ -243,8 +271,10 @@ src/
 │   ├── McpServers.test.js
 │   ├── SkillsView.vue   # 技能管理
 │   ├── SkillsView.test.js
-│   └── CommandsView.vue # 命令管理 (新增)
-│   └── CommandsView.test.js (新增)
+│   ├── CommandsView.vue # 命令管理
+│   ├── CommandsView.test.js
+│   ├── IflowModsView.vue # iFlow Mod 管理 (新增)
+│   └── DocsView.vue     # 文档查看器 (新增)
 ├── stores/              # Pinia 状态管理
 │   ├── settings.ts      # 设置状态
 │   ├── settings.test.ts
@@ -252,17 +282,21 @@ src/
 │   ├── apiProfiles.test.ts
 │   ├── skills.ts        # 技能状态
 │   ├── skills.test.ts
-│   ├── commands.ts      # 命令状态 (新增)
-│   ├── commands.test.ts (新增)
-│   ├── cloudSync.ts     # 云同步状态 (新增)
-│   ├── cloudSync.test.ts (新增)
+│   ├── commands.ts      # 命令状态
+│   ├── commands.test.ts
+│   ├── cloudSync.ts     # 云同步状态
+│   ├── iflowMods.ts     # iFlow Mod 状态 (新增)
 │   ├── ui.ts            # UI 状态
 │   └── index.js         # 入口
-├── main/                # Electron 主进程 (新结构)
+├── composables/         # Vue 组合式函数 (新增)
+│   ├── useLocale.ts     # 国际化支持
+│   └── useSettings.ts   # 设置操作封装
+├── main/                # Electron 主进程
 │   ├── index.js         # 主进程入口
 │   ├── constants.js     # 常量定义
 │   ├── window.js        # 窗口管理
 │   ├── tray.js          # 系统托盘
+│   ├── autoUpdater.js   # 自动更新模块 (重构)
 │   ├── crypto/          # 加密模块
 │   │   ├── CryptoManager.js
 │   │   └── CryptoManager.test.js
@@ -271,19 +305,21 @@ src/
 │   │   ├── settings.js  # 设置操作
 │   │   ├── apiProfiles.js # API 配置
 │   │   ├── skills.js    # 技能管理
-│   │   ├── commands.js  # 命令管理 (新增)
-│   │   ├── cloud.js     # 云同步 (新增)
+│   │   ├── commands.js  # 命令管理
+│   │   ├── cloud.js     # 云同步
 │   │   ├── dialogs.js   # 对话框
-│   │   └── updates.js   # 自动更新
+│   │   ├── updates.js   # 自动更新
+│   │   └── iflow.js     # iFlow Mod (新增)
 │   ├── services/        # 业务服务
 │   │   ├── configService.js    # 配置读写
 │   │   ├── configService.test.js
 │   │   ├── autoLaunchService.js # 自启动
-│   │   ├── SyncService.js      # 云同步核心 (新增)
-│   │   ├── SyncService.test.js (新增)
-│   │   └── cloud/                # 云存储适配器
-│   │       ├── WebDAVProvider.js  # WebDAV (新增)
-│   │       └── WebDAVProvider.test.js (新增)
+│   │   ├── SyncService.js      # 云同步核心
+│   │   ├── SyncService.test.js
+│   │   ├── iflowService.js     # iFlow Mod 业务逻辑 (新增)
+│   │   └── cloud/              # 云存储适配器
+│   │       ├── WebDAVProvider.js
+│   │       └── WebDAVProvider.test.js
 │   └── utils/           # 工具函数
 │       ├── errors.js    # 错误处理
 │       ├── logger.js    # 日志
@@ -291,13 +327,38 @@ src/
 │       └── validator.js # 验证
 ├── shared/              # 共享类型定义
 │   ├── types.ts         # TypeScript 类型
-│   └── errors.js        # 错误常量
+│   ├── errors.js        # 错误常量
+│   └── mcpParser.js     # MCP 配置解析
 ├── locales/             # 国际化
 │   ├── index.js (zh-CN) # 中文 (默认)
 │   ├── en-US.js        # 英文
 │   └── ja-JP.js        # 日文
 └── styles/
     └── global.less      # 全局样式 (Fluent Design)
+
+scripts/
+└── publish.js          # 发布辅助脚本 (新增)
+
+.github/workflows/
+└── build.yml           # GitHub 自动构建发布 (新增)
+
+assets/docs/             # 内置帮助文档 (重构)
+├── quickstart.md
+├── configuration/
+│   └── settings.md
+├── examples/
+│   ├── basic-usage.md
+│   ├── hooks.md
+│   ├── keyboard-shortcuts.md
+│   ├── mcp.md
+│   ├── plan-mode.md
+│   ├── skill.md
+│   ├── slash-commands.md
+│   ├── subagent.md
+│   ├── subcommand.md
+│   └── workflow.md
+└── features/
+    └── interactive.md
 ```
 
 ## 关键模块
@@ -309,99 +370,120 @@ src/
 ```javascript
 // ── 基础设置 ─────────────────────────────────────────────
 window.electronAPI.loadSettings()                    // 加载 settings.json
-window.electronAPI.saveSettings(data)                // 保存设置（自动备份）
-window.electronAPI.showMessage(options)              // 显示消息对话框
-window.electronAPI.showConfirmDialog(options)        // 显示确认对话框
-window.electronAPI.showOpenDialog(options)           // 打开文件选择器
+window.electronAPI.saveSettings(data)               // 保存设置（自动备份）
+window.electronAPI.showMessage(options)             // 显示消息对话框
+window.electronAPI.showConfirmDialog(options)       // 显示确认对话框
+window.electronAPI.showOpenDialog(options)          // 打开文件选择器
 
 // ── 窗口控制 ─────────────────────────────────────────────
-window.electronAPI.isMaximized()                     // 是否最大化
-window.electronAPI.minimize()                        // 最小化
-window.electronAPI.maximize()                        // 最大化/还原
-window.electronAPI.close()                           // 关闭（隐藏到托盘）
+window.electronAPI.isMaximized()                    // 是否最大化
+window.electronAPI.minimize()                       // 最小化
+window.electronAPI.maximize()                       // 最大化/还原
+window.electronAPI.close()                          // 关闭（隐藏到托盘）
 
 // ── 开机自启动 ───────────────────────────────────────────
-window.electronAPI.getAutoLaunch()                   // 获取自启动状态
-window.electronAPI.setAutoLaunch(enabled)            // 设置自启动（始终静默）
+window.electronAPI.getAutoLaunch()                 // 获取自启动状态
+window.electronAPI.setAutoLaunch(enabled)           // 设置自启动
 
 // ── 自动更新 ─────────────────────────────────────────────
-window.electronAPI.checkForUpdates()                 // 手动检查更新
-window.electronAPI.downloadUpdate()                  // 下载更新（前台）
-window.electronAPI.downloadUpdateBackground()        // 后台下载更新
-window.electronAPI.cancelDownload()                  // 取消下载
-window.electronAPI.installUpdate()                   // 安装待处理更新
-window.electronAPI.getUpdateStatus()                 // 获取更新状态
-window.electronAPI.getAppVersion()                   // 获取当前版本
-window.electronAPI.getPendingUpdate()                // 获取待安装更新信息
-window.electronAPI.clearPendingUpdate()              // 清除待安装更新
-window.electronAPI.onUpdateStatusChanged(cb)         // 监听状态变化
-window.electronAPI.onUpdateAvailable(cb)             // 监听发现新版本
-window.electronAPI.onUpdateDownloadProgress(cb)      // 监听下载进度
-window.electronAPI.onUpdateDownloaded(cb)            // 监听下载完成
-window.electronAPI.onUpdateBackgroundComplete(cb)    // 监听后台下载完成
+window.electronAPI.checkForUpdates()                // 检查更新
+window.electronAPI.downloadUpdate()                 // 下载更新（前台）
+window.electronAPI.downloadUpdateBackground()       // 后台下载更新
+window.electronAPI.cancelDownload()                // 取消下载
+window.electronAPI.installUpdate()                  // 安装待处理更新
+window.electronAPI.getUpdateStatus()                // 获取更新状态
+window.electronAPI.getAppVersion()                  // 获取当前版本
+window.electronAPI.openReleasePage()                // 打开发布页面
+window.electronAPI.getPendingUpdate()               // 获取待安装更新信息
+window.electronAPI.clearPendingUpdate()             // 清除待安装更新
+window.electronAPI.restorePendingUpdate()           // 恢复待安装更新
+window.electronAPI.getUpdateHistory()               // 获取更新历史
+window.electronAPI.saveUpdateHistory(history)       // 保存更新历史
+window.electronAPI.onUpdateStatusChanged(cb)        // 监听状态变化
+window.electronAPI.onUpdateAvailable(cb)            // 监听发现新版本
+window.electronAPI.onUpdateDownloadProgress(cb)     // 监听下载进度
+window.electronAPI.onUpdateDownloaded(cb)           // 监听下载完成
+window.electronAPI.onUpdateBackgroundComplete(cb)   // 监听后台下载完成
+window.electronAPI.onAutoCheckUpdate(cb)           // 监听自动检查更新
+window.electronAPI.onInstallUpdate(cb)              // 监听安装更新
 
 // ── API 配置管理 ─────────────────────────────────────────
-window.electronAPI.listApiProfiles()                 // 列出所有配置
-window.electronAPI.switchApiProfile(name)            // 切换当前配置
-window.electronAPI.createApiProfile(name)            // 新建配置
-window.electronAPI.deleteApiProfile(name)            // 删除配置
-window.electronAPI.renameApiProfile(oldName, newName)// 重命名配置
+window.electronAPI.listApiProfiles()               // 列出所有配置
+window.electronAPI.switchApiProfile(name)          // 切换当前配置
+window.electronAPI.createApiProfile(name)           // 新建配置
+window.electronAPI.deleteApiProfile(name)           // 删除配置
+window.electronAPI.renameApiProfile(oldName, newName) // 重命名配置
 window.electronAPI.duplicateApiProfile(source, name) // 复制配置
-window.electronAPI.fetchModels(baseUrl, apiKey)      // 从 API 获取模型列表
-window.electronAPI.pingApiProfile(baseUrl)           // 检测连通性（延迟）
-window.electronAPI.onApiProfileSwitched(cb)          // 监听配置切换
+window.electronAPI.fetchModels(baseUrl, apiKey)     // 从 API 获取模型列表
+window.electronAPI.pingApiProfile(baseUrl)          // 检测连通性（延迟）
+window.electronAPI.onApiProfileSwitched(cb)         // 监听配置切换
 
 // ── MCP 服务器管理 ───────────────────────────────────────
-window.electronAPI.listMcpServers()                  // 列出所有服务器
-window.electronAPI.createMcpServer(data)             // 创建服务器
-window.electronAPI.updateMcpServer(name, data)       // 更新服务器
-window.electronAPI.deleteMcpServer(name)             // 删除服务器
+window.electronAPI.listMcpServers()                 // 列出所有服务器
+window.electronAPI.createMcpServer(data)            // 创建服务器
+window.electronAPI.updateMcpServer(name, data)      // 更新服务器
+window.electronAPI.deleteMcpServer(name)            // 删除服务器
 
 // ── 技能管理 ─────────────────────────────────────────────
-window.electronAPI.listSkills()                      // 列出已安装技能
-window.electronAPI.importSkillLocal()                // 从本地 ZIP 导入
-window.electronAPI.importSkillOnline(url, name)      // 从 URL 在线导入
-window.electronAPI.exportSkill(name, folderName)     // 导出技能到目录
-window.electronAPI.deleteSkill(name)                 // 删除技能
+window.electronAPI.listSkills()                     // 列出已安装技能
+window.electronAPI.importSkillLocal()               // 从本地 ZIP 导入
+window.electronAPI.importSkillOnline(url, name)     // 从 URL 在线导入
+window.electronAPI.exportSkill(name, folderName)    // 导出技能到目录
+window.electronAPI.deleteSkill(name)                // 删除技能
 
 // ── 命令管理 ─────────────────────────────────────────────
-// 注意：命令系统仅支持 CRUD 操作，不提供"执行"功能
-window.electronAPI.listCommands()                    // 列出所有命令
+window.electronAPI.listCommands()                   // 列出所有命令
 window.electronAPI.readCommand(name)                 // 读取命令详情
-window.electronAPI.createCommand(name, data)         // 创建命令
-window.electronAPI.updateCommand(name, data)         // 更新命令
-window.electronAPI.deleteCommand(name)               // 删除命令
-window.electronAPI.exportCommand(name)               // 导出命令为 JSON
-window.electronAPI.importCommand()                   // 从本地 JSON 导入
+window.electronAPI.createCommand(name, data)       // 创建命令
+window.electronAPI.updateCommand(name, data)        // 更新命令
+window.electronAPI.deleteCommand(name)              // 删除命令
+window.electronAPI.exportCommand(name)              // 导出命令为 JSON
+window.electronAPI.importCommand()                  // 从本地 JSON 导入
+
+// ── iFlow Mod 管理 (实验性) ──────────────────────────────
+window.electronAPI.iflowGetIflowVersion()         // 获取 iFlow 版本号
+window.electronAPI.iflowListMods()                 // 获取已安装 Mod 列表
+window.electronAPI.iflowGetModCompatibility(modId) // 获取 Mod 版本兼容性
+window.electronAPI.iflowEnableMod(modId, enabled) // 启用/禁用 Mod
+window.electronAPI.iflowDeleteMod(modId)           // 删除 Mod
+window.electronAPI.iflowExportMod(modId)           // 导出 Mod
+window.electronAPI.iflowImportMod(filePath)        // 导入 Mod
+window.electronAPI.iflowOpenImportDialog()         // 打开导入文件选择
+window.electronAPI.iflowCheckIflowStatus()         // 检查 iFlow.js 状态
 
 // ── 云同步（WebDAV） ─────────────────────────────────────
-window.electronAPI.cloudSyncGetStatus()              // 获取同步状态
-window.electronAPI.cloudSyncSetAutoSync(enabled)     // 设置自动同步
-window.electronAPI.cloudSyncConfigureProvider(provider, config) // 配置云服务
-window.electronAPI.cloudSyncTestConnection()         // 测试连接
-window.electronAPI.cloudSyncRevokeAuth()             // 断开认证
-window.electronAPI.cloudSyncSetPassword(password)    // 设置同步密码
+window.electronAPI.cloudSyncGetStatus()             // 获取同步状态
+window.electronAPI.cloudSyncSetAutoSync(enabled)    // 设置自动同步
+window.electronAPI.cloudSyncConfigureProvider(provider, config, testOnly) // 配置云服务
+window.electronAPI.cloudSyncTestConnection()        // 测试连接
+window.electronAPI.cloudSyncRevokeAuth()            // 断开认证
+window.electronAPI.cloudSyncSetPassword(password)   // 设置同步密码
 window.electronAPI.cloudSyncVerifyPassword(password) // 验证密码
 window.electronAPI.cloudSyncChangePassword(old, new) // 修改密码
-window.electronAPI.cloudSyncHasPassword()            // 是否已设置密码
-window.electronAPI.cloudSyncHasCachedPassword()      // 是否记住密码
+window.electronAPI.cloudSyncHasPassword()           // 是否已设置密码
+window.electronAPI.cloudSyncHasCachedPassword()     // 是否记住密码
 window.electronAPI.cloudSyncGetRememberPassword()    // 获取记住密码状态
 window.electronAPI.cloudSyncSetRememberPassword(remember) // 设置记住密码
-window.electronAPI.cloudSyncSyncNow(password)        // 手动同步（双向）
-window.electronAPI.cloudSyncPull(password)           // 仅从云端拉取
-window.electronAPI.cloudSyncPush(password)           // 仅推送到云端
-window.electronAPI.cloudSyncClearCloud()             // 清空云端数据
-window.electronAPI.cloudSyncGetDevices()             // 获取已同步设备列表
-window.electronAPI.cloudSyncSetDeviceName(name)      // 设置本设备名称
-window.electronAPI.cloudSyncRemoveDevice(deviceId)   // 移除设备云端数据
+window.electronAPI.cloudSyncSyncNow(password)       // 手动同步（双向）
+window.electronAPI.cloudSyncPull(password)          // 仅从云端拉取
+window.electronAPI.cloudSyncPush(password)          // 仅推送到云端
+window.electronAPI.cloudSyncClearCloud()            // 清空云端数据
+window.electronAPI.cloudSyncGetDevices()            // 获取已同步设备列表
+window.electronAPI.cloudSyncSetDeviceName(name)     // 设置本设备名称
+window.electronAPI.cloudSyncSetTombstoneRetentionDays(days) // 设置删除记录保留期
+window.electronAPI.cloudSyncRemoveDevice(deviceId)  // 移除设备云端数据
 
 // ── 云同步事件监听 ───────────────────────────────────────
-window.electronAPI.onCloudSyncStatusChanged(cb)      // 状态变化（同步中/就绪/错误）
+window.electronAPI.onCloudSyncStatusChanged(cb)      // 状态变化
 window.electronAPI.onCloudSyncProgress(cb)           // 同步进度（0-100）
-window.electronAPI.onCloudSyncConflict(cb)           // 冲突检测（字段级）
+window.electronAPI.onCloudSyncConflict(cb)          // 冲突检测
 
-// ── 其他 ─────────────────────────────────────────────────
-window.electronAPI.notifyLanguageChanged()           // 通知语言切换
+// ── 外部链接 ─────────────────────────────────────────────
+window.electronAPI.openExternal(url)                // 打开外部链接
+
+// ── 国际化 ─────────────────────────────────────────────
+window.electronAPI.notifyLanguageChanged()          // 通知语言切换
+window.electronAPI.sendTranslation(translations)    // 发送翻译数据
 ```
 
 ### API 配置管理
@@ -417,7 +499,7 @@ window.electronAPI.notifyLanguageChanged()           // 通知语言切换
       "apiKey": "...",
       "baseUrl": "...",
       "modelName": "...",
-      "connectivityPollInterval": 30  // 连通性检测间隔（秒），可选
+      "connectivityPollInterval": 30
     },
     "production": { ... }
   },
@@ -439,19 +521,6 @@ window.electronAPI.notifyLanguageChanged()           // 通知语言切换
    - 可配置检测间隔（`connectivityPollInterval`，默认 30 秒，范围 5-600 秒）
    - 每个配置独立维护连通性状态
 
-**API 字段** (定义于 `src/main/constants.js`):
-- `selectedAuthType` - 认证类型（openai-compatible / api-key / oauth）
-- `apiKey` - API 密钥
-- `baseUrl` - 基础 URL（如 `https://api.openai.com/v1`）
-- `modelName` - 模型名称
-- `connectivityPollInterval` - 连通性检测间隔（秒），默认 30，最小 5，最大 600
-
-**UI 交互**：
-- `ApiConfig.vue` 中每个配置卡片右上角显示连通性状态圆点
-- 悬停显示延迟（ms）和状态描述
-- 页面加载时自动开始检测，切换导航时暂停以节省资源
-- 支持手动点击刷新按钮立即检测
-
 ### MCP 服务器管理
 
 MCP（Model Context Protocol）服务器配置管理模块：
@@ -463,26 +532,6 @@ MCP（Model Context Protocol）服务器配置管理模块：
 - **服务器状态**：显示连接状态、响应时间、错误信息
 - **导入导出**：支持本地 JSON 文件导入导出，便于备份和迁移
 
-**配置字段**：
-- `transportType` - 传输类型：`stdio` / `sse` / `streamable-http`
-- `command` / `url` - 命令路径或服务器 URL
-- `args` - 命令行参数数组
-- `env` - 环境变量对象
-- `headers` - HTTP 请求头（适用于 SSE/HTTP）
-- `name` / `description` - 服务器名称和描述
-- `enabled` - 启用/禁用开关
-
-**UI 交互**：
-- `McpServers.vue` 主页面：卡片列表展示，支持搜索、筛选、启用/禁用切换
-- `ServerPanel.vue` 编辑面板：根据传输类型动态显示配置项
-- `QuickAddDialog.vue` 快速添加：智能识别 JSON/CMD/URL 格式，实时预览解析结果
-- 每个服务器卡片显示：状态指示灯、名称、传输类型、延迟、操作按钮（编辑/复制/删除）
-
-**数据存储**：
-- 配置存储在 `settings.json` 的 `mcpServers` 字段
-- 每个服务器包含 `_lastModified` 时间戳用于同步冲突处理
-- 删除时记录 tombstone 防止跨设备复活
-
 ### 技能管理
 
 技能文件夹位于 `~/.iflow/skills/`，每个技能是一个包含 `SKILL.md` 的文件夹：
@@ -491,7 +540,7 @@ MCP（Model Context Protocol）服务器配置管理模块：
 - 导出技能到指定目录
 - 解析 SKILL.md 的 YAML front matter 获取名称和描述
 
-### 命令管理 (新增)
+### 命令管理
 
 命令系统用于管理 iFlow CLI 的自定义命令：
 - **仅支持 CRUD 操作**：创建、读取、更新、删除
@@ -499,46 +548,43 @@ MCP（Model Context Protocol）服务器配置管理模块：
 - 支持本地 JSON 导入和导出
 - 命令以 JSON 格式存储，包含 `name`、`description`、`content`、`category` 等字段
 - 支持按分类筛选和搜索
-- 可通过 `CommandsView.vue` 进行图形化管理
-- 数据存储在 `settings.json` 的 `commands` 字段中
 
-### 云同步 (新增 - WebDAV)
+### iFlow Mod 管理 (实验性)
+
+iFlow Mod 是实验性功能，支持加载和管理 iFlow 修饰符模块，可扩展 iFlow CLI 的核心功能：
+
+**核心功能**：
+- **模组管理界面**：集中展示已安装的模组，显示名称、版本、类型、作者等详细信息
+- **启用/禁用控制**：可随时开启或关闭特定模组，灵活控制功能扩展
+- **导入/导出功能**：支持从本地文件导入模组配置或将已有模组导出分享
+- **版本兼容性检查**：自动检查模组与当前 iFlow 版本的兼容性
+
+**Mod 类型**：
+- `replace` - 替换 iFlow.js 全部内容
+- `append` - 在 iFlow.js 末尾追加代码
+- `prepend` - 在 iFlow.js 开头插入代码
+- `patch` - 补丁模式（Phase 1 暂不支持）
+
+**数据结构**：
+- 模组存储在 `~/.iflow/mods/iflow/` 目录
+- 元数据记录在 `mods.json` 文件中
+- 支持 `mod.json` 配置文件的模组包导入
+
+### 云同步 (WebDAV)
 
 基于 WebDAV 协议的跨设备配置同步功能：
 
-**核心特性：**
+**核心特性**：
 - 端到端加密：所有同步数据在客户端加密后上传
 - 增量合并：基于时间戳和 `_lastModified` 字段的智能合并
 - 冲突处理：字段级深度合并，保留双方修改
 - 设备管理：查看和管理已同步设备
 - 密码保护：同步密码独立于设置密码，支持修改
 - 记住密码选项：用户可控制是否持久化加密密码（默认不持久化）
+- 删除记录保留期：可自定义删除操作在多设备间的同步保留时间（1-365 天，默认 30 天）
 - 自动同步：可配置间隔（默认 5 分钟）自动推送/拉取
 - 手动同步：一键同步、仅拉取、仅推送
 - 清理云端：清空所有云端数据
-
-**安全设计：**
-- 使用 Electron `safeStorage` 加密持久化密码（系统级加密）
-- 密码长度至少 8 位
-- 密码验证失败不影响本地数据
-- 解密失败保留原始数据，不自动删除
-
-**数据格式：**
-```json
-{
-  "version": 2,
-  "timestamp": "2026-04-30T...",
-  "deviceId": "unique-device-id",
-  "deviceName": "My PC",
-  "fingerprint": "sha256-of-encrypted-data",
-  "data": "AES-256-GCM 加密的配置数据"
-}
-```
-
-** tombstone 机制：**
-- 删除条目时记录 `_deletedProfiles` / `_deletedServers`
-- 同步时合并 tombstone 并物理删除过期条目
-- 防止已删除项目在设备间反复复活
 
 ### 系统托盘
 
@@ -559,11 +605,12 @@ MCP（Model Context Protocol）服务器配置管理模块：
 基于 `electron-updater` 实现，支持无缝更新体验：
 
 **核心功能**：
+- **差分更新支持**：利用 blockMap 算法实现增量更新，减少更新包体积
 - **自动检查**：启动时自动检查 GitHub Releases 更新
 - **前台下载**：显示进度条、速度、剩余时间，支持取消
 - **后台下载**：在后台静默下载，完成后通过通知提醒用户
 - **延迟安装**：下载完成后可选择"立即安装"或"稍后提醒"
-- **静默安装**：无交互模式，适用于自动化部署
+- **更新历史**：记录每次更新的版本、类型、大小、耗时等信息
 - **多语言提示**：更新对话框和通知根据系统语言自动切换
 
 **API 支持**：
@@ -571,20 +618,24 @@ MCP（Model Context Protocol）服务器配置管理模块：
 - `cancelDownload()` - 取消正在进行的下载
 - `getPendingUpdate()` - 获取待安装更新信息
 - `clearPendingUpdate()` - 清除待安装更新（取消更新）
+- `restorePendingUpdate()` - 恢复待安装更新
+- `getUpdateHistory()` / `saveUpdateHistory()` - 更新历史管理
 - 事件监听：`onUpdateAvailable`、`onUpdateDownloadProgress`、`onUpdateDownloaded`、`onUpdateBackgroundComplete`
 
-**更新流程**：
-1. 检查更新 → 发现新版本 → 弹窗提示
-2. 用户选择：下载前台 / 下载后台 / 跳过 / 延迟提醒
-3. 下载中：显示进度（百分比、速度、剩余时间）
-4. 下载完成：提示安装（立即 / 稍后）
-5. 安装：应用重启并完成更新
+**GitHub 自动发布**：
+- 推送代码到 `release` 分支自动触发构建
+- 自动从 CHANGELOG.md 提取版本号和更新日志
+- 自动生成 .blockmap 文件支持差分更新
+- 支持 Windows (NSIS + 便携版) 和 macOS (DMG + ZIP)
 
-**配置**：
-- 更新源：GitHub Releases（默认）或自定义服务器
-- 自动检查：可通过设置禁用
-- 下载行为：前台或后台模式
-- 更新通知：系统托盘气泡或应用内弹窗
+### 文档查看器
+
+内置帮助文档系统，支持快速浏览各类使用文档：
+- **快速入门**：新用户入门指南
+- **配置说明**：settings.json 各配置项详解
+- **使用示例**：hooks、快捷键、MCP、命令、计划模式等示例
+- **功能特性**：交互模式等高级功能说明
+- 文档在构建时打包，加载速度快
 
 ## 代码风格
 
@@ -628,6 +679,24 @@ export const useSettingsStore = defineStore('settings', () => {
 
   return { settings, isLoading, load }
 })
+```
+
+### 组合式函数 (Composables)
+
+位于 `src/composables/`，封装可复用的逻辑：
+
+```typescript
+// useLocale.ts - 国际化支持
+export function useLocale() {
+  const currentLocale = ref<SupportedLocale>('zh-CN')
+  // ...
+  return { currentLocale, setLocale, ... }
+}
+
+// useSettings.ts - 设置操作封装
+export function useSettings() {
+  // ...
+}
 ```
 
 ### 样式规范
@@ -674,12 +743,13 @@ export const useSettingsStore = defineStore('settings', () => {
 2. **配置不保存**: 确认 `~/.iflow/settings.json` 目录可写，检查文件权限
 3. **亚克力效果异常**: 检查 `acrylicIntensity` 值是否在 0-100 范围内
 4. **技能导入失败**: 确保压缩包内包含有效的 `SKILL.md` 文件
-5. **云同步失败**: 
+5. **云同步失败**:
    - 检查 WebDAV 服务器地址、用户名、密码是否正确
    - 确认网络连接
    - 查看控制台日志中的错误信息
 6. **命令导入失败**: 确保命令 JSON 格式正确，包含必需的 `name` 和 `content` 字段
 7. **自动更新不工作**: 检查网络连接，确认 GitHub Releases 配置正确
+8. **差分更新失败**: 确保发布时生成了 .blockmap 文件，检查网络和 GitHub 连接
 
 ## 开发建议
 
@@ -718,15 +788,21 @@ npm install -D @types/<package-name>
 
 ## 版本历史
 
-- **v1.14.8** (2026-05-02) - API 模型智能获取、连通性实时监控、连通性检测自定义、界面视觉统一、稳定性提升
-- **v1.14.5** (2026-05-01) - MCP 服务器快速添加、MCP 高级配置、自动更新体验改进、列表行内操作、界面视觉统一
-- **v1.14.0** (2026-05-01) - 云同步功能正式版（WebDAV）、命令管理模块、崩溃自动恢复、密码管理改进、同步性能提升、冲突处理优化、界面响应更流畅、数据安全修复、状态同步修复、密码验证修复
-- **v1.13.0** (2026-04-29) - CLI 行为控制面板（14 项配置）、API 配置名称验证扩展、云同步数据模型简化、崩溃恢复机制、WebDAV 解析健壮性、N-1/N-2 场景数据丢失修复
+- **v1.17.0** (2026-05-08) - 自动更新模块重构、差分更新支持、GitHub 自动发布、窗口控制简化
+- **v1.16.2** (2026-05-08) - 稳定性提升
+- **v1.16.1** (2026-05-07) - iFlow Mod 页面体验优化、空状态优化、模组删除防误触
+- **v1.16.0** (2026-05-06) - iFlow Mod 功能模块（实验性）
+- **v1.15.14** (2026-05-05) - 文档系统重构、删除记录保留期设置、API 配置排序优化
+- **v1.15.7** (2026-05-03) - 文档查看器、动画效果优化、云同步体验改进
+- **v1.14.8** (2026-05-02) - API 模型智能获取、连通性实时监控、界面视觉统一
+- **v1.14.5** (2026-05-01) - MCP 服务器快速添加、MCP 服务器高级配置
+- **v1.14.0** (2026-05-01) - 云同步功能正式版（WebDAV）、命令管理模块、崩溃自动恢复
+- **v1.13.0** (2026-04-29) - CLI 行为控制面板（14 项配置）
 - **v1.12.1** (2026-04-28) - 云同步删除同步、密码持久化开关
 - **v1.12.0** - 云同步 Beta、MCP 服务器管理、API 配置重构、技能系统增强
 - **v1.11.x** - 首次公开发布
 
 ---
 
-最后更新：2026-05-02
+最后更新：2026-05-08
 维护者：iFlow 团队

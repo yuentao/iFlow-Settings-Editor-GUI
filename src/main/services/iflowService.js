@@ -126,6 +126,13 @@ async function checkIflowExists() {
  * 获取 iflow.js 版本号
  * @returns {Promise<string>}
  */
+// Strip ANSI escape codes from terminal output (e.g. \x1b[38;5;223m)
+const ANSI_REGEX = /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g
+
+function stripAnsi(str) {
+  return str.replace(ANSI_REGEX, '')
+}
+
 async function getIflowVersion() {
   return new Promise((resolve, reject) => {
     exec('iflow -v', { timeout: 5000, windowsHide: true }, (error, stdout, stderr) => {
@@ -133,7 +140,18 @@ async function getIflowVersion() {
         reject(new Error(`Failed to get iflow version: ${error.message}`))
         return
       }
-      const version = (stdout || stderr || '').trim()
+      const raw = (stdout || stderr || '')
+      const cleaned = stripAnsi(raw)
+      // Version always appears in the last non-empty line
+      const lines = cleaned.split('\n').map(l => l.trim()).filter(l => l)
+      let version = null
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const match = lines[i].match(/\bv?(\d+\.\d+\.\d+)\b/)
+        if (match) {
+          version = match[0]
+          break
+        }
+      }
       if (!version) {
         reject(new Error('iflow version is empty'))
         return
