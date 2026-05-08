@@ -6,7 +6,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
-import type { Settings, UiTheme } from '@/shared/types'
+import type { Settings, UiTheme, UpdateHistoryEntry } from '@/shared/types'
 
 export const useSettingsStore = defineStore('settings', () => {
   // State
@@ -50,6 +50,35 @@ export const useSettingsStore = defineStore('settings', () => {
   const acrylicIntensity = computed<number>(() => settings.value.acrylicIntensity ?? 50)
   const currentApiProfile = computed<string>(() => settings.value.currentApiProfile || 'default')
   const autoUpdate = computed<boolean>(() => settings.value.autoUpdate ?? true)
+
+  // 更新历史
+  const updateHistory = ref<UpdateHistoryEntry[]>([])
+
+  // 获取更新历史
+  async function loadUpdateHistory(): Promise<void> {
+    try {
+      const result = await window.electronAPI.getUpdateHistory()
+      if (result.success && result.history) {
+        updateHistory.value = result.history
+      }
+    } catch (error) {
+      console.error('Failed to load update history:', error)
+    }
+  }
+
+  // 添加更新历史记录
+  async function addUpdateHistoryEntry(entry: Omit<UpdateHistoryEntry, 'timestamp'>): Promise<void> {
+    const newEntry: UpdateHistoryEntry = {
+      ...entry,
+      timestamp: Date.now(),
+    }
+    updateHistory.value = [newEntry, ...updateHistory.value].slice(0, 10) // 保留最近10条
+    try {
+      await window.electronAPI.saveUpdateHistory(updateHistory.value)
+    } catch (error) {
+      console.error('Failed to save update history:', error)
+    }
+  }
 
   // Actions
   async function loadSettings(): Promise<void> {
@@ -128,9 +157,12 @@ export const useSettingsStore = defineStore('settings', () => {
     acrylicIntensity,
     currentApiProfile,
     autoUpdate,
+    updateHistory,
     loadSettings,
     saveSettings,
     updateSetting,
     updateNestedSetting,
+    loadUpdateHistory,
+    addUpdateHistoryEntry,
   }
 })

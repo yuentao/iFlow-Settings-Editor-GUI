@@ -16,6 +16,7 @@ const { initAutoLaunch } = require('./services/autoLaunchService')
 const { readSettings } = require('./services/configService')
 const { t, defaultTranslations, updateTranslations } = require('./utils/translations')
 const { logger } = require('./utils/logger')
+const { initAutoUpdater, setMainWindowRef, cleanupTempFiles } = require('./autoUpdater')
 
 // 是否是开发模式
 const isDev = process.argv.includes('--dev')
@@ -92,6 +93,10 @@ async function initializeApp() {
 
   // 创建主窗口
   const mainWindow = createMainWindow()
+
+  // 初始化 autoUpdater 并设置主窗口引用
+  initAutoUpdater()
+  setMainWindowRef(getMainWindow)
 
   // 初始化系统托盘（先设置翻译函数）
   const { setTranslator } = require('./tray')
@@ -205,6 +210,8 @@ app.on('before-quit', () => {
  */
 app.on('will-quit', () => {
   logger.info('App will quit, cleaning up...')
+  // 清理更新临时文件
+  cleanupTempFiles()
   // 销毁托盘
   destroyTray()
 })
