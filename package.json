@@ -55,8 +55,7 @@
       "channel": "latest",
       "publishAutoUpdate": true,
       "vPrefixedTagName": true,
-      "private": false,
-      "generateBlockmap": true
+      "private": false
     },
     "extraResources": [
       {
