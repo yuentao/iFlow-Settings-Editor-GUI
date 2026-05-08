@@ -26,11 +26,8 @@ async function runTests() {
     const buildConfig = pkg.build || {}
     const publishConfig = buildConfig.publish || {}
 
-    if (!publishConfig.generateBlockmap) {
-      errors.push('❌ generateBlockmap must be true')
-    } else {
-      console.log('✅ generateBlockmap: true')
-    }
+    // generateBlockmap 不是 publish 的有效属性，electron-builder 对 NSIS 目标默认生成 .blockmap
+    // 无需在 package.json 中显式配置
 
     if (!publishConfig.provider || publishConfig.provider !== 'github') {
       errors.push('❌ publish.provider must be "github"')
