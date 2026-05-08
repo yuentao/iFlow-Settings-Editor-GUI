@@ -52,13 +52,13 @@
       "provider": "github",
       "owner": "yuentao",
       "repo": "iFlow-Settings-Editor-GUI",
-      "generateBlockmap": true,
-      "generateDelta": true,
-      "deltaUpdateStrategy": "blockMap",
       "channel": "latest",
       "publishAutoUpdate": true,
       "vPrefixedTagName": true,
       "private": false
+    },
+    "releaseInfo": {
+      "releaseNotes": "## [1.17.0] - 2026-05-08\n\n### 新增\n- 自动更新模块重构 - 重构自动更新模块为独立的 autoUpdater.js，代码结构更清晰\n- 更新历史记录功能 - 新增更新历史记录功能，可以查看历史更新版本信息\n- 差分更新支持 - 新增差分更新（增量更新）功能，支持 blockMap 算法，减少更新包体积\n- GitHub 自动发布 - 新增 GitHub Releases 自动发布配置和发布脚本，发布流程自动化\n\n### 优化\n- 窗口控制简化 - 移除窗口最大化功能，标题栏改为双按钮（最小化、关闭）布局，更简洁\n- UI/UX 优化 - 优化用户界面和交互体验\n\n### 文档\n- 增量更新方案 - 新增自动更新增量更新详细实施方案文档"
     },
     "extraResources": [
       {
