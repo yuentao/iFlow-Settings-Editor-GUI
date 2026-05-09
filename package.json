@@ -93,7 +93,7 @@
         }
       ],
       "icon": "build/icon.ico",
-      "artifactName": "${productName}-${version}-${arch}-setup.${ext}"
+      "artifactName": "iFlow-Settings-Editor-${version}-${arch}-setup.${ext}"
     },
     "mac": {
       "target": [
@@ -102,11 +102,11 @@
       ],
       "icon": "build/icon.icns",
       "category": "public.app-category.developer-tools",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "iFlow-Settings-Editor-${version}-${arch}.${ext}"
     },
     "dmg": {
       "title": "${productName}-${version}",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "iFlow-Settings-Editor-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -128,7 +128,7 @@
       "language": "2052"
     },
     "portable": {
-      "artifactName": "${productName}-${version}-portable.${ext}"
+      "artifactName": "iFlow-Settings-Editor-${version}-portable.${ext}"
     }
   },
   "devDependencies": {
