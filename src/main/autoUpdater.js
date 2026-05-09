@@ -90,6 +90,9 @@ function initAutoUpdater() {
   if (!app.isPackaged) {
     autoUpdater.forceDevUpdateConfig = true
   }
+
+  // 禁用 Web 安装器（使用本地 NSIS 安装包，不需要 web installer）
+  autoUpdater.disableWebInstaller = true
   
   // 启用差分更新（blockMap 算法）
   // electron-updater 会自动查找 .blockmap 文件并计算差量
