@@ -7,7 +7,7 @@ const { app } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { exec } = require('child_process')
-const { crypto } = require('crypto')
+const crypto = require('crypto')
 
 const { t } = require('../utils/translations')
 const { logger } = require('../utils/logger')
