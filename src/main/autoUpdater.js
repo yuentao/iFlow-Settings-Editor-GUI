@@ -85,6 +85,11 @@ function getCurrentVersion() {
 function initAutoUpdater() {
   // 配置日志输出
   autoUpdater.logger = console
+
+  // 开发模式下也启用更新检测（读取项目根目录的 dev-app-update.yml）
+  if (!app.isPackaged) {
+    autoUpdater.forceDevUpdateConfig = true
+  }
   
   // 启用差分更新（blockMap 算法）
   // electron-updater 会自动查找 .blockmap 文件并计算差量
@@ -186,8 +191,29 @@ function initAutoUpdater() {
   autoUpdater.on('error', (error) => {
     console.error('[AutoUpdater] Error:', error.message)
     
-    // 🔥 Phase 5 风险缓解：检测差分更新相关错误并自动回滚
+    // 提取简化的错误消息，避免暴露 HTTP headers 等冗余信息
+    let simplifiedError = error.message
     const errorMsg = error.message.toLowerCase()
+    
+    // 404 / latest.yml 缺失
+    if (errorMsg.includes('cannot find latest.yml') || 
+        (errorMsg.includes('latest.yml') && errorMsg.includes('404'))) {
+      simplifiedError = 'Update metadata not found (latest.yml). The release may not include auto-update artifacts.'
+    }
+    // 网络不可达
+    else if (errorMsg.includes('enetunreach') || errorMsg.includes('econnrefused') || errorMsg.includes('network')) {
+      simplifiedError = 'Network error: unable to reach update server.'
+    }
+    // 超时
+    else if (errorMsg.includes('etimedout') || errorMsg.includes('timeout')) {
+      simplifiedError = 'Update check timed out.'
+    }
+    // 其他错误：截取第一行（去掉 HTTP headers 堆叠）
+    else if (simplifiedError.includes('Headers:')) {
+      simplifiedError = simplifiedError.split('\n')[0]
+    }
+    
+    // 🔥 Phase 5 风险缓解：检测差分更新相关错误并自动回滚
     const isDeltaError = errorMsg.includes('delta') ||
                          errorMsg.includes('patch') ||
                          errorMsg.includes('blockmap') ||
@@ -227,8 +253,8 @@ function initAutoUpdater() {
         }
       }, 2000)
     } else {
-      // 非差分错误，正常处理
-      setUpdateState({ status: 'error', error: error.message })
+      // 非差分错误，使用简化后的错误消息
+      setUpdateState({ status: 'error', error: simplifiedError })
     }
   })
 }
@@ -246,6 +272,11 @@ async function checkForUpdates() {
         hasUpdate: true,
         version: updateState.info?.version,
       }
+    }
+
+    // 重置上次的错误状态，允许重新检查
+    if (updateState.status === 'error') {
+      setUpdateState({ status: 'idle', error: null })
     }
 
     // 执行更新检查
