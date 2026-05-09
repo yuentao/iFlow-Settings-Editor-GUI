@@ -480,7 +480,9 @@ export default {
     // 设备
     deviceTitle: '设备管理',
     deviceName: '设备名称',
-    syncedDevices: '已同步设备',
+      renameDevice: '重命名设备',
+      unnamedDevice: '未命名设备',
+      deviceNamePlaceholder: '请输入设备名称',    syncedDevices: '已同步设备',
     thisDevice: '本机',
     removeDevice: '移除',
     confirmRemoveDevice: '确定要移除设备 "{name}" 的云端数据吗？',
