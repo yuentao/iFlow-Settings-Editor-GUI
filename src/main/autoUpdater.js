@@ -114,19 +114,27 @@ function initAutoUpdater() {
     console.log('[AutoUpdater] Is delta update:', !!info.blockMap)
     console.log('[AutoUpdater] File size:', info.fileSize)
     
+    const updateInfo = {
+      version: info.version,
+      releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : 
+        (info.releaseNotes ? info.releaseNotes.map(n => n.note).join('\n') : ''),
+      releaseUrl: info.releaseUrl,
+      fileSize: info.fileSize,
+      isDelta: !!info.blockMap,
+      blockmapSize: info.blockMap ? info.blockMap.size : undefined,
+    }
+    
     setUpdateState({
       status: 'available',
-      info: {
-        version: info.version,
-        releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : 
-          (info.releaseNotes ? info.releaseNotes.map(n => n.note).join('\n') : ''),
-        releaseUrl: info.releaseUrl,
-        fileSize: info.fileSize,
-        isDelta: !!info.blockMap,
-        blockmapSize: info.blockMap ? info.blockMap.size : undefined,
-      },
+      info: updateInfo,
       error: null,
     })
+
+    // 同时发送 update-available 事件给渲染进程（与 onUpdateAvailable 监听器对应）
+    const mainWindow = getMainWindow()
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('update-available', updateInfo)
+    }
   })
 
   autoUpdater.on('update-not-available', (info) => {
@@ -158,11 +166,12 @@ function initAutoUpdater() {
     console.log('[AutoUpdater] Update downloaded:', info.version)
     console.log('[AutoUpdater] Download path:', info.filePath)
     
+    // 保留当前 isBackground 状态，以便渲染进程正确区分前台/后台下载完成
     setUpdateState({
       status: 'downloaded',
       downloadPath: info.filePath,
       progress: 100,
-      isBackground: false,
+      isBackground: updateState.isBackground,
     })
 
     const mainWindow = getMainWindow()
@@ -200,11 +209,15 @@ function initAutoUpdater() {
         info: updateState.info ? { ...updateState.info, isDelta: false } : null
       })
       
-      // 延迟 2 秒后重新检查更新（触发完整包下载）
+      // 延迟 2 秒后重新检查更新并自动下载完整包
       setTimeout(async () => {
         console.info('[AutoUpdater] Retrying with full update...')
         try {
-          await autoUpdater.checkForUpdates()
+          const result = await autoUpdater.checkForUpdates()
+          if (result && result.updateInfo) {
+            // 检查到更新后自动开始下载完整包
+            await autoUpdater.downloadUpdate()
+          }
         } catch (retryError) {
           console.error('[AutoUpdater] Retry failed:', retryError.message)
           setUpdateState({ status: 'error', error: retryError.message })
@@ -300,7 +313,7 @@ async function downloadUpdate(options = {}) {
         status: 'downloaded',
         downloadPath,
         progress: 100,
-        isBackground: false,
+        isBackground: updateState.isBackground,
       })
       return { success: true, downloadPath }
     }

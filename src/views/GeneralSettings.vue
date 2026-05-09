@@ -699,7 +699,7 @@ const handleStatusChanged = state => {
 // 后台下载进度处理
 const handleBackgroundProgress = progress => {
   if (isBackgroundDownloading.value) {
-    backgroundProgress.value = progress
+    backgroundProgress.value = typeof progress === 'object' ? progress.percent : progress
   }
 }
 
