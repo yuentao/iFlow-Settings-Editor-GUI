@@ -103,6 +103,7 @@ const dragOverIndex = ref(-1)
 // --- 连通性监控 ---
 const connectivityMap = reactive({}) // { profileName: { level: 'excellent'|'good'|'slow'|'unreachable'|'checking', latency: number } }
 let connectivityTimer = null
+let pollingCancelled = false
 const POLL_INTERVAL = 30000 // 30 秒轮询
 const PING_TIMEOUT_THRESHOLD = 2000 // >2s 视为不可达
 
@@ -142,29 +143,35 @@ async function pingProfile(name) {
   try {
     connectivityMap[name] = { ...connectivityMap[name], level: 'checking' }
     const result = await window.electronAPI.pingApiProfile(url)
+    // 组件已卸载或轮询已停止，不再更新响应式数据
+    if (pollingCancelled) return
     if (result.success) {
       connectivityMap[name] = { level: computeLevel(result.latency), latency: result.latency }
     } else {
       connectivityMap[name] = { level: 'unreachable', latency: -1 }
     }
   } catch {
+    if (pollingCancelled) return
     connectivityMap[name] = { level: 'unreachable', latency: -1 }
   }
 }
 
 async function pingAll() {
   for (const profile of props.profiles) {
+    if (pollingCancelled) break
     await pingProfile(profile.name)
   }
 }
 
 function startPolling() {
   stopPolling()
+  pollingCancelled = false
   pingAll()
   connectivityTimer = setInterval(pingAll, POLL_INTERVAL)
 }
 
 function stopPolling() {
+  pollingCancelled = true
   if (connectivityTimer) {
     clearInterval(connectivityTimer)
     connectivityTimer = null
