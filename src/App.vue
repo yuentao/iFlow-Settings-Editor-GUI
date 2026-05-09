@@ -26,7 +26,15 @@
           <SkeletonLoader v-else type="form" :count="4" />
         </template>
         <template v-else>
-          <Dashboard v-if="currentSection === 'dashboard'" :settings="settings" :current-api-profile="currentApiProfile" :server-count="serverCount" :skill-count="skillCount" :command-count="commandCount" :mod-count="modCount" @navigate="showSection" />
+          <Dashboard
+            v-if="currentSection === 'dashboard'"
+            :settings="settings"
+            :current-api-profile="currentApiProfile"
+            :server-count="serverCount"
+            :skill-count="skillCount"
+            :command-count="commandCount"
+            :mod-count="modCount"
+            @navigate="showSection" />
 
           <GeneralSettings v-if="currentSection === 'general'" :settings="settings" @update:settings="updateSettings" />
 
@@ -214,6 +222,7 @@ const settings = ref({
   modelName: '',
   currentApiProfile: 'default',
   apiProfiles: { default: {} },
+  acrylicEnabled: true,
   acrylicIntensity: 50,
   // CLI 行为控制 - 新字段默认值
   autoAccept: false,
@@ -338,7 +347,7 @@ const saveApiCreate = async data => {
 
 const deleteApiProfile = async name => {
   const profileName = name || currentApiProfile.value
-  
+
   const confirmed = await new Promise(resolve => {
     showInputDialog.value = { show: true, title: t('api.delete'), placeholder: 'messages.confirmDeleteConfig', name: profileName, callback: resolve, isConfirm: true }
   })
@@ -503,6 +512,8 @@ const loadSettings = async () => {
     if (!data.apiProfiles) data.apiProfiles = { default: {} }
     if (!data.currentApiProfile) data.currentApiProfile = 'default'
     if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
+    if (data.acrylicEnabled === undefined) data.acrylicEnabled = true
+    
     // CLI 行为控制 - 新字段默认值
     if (data.autoAccept === undefined) data.autoAccept = false
     if (data.hideBanner === undefined) data.hideBanner = false
@@ -729,7 +740,7 @@ const deleteServer = async () => {
   await deleteServerByName(serverName)
 }
 
-const deleteServerByName = async (serverName) => {
+const deleteServerByName = async serverName => {
   if (!serverName) return
   const confirmed = await new Promise(resolve => {
     showInputDialog.value = { show: true, title: t('mcp.delete'), placeholder: 'messages.confirmDeleteServer', name: serverName, callback: resolve, isConfirm: true }
@@ -765,80 +776,92 @@ const initUpdateListeners = () => {
   })
 
   // 监听更新状态变化
-  cleanupFns.push(window.electronAPI.onUpdateStatusChanged(state => {
-    console.log('[AutoUpdate][Renderer] Update status changed:', JSON.stringify(state))
-    if (state.status === 'available' && state.info) {
-      latestUpdateVersion.value = state.info.version || ''
-      updateReleaseNotes.value = state.info.releaseNotes || ''
-      // 自动后台下载流程中不弹通知对话框
-      if (!isBackgroundDownloading.value) {
-        showUpdateNotification.value = true
+  cleanupFns.push(
+    window.electronAPI.onUpdateStatusChanged(state => {
+      console.log('[AutoUpdate][Renderer] Update status changed:', JSON.stringify(state))
+      if (state.status === 'available' && state.info) {
+        latestUpdateVersion.value = state.info.version || ''
+        updateReleaseNotes.value = state.info.releaseNotes || ''
+        // 自动后台下载流程中不弹通知对话框
+        if (!isBackgroundDownloading.value) {
+          showUpdateNotification.value = true
+        }
+        showUpdateProgress.value = false
+      } else if (state.status === 'downloading' && state.isBackground) {
+        // 后台下载开始，不显示进度窗
+        isBackgroundDownloading.value = true
+        showUpdateProgress.value = false
+      } else if (state.status === 'downloaded') {
+        isBackgroundDownloading.value = false
+        updateProgressStatus.value = 'downloaded'
+        updateDownloadProgress.value = 100
+        showUpdateProgress.value = false // 下载完成，隐藏进度窗（安装按钮在 GeneralSettings）
+      } else if (state.status === 'idle' || state.status === 'error') {
+        isBackgroundDownloading.value = false
+        showUpdateProgress.value = false
       }
-      showUpdateProgress.value = false
-    } else if (state.status === 'downloading' && state.isBackground) {
-      // 后台下载开始，不显示进度窗
-      isBackgroundDownloading.value = true
-      showUpdateProgress.value = false
-    } else if (state.status === 'downloaded') {
-      isBackgroundDownloading.value = false
-      updateProgressStatus.value = 'downloaded'
-      updateDownloadProgress.value = 100
-      showUpdateProgress.value = false // 下载完成，隐藏进度窗（安装按钮在 GeneralSettings）
-    } else if (state.status === 'idle' || state.status === 'error') {
-      isBackgroundDownloading.value = false
-      showUpdateProgress.value = false
-    }
-  }))
+    }),
+  )
 
   // 监听发现新版本
-  cleanupFns.push(window.electronAPI.onUpdateAvailable(info => {
-    latestUpdateVersion.value = info.version || ''
-    updateReleaseNotes.value = info.releaseNotes || ''
-    showUpdateNotification.value = true
-    showUpdateProgress.value = false
-  }))
-  cleanupFns.push(window.electronAPI.onUpdateDownloadProgress(progress => {
-    const percent = typeof progress === 'object' ? progress.percent : progress
-    const speed = typeof progress === 'object' && progress.bytesPerSecond
-      ? `${Math.round(progress.bytesPerSecond / 1024)} KB/s`
-      : ''
-    updateDownloadProgress.value = percent
-    updateDownloadSpeed.value = speed
-    if (!isBackgroundDownloading.value) {
-      showUpdateProgress.value = true
-      showUpdateNotification.value = false
-      updateProgressStatus.value = 'downloading'
-    }
-    // 后台下载时不显示进度窗，进度由 GeneralSettings 自行处理
-  }))
+  cleanupFns.push(
+    window.electronAPI.onUpdateAvailable(info => {
+      latestUpdateVersion.value = info.version || ''
+      updateReleaseNotes.value = info.releaseNotes || ''
+      showUpdateNotification.value = true
+      showUpdateProgress.value = false
+    }),
+  )
+  cleanupFns.push(
+    window.electronAPI.onUpdateDownloadProgress(progress => {
+      const percent = typeof progress === 'object' ? progress.percent : progress
+      const speed = typeof progress === 'object' && progress.bytesPerSecond ? `${Math.round(progress.bytesPerSecond / 1024)} KB/s` : ''
+      updateDownloadProgress.value = percent
+      updateDownloadSpeed.value = speed
+      if (!isBackgroundDownloading.value) {
+        showUpdateProgress.value = true
+        showUpdateNotification.value = false
+        updateProgressStatus.value = 'downloading'
+      }
+      // 后台下载时不显示进度窗，进度由 GeneralSettings 自行处理
+    }),
+  )
 
   // 监听下载完成
-  cleanupFns.push(window.electronAPI.onUpdateDownloaded(() => {
-    updateProgressStatus.value = 'downloaded'
-    updateDownloadProgress.value = 100
-  }))
+  cleanupFns.push(
+    window.electronAPI.onUpdateDownloaded(() => {
+      updateProgressStatus.value = 'downloaded'
+      updateDownloadProgress.value = 100
+    }),
+  )
 
   // 监听自动检查更新（自动触发，不显示"已是最新"提示）
-  cleanupFns.push(window.electronAPI.onAutoCheckUpdate(() => {
-    console.log('[AutoUpdate][Renderer] Received auto-check-update event from main process')
-    checkForUpdatesAuto()
-  }))
+  cleanupFns.push(
+    window.electronAPI.onAutoCheckUpdate(() => {
+      console.log('[AutoUpdate][Renderer] Received auto-check-update event from main process')
+      checkForUpdatesAuto()
+    }),
+  )
 
   // 监听安装更新
-  cleanupFns.push(window.electronAPI.onInstallUpdate(() => {
-    window.electronAPI.installUpdate()
-  }))
+  cleanupFns.push(
+    window.electronAPI.onInstallUpdate(() => {
+      window.electronAPI.installUpdate()
+    }),
+  )
 
   // 监听后台下载完成
-  cleanupFns.push(window.electronAPI.onUpdateBackgroundComplete(info => {
-    console.log('[AutoUpdate][Renderer] Background download complete:', JSON.stringify(info))
-    // 后台下载完成，弹出安装提示让用户选择
-    latestUpdateVersion.value = info?.version || ''
-    updateProgressStatus.value = 'downloaded'
-    updateDownloadProgress.value = 100
-    showUpdateProgress.value = true
-    isBackgroundDownloading.value = false
-  }))
+  cleanupFns.push(
+    window.electronAPI.onUpdateBackgroundComplete(info => {
+      console.log('[AutoUpdate][Renderer] Background download complete:', JSON.stringify(info))
+      // 后台下载完成，弹出安装提示让用户选择
+      latestUpdateVersion.value = info?.version || ''
+      updateProgressStatus.value = 'downloaded'
+      updateDownloadProgress.value = 100
+      showUpdateProgress.value = true
+      isBackgroundDownloading.value = false
+    }),
+  )
 }
 
 // 自动检查更新（不显示"已是最新"提示，发现新版本后自动后台下载）
@@ -1050,16 +1073,20 @@ onMounted(async () => {
   }
 
   // 监听主进程的确认对话框请求
-  cleanupFns.push(window.electronAPI.onShowConfirmRequest(request => {
-    pendingConfirmRequest.value = request
-  }))
+  cleanupFns.push(
+    window.electronAPI.onShowConfirmRequest(request => {
+      pendingConfirmRequest.value = request
+    }),
+  )
 
-  cleanupFns.push(window.electronAPI.onApiProfileSwitched(async profileName => {
-    skipNextSaveSettings.value = true
-    currentApiProfile.value = profileName
-    await loadSettings()
-    skipNextSaveSettings.value = false
-  }))
+  cleanupFns.push(
+    window.electronAPI.onApiProfileSwitched(async profileName => {
+      skipNextSaveSettings.value = true
+      currentApiProfile.value = profileName
+      await loadSettings()
+      skipNextSaveSettings.value = false
+    }),
+  )
 
   // 恢复自动同步定时器（由 cloudSync store 统一管理，包括 localStorage 持久化）
   if (cloudSyncStore.autoSyncEnabled) {
@@ -1073,7 +1100,11 @@ onMounted(async () => {
 onUnmounted(() => {
   // P0-05 + P0-06：移除所有事件监听器，防止内存泄漏
   for (const cleanup of cleanupFns) {
-    try { cleanup() } catch (_) { /* ignore */ }
+    try {
+      cleanup()
+    } catch (_) {
+      /* ignore */
+    }
   }
   cleanupFns.length = 0
 })
