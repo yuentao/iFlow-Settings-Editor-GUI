@@ -1,0 +1,4 @@
+provider: github
+owner: yuentao
+repo: iFlow-Settings-Editor-GUI
+channel: latest
