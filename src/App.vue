@@ -797,7 +797,12 @@ const initUpdateListeners = () => {
     showUpdateProgress.value = false
   }))
   cleanupFns.push(window.electronAPI.onUpdateDownloadProgress(progress => {
-    updateDownloadProgress.value = progress
+    const percent = typeof progress === 'object' ? progress.percent : progress
+    const speed = typeof progress === 'object' && progress.bytesPerSecond
+      ? `${Math.round(progress.bytesPerSecond / 1024)} KB/s`
+      : ''
+    updateDownloadProgress.value = percent
+    updateDownloadSpeed.value = speed
     if (!isBackgroundDownloading.value) {
       showUpdateProgress.value = true
       showUpdateNotification.value = false
@@ -865,7 +870,12 @@ const handleUpdateNow = async () => {
   showUpdateProgress.value = true
   updateProgressStatus.value = 'downloading'
   updateDownloadProgress.value = 0
-  await window.electronAPI.downloadUpdate()
+  try {
+    await window.electronAPI.downloadUpdate()
+  } catch (error) {
+    console.error('[AutoUpdate][Renderer] handleUpdateNow failed:', error)
+    showUpdateProgress.value = false
+  }
 }
 
 const handleUpdateLater = () => {

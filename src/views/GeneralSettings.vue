@@ -413,23 +413,19 @@
                 {{ $t('cloudSync.configSectionDevices') }}
               </div>
 
-              <div class="setting-item">
-                <div class="setting-info">
-                  <label class="setting-label">{{ $t('cloudSync.deviceName') }}</label>
-                </div>
-                <div class="device-name-edit">
-                  <input type="text" class="form-input device-name-input" v-model="deviceName" @blur="handleSetDeviceName" @keyup.enter="handleSetDeviceName" />
-                </div>
-              </div>
-
-              <div class="device-list-header">{{ $t('cloudSync.syncedDevices') }}</div>
               <div class="device-list" v-if="!cloudStore.isLoadingDevices">
                 <div v-for="device in cloudStore.devices" :key="device.deviceId" class="device-item">
                   <div class="device-status-dot" :class="{ 'is-self': device.isSelf }"></div>
                   <div class="device-info">
-                    <div class="device-name">
+                    <!-- 本机设备：点击编辑图标弹框重命名 -->
+                    <div class="device-name" v-if="device.isSelf">
+                      <span>{{ device.deviceName || $t('cloudSync.unnamedDevice') }}</span>
+                      <Edit size="12" class="device-edit-icon" @click="showRenameDeviceDialog" />
+                      <span class="device-self-badge">{{ $t('cloudSync.thisDevice') }}</span>
+                    </div>
+                    <!-- 其他设备：只读 -->
+                    <div class="device-name" v-else>
                       {{ device.deviceName || device.deviceId }}
-                      <span class="device-self-badge" v-if="device.isSelf">{{ $t('cloudSync.thisDevice') }}</span>
                     </div>
                     <div class="device-time">{{ formatTime(device.lastModified) }}</div>
                   </div>
@@ -495,6 +491,26 @@
             <div class="progress-fill" :style="{ width: backgroundProgress + '%' }"></div>
           </div>
           <div class="progress-text">{{ $t('update.backgroundDownloading', { progress: backgroundProgress }) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 重命名设备对话框 -->
+    <div v-if="renameDeviceDialog.show" class="dialog-overlay" @click.self="closeRenameDeviceDialog">
+      <div class="dialog" @click.stop>
+        <div class="dialog-title">{{ $t('cloudSync.renameDevice') }}</div>
+        <input
+          type="text"
+          class="form-input"
+          v-model="renameDeviceDialog.name"
+          :placeholder="$t('cloudSync.deviceNamePlaceholder')"
+          maxlength="50"
+          @keyup.enter="confirmRenameDevice"
+          ref="renameDeviceInputRef"
+        />
+        <div class="dialog-actions">
+          <button class="btn btn-secondary" @click="closeRenameDeviceDialog">{{ $t('dialog.cancel') }}</button>
+          <button class="btn btn-primary" @click="confirmRenameDevice" :disabled="!renameDeviceDialog.name.trim()">{{ $t('dialog.confirm') }}</button>
         </div>
       </div>
     </div>
@@ -570,7 +586,7 @@
 </template>
 
 <script setup>
-import { Globe, Setting, Rocket, Refresh, Loading, LinkCloud, Lock, Computer, List, Delete, Link, CheckSmall, CloseSmall } from '@icon-park/vue-next'
+import { Globe, Setting, Rocket, Refresh, Loading, LinkCloud, Lock, Computer, List, Delete, Link, CheckSmall, CloseSmall, Edit } from '@icon-park/vue-next'
 import MessageDialog from '../components/MessageDialog.vue'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
@@ -683,7 +699,7 @@ const handleStatusChanged = state => {
 // 后台下载进度处理
 const handleBackgroundProgress = progress => {
   if (isBackgroundDownloading.value) {
-    backgroundProgress.value = progress
+    backgroundProgress.value = typeof progress === 'object' ? progress.percent : progress
   }
 }
 
@@ -1101,10 +1117,30 @@ async function handleRevokeAuth() {
   }
 }
 
-async function handleSetDeviceName() {
-  if (deviceName.value.trim() && deviceName.value !== cloudStore.status.deviceName) {
-    await cloudStore.setDeviceName(deviceName.value.trim())
+// 设备重命名弹框
+const renameDeviceDialog = ref({ show: false, name: '' })
+const renameDeviceInputRef = ref(null)
+
+function showRenameDeviceDialog() {
+  renameDeviceDialog.value = { show: true, name: deviceName.value }
+  nextTick(() => {
+    renameDeviceInputRef.value?.focus()
+    renameDeviceInputRef.value?.select()
+  })
+}
+
+async function confirmRenameDevice() {
+  const trimmed = renameDeviceDialog.value.name.trim()
+  if (!trimmed) return
+  closeRenameDeviceDialog()
+  if (trimmed !== cloudStore.status.deviceName) {
+    await cloudStore.setDeviceName(trimmed)
+    deviceName.value = trimmed
   }
+}
+
+function closeRenameDeviceDialog() {
+  renameDeviceDialog.value.show = false
 }
 
 async function handleSetTombstoneRetentionDays() {
@@ -1925,21 +1961,19 @@ input:checked + .slider:before {
   color: var(--text-tertiary);
 }
 
-.device-name-edit {
-  width: 200px;
-  flex-shrink: 0;
-}
-.device-name-input {
-  font-family: var(--font-family);
-  font-size: var(--font-size-sm);
-}
-
-.device-list-header {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+.device-edit-icon {
   color: var(--text-tertiary);
-  letter-spacing: 0.03em;
-  margin-bottom: var(--space-sm);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.device-name:hover .device-edit-icon {
+  opacity: 1;
+}
+.device-edit-icon:hover {
+  color: var(--accent);
 }
 
 .sub-section-header {
