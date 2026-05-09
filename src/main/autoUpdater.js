@@ -284,16 +284,25 @@ async function downloadUpdate(options = {}) {
     downloadCancelled = false
     currentDownloadOptions = { cancelled: false }
 
-    const result = await autoUpdater.downloadUpdate()
-    
-    if (result && result.filePath) {
+    // electron-updater 的 downloadUpdate() 返回 string[]（下载文件路径数组）
+    // update-downloaded 事件已正确设置了 downloaded 状态和 downloadPath
+    const downloadPaths = await autoUpdater.downloadUpdate()
+
+    // 下载完成：update-downloaded 事件已触发，状态已被更新
+    if (updateState.status === 'downloaded' && updateState.downloadPath) {
+      return { success: true, downloadPath: updateState.downloadPath }
+    }
+
+    // 兜底：如果事件未触发但返回了路径，手动设置状态
+    if (downloadPaths && downloadPaths.length > 0) {
+      const downloadPath = downloadPaths[0]
       setUpdateState({
         status: 'downloaded',
-        downloadPath: result.filePath,
+        downloadPath,
         progress: 100,
         isBackground: false,
       })
-      return { success: true, downloadPath: result.filePath }
+      return { success: true, downloadPath }
     }
 
     throw new Error(t('update.error.downloadFailed'))
