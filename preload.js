@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('show-confirm-request', handler)
   },
 
+  // 亚克力效果开关
+  setAcrylicEnabled: (enabled) => ipcRenderer.invoke('set-acrylic-enabled', enabled),
+
   // 开机自启动
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
   setAutoLaunch: (enabled) => ipcRenderer.invoke('set-auto-launch', enabled),

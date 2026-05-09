@@ -57,18 +57,36 @@ function getEntryHtmlPath() {
 }
 
 /**
+ * 获取是否启用亚克力效果
+ * @returns {boolean}
+ */
+function isAcrylicEnabled() {
+  try {
+    const { readSettings } = require('./services/configService')
+    const settings = readSettings()
+    // macOS 不支持 acrylic，仅 Windows 生效；默认启用
+    return process.platform === 'win32' && (settings?.acrylicEnabled !== false)
+  } catch {
+    return process.platform === 'win32'
+  }
+}
+
+/**
  * 创建主窗口
  * @returns {BrowserWindow}
  */
 function createWindow() {
   console.log('Creating window...')
 
+  // 根据设置决定是否启用亚克力效果
+  const useAcrylic = isAcrylicEnabled()
+
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 750,
     minWidth: 900,
     minHeight: 600,
-    backgroundMaterial: process.platform === 'darwin' ? undefined : 'acrylic',
+    backgroundMaterial: useAcrylic ? 'acrylic' : undefined,
     frame: false,
     show: false,
     icon: getWindowIcon(),
@@ -122,9 +140,12 @@ function createWindow() {
     console.error('Failed to load:', errorCode, errorDescription)
   })
 
-  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-    console.log('Console [' + level + ']:', message)
-  })
+  // 仅开发模式转发渲染进程控制台日志，生产模式跳过以降低开销
+  if (isDev) {
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+      console.log('Console [' + level + ']:', message)
+    })
+  }
 
   mainWindow.once('ready-to-show', () => {
     console.log('Window ready to show')
@@ -230,8 +251,29 @@ function setIsQuitting(value) {
  * 获取退出状态
  * @returns {boolean}
  */
+/**
+ * 获取退出状态
+ * @returns {boolean}
+ */
 function getIsQuitting() {
   return isQuitting
+}
+
+/**
+ * 运行时切换亚克力效果（无需重建窗口）
+ * 仅 Windows 平台生效
+ * @param {boolean} enabled
+ */
+function setAcrylicEnabled(enabled) {
+  if (process.platform !== 'win32' || !mainWindow) return
+  try {
+    // Electron 28+ 支持通过 setBackgroundMaterial 动态切换
+    if (typeof mainWindow.setBackgroundMaterial === 'function') {
+      mainWindow.setBackgroundMaterial(enabled ? 'acrylic' : 'none')
+    }
+  } catch (e) {
+    console.warn('Failed to set background material:', e.message)
+  }
 }
 
 module.exports = {
@@ -246,4 +288,5 @@ module.exports = {
   getIsSilentLaunch,
   setIsQuitting,
   getIsQuitting,
+  setAcrylicEnabled,
 }

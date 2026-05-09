@@ -56,6 +56,7 @@
     </main>
 
     <ApiProfileDialog
+      v-if="showApiCreateDialog || showApiEditDialog"
       :show-create="showApiCreateDialog"
       :show-edit="showApiEditDialog"
       :create-data="creatingApiData"
@@ -66,13 +67,13 @@
       @close-edit="closeApiEditDialog"
       @save-edit="saveApiEdit" />
 
-    <ServerPanel :show="showServerPanel" :is-editing="isEditingServer" :data="editingServerData" @close="closeServerPanel" @save="saveServerFromPanel" @delete="deleteServer" />
+    <ServerPanel v-if="showServerPanel" :show="showServerPanel" :is-editing="isEditingServer" :data="editingServerData" @close="closeServerPanel" @save="saveServerFromPanel" @delete="deleteServer" />
 
-    <QuickAddDialog :show="showQuickAddDialog" :existing-names="existingServerNames" @close="closeQuickAddDialog" @edit-server="handleQuickEditServer" @add-servers="handleQuickAddServers" />
+    <QuickAddDialog v-if="showQuickAddDialog" :show="showQuickAddDialog" :existing-names="existingServerNames" @close="closeQuickAddDialog" @edit-server="handleQuickEditServer" @add-servers="handleQuickAddServers" />
 
-    <InputDialog :dialog="showInputDialog" @confirm="handleInputConfirm" @cancel="closeInputDialog" />
+    <InputDialog v-if="showInputDialog.show" :dialog="showInputDialog" @confirm="handleInputConfirm" @cancel="closeInputDialog" />
 
-    <MessageDialog :dialog="showMessageDialog" @close="closeMessageDialog" style="z-index: 1500" />
+    <MessageDialog v-if="showMessageDialog.show" :dialog="showMessageDialog" @close="closeMessageDialog" style="z-index: 1500" />
 
     <ConfirmDialog
       v-if="pendingConfirmRequest"

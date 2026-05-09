@@ -61,9 +61,19 @@
           </div>
         </div>
         <div class="setting-divider"></div>
-        <div class="setting-item setting-item-full" v-if="supportsAcrylic">
+        <div class="setting-item" v-if="supportsAcrylic">
           <div class="setting-info">
             <label class="setting-label">{{ $t('general.acrylicEffect') }}</label>
+            <p class="setting-desc">{{ $t('general.acrylicEffectDesc') }}</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" v-model="localSettings.acrylicEnabled" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item setting-item-full" v-if="supportsAcrylic && localSettings.acrylicEnabled">
+          <div class="setting-info">
+            <label class="setting-label">{{ $t('general.acrylicIntensity') }}</label>
             <p class="setting-desc">{{ localSettings.acrylicIntensity }}% — {{ $t('general.acrylicMin') }} — {{ $t('general.acrylicMax') }}</p>
           </div>
           <div class="slider-container">

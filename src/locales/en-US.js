@@ -118,6 +118,8 @@ export default {
     thinkingModeEnabledDesc: 'When enabled, AI performs internal reasoning before giving final answers, only effective on models that support thinking mode',
 
     acrylicEffect: 'Acrylic Effect',
+    acrylicEffectDesc: 'Enable window acrylic transparency (disable to reduce memory usage)',
+    acrylicIntensity: 'Acrylic Intensity',
     acrylicMin: 'Opaque',
     acrylicMax: 'Transparent',
     autoLaunchSettings: 'Auto Start',

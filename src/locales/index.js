@@ -119,6 +119,8 @@ export default {
     thinkingModeEnabledDesc: '开启后 AI 会在给出最终答案前进行内部推理，仅在支持思考模式的模型上生效',
 
     acrylicEffect: '亚克力效果',
+    acrylicEffectDesc: '启用窗口亚克力透明效果（关闭可降低内存占用）',
+    acrylicIntensity: '亚克力强度',
     acrylicMin: '不透明',
     acrylicMax: '透明',
     autoLaunchSettings: '开机自启动',

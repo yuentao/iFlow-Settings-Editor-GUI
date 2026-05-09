@@ -119,6 +119,8 @@ export default {
     thinkingModeEnabledDesc: '有効にすると、AI は最終回答前に内部推論を行い、思考モード対応のモデルでのみ有効です',
 
     acrylicEffect: 'アクリリック効果',
+    acrylicEffectDesc: 'アクリリック透過効果を有効にする（無効でメモリ使用量を削減）',
+    acrylicIntensity: 'アクリリック強度',
     acrylicMin: '不透明',
     acrylicMax: '透明',
     autoLaunchSettings: '自動起動',
