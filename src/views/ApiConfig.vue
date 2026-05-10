@@ -56,13 +56,13 @@
             </span>
           </div>
           <div class="profile-actions">
-            <button class="action-btn" @click.stop="$emit('edit-profile', profile.name)" :title="$t('api.edit')">
+            <button class="action-btn" v-if="currentProfile !== profile.name" @click.stop="$emit('edit-profile', profile.name)" :title="$t('api.edit')">
               <Edit size="14" />
             </button>
             <button class="action-btn" @click.stop="$emit('duplicate-profile', profile.name)" :title="$t('api.duplicate')">
               <Copy size="14" />
             </button>
-            <button class="action-btn action-btn-danger" v-if="index !== 0" @click.stop="$emit('delete-profile', profile.name)" :title="$t('api.delete')">
+            <button class="action-btn action-btn-danger" v-if="index !== 0 && currentProfile !== profile.name" @click.stop="$emit('delete-profile', profile.name)" :title="$t('api.delete')">
               <Delete size="14" />
             </button>
           </div>

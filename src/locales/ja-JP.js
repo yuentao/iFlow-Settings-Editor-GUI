@@ -101,8 +101,6 @@ export default {
     autoConfigureMaxOldSpaceSizeDesc: 'Node.js V8 エンジンのメモリ制限を自動設定します',
     disableTelemetry: 'テレメトリーを無効化',
     disableTelemetryDesc: 'テレメトリーデータの送信を無効化します（現在インターフェース時間データのみ送信）',
-    tokensLimit: 'コンテキストウィンドウサイズ',
-    tokensLimitDesc: 'モデルのコンテキストウィンドウサイズを設定します',
     compressionTokenThreshold: '圧縮トリガーしきい値',
     compressionTokenThresholdDesc: '自動圧縮操作のトリガーしきい値（0-1）',
     skipNextSpeakerCheck: 'タスク終了チェックをスキップ',
@@ -119,6 +117,8 @@ export default {
     thinkingModeEnabledDesc: '有効にすると、AI は最終回答前に内部推論を行い、思考モード対応のモデルでのみ有効です',
 
     acrylicEffect: 'アクリリック効果',
+    acrylicEffectDesc: 'アクリリック透過効果を有効にする（無効でメモリ使用量を削減）',
+    acrylicIntensity: 'アクリリック強度',
     acrylicMin: '不透明',
     acrylicMax: '透明',
     autoLaunchSettings: '自動起動',
@@ -193,6 +193,8 @@ export default {
       urlFormat: '有効な URL 形式を入力してください（例: https://api.example.com）',
       modelNoSpecial: 'モデル名には英字、数字、ピリオド、ハイフン、アンダースコア、コロン、スラッシュのみ使用できます'
     },
+    tokensLimit: 'コンテキストウィンドウサイズ',
+    tokensLimitPlaceholder: '128000',
     connectivity: {
       excellent: '接続性極めて良好',
       good: '接続性良好',

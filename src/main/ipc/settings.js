@@ -88,6 +88,12 @@ function registerSettingsIpcHandlers() {
 
     await writeSettings(merged)
 
+    // 运行时切换亚克力效果（无需重建窗口）
+    if (typeof data?.acrylicEnabled === 'boolean') {
+      const { setAcrylicEnabled } = require('../window')
+      setAcrylicEnabled(data.acrylicEnabled)
+    }
+
     // 更新托盘菜单
     const { updateTrayMenu } = require('../tray')
     updateTrayMenu()
@@ -98,6 +104,16 @@ function registerSettingsIpcHandlers() {
 
     return successResult()
   }, 'save-settings'))
+
+  // 运行时切换亚克力效果
+  ipcMain.handle('set-acrylic-enabled', wrapIpcHandler(async (_event, enabled) => {
+    const { setAcrylicEnabled } = require('../window')
+    setAcrylicEnabled(enabled)
+    const settings = readSettings() || {}
+    settings.acrylicEnabled = enabled
+    await writeSettings(settings)
+    return successResult()
+  }, 'set-acrylic-enabled'))
 }
 
 module.exports = {

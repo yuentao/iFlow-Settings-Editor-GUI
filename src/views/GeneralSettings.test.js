@@ -234,13 +234,13 @@ describe('GeneralSettings.vue', () => {
     // All setting-item divs in DOM (v-show only hides with CSS, elements remain in DOM):
     // Language card: 4 grid items + 1 full width (acrylic) = 5
     // AutoLaunch card: 1 setting-item-main = 1
-    // Other card: 10 grid items + 1 full width (excludeTools) = 11
+    // Other card: 9 grid items + 1 full width (excludeTools) = 10
     // Cloud sync provider card: 1 (providerType) = 1
     // Password card: 1 (passwordStatus) + 1 (deviceName when isConfigured) = 1 or 2
     // mock has isConfigured=false, so deviceName doesn't show, total = 1
-    // Total: 5 + 1 + 11 + 1 + 1 = 19
-    expect(wrapper.findAll('.setting-item').length).toBe(19);
-    expect(wrapper.findAll('.setting-label').length).toBe(19);
+    // Total: 5 + 1 + 10 + 1 + 1 = 18
+    expect(wrapper.findAll('.setting-item').length).toBe(17);
+    expect(wrapper.findAll('.setting-label').length).toBe(17);
     // Selects: language, theme, approvalMode, thinkingModeEnabled, providerType = 5
     expect(wrapper.findAll('.form-select').length).toBe(5);
     expect(wrapper.find('.switch').exists()).toBe(true);

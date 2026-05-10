@@ -68,6 +68,10 @@
             </Teleport>
           </div>
         </div>
+        <div class="form-group">
+          <label class="form-label">{{ $t('api.tokensLimit') }}</label>
+          <input type="number" class="form-input" v-model.number="createData.tokensLimit" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+        </div>
       </div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('close-create')">{{ $t('dialog.cancel') }}</button>
@@ -148,6 +152,10 @@
             </Teleport>
           </div>
         </div>
+        <div class="form-group">
+          <label class="form-label">{{ $t('api.tokensLimit') }}</label>
+          <input type="number" class="form-input" v-model.number="editData.tokensLimit" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+        </div>
       </div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('close-edit')">{{ $t('dialog.cancel') }}</button>
@@ -175,6 +183,7 @@ interface ApiProfileData {
   apiKey: string
   baseUrl: string
   modelName: string
+  tokensLimit: number
 }
 
 interface ModelItem {

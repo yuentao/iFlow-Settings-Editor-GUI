@@ -15,7 +15,25 @@ const { readSettings, writeSettings } = require('../services/configService')
 const { createLogger } = require('../utils/logger')
 
 const logger = createLogger('CloudSync')
-const syncService = new SyncService()
+
+// ── 懒加载单例：首次访问时才实例化 SyncService 并初始化 ──
+let _syncService = null
+let _syncServiceInitialized = false
+
+function getSyncService() {
+  if (!_syncService) {
+    _syncService = new SyncService()
+    // 每次 isSyncing 翻转都广播一次最新状态
+    _syncService.onSyncingChanged(() => broadcastSyncStatus())
+  }
+  if (!_syncServiceInitialized) {
+    _syncServiceInitialized = true
+    // 应用启动时初始化 provider（providerConfig 仍从 settings.json 读取）
+    initProvider()
+  }
+  return _syncService
+}
+
 const cryptoMgr = new CryptoManager()
 
 // ── 机器级加密密钥 ──────────────────────────────────────
@@ -102,7 +120,8 @@ function decryptProviderConfig(config) {
  * 始终以主进程 SyncService 为单一来源，消除两端 desync。
  */
 function broadcastSyncStatus() {
-  const status = { success: true, ...syncService.getStatus() }
+  const syncService = getSyncService()
+  const status = { success: true, ...getSyncService().getStatus() }
   for (const win of BrowserWindow.getAllWindows()) {
     if (win.isDestroyed()) continue
     try {
@@ -113,9 +132,6 @@ function broadcastSyncStatus() {
   }
 }
 
-// L-10：每次 isSyncing 翻转都广播一次最新状态
-syncService.onSyncingChanged(() => broadcastSyncStatus())
-
 /**
  * 根据设置中的 provider 配置初始化云存储适配器
  */
@@ -123,7 +139,7 @@ function initProvider() {
   const settings = readSettings() || {}
   const cs = settings.cloudSync || {}
   if (!cs.provider || !cs.providerConfig) {
-    syncService.setProvider(null)
+    getSyncService().setProvider(null)
     return
   }
 
@@ -132,17 +148,14 @@ function initProvider() {
       // P0-03：解密 providerConfig 中的密码后再创建 provider
       const decryptedConfig = decryptProviderConfig(cs.providerConfig)
       const provider = new WebDAVProvider(decryptedConfig)
-      syncService.setProvider(provider)
+      getSyncService().setProvider(provider)
     } catch (err) {
       logger.error('Failed to init WebDAV provider', err)
-      syncService.setProvider(null)
+      getSyncService().setProvider(null)
     }
   }
   // OneDrive / Dropbox 适配器在此扩展
 }
-
-// 应用启动时初始化 provider（providerConfig 仍从 settings.json 读取）
-initProvider()
 
 /**
  * 读取「记住同步密码」开关（settings.cloudSync.rememberSyncPassword）
@@ -157,7 +170,7 @@ function readRememberPassword() {
  * 根据「记住同步密码」开关代理 cachePassword 调用，统一持久化策略
  */
 function cachePasswordWithSettings(password) {
-  syncService.cachePassword(password, { persist: readRememberPassword() })
+  getSyncService().cachePassword(password, { persist: readRememberPassword() })
 }
 
 /**
@@ -167,17 +180,17 @@ function registerCloudSyncIpcHandlers() {
   // ====== 同步状态 ======
 
   ipcMain.handle('cloud-sync:get-status', wrapIpcHandler(async () => {
-    const status = syncService.getStatus()
+    const status = getSyncService().getStatus()
     return { success: true, ...status }
   }, 'cloud-sync:get-status'))
 
   ipcMain.handle('cloud-sync:set-auto-sync', wrapIpcHandler(async (_event, enabled) => {
     // autoSyncEnabled 由渲染进程通过 localStorage 持久化
     if (!enabled) {
-      syncService.stopAutoSync()
-      syncService.clearCachedPassword()
+      getSyncService().stopAutoSync()
+      getSyncService().clearCachedPassword()
     } else {
-      syncService.startAutoSync()
+      getSyncService().startAutoSync()
     }
     return { success: true }
   }, 'cloud-sync:set-auto-sync'))
@@ -208,10 +221,10 @@ function registerCloudSyncIpcHandlers() {
   }, 'cloud-sync:configure-provider'))
 
   ipcMain.handle('cloud-sync:test-connection', wrapIpcHandler(async () => {
-    if (!syncService.provider) {
+    if (!getSyncService().provider) {
       return { success: false, error: 'SYNC_PROVIDER_REQUIRED' }
     }
-    const authorized = await syncService.provider.isAuthorized()
+    const authorized = await getSyncService().provider.isAuthorized()
     return { success: true, authorized }
   }, 'cloud-sync:test-connection'))
 
@@ -220,8 +233,8 @@ function registerCloudSyncIpcHandlers() {
     settings.cloudSync = settings.cloudSync || {}
     delete settings.cloudSync.providerConfig
     await writeSettings(settings)
-    syncService.setProvider(null)
-    syncService.clearCachedPassword()
+    getSyncService().setProvider(null)
+    getSyncService().clearCachedPassword()
     // 不再调用 autoSyncManager.refresh()，自动同步状态由渲染进程通过 localStorage 管理
     return { success: true }
   }, 'cloud-sync:revoke-auth'))
@@ -303,9 +316,9 @@ function registerCloudSyncIpcHandlers() {
     // - 其他设备的文件仍由旧密码加密，需要在那些设备上分别用新密码重新 push
     let repushed = false
     let repushError = null
-    if (syncService.provider) {
+    if (getSyncService().provider) {
       try {
-        const pushResult = await syncService.push(newPassword)
+        const pushResult = await getSyncService().push(newPassword)
         repushed = !!pushResult?.success
         if (!pushResult?.success) {
           repushError = pushResult?.error || null
@@ -325,7 +338,7 @@ function registerCloudSyncIpcHandlers() {
   }, 'cloud-sync:has-password'))
 
   ipcMain.handle('cloud-sync:has-cached-password', wrapIpcHandler(async () => {
-    return { success: true, hasCachedPassword: syncService.hasCachedPassword() }
+    return { success: true, hasCachedPassword: getSyncService().hasCachedPassword() }
   }, 'cloud-sync:has-cached-password'))
 
   // M-1: 用户对密码持久化的显式控制
@@ -342,10 +355,10 @@ function registerCloudSyncIpcHandlers() {
 
     if (enabled) {
       // 用户明确启用：若当前内存中有密码则立即持久化
-      syncService.persistCachedPassword()
+      getSyncService().persistCachedPassword()
     } else {
       // 用户关闭：清理任何已持久化的加密密码（内存缓存保留至会话结束）
-      syncService.clearPersistedPassword()
+      getSyncService().clearPersistedPassword()
     }
     return { success: true, remember: enabled }
   }, 'cloud-sync:set-remember-password'))
@@ -355,20 +368,20 @@ function registerCloudSyncIpcHandlers() {
   ipcMain.handle('cloud-sync:sync-now', wrapIpcHandler(async (_event, password) => {
     // 缓存密码供自动同步使用（持久化与否由 rememberSyncPassword 开关决定，M-1）
     if (password) cachePasswordWithSettings(password)
-    return syncService.sync(password)
+    return getSyncService().sync(password)
   }, 'cloud-sync:sync-now'))
 
   ipcMain.handle('cloud-sync:pull', wrapIpcHandler(async (_event, password) => {
-    return syncService.pull(password)
+    return getSyncService().pull(password)
   }, 'cloud-sync:pull'))
 
   ipcMain.handle('cloud-sync:push', wrapIpcHandler(async (_event, password) => {
-    return syncService.push(password)
+    return getSyncService().push(password)
   }, 'cloud-sync:push'))
 
   ipcMain.handle('cloud-sync:clear-cloud', wrapIpcHandler(async () => {
-    await syncService.clearCloud()
-    syncService.clearCachedPassword()
+    await getSyncService().clearCloud()
+    getSyncService().clearCachedPassword()
 
     // H-5: 同步清理本地密码哈希/盐与持久化的加密密码
     // 否则用户清空云端后用其他设备重新设置密码，本地仍持有旧 hash → verify-password 会误判
@@ -393,7 +406,7 @@ function registerCloudSyncIpcHandlers() {
   // ====== 设备管理 ======
 
   ipcMain.handle('cloud-sync:get-devices', wrapIpcHandler(async () => {
-    const devices = await syncService.getDevices()
+    const devices = await getSyncService().getDevices()
     return { success: true, devices }
   }, 'cloud-sync:get-devices'))
 
@@ -415,7 +428,7 @@ function registerCloudSyncIpcHandlers() {
   }, 'cloud-sync:set-tombstone-retention-days'))
 
   ipcMain.handle('cloud-sync:remove-device', wrapIpcHandler(async (_event, deviceId) => {
-    await syncService.removeDevice(deviceId)
+    await getSyncService().removeDevice(deviceId)
     return { success: true }
   }, 'cloud-sync:remove-device'))
 
@@ -424,6 +437,6 @@ function registerCloudSyncIpcHandlers() {
 
 module.exports = {
   registerCloudSyncIpcHandlers,
-  syncService,
+  get syncService() { return getSyncService() },
   initProvider,
 }

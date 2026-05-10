@@ -1,6 +1,6 @@
 /**
  * AutoUpdater 模块 - 使用 electron-updater 实现差分更新
- * 
+ *
  * 利用 electron-updater v6.8.3 的内置 blockMap 算法实现增量更新
  * 支持 .blockmap 和 .delta 文件的自动处理
  */
@@ -12,6 +12,18 @@ const fs = require('fs')
 
 // 翻译函数
 let t = key => key
+
+// 精简日志：生产模式下静默，仅开发模式输出
+const isDevMode = !app.isPackaged
+function logInfo(...args) {
+  if (isDevMode) console.log(...args)
+}
+function logWarn(...args) {
+  if (isDevMode) console.warn(...args)
+}
+function logError(...args) {
+  console.error(...args)
+}
 
 /**
  * 设置翻译函数
@@ -83,8 +95,8 @@ function getCurrentVersion() {
  * 初始化 autoUpdater 配置
  */
 function initAutoUpdater() {
-  // 配置日志输出
-  autoUpdater.logger = console
+  // 配置日志输出：仅开发模式启用，生产模式关闭以减少开销
+  autoUpdater.logger = app.isPackaged ? null : console
 
   // 开发模式下也启用更新检测（读取项目根目录的 dev-app-update.yml）
   if (!app.isPackaged) {
@@ -93,12 +105,12 @@ function initAutoUpdater() {
 
   // 禁用 Web 安装器（使用本地 NSIS 安装包，不需要 web installer）
   autoUpdater.disableWebInstaller = true
-  
+
   // 启用差分更新（blockMap 算法）
   // electron-updater 会自动查找 .blockmap 文件并计算差量
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
-  
+
   // 差分更新：electron-updater 默认启用 blockMap 差分下载
   // 控制属性为 disableDifferentialDownload（默认 false，即启用差分）
   // 无需手动设置 enableDeltaUpdates / deltaUpdateStrategy（非有效 API）
@@ -106,32 +118,31 @@ function initAutoUpdater() {
   autoUpdater.allowDowngrades = false
   // 不自动使用预发布版本
   autoUpdater.allowPrerelease = false
-  
+
   if (autoUpdater.logger) {
     autoUpdater.logger.info('[AutoUpdater] Initialized with delta update support (blockMap, default enabled)')
   }
 
   // 监听更新事件
   autoUpdater.on('checking-for-update', () => {
-    console.log('[AutoUpdater] Checking for update...')
+    logInfo('[AutoUpdater] Checking for update...')
     setUpdateState({ status: 'checking', error: null })
   })
 
-  autoUpdater.on('update-available', (info) => {
-    console.log('[AutoUpdater] Update available:', info.version)
-    console.log('[AutoUpdater] Is delta update:', !!info.blockMap)
-    console.log('[AutoUpdater] File size:', info.fileSize)
-    
+  autoUpdater.on('update-available', info => {
+    logInfo('[AutoUpdater] Update available:', info.version)
+    logInfo('[AutoUpdater] Is delta update:', !!info.blockMap)
+    logInfo('[AutoUpdater] File size:', info.fileSize)
+
     const updateInfo = {
       version: info.version,
-      releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : 
-        (info.releaseNotes ? info.releaseNotes.map(n => n.note).join('\n') : ''),
+      releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : info.releaseNotes ? info.releaseNotes.map(n => n.note).join('\n') : '',
       releaseUrl: info.releaseUrl,
       fileSize: info.fileSize,
       isDelta: !!info.blockMap,
       blockmapSize: info.blockMap ? info.blockMap.size : undefined,
     }
-    
+
     setUpdateState({
       status: 'available',
       info: updateInfo,
@@ -145,19 +156,19 @@ function initAutoUpdater() {
     }
   })
 
-  autoUpdater.on('update-not-available', (info) => {
-    console.log('[AutoUpdater] Update not available:', info.version)
+  autoUpdater.on('update-not-available', info => {
+    logInfo('[AutoUpdater] Update not available:', info.version)
     setUpdateState({ status: 'idle', info: null, error: null })
   })
 
-  autoUpdater.on('download-progress', (progress) => {
+  autoUpdater.on('download-progress', progress => {
     const percent = Math.round(progress.percent)
-    console.log(`[AutoUpdater] Download progress: ${percent}% (${progress.transferred}/${progress.total})`)
-    console.log(`[AutoUpdater] Speed: ${Math.round(progress.bytesPerSecond / 1024)} KB/s`)
-    console.log(`[AutoUpdater] Remaining: ~${Math.round(progress.remainingTime)}s`)
-    
+    logInfo(`[AutoUpdater] Download progress: ${percent}% (${progress.transferred}/${progress.total})`)
+    logInfo(`[AutoUpdater] Speed: ${Math.round(progress.bytesPerSecond / 1024)} KB/s`)
+    logInfo(`[AutoUpdater] Remaining: ~${Math.round(progress.remainingTime)}s`)
+
     setUpdateState({ progress: percent })
-    
+
     const mainWindow = getMainWindow()
     if (mainWindow && mainWindow.webContents) {
       mainWindow.webContents.send('update-download-progress', {
@@ -170,10 +181,10 @@ function initAutoUpdater() {
     }
   })
 
-  autoUpdater.on('update-downloaded', (info) => {
-    console.log('[AutoUpdater] Update downloaded:', info.version)
-    console.log('[AutoUpdater] Download path:', info.filePath)
-    
+  autoUpdater.on('update-downloaded', info => {
+    logInfo('[AutoUpdater] Update downloaded:', info.version)
+    logInfo('[AutoUpdater] Download path:', info.filePath)
+
     // 保留当前 isBackground 状态，以便渲染进程正确区分前台/后台下载完成
     setUpdateState({
       status: 'downloaded',
@@ -191,16 +202,15 @@ function initAutoUpdater() {
     }
   })
 
-  autoUpdater.on('error', (error) => {
-    console.error('[AutoUpdater] Error:', error.message)
-    
+  autoUpdater.on('error', error => {
+    logError('[AutoUpdater] Error:', error.message)
+
     // 提取简化的错误消息，避免暴露 HTTP headers 等冗余信息
     let simplifiedError = error.message
     const errorMsg = error.message.toLowerCase()
-    
+
     // 404 / latest.yml 缺失
-    if (errorMsg.includes('cannot find latest.yml') || 
-        (errorMsg.includes('latest.yml') && errorMsg.includes('404'))) {
+    if (errorMsg.includes('cannot find latest.yml') || (errorMsg.includes('latest.yml') && errorMsg.includes('404'))) {
       simplifiedError = 'Update metadata not found (latest.yml). The release may not include auto-update artifacts.'
     }
     // 网络不可达
@@ -215,32 +225,27 @@ function initAutoUpdater() {
     else if (simplifiedError.includes('Headers:')) {
       simplifiedError = simplifiedError.split('\n')[0]
     }
-    
+
     // 🔥 Phase 5 风险缓解：检测差分更新相关错误并自动回滚
-    const isDeltaError = errorMsg.includes('delta') ||
-                         errorMsg.includes('patch') ||
-                         errorMsg.includes('blockmap') ||
-                         errorMsg.includes('block map') ||
-                         errorMsg.includes('校验') ||
-                         errorMsg.includes('checksum')
-    
+    const isDeltaError = errorMsg.includes('delta') || errorMsg.includes('patch') || errorMsg.includes('blockmap') || errorMsg.includes('block map') || errorMsg.includes('校验') || errorMsg.includes('checksum')
+
     if (isDeltaError) {
-      console.warn('[AutoUpdater] Delta update failed, falling back to full update')
-      console.warn('[AutoUpdater] Error details:', error.message)
-      
+      logWarn('[AutoUpdater] Delta update failed, falling back to full update')
+      logWarn('[AutoUpdater] Error details:', error.message)
+
       // 禁用差分下载，确保重试时走完整包
       autoUpdater.disableDifferentialDownload = true
-      
+
       // 清除差分更新状态
-      setUpdateState({ 
-        status: 'idle', 
+      setUpdateState({
+        status: 'idle',
         error: null,
-        info: updateState.info ? { ...updateState.info, isDelta: false } : null
+        info: updateState.info ? { ...updateState.info, isDelta: false } : null,
       })
-      
+
       // 延迟 2 秒后重新检查更新并自动下载完整包
       setTimeout(async () => {
-        console.info('[AutoUpdater] Retrying with full update...')
+        logInfo('[AutoUpdater] Retrying with full update...')
         try {
           const result = await autoUpdater.checkForUpdates()
           if (result && result.updateInfo) {
@@ -248,7 +253,7 @@ function initAutoUpdater() {
             await autoUpdater.downloadUpdate()
           }
         } catch (retryError) {
-          console.error('[AutoUpdater] Retry failed:', retryError.message)
+          logError('[AutoUpdater] Retry failed:', retryError.message)
           setUpdateState({ status: 'error', error: retryError.message })
         } finally {
           // 重试完成后恢复差分下载（下次更新可继续使用差分）
@@ -284,7 +289,7 @@ async function checkForUpdates() {
 
     // 执行更新检查
     const result = await autoUpdater.checkForUpdates()
-    
+
     if (!result || !result.updateInfo) {
       return {
         success: true,
@@ -300,14 +305,13 @@ async function checkForUpdates() {
       success: true,
       hasUpdate,
       version: info.version,
-      releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : 
-        (info.releaseNotes ? info.releaseNotes.map(n => n.note).join('\n') : ''),
+      releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : info.releaseNotes ? info.releaseNotes.map(n => n.note).join('\n') : '',
       releaseUrl: info.releaseUrl,
       fileSize: info.fileSize,
       isDelta: !!info.blockMap,
     }
   } catch (error) {
-    console.error('[AutoUpdater] Check failed:', error.message)
+    logError('[AutoUpdater] Check failed:', error.message)
     setUpdateState({ status: 'error', error: error.message })
     return {
       success: false,
@@ -358,8 +362,8 @@ async function downloadUpdate(options = {}) {
       setUpdateState({ status: 'idle', error: null, isBackground: false })
       return { success: false, cancelled: true }
     }
-    
-    console.error('[AutoUpdater] Download failed:', error.message)
+
+    logError('[AutoUpdater] Download failed:', error.message)
     setUpdateState({ status: 'error', error: error.message, isBackground: false })
     return { success: false, error: error.message }
   }
@@ -384,16 +388,16 @@ async function cancelDownload() {
     if (currentDownloadOptions) {
       currentDownloadOptions.cancelled = true
     }
-    
+
     // 取消 electron-updater 的下载
     if (autoUpdater) {
       autoUpdater.cancelDownload()
     }
-    
+
     setUpdateState({ status: 'idle', isBackground: false })
     return { success: true }
   } catch (error) {
-    console.error('[AutoUpdater] Cancel failed:', error.message)
+    logError('[AutoUpdater] Cancel failed:', error.message)
     return { success: false, error: error.message }
   }
 }
@@ -412,7 +416,7 @@ async function installUpdate() {
     autoUpdater.quitAndInstall(false, true)
     return { success: true }
   } catch (error) {
-    console.error('[AutoUpdater] Install failed:', error.message)
+    logError('[AutoUpdater] Install failed:', error.message)
     return { success: false, error: error.message }
   }
 }
@@ -440,7 +444,7 @@ function cleanupTempFiles() {
   try {
     const userDataPath = app.getPath('userData')
     const tempDir = path.join(userDataPath, 'temp-updates')
-    
+
     if (fs.existsSync(tempDir)) {
       const files = fs.readdirSync(tempDir)
       for (const file of files) {
@@ -448,7 +452,7 @@ function cleanupTempFiles() {
         try {
           const stat = fs.statSync(filePath)
           // 删除 7 天前的文件
-          const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+          const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
           if (stat.mtimeMs < sevenDaysAgo) {
             fs.unlinkSync(filePath)
           }

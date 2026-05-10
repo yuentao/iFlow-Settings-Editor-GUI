@@ -61,9 +61,19 @@
           </div>
         </div>
         <div class="setting-divider"></div>
-        <div class="setting-item setting-item-full" v-if="supportsAcrylic">
+        <div class="setting-item" v-if="supportsAcrylic">
           <div class="setting-info">
             <label class="setting-label">{{ $t('general.acrylicEffect') }}</label>
+            <p class="setting-desc">{{ $t('general.acrylicEffectDesc') }}</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" v-model="localSettings.acrylicEnabled" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item setting-item-full" v-if="supportsAcrylic && localSettings.acrylicEnabled">
+          <div class="setting-info">
+            <label class="setting-label">{{ $t('general.acrylicIntensity') }}</label>
             <p class="setting-desc">{{ localSettings.acrylicIntensity }}% — {{ $t('general.acrylicMin') }} — {{ $t('general.acrylicMax') }}</p>
           </div>
           <div class="slider-container">
@@ -137,13 +147,6 @@
           </div>
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">{{ $t('general.tokensLimit') }}</label>
-              <p class="setting-desc">{{ $t('general.tokensLimitDesc') }}</p>
-            </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.tokensLimit" />
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
               <label class="setting-label">{{ $t('general.compressionTokenThreshold') }}</label>
               <p class="setting-desc">{{ $t('general.compressionTokenThresholdDesc') }}</p>
             </div>
@@ -199,7 +202,9 @@
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.excludeTools') }}</label>
               <p class="setting-desc">{{ $t('general.excludeToolsDesc') }}</p>
-              <p class="setting-desc security-note"><span class="security-label">{{ $t('general.excludeToolsSecurityNoteLabel') }}</span> {{ $t('general.excludeToolsSecurityNote') }}</p>
+              <p class="setting-desc security-note"
+                ><span class="security-label">{{ $t('general.excludeToolsSecurityNoteLabel') }}</span> {{ $t('general.excludeToolsSecurityNote') }}</p
+              >
             </div>
             <textarea class="form-textarea core-tools-textarea" :value="excludeToolsText" @input="onExcludeToolsInput" :placeholder="$t('general.excludeToolsPlaceholder')" rows="3"></textarea>
           </div>
@@ -224,224 +229,223 @@
       <transition name="collapse">
         <div class="section-body" v-show="syncEnabled">
           <!-- 向导模式：未完成配置时显示引导式设置向导 -->
-          <CloudSyncWizard v-if="!cloudStore.isConfigured"
-            @complete="onWizardComplete"
-            @cancel="onWizardCancel"
-          />
+          <CloudSyncWizard v-if="!cloudStore.isConfigured" @complete="onWizardComplete" @cancel="onWizardCancel" />
           <!-- 正常模式：已完成配置显示常规同步面板 -->
           <template v-else>
-          <!-- 状态 + 立即同步 + 同步内容 -->
-          <div class="card card-appear" style="animation-delay: 0.02s">
-            <div class="cloud-status-bar">
-              <div class="cloud-status-left">
-                <div class="status-indicator" :class="statusClass">
-                  <span class="status-dot"></span>
-                  <span class="status-label">{{ statusLabel }}</span>
+            <!-- 状态 + 立即同步 + 同步内容 -->
+            <div class="card card-appear" style="animation-delay: 0.02s">
+              <div class="cloud-status-bar">
+                <div class="cloud-status-left">
+                  <div class="status-indicator" :class="statusClass">
+                    <span class="status-dot"></span>
+                    <span class="status-label">{{ statusLabel }}</span>
+                  </div>
+                  <span class="next-step-hint" v-if="nextStepHint">{{ nextStepHint }}</span>
+                  <span class="status-time" v-if="cloudStore.isConfigured && cloudStore.status.lastSyncAt"> {{ $t('cloudSync.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }} </span>
+                  <span class="status-time" v-else-if="cloudStore.isConfigured">{{ $t('cloudSync.neverSynced') }}</span>
                 </div>
-                <span class="next-step-hint" v-if="nextStepHint">{{ nextStepHint }}</span>
-                <span class="status-time" v-if="cloudStore.isConfigured && cloudStore.status.lastSyncAt"> {{ $t('cloudSync.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }} </span>
-                <span class="status-time" v-else-if="cloudStore.isConfigured">{{ $t('cloudSync.neverSynced') }}</span>
-              </div>
-              <div class="cloud-status-right">
-                <label class="switch switch-sm" @click.stop>
-                  <input type="checkbox" :checked="autoSyncEnabled" @click.prevent.stop="onToggleAutoSync" />
-                  <span class="slider"></span>
-                </label>
-                <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span>
-                <button class="btn btn-primary btn-sm" :disabled="!cloudStore.isConfigured || cloudStore.isSyncing" @click="handleSyncNow">
-                  <Loading v-if="cloudStore.isSyncing" size="14" class="spin" />
-                  <Refresh v-else size="14" />
-                  {{ cloudStore.isSyncing ? $t('cloudSync.statusSyncing') : $t('cloudSync.syncNow') }}
-                </button>
-              </div>
-            </div>
-            <div class="sync-error" v-if="cloudStore.status.lastSyncError">
-              <CloseSmall size="14" />
-              {{ lastSyncErrorText }}
-            </div>
-            <!-- 同步内容 -->
-            <div class="sync-content-section">
-              <span class="sync-content-label">{{ $t('cloudSync.syncContentTitle') }}:</span>
-              <span class="sync-content-tag success">{{ $t('cloudSync.apiProfiles') }}</span>
-              <span class="sync-content-tag success">{{ $t('cloudSync.mcpServers') }}</span>
-              <span class="sync-content-tag disabled">{{ $t('cloudSync.skillsComing') }}</span>
-              <span class="sync-content-tag disabled">{{ $t('cloudSync.commandsComing') }}</span>
-            </div>
-            <div class="cloud-danger-zone" v-if="cloudStore.isConfigured">
-              <button class="btn btn-danger btn-sm" @click="handleClearCloud">
-                <Delete size="14" />
-                {{ $t('cloudSync.clearCloud') }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 云同步配置（合并 WebDAV 配置、加密密码和设备管理为一张卡片） -->
-          <div class="card card-appear" style="animation-delay: 0.06s">
-            <div class="card-title">
-              <LinkCloud size="16" />
-              {{ $t('cloudSync.configTitle') }}
-            </div>
-            
-            <!-- 服务商类型 -->
-            <div class="setting-item">
-              <div class="setting-info">
-                <label class="setting-label">{{ $t('cloudSync.providerType') }}</label>
-              </div>
-              <select class="form-select setting-select" v-model="selectedProvider" @change="onProviderChange">
-                <option value="webdav">{{ $t('cloudSync.webdav') }}</option>
-                <option value="onedrive" disabled>{{ $t('cloudSync.onedrive') }}</option>
-                <option value="dropbox" disabled>{{ $t('cloudSync.dropbox') }}</option>
-              </select>
-            </div>
-
-            <template v-if="selectedProvider === 'webdav'">
-              <div class="setting-divider"></div>
-              
-              <!-- WebDAV 连接配置 -->
-              <div class="sub-section-header">
-                {{ $t('cloudSync.configSectionConnection') }}
-              </div>
-
-              <div class="webdav-form" v-if="!cloudStore.status.isAuthorized">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">{{ $t('cloudSync.webdavServerUrl') }}</label>
-                    <input type="url" class="form-input" v-model="webdavConfig.serverUrl" :placeholder="$t('cloudSync.webdavServerUrlPlaceholder')" />
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">{{ $t('cloudSync.webdavUsername') }}</label>
-                    <input type="text" class="form-input" v-model="webdavConfig.username" :placeholder="$t('cloudSync.webdavUsernamePlaceholder')" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">
-                      {{ $t('cloudSync.webdavPassword') }}
-                      <span class="form-label-hint">{{ $t('cloudSync.webdavPasswordHintTag') }}</span>
-                    </label>
-                    <input type="password" class="form-input" v-model="webdavConfig.password" :placeholder="$t('cloudSync.webdavPasswordPlaceholder')" />
-                  </div>
-                </div>
-                <div class="webdav-actions">
-                  <div class="test-connection-wrapper">
-                    <transition name="tooltip">
-                      <div v-if="cloudStore.connectionTestResult" class="connection-tooltip" :class="cloudStore.connectionTestResult.success ? 'tooltip-success' : 'tooltip-error'">
-                        <CheckSmall v-if="cloudStore.connectionTestResult.success" size="12" />
-                        <CloseSmall v-else size="12" />
-                        <span>{{ cloudStore.connectionTestResult.success ? $t('cloudSync.connectionSuccess') : $t('cloudSync.connectionFailed') }}</span>
-                        <span class="tooltip-detail" v-if="cloudStore.connectionTestResult.message"> — {{ cloudStore.connectionTestResult.message }}</span>
-                        <div class="tooltip-arrow"></div>
-                      </div>
-                    </transition>
-                    <button class="btn btn-secondary btn-sm" :disabled="!canTestConnection || cloudStore.isTestingConnection" @click="handleTestConnection">
-                      <Loading v-if="cloudStore.isTestingConnection" size="14" class="spin" />
-                      <Link v-else size="14" />
-                      {{ cloudStore.isTestingConnection ? $t('cloudSync.testing') : $t('cloudSync.testConnection') }}
-                    </button>
-                  </div>
-                  <button class="btn btn-primary btn-sm" :disabled="!canTestConnection" @click="handleSaveProvider">
-                    {{ $t('dialog.confirm') }}
+                <div class="cloud-status-right">
+                  <label class="switch switch-sm" @click.stop>
+                    <input type="checkbox" :checked="autoSyncEnabled" @click.prevent.stop="onToggleAutoSync" />
+                    <span class="slider"></span>
+                  </label>
+                  <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span>
+                  <button class="btn btn-primary btn-sm" :disabled="!cloudStore.isConfigured || cloudStore.isSyncing" @click="handleSyncNow">
+                    <Loading v-if="cloudStore.isSyncing" size="14" class="spin" />
+                    <Refresh v-else size="14" />
+                    {{ cloudStore.isSyncing ? $t('cloudSync.statusSyncing') : $t('cloudSync.syncNow') }}
                   </button>
                 </div>
               </div>
-
-              <div class="provider-authorized" v-else>
-                <div class="authorized-info">
-                  <CheckSmall size="16" class="text-success" />
-                  <span class="authorized-text"> {{ $t('cloudSync.connectionSuccess') }} — WebDAV </span>
-                </div>
-                <button class="btn btn-secondary btn-sm" @click="handleRevokeAuth">
-                  {{ $t('cloudSync.revokeAuth') }}
+              <div class="sync-error" v-if="cloudStore.status.lastSyncError">
+                <CloseSmall size="14" />
+                {{ lastSyncErrorText }}
+              </div>
+              <!-- 同步内容 -->
+              <div class="sync-content-section">
+                <span class="sync-content-label">{{ $t('cloudSync.syncContentTitle') }}:</span>
+                <span class="sync-content-tag success">{{ $t('cloudSync.apiProfiles') }}</span>
+                <span class="sync-content-tag success">{{ $t('cloudSync.mcpServers') }}</span>
+                <span class="sync-content-tag disabled">{{ $t('cloudSync.skillsComing') }}</span>
+                <span class="sync-content-tag disabled">{{ $t('cloudSync.commandsComing') }}</span>
+              </div>
+              <div class="cloud-danger-zone" v-if="cloudStore.isConfigured">
+                <button class="btn btn-danger btn-sm" @click="handleClearCloud">
+                  <Delete size="14" />
+                  {{ $t('cloudSync.clearCloud') }}
                 </button>
               </div>
-            </template>
-
-            <div class="setting-divider"></div>
-            
-            <!-- 同步加密 -->
-            <div class="sub-section-header">
-              {{ $t('cloudSync.configSectionEncryption') }}
             </div>
 
-            <div class="setting-item setting-item-main">
-              <div class="setting-info">
-                <label class="setting-label">{{ $t('cloudSync.passwordStatus') }}</label>
-                <p class="setting-desc">
-                  <span v-if="cloudStore.status.hasPassword" class="text-success">{{ $t('cloudSync.passwordSet') }}</span>
-                  <span v-else class="text-warning">{{ $t('cloudSync.passwordNotSet') }}</span>
-                  <span class="password-hint" v-if="cloudStore.status.hasPassword"> — {{ $t('cloudSync.passwordHint') }} <span class="form-label-hint">{{ $t('cloudSync.syncPasswordHintTag') }}</span></span>
-                </p>
-              </div>
-              <button class="btn btn-sm" :class="cloudStore.status.hasPassword ? 'btn-secondary' : 'btn-primary'" @click="cloudStore.status.hasPassword ? showChangePasswordDialog() : showSetPasswordDialog()">
-                {{ cloudStore.status.hasPassword ? $t('cloudSync.changePassword') : $t('cloudSync.setPassword') }}
-              </button>
-            </div>
-
-            <template v-if="cloudStore.status.hasPassword">
-              <div class="setting-item setting-item-main">
-                <div class="setting-info">
-                  <label class="setting-label">{{ $t('cloudSync.rememberPassword') }}</label>
-                  <p class="setting-desc">{{ $t('cloudSync.rememberPasswordDesc') }}</p>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" :checked="cloudStore.rememberSyncPassword" @change="onToggleRememberPassword" />
-                  <span class="slider"></span>
-                </label>
-              </div>
-            </template>
-
-            <!-- 高级同步设置 -->
-            <template v-if="cloudStore.isConfigured">
-              <div class="setting-divider"></div>
-              <div class="sub-section-header">
-                {{ $t('cloudSync.configSectionAdvanced') }}
+            <!-- 云同步配置（合并 WebDAV 配置、加密密码和设备管理为一张卡片） -->
+            <div class="card card-appear" style="animation-delay: 0.06s">
+              <div class="card-title">
+                <LinkCloud size="16" />
+                {{ $t('cloudSync.configTitle') }}
               </div>
 
+              <!-- 服务商类型 -->
               <div class="setting-item">
                 <div class="setting-info">
-                  <label class="setting-label">{{ $t('cloudSync.tombstoneRetentionDays') }}</label>
-                  <p class="setting-desc">{{ $t('cloudSync.tombstoneRetentionDaysDesc') }}</p>
+                  <label class="setting-label">{{ $t('cloudSync.providerType') }}</label>
                 </div>
-                <input type="number" class="form-input setting-input-number" v-model.number="tombstoneRetentionDays" min="1" max="365" @blur="handleSetTombstoneRetentionDays" @change="handleSetTombstoneRetentionDays" />
-              </div>
-            </template>
-
-            <!-- 设备管理 -->
-            <template v-if="cloudStore.isConfigured">
-              <div class="setting-divider"></div>
-              <div class="sub-section-header">
-                {{ $t('cloudSync.configSectionDevices') }}
+                <select class="form-select setting-select" v-model="selectedProvider" @change="onProviderChange">
+                  <option value="webdav">{{ $t('cloudSync.webdav') }}</option>
+                  <option value="onedrive" disabled>{{ $t('cloudSync.onedrive') }}</option>
+                  <option value="dropbox" disabled>{{ $t('cloudSync.dropbox') }}</option>
+                </select>
               </div>
 
-              <div class="device-list" v-if="!cloudStore.isLoadingDevices">
-                <div v-for="device in cloudStore.devices" :key="device.deviceId" class="device-item">
-                  <div class="device-status-dot" :class="{ 'is-self': device.isSelf }"></div>
-                  <div class="device-info">
-                    <!-- 本机设备：点击编辑图标弹框重命名 -->
-                    <div class="device-name" v-if="device.isSelf">
-                      <span>{{ device.deviceName || $t('cloudSync.unnamedDevice') }}</span>
-                      <Edit size="12" class="device-edit-icon" @click="showRenameDeviceDialog" />
-                      <span class="device-self-badge">{{ $t('cloudSync.thisDevice') }}</span>
+              <template v-if="selectedProvider === 'webdav'">
+                <div class="setting-divider"></div>
+
+                <!-- WebDAV 连接配置 -->
+                <div class="sub-section-header">
+                  {{ $t('cloudSync.configSectionConnection') }}
+                </div>
+
+                <div class="webdav-form" v-if="!cloudStore.status.isAuthorized">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">{{ $t('cloudSync.webdavServerUrl') }}</label>
+                      <input type="url" class="form-input" v-model="webdavConfig.serverUrl" :placeholder="$t('cloudSync.webdavServerUrlPlaceholder')" />
                     </div>
-                    <!-- 其他设备：只读 -->
-                    <div class="device-name" v-else>
-                      {{ device.deviceName || device.deviceId }}
-                    </div>
-                    <div class="device-time">{{ formatTime(device.lastModified) }}</div>
                   </div>
-                  <button v-if="!device.isSelf" class="btn btn-secondary btn-sm btn-remove-device" @click="handleRemoveDevice(device)">
-                    {{ $t('cloudSync.removeDevice') }}
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">{{ $t('cloudSync.webdavUsername') }}</label>
+                      <input type="text" class="form-input" v-model="webdavConfig.username" :placeholder="$t('cloudSync.webdavUsernamePlaceholder')" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">
+                        {{ $t('cloudSync.webdavPassword') }}
+                        <span class="form-label-hint">{{ $t('cloudSync.webdavPasswordHintTag') }}</span>
+                      </label>
+                      <input type="password" class="form-input" v-model="webdavConfig.password" :placeholder="$t('cloudSync.webdavPasswordPlaceholder')" />
+                    </div>
+                  </div>
+                  <div class="webdav-actions">
+                    <div class="test-connection-wrapper">
+                      <transition name="tooltip">
+                        <div v-if="cloudStore.connectionTestResult" class="connection-tooltip" :class="cloudStore.connectionTestResult.success ? 'tooltip-success' : 'tooltip-error'">
+                          <CheckSmall v-if="cloudStore.connectionTestResult.success" size="12" />
+                          <CloseSmall v-else size="12" />
+                          <span>{{ cloudStore.connectionTestResult.success ? $t('cloudSync.connectionSuccess') : $t('cloudSync.connectionFailed') }}</span>
+                          <span class="tooltip-detail" v-if="cloudStore.connectionTestResult.message"> — {{ cloudStore.connectionTestResult.message }}</span>
+                          <div class="tooltip-arrow"></div>
+                        </div>
+                      </transition>
+                      <button class="btn btn-secondary btn-sm" :disabled="!canTestConnection || cloudStore.isTestingConnection" @click="handleTestConnection">
+                        <Loading v-if="cloudStore.isTestingConnection" size="14" class="spin" />
+                        <Link v-else size="14" />
+                        {{ cloudStore.isTestingConnection ? $t('cloudSync.testing') : $t('cloudSync.testConnection') }}
+                      </button>
+                    </div>
+                    <button class="btn btn-primary btn-sm" :disabled="!canTestConnection" @click="handleSaveProvider">
+                      {{ $t('dialog.confirm') }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="provider-authorized" v-else>
+                  <div class="authorized-info">
+                    <CheckSmall size="16" class="text-success" />
+                    <span class="authorized-text"> {{ $t('cloudSync.connectionSuccess') }} — WebDAV </span>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" @click="handleRevokeAuth">
+                    {{ $t('cloudSync.revokeAuth') }}
                   </button>
                 </div>
-                <div class="device-empty" v-if="cloudStore.devices.length === 0">
-                  {{ $t('cloudSync.neverSynced') }}
+              </template>
+
+              <div class="setting-divider"></div>
+
+              <!-- 同步加密 -->
+              <div class="sub-section-header">
+                {{ $t('cloudSync.configSectionEncryption') }}
+              </div>
+
+              <div class="setting-item setting-item-main">
+                <div class="setting-info">
+                  <label class="setting-label">{{ $t('cloudSync.passwordStatus') }}</label>
+                  <p class="setting-desc">
+                    <span v-if="cloudStore.status.hasPassword" class="text-success">{{ $t('cloudSync.passwordSet') }}</span>
+                    <span v-else class="text-warning">{{ $t('cloudSync.passwordNotSet') }}</span>
+                    <span class="password-hint" v-if="cloudStore.status.hasPassword">
+                      — {{ $t('cloudSync.passwordHint') }} <span class="form-label-hint">{{ $t('cloudSync.syncPasswordHintTag') }}</span></span
+                    >
+                  </p>
                 </div>
+                <button class="btn btn-sm" :class="cloudStore.status.hasPassword ? 'btn-secondary' : 'btn-primary'" @click="cloudStore.status.hasPassword ? showChangePasswordDialog() : showSetPasswordDialog()">
+                  {{ cloudStore.status.hasPassword ? $t('cloudSync.changePassword') : $t('cloudSync.setPassword') }}
+                </button>
               </div>
-              <div class="device-loading" v-else>
-                <Loading size="16" class="spin" />
-              </div>
-            </template>
-          </div>
+
+              <template v-if="cloudStore.status.hasPassword">
+                <div class="setting-item setting-item-main">
+                  <div class="setting-info">
+                    <label class="setting-label">{{ $t('cloudSync.rememberPassword') }}</label>
+                    <p class="setting-desc">{{ $t('cloudSync.rememberPasswordDesc') }}</p>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" :checked="cloudStore.rememberSyncPassword" @change="onToggleRememberPassword" />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </template>
+
+              <!-- 高级同步设置 -->
+              <template v-if="cloudStore.isConfigured">
+                <div class="setting-divider"></div>
+                <div class="sub-section-header">
+                  {{ $t('cloudSync.configSectionAdvanced') }}
+                </div>
+
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <label class="setting-label">{{ $t('cloudSync.tombstoneRetentionDays') }}</label>
+                    <p class="setting-desc">{{ $t('cloudSync.tombstoneRetentionDaysDesc') }}</p>
+                  </div>
+                  <input type="number" class="form-input setting-input-number" v-model.number="tombstoneRetentionDays" min="1" max="365" @blur="handleSetTombstoneRetentionDays" @change="handleSetTombstoneRetentionDays" />
+                </div>
+              </template>
+
+              <!-- 设备管理 -->
+              <template v-if="cloudStore.isConfigured">
+                <div class="setting-divider"></div>
+                <div class="sub-section-header">
+                  {{ $t('cloudSync.configSectionDevices') }}
+                </div>
+
+                <div class="device-list" v-if="!cloudStore.isLoadingDevices">
+                  <div v-for="device in cloudStore.devices" :key="device.deviceId" class="device-item">
+                    <div class="device-status-dot" :class="{ 'is-self': device.isSelf }"></div>
+                    <div class="device-info">
+                      <!-- 本机设备：点击编辑图标弹框重命名 -->
+                      <div class="device-name" v-if="device.isSelf">
+                        <span>{{ device.deviceName || $t('cloudSync.unnamedDevice') }}</span>
+                        <Edit size="12" class="device-edit-icon" @click="showRenameDeviceDialog" />
+                        <span class="device-self-badge">{{ $t('cloudSync.thisDevice') }}</span>
+                      </div>
+                      <!-- 其他设备：只读 -->
+                      <div class="device-name" v-else>
+                        {{ device.deviceName || device.deviceId }}
+                      </div>
+                      <div class="device-time">{{ formatTime(device.lastModified) }}</div>
+                    </div>
+                    <button v-if="!device.isSelf" class="btn btn-secondary btn-sm btn-remove-device" @click="handleRemoveDevice(device)">
+                      {{ $t('cloudSync.removeDevice') }}
+                    </button>
+                  </div>
+                  <div class="device-empty" v-if="cloudStore.devices.length === 0">
+                    {{ $t('cloudSync.neverSynced') }}
+                  </div>
+                </div>
+                <div class="device-loading" v-else>
+                  <Loading size="16" class="spin" />
+                </div>
+              </template>
+            </div>
           </template>
         </div>
       </transition>
@@ -499,15 +503,7 @@
     <div v-if="renameDeviceDialog.show" class="dialog-overlay" @click.self="closeRenameDeviceDialog">
       <div class="dialog" @click.stop>
         <div class="dialog-title">{{ $t('cloudSync.renameDevice') }}</div>
-        <input
-          type="text"
-          class="form-input"
-          v-model="renameDeviceDialog.name"
-          :placeholder="$t('cloudSync.deviceNamePlaceholder')"
-          maxlength="50"
-          @keyup.enter="confirmRenameDevice"
-          ref="renameDeviceInputRef"
-        />
+        <input type="text" class="form-input" v-model="renameDeviceDialog.name" :placeholder="$t('cloudSync.deviceNamePlaceholder')" maxlength="50" @keyup.enter="confirmRenameDevice" ref="renameDeviceInputRef" />
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="closeRenameDeviceDialog">{{ $t('dialog.cancel') }}</button>
           <button class="btn btn-primary" @click="confirmRenameDevice" :disabled="!renameDeviceDialog.name.trim()">{{ $t('dialog.confirm') }}</button>
@@ -586,7 +582,7 @@
 </template>
 
 <script setup>
-import { Globe, Setting, Rocket, Refresh, Loading, LinkCloud, Lock, Computer, List, Delete, Link, CheckSmall, CloseSmall, Edit } from '@icon-park/vue-next'
+import { Globe, Setting, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit } from '@icon-park/vue-next'
 import MessageDialog from '../components/MessageDialog.vue'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
@@ -600,7 +596,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:settings'])
 
-import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -675,8 +671,6 @@ const supportsAcrylic = computed(() => {
   const effectiveTheme = props.settings.uiTheme === 'System' ? systemTheme.value : props.settings.uiTheme
   return effectiveTheme !== 'Dark'
 })
-
-const sliderWrapper = ref(null)
 
 // 更新状态变化处理
 const handleStatusChanged = state => {
@@ -949,10 +943,14 @@ const statusLabel = computed(() => {
 // 下一步引导提示
 const nextStepHint = computed(() => {
   switch (cloudSetupPhase.value) {
-    case 'unconfigured': return t('cloudSync.hintConfigure')
-    case 'missingPassword': return t('cloudSync.hintSetPassword')
-    case 'missingProvider': return t('cloudSync.hintConnectProvider')
-    default: return null
+    case 'unconfigured':
+      return t('cloudSync.hintConfigure')
+    case 'missingPassword':
+      return t('cloudSync.hintSetPassword')
+    case 'missingProvider':
+      return t('cloudSync.hintConnectProvider')
+    default:
+      return null
   }
 })
 
@@ -1874,7 +1872,7 @@ input:checked + .slider:before {
   font-size: var(--font-size-xs, 12px);
   white-space: nowrap;
   z-index: 10;
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.12));
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.12));
 
   &.tooltip-success {
     background: var(--success, #0f7b0f);
@@ -1912,7 +1910,9 @@ input:checked + .slider:before {
 
 .tooltip-enter-active,
 .tooltip-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .tooltip-enter-from,
