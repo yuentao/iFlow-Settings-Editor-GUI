@@ -99,8 +99,6 @@ export default {
     autoConfigureMaxOldSpaceSizeDesc: '自动配置 Node.js V8 引擎内存限制',
     disableTelemetry: '禁用遥测',
     disableTelemetryDesc: '禁用发送遥测数据（目前只发送接口耗时数据）',
-    tokensLimit: '上下文窗口长度',
-    tokensLimitDesc: '设置模型的上下文窗口长度',
     compressionTokenThreshold: '压缩触发阈值',
     compressionTokenThresholdDesc: '控制自动压缩操作触发的阈值（0-1）',
     skipNextSpeakerCheck: '跳过任务结束检测',
@@ -195,6 +193,8 @@ export default {
       urlFormat: '请输入有效的 URL 格式，如 https://api.example.com',
       modelNoSpecial: '模型名称只能包含字母、数字、点号、中划线、下划线、冒号和斜杠'
     },
+    tokensLimit: '上下文窗口长度',
+    tokensLimitPlaceholder: '128000',
     connectivity: {
       excellent: '连通性极好',
       good: '连通性良好',

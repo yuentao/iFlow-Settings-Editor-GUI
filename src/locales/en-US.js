@@ -100,8 +100,6 @@ export default {
     autoConfigureMaxOldSpaceSizeDesc: 'Automatically configure Node.js V8 engine memory limit',
     disableTelemetry: 'Disable Telemetry',
     disableTelemetryDesc: 'Disable sending telemetry data (currently only interface timing data)',
-    tokensLimit: 'Context Window Size',
-    tokensLimitDesc: 'Set the model context window size',
     compressionTokenThreshold: 'Compression Threshold',
     compressionTokenThresholdDesc: 'Threshold for triggering automatic compression (0-1)',
     skipNextSpeakerCheck: 'Skip End-of-Task Check',
@@ -194,6 +192,8 @@ export default {
       urlFormat: 'Please enter a valid URL format, e.g. https://api.example.com',
       modelNoSpecial: 'Model name can only contain letters, digits, dots, hyphens, underscores, colons, and slashes'
     },
+    tokensLimit: 'Context Window Size',
+    tokensLimitPlaceholder: '128000',
     connectivity: {
       excellent: 'Excellent connectivity',
       good: 'Good connectivity',

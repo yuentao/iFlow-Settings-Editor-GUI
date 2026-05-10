@@ -85,6 +85,7 @@ export interface ApiProfileConfig {
   apiKey?: string
   baseUrl?: string
   modelName?: string
+  tokensLimit?: number
 }
 
 // ─── API Profile（列表展示用） ────────────────────────────

@@ -147,13 +147,6 @@
           </div>
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">{{ $t('general.tokensLimit') }}</label>
-              <p class="setting-desc">{{ $t('general.tokensLimitDesc') }}</p>
-            </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.tokensLimit" />
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
               <label class="setting-label">{{ $t('general.compressionTokenThreshold') }}</label>
               <p class="setting-desc">{{ $t('general.compressionTokenThresholdDesc') }}</p>
             </div>

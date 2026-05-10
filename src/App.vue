@@ -262,9 +262,9 @@ const existingServerNames = computed(() => Object.keys(settings.value.mcpServers
 const skipNextSaveSettings = ref(false)
 const showApiEditDialog = ref(false)
 const editingApiProfileName = ref('')
-const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '' })
+const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000 })
 const showApiCreateDialog = ref(false)
-const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '' })
+const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000 })
 
 const updateSettings = newSettings => {
   settings.value = newSettings
@@ -305,7 +305,7 @@ const switchApiProfile = async () => {
 }
 
 const createNewApiProfile = () => {
-  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '' }
+  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000 }
   showApiCreateDialog.value = true
 }
 
@@ -326,6 +326,7 @@ const saveApiCreate = async data => {
       apiKey: data.apiKey,
       baseUrl: data.baseUrl,
       modelName: data.modelName,
+      tokensLimit: data.tokensLimit,
     }
     const loadResult = await window.electronAPI.loadSettings()
     if (loadResult.success) {
@@ -429,6 +430,7 @@ const openApiEditDialog = profileName => {
     apiKey: (profile && profile.apiKey) || settings.value.apiKey || '',
     baseUrl: (profile && profile.baseUrl) || settings.value.baseUrl || '',
     modelName: (profile && profile.modelName) || settings.value.modelName || '',
+    tokensLimit: (profile && profile.tokensLimit) || settings.value.tokensLimit || 128000,
   }
   showApiEditDialog.value = true
 }
@@ -472,6 +474,7 @@ const saveApiEdit = async data => {
   settings.value.apiProfiles[newName].apiKey = data.apiKey
   settings.value.apiProfiles[newName].baseUrl = data.baseUrl
   settings.value.apiProfiles[newName].modelName = data.modelName
+  settings.value.apiProfiles[newName].tokensLimit = data.tokensLimit
 
   // 如果编辑的是当前配置，需要同步到主设置对象
   if (newName === currentApiProfile.value) {
@@ -479,6 +482,7 @@ const saveApiEdit = async data => {
     settings.value.apiKey = data.apiKey
     settings.value.baseUrl = data.baseUrl
     settings.value.modelName = data.modelName
+    settings.value.tokensLimit = data.tokensLimit
   }
 
   showApiEditDialog.value = false
