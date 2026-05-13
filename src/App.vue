@@ -585,6 +585,11 @@ watch(
 
 const showSection = (section, subSection) => {
   currentSection.value = section
+  // 切换页面时重置滚动条
+  nextTick(() => {
+    const contentEl = document.querySelector('.content')
+    if (contentEl) contentEl.scrollTop = 0
+  })
   if (section === 'general' && subSection && subSection.section === 'cloudSync') {
     nextTick(() => {
       setTimeout(() => {
