@@ -4,7 +4,7 @@
 
 **iFlow 设置编辑器** 是一个用于编辑 iFlow CLI 配置文件 (`~/.iflow/settings.json`) 的桌面应用程序，采用 **Electron + Vue 3** 技术栈构建，支持多语言（中文/英文/日文）、云同步（WebDAV）、iFlow Mod 模组管理和自动更新功能。
 
-**当前版本**: v1.17.0 (2026-05-08)
+**当前版本**: v1.17.3 (2026-05-10)
 
 ### 技术栈
 
@@ -92,7 +92,8 @@
 │    │   ├── SkeletonLoader.vue  - 骨架屏加载             │
 │    │   ├── UpdateNotification.vue - 更新可用通知         │
 │    │   ├── UpdateProgress.vue  - 下载进度显示            │
-│    │   └── CloudSyncWizard.vue - 云同步引导向导         │
+│    │   ├── CloudSyncWizard.vue - 云同步引导向导         │
+│    │   └── ToastNotification.vue - 全局 Toast 通知      │
 │    │                                                    │
 │    ├── views/           - 页面视图（按导航切换）          │
 │    │   ├── Dashboard.vue       - 仪表盘（概览+快捷操作） │
@@ -116,7 +117,8 @@
 │    │                                                    │
 │    ├── composables/     - Vue 组合式函数                  │
 │    │   ├── useLocale.ts   - 国际化支持                   │
-│    │   └── useSettings.ts - 设置操作封装                 │
+│    │   ├── useSettings.ts - 设置操作封装                 │
+│    │   └── useToast.ts    - 全局 Toast 通知状态管理     │
 │    │                                                    │
 │    ├── locales/         - 国际化语言包（i18n）            │
 │    │   ├── index.js    - 中文（简体，默认）              │
@@ -259,7 +261,8 @@ src/
 │   ├── UpdateProgress.vue   # 下载进度
 │   ├── CommandEditorDialog.vue # 命令编辑器
 │   ├── CloudSyncWizard.vue  # 云同步引导向导 (新增)
-│   └── QuickAddDialog.vue   # 快速添加对话框
+│   ├── QuickAddDialog.vue   # 快速添加对话框
+│   └── ToastNotification.vue # 全局 Toast 通知
 ├── views/               # 页面视图
 │   ├── Dashboard.vue    # 仪表盘
 │   ├── Dashboard.test.js
@@ -290,7 +293,8 @@ src/
 │   └── index.js         # 入口
 ├── composables/         # Vue 组合式函数 (新增)
 │   ├── useLocale.ts     # 国际化支持
-│   └── useSettings.ts   # 设置操作封装
+│   ├── useSettings.ts   # 设置操作封装
+│   └── useToast.ts      # 全局 Toast 通知
 ├── main/                # Electron 主进程
 │   ├── index.js         # 主进程入口
 │   ├── constants.js     # 常量定义
@@ -628,6 +632,45 @@ iFlow Mod 是实验性功能，支持加载和管理 iFlow 修饰符模块，可
 - 自动生成 .blockmap 文件支持差分更新
 - 支持 Windows (NSIS + 便携版) 和 macOS (DMG + ZIP)
 
+### 全局 Toast 通知
+
+基于 Composable 的全局轻量级通知系统，从底部居中弹出，不打断用户操作：
+
+**组件**：`ToastNotification.vue` + `useToast.ts` Composable
+
+**核心特性**：
+- 四种类型：`info` / `success` / `warning` / `error`，各有对应图标和颜色
+- 自动消失：info/success/warning 3s，error 5s，可自定义时长
+- 底部进度条：显示剩余时间倒计时
+- 鼠标悬停暂停计时，移开恢复
+- 最多同时显示 5 条，超出自动移除最早的
+- TransitionGroup 进出动画（底部向上滑入/滑出）
+- 手动关闭按钮
+- 模块级单例状态，任何组件调用共享同一份列表
+
+**使用方式**：
+
+```typescript
+import { useToast } from '@/composables/useToast'
+const toast = useToast()
+
+// 通用调用
+toast.show({ type: 'success', message: '保存成功', title: '提示' })
+
+// 快捷方法
+toast.success('操作完成')
+toast.error('网络连接失败')
+toast.warning('磁盘空间不足')
+toast.info('正在同步...')
+
+// 手动关闭
+const id = toast.info('处理中...')
+toast.removeToast(id)
+
+// 清空所有
+toast.clearAll()
+```
+
 ### 文档查看器
 
 内置帮助文档系统，支持快速浏览各类使用文档：
@@ -695,6 +738,13 @@ export function useLocale() {
 
 // useSettings.ts - 设置操作封装
 export function useSettings() {
+  // ...
+}
+
+// useToast.ts - 全局 Toast 通知
+export function useToast() {
+  const toast = useToast()
+  toast.success('操作完成')
   // ...
 }
 ```
@@ -788,6 +838,9 @@ npm install -D @types/<package-name>
 
 ## 版本历史
 
+- **v1.17.3** (2026-05-10) - API 配置架构重构（tokensLimit 迁移为配置级字段）、API 配置保护机制
+- **v1.17.2** (2026-05-09) - 自动更新模块重构、差分更新支持、GitHub 自动发布、窗口控制简化
+- **v1.17.1** (2026-05-09) - 全局 Toast 通知组件（ToastNotification + useToast）
 - **v1.17.0** (2026-05-08) - 自动更新模块重构、差分更新支持、GitHub 自动发布、窗口控制简化
 - **v1.16.2** (2026-05-08) - 稳定性提升
 - **v1.16.1** (2026-05-07) - iFlow Mod 页面体验优化、空状态优化、模组删除防误触
@@ -804,5 +857,5 @@ npm install -D @types/<package-name>
 
 ---
 
-最后更新：2026-05-08
+最后更新：2026-05-13
 维护者：iFlow 团队
