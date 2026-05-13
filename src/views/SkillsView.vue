@@ -80,11 +80,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Star, FolderOpen, Download, Upload, Delete } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import { useToast } from '@/composables/useToast'
 
-const emit = defineEmits(['show-message', 'skills-changed', 'show-input-dialog'])
+const { t } = useI18n()
+const toast = useToast()
+
+const emit = defineEmits(['skills-changed', 'show-input-dialog'])
 
 const skills = ref([])
 const selectedSkill = ref(null)
@@ -101,7 +106,7 @@ const loadSkills = async () => {
       skills.value = result.skills || []
       emit('skills-changed', skills.value.length)
     } else {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
     }
   } catch (error) {
     console.error('Failed to load skills:', error)
@@ -126,14 +131,14 @@ const importLocal = async () => {
     const result = await window.electronAPI.importSkillLocal()
     if (result.success) {
       await loadSkills()
-      emit('show-message', { type: 'success', title: 'messages.success', message: result.message })
+      toast.success(t(result.message))
     } else if (result.cancelled) {
       // User cancelled
     } else {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error ? t(result.error) : t('messages.error'))
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 
@@ -155,12 +160,12 @@ const confirmOnlineImport = async () => {
     if (result.success) {
       showOnlineDialog.value = false
       await loadSkills()
-      emit('show-message', { type: 'success', title: 'messages.success', message: result.message })
+      toast.success(t(result.message))
     } else {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error ? t(result.error) : t('messages.error'))
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 
@@ -171,14 +176,14 @@ const exportSkill = async skill => {
   try {
     const result = await window.electronAPI.exportSkill(targetSkill.name, targetSkill.folderName)
     if (result.success) {
-      emit('show-message', { type: 'success', title: 'messages.success', message: result.message, messageParams: { name: targetSkill.name } })
+      toast.success(t(result.message, { name: targetSkill.name }))
     } else if (result.cancelled) {
       // User cancelled
     } else {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 
@@ -203,9 +208,9 @@ const deleteSkill = skill => {
           selectedSkill.value = null
         }
         loadSkills()
-        emit('show-message', { type: 'success', title: 'messages.success', message: result.message, messageParams: { name: skill.name } })
+        toast.success(t(result.message, { name: skill.name }))
       } else {
-        emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+        toast.error(result.error)
       }
     })
   })

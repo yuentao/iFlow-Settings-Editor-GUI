@@ -145,10 +145,12 @@ import { useI18n } from 'vue-i18n'
 import { Puzzle, FolderOpen, Download, Delete, Success, Caution, SwitchButton } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
+const toast = useToast()
 
-const emit = defineEmits(['show-message'])
+const emit = defineEmits(['show-input-dialog'])
 
 // State
 const mods = ref([])
@@ -218,27 +220,14 @@ const toggleMod = async (modId, enabled) => {
     const result = await window.electronAPI.iflowEnableMod(modId, enabled)
     if (result.success) {
       await loadMods()
-      emit('show-message', {
-        type: 'success',
-        title: 'messages.success',
-        message: enabled ? 'iflow.mods.enableSuccess' : 'iflow.mods.disableSuccess',
-        messageParams: { name: mod.name },
-      })
+      toast.success(t(enabled ? 'iflow.mods.enableSuccess' : 'iflow.mods.disableSuccess', { name: mod.name }))
     } else if (result.code === 'IFLOW_VERSION_INCOMPATIBLE') {
-      emit('show-message', {
-        type: 'warning',
-        title: 'messages.warning',
-        message: result.error,
-      })
+      toast.warning(result.error)
     } else {
-      emit('show-message', {
-        type: 'error',
-        title: 'messages.error',
-        message: result.error,
-      })
+      toast.error(result.error)
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   } finally {
     isApplying.value = false
   }
@@ -266,17 +255,12 @@ const deleteMod = async (modId) => {
     const result = await window.electronAPI.iflowDeleteMod(modId)
     if (result.success) {
       await loadMods()
-      emit('show-message', {
-        type: 'success',
-        title: 'messages.success',
-        message: 'iflow.mods.deleteSuccess',
-        messageParams: { name: mod.name },
-      })
+      toast.success(t('iflow.mods.deleteSuccess', { name: mod.name }))
     } else {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   } finally {
     isApplying.value = false
   }
@@ -287,17 +271,12 @@ const exportMod = async (modId) => {
   try {
     const result = await window.electronAPI.iflowExportMod(modId)
     if (result.success) {
-      emit('show-message', {
-        type: 'success',
-        title: 'messages.success',
-        message: 'iflow.mods.exportSuccess',
-        messageParams: { name: mod?.name || modId },
-      })
+      toast.success(t('iflow.mods.exportSuccess', { name: mod?.name || modId }))
     } else if (!result.cancelled) {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 
@@ -310,21 +289,12 @@ const openImportDialog = async () => {
     const importResult = await window.electronAPI.iflowImportMod(filePath)
     if (importResult.success) {
       await loadMods()
-      emit('show-message', {
-        type: 'success',
-        title: 'messages.success',
-        message: 'iflow.mods.importSuccess',
-        messageParams: { count: importResult.imported || 1 },
-      })
+      toast.success(t('iflow.mods.importSuccess', { count: importResult.imported || 1 }))
     } else if (!importResult.cancelled) {
-      emit('show-message', {
-        type: 'error',
-        title: 'messages.error',
-        message: importResult.error,
-      })
+      toast.error(importResult.error)
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 

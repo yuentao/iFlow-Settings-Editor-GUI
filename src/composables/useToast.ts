@@ -28,6 +28,14 @@ function clearTimer(id: number) {
   }
 }
 
+function removeToast(id: number) {
+  clearTimer(id)
+  const idx = toasts.value.findIndex(t => t.id === id)
+  if (idx !== -1) {
+    toasts.value.splice(idx, 1)
+  }
+}
+
 function startTimer(id: number, duration: number) {
   const handle = setTimeout(() => {
     removeToast(id)
@@ -55,7 +63,7 @@ export function useToast() {
     const id = nextId++
     const duration = options.duration ?? (type === 'error' ? 5000 : 3000)
 
-    const toast: ToastItem = { id, type, title: options.title, message, duration }
+    const toast: ToastItem = { id, type, title: options.title, message: options.message, duration }
 
     // 最多同时显示 5 条
     if (toasts.value.length >= 5) {
@@ -67,14 +75,6 @@ export function useToast() {
     toasts.value.push(toast)
     startTimer(id, duration)
     return id
-  }
-
-  function removeToast(id: number) {
-    clearTimer(id)
-    const idx = toasts.value.findIndex(t => t.id === id)
-    if (idx !== -1) {
-      toasts.value.splice(idx, 1)
-    }
   }
 
   function pauseTimer(id: number) {

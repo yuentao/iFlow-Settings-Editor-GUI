@@ -576,16 +576,14 @@
       </div>
     </div>
 
-    <!-- 消息对话框 -->
-    <MessageDialog :dialog="messageDialog" @close="messageDialog.show = false" />
   </section>
 </template>
 
 <script setup>
 import { Globe, Setting, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit } from '@icon-park/vue-next'
-import MessageDialog from '../components/MessageDialog.vue'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   settings: {
@@ -601,6 +599,7 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 const cloudStore = useCloudSyncStore()
+const toast = useToast()
 
 // 云同步状态 refs（从 cloudSync store 中提取，Pinia 已自动 unwrap，直接使用）
 const syncEnabled = computed(() => cloudStore.syncEnabled)
@@ -617,12 +616,6 @@ const appVersion = ref('1.0.0')
 const systemTheme = ref('Light')
 const isCheckingUpdate = ref(false)
 let checkUpdateTimer = null
-const messageDialog = ref({
-  show: false,
-  type: 'info',
-  title: '',
-  message: '',
-})
 
 // 云同步状态（由 cloudSync store 统一管理，包括 localStorage 持久化）
 const selectedProvider = ref('webdav')
@@ -796,12 +789,7 @@ const handleInstallUpdate = async () => {
     }
   } catch (error) {
     console.error('Failed to install update:', error)
-    messageDialog.value = {
-      show: true,
-      type: 'error',
-      title: 'update.title',
-      message: 'update.installFailed',
-    }
+    toast.error(t('update.installFailed'))
   }
 }
 
@@ -824,31 +812,16 @@ const checkForUpdates = async () => {
           // 更新可用，会通过 onUpdateAvailable 事件触发显示通知
         } else {
           // 已是最新版本
-          messageDialog.value = {
-            show: true,
-            type: 'info',
-            title: 'update.title',
-            message: 'update.noUpdate',
-          }
+          toast.info(t('update.noUpdate'))
         }
       } else {
         // 检查失败
-        messageDialog.value = {
-          show: true,
-          type: 'error',
-          title: 'update.title',
-          message: 'update.checkFailed',
-        }
+        toast.error(t('update.checkFailed'))
       }
     }
   } catch (error) {
     console.error('Failed to check for updates:', error)
-    messageDialog.value = {
-      show: true,
-      type: 'error',
-      title: 'update.title',
-      message: 'update.checkFailed',
-    }
+    toast.error(t('update.checkFailed'))
   } finally {
     // 如果没有成功恢复，在这里也恢复状态
     setTimeout(() => {
@@ -989,7 +962,7 @@ function formatTime(isoStr) {
 }
 
 function showCloudMessage({ type = 'info', title, message }) {
-  messageDialog.value = { show: true, type, title, message }
+  toast[type](message)
 }
 
 // 待处理的云同步启用标记（密码设置完成后继续）
