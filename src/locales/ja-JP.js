@@ -201,6 +201,10 @@ export default {
     expiryDaysHint: '0に設定すると無期限',
     expiry: {
       expired: '{days}日前に期限切れ',
+      hoursLeft: 'あと{hours}時間',
+      daysLeft: 'あと{days}日',
+      monthsLeft: 'あと{months}ヶ月',
+      yearsLeft: 'あと{years}年',
     },
     connectivity: {
       excellent: '接続性極めて良好',

@@ -84,7 +84,6 @@ import { useI18n } from 'vue-i18n'
 import { Plus, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 import moment from 'moment'
-import 'moment/locale/zh-cn'
 
 const { t } = useI18n()
 
@@ -293,10 +292,23 @@ function getExpiryText(name) {
   const expiryDate = getExpiryDate(name)
   if (!expiryDate) return ''
   const now = moment()
-  if (expiryDate.isBefore(now)) {
-    return t('api.expiry.expired', { days: Math.abs(expiryDate.diff(now, 'days')) })
+  const diffDays = expiryDate.diff(now, 'days')
+  if (diffDays < 0) {
+    return t('api.expiry.expired', { days: Math.abs(diffDays) })
   }
-  return expiryDate.fromNow(true)
+  if (diffDays === 0) {
+    const diffHours = expiryDate.diff(now, 'hours')
+    return t('api.expiry.hoursLeft', { hours: Math.max(diffHours, 1) })
+  }
+  if (diffDays <= 30) {
+    return t('api.expiry.daysLeft', { days: diffDays })
+  }
+  const diffMonths = expiryDate.diff(now, 'months')
+  if (diffMonths <= 11) {
+    return t('api.expiry.monthsLeft', { months: diffMonths })
+  }
+  const diffYears = expiryDate.diff(now, 'years')
+  return t('api.expiry.yearsLeft', { years: diffYears })
 }
 
 function getExpiryClass(name) {
