@@ -43,90 +43,68 @@
         </button>
       </div>
 
-      <!-- Category Filter -->
-      <div v-if="!isLoading && mods.length > 0" class="category-filter">
-        <button
-          v-for="cat in categories"
-          :key="cat.value"
-          class="category-btn"
-          :class="{ active: selectedCategory === cat.value }"
-          @click="selectedCategory = cat.value"
-        >
-          {{ cat.label }}
-          <span class="category-count">{{ getCategoryCount(cat.value) }}</span>
-        </button>
-      </div>
-
       <!-- Mod List -->
-      <SkeletonLoader v-if="isLoading" type="list" :count="4" />
-      <div v-else-if="mods.length > 0" class="mod-list">
-        <div
-          v-for="mod in filteredMods"
-          :key="mod.id"
-          class="mod-item"
-          :class="{ enabled: mod.enabled }"
-        >
-          <!-- Left: Mod Info -->
-          <div class="mod-info">
-            <div class="mod-icon">
-              <span v-if="mod.icon" class="mod-icon-emoji">{{ mod.icon }}</span>
-              <Puzzle v-else size="18" />
-            </div>
-            <div class="mod-details">
-              <div class="mod-name-row">
-                <span class="mod-name">{{ mod.name }}</span>
-                <span class="mod-version">v{{ mod.version }}</span>
-                <span class="mod-type-badge" :class="`type-${mod.type}`">
-                  {{ $t(`iflow.mods.types.${mod.type}`) }}
-                </span>
-              </div>
-              <div class="mod-desc" v-if="mod.description">{{ mod.description }}</div>
-              <div class="mod-meta">
-                <span class="mod-author" v-if="mod.author">{{ mod.author }}</span>
-                <span class="mod-category" v-if="mod.category">{{ mod.category }}</span>
-                <span class="mod-compat" v-if="mod.iflowVersion" :title="`iflow ${mod.iflowVersionConstraint || '0.5.19+'}`">
-                  iflow {{ mod.iflowVersionConstraint || '0.5.19+' }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right: Actions -->
-          <div class="mod-actions">
-            <!-- Conditional actions (only when disabled) -->
-            <template v-if="!mod.enabled && !isApplying">
-              <button class="action-btn" @click.stop="exportMod(mod.id)" :title="$t('iflow.mods.export')">
-                <Download size="14" />
-              </button>
-              <button class="action-btn action-btn-danger" @click.stop="deleteMod(mod.id)" :title="$t('iflow.mods.delete')">
-                <Delete size="14" />
-              </button>
-            </template>
-
-            <!-- Enable/Disable Toggle -->
-            <label class="toggle-switch" :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')">
-              <input
-                type="checkbox"
-                :checked="mod.enabled"
-                @click.prevent="toggleMod(mod.id, !mod.enabled)"
-                :disabled="isApplying"
-              />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <EmptyState
-        v-else
-        :icon="Puzzle"
-        :title="$t('iflow.mods.emptyTitle')"
-        :description="$t('iflow.mods.emptyDesc')"
-        :actionText="$t('iflow.mods.import')"
-        embedded
+      <GenericList
+        :items="filteredMods"
+        item-key="id"
+        :loading="isLoading"
+        :skeleton-count="4"
+        :empty-icon="Puzzle"
+        :empty-title="$t('iflow.mods.emptyTitle')"
+        :empty-description="$t('iflow.mods.emptyDesc')"
+        :empty-action-text="$t('iflow.mods.import')"
+        :categories="categories"
+        :selected-category="selectedCategory"
+        :highlight-fn="modHighlightFn"
+        @update:selected-category="selectedCategory = $event"
         @action="openImportDialog"
-      />
+      >
+        <template #item-icon="{ item: mod }">
+          <span v-if="mod.icon" class="mod-icon-emoji">{{ mod.icon }}</span>
+          <Puzzle v-else size="18" />
+        </template>
+
+        <template #item-info="{ item: mod }">
+          <div class="mod-name-row">
+            <span class="mod-name">{{ mod.name }}</span>
+            <span class="mod-version">v{{ mod.version }}</span>
+            <span class="mod-type-badge" :class="`type-${mod.type}`">
+              {{ $t(`iflow.mods.types.${mod.type}`) }}
+            </span>
+          </div>
+          <div class="mod-desc" v-if="mod.description">{{ mod.description }}</div>
+          <div class="mod-meta">
+            <span class="mod-author" v-if="mod.author">{{ mod.author }}</span>
+            <span class="mod-category" v-if="mod.category">{{ mod.category }}</span>
+            <span class="mod-compat" v-if="mod.iflowVersion" :title="`iflow ${mod.iflowVersionConstraint || '0.5.19+'}`">
+              iflow {{ mod.iflowVersionConstraint || '0.5.19+' }}
+            </span>
+          </div>
+        </template>
+
+        <template #item-actions="{ item: mod }">
+          <template v-if="!mod.enabled && !isApplying">
+            <button class="action-btn" @click.stop="exportMod(mod.id)" :title="$t('iflow.mods.export')">
+              <Download size="14" />
+            </button>
+            <button class="action-btn action-btn-danger" @click.stop="deleteMod(mod.id)" :title="$t('iflow.mods.delete')">
+              <Delete size="14" />
+            </button>
+          </template>
+        </template>
+
+        <template #item-extra="{ item: mod }">
+          <label class="toggle-switch" :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')">
+            <input
+              type="checkbox"
+              :checked="mod.enabled"
+              @click.prevent="toggleMod(mod.id, !mod.enabled)"
+              :disabled="isApplying"
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </template>
+      </GenericList>
     </div>
 
     <!-- Applying overlay -->
@@ -138,8 +116,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Puzzle, FolderOpen, Download, Delete, Success, Caution, SwitchButton } from '@icon-park/vue-next'
-import EmptyState from '@/components/EmptyState.vue'
-import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import GenericList from '@/components/GenericList.vue'
 import ApplyingDialog from '@/components/ApplyingDialog.vue'
 import { useToast } from '@/composables/useToast'
 
@@ -182,10 +159,7 @@ const filteredMods = computed(() => {
   return sorted.filter(m => m.category === selectedCategory.value)
 })
 
-const getCategoryCount = (category) => {
-  if (category === 'all') return mods.value.length
-  return mods.value.filter(m => m.category === category).length
-}
+const modHighlightFn = (mod) => ({ highlighted: mod.enabled })
 
 // Actions
 const loadMods = async () => {
@@ -212,7 +186,6 @@ const toggleMod = async (modId, enabled) => {
   const mod = mods.value.find(m => m.id === modId)
   if (!mod) return
 
-  // Confirm with user that restart is required
   const confirmed = await new Promise(resolve => {
     emit('show-input-dialog', {
       type: 'confirm',
@@ -374,114 +347,6 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-.category-filter {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.category-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  background: var(--control-fill);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: var(--control-fill-hover);
-    border-color: var(--border-hover);
-  }
-
-  &.active {
-    background: var(--accent-light);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .category-count {
-    background: var(--bg-primary);
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 500;
-  }
-}
-
-.mod-list {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--bg-secondary);
-}
-
-.mod-item {
-  display: flex;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-light);
-  transition: all 0.15s ease;
-  animation: fadeIn 0.3s ease backwards;
-
-  &:nth-child(1) { animation-delay: 0.02s; }
-  &:nth-child(2) { animation-delay: 0.04s; }
-  &:nth-child(3) { animation-delay: 0.06s; }
-  &:nth-child(4) { animation-delay: 0.08s; }
-  &:nth-child(5) { animation-delay: 0.1s; }
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background: var(--control-fill);
-
-    .mod-actions .action-btn {
-      opacity: 1;
-    }
-  }
-
-  &.enabled {
-    border-left: 3px solid var(--accent);
-    padding-left: 13px;
-  }
-}
-
-.mod-info {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-}
-
-.mod-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 14px;
-  flex-shrink: 0;
-}
-
-.mod-icon-emoji {
-  font-size: 20px;
-}
-
-.mod-details {
-  flex: 1;
-  min-width: 0;
-}
-
 .mod-name-row {
   display: flex;
   align-items: center;
@@ -566,36 +431,32 @@ onMounted(() => {
   font-size: 10px;
 }
 
-.mod-actions {
+.mod-icon-emoji {
+  font-size: 20px;
+}
+
+// Action buttons (inside GenericList item-actions slot)
+.action-btn {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  margin-left: 12px;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.1s ease;
 
-  .action-btn {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    color: var(--text-tertiary);
-    cursor: pointer;
-    border-radius: var(--radius);
-    transition: all 0.1s ease;
-    opacity: 0;
+  &:hover {
+    background: var(--control-fill);
+    color: var(--text-primary);
+  }
 
-    &:hover {
-      background: var(--control-fill);
-      color: var(--text-primary);
-    }
-
-    &.action-btn-danger:hover {
-      background: rgba(239, 68, 68, 0.1);
-      color: var(--danger);
-    }
+  &.action-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
   }
 }
 
@@ -651,17 +512,6 @@ onMounted(() => {
     background-color: var(--toggle-thumb, #fff);
     border-radius: 50%;
     transition: 0.2s;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 </style>

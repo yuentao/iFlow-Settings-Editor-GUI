@@ -17,42 +17,38 @@
         </button>
       </div>
 
-      <SkeletonLoader v-if="isLoading" type="list" :count="3" />
-      <div class="skill-list" v-else>
-        <template v-if="skills.length > 0">
-          <div v-for="(skill, index) in skills" :key="skill.name" class="skill-item" :class="{ selected: selectedSkill === skill.name }" @click="selectSkill(skill)">
-            <div class="skill-icon">
-              <Star size="20" />
-            </div>
-            <div class="skill-info">
-              <div class="skill-name">{{ skill.name }}</div>
-              <div class="skill-desc">{{ skill.description || $t('skills.noDescription') }}</div>
-              <div class="skill-meta">
-                <span class="skill-file">{{ skill.folderName }}</span>
-                <span class="skill-size">{{ formatFileSize(skill.size) }}</span>
-              </div>
-            </div>
-            <div class="skill-actions">
-              <button class="action-btn" @click.stop="exportSkill(skill)" :title="$t('skills.export')">
-                <Upload size="14" />
-              </button>
-              <button class="action-btn action-btn-danger" @click.stop="deleteSkill(skill)" :title="$t('skills.delete')">
-                <Delete size="14" />
-              </button>
-            </div>
+      <GenericList
+        :items="skills"
+        item-key="name"
+        :loading="isLoading"
+        :empty-icon="Star"
+        :empty-title="$t('skills.noSkills')"
+        :empty-description="$t('skills.addFirstSkill')"
+        :empty-action-text="$t('skills.importLocal')"
+        @action="importLocal"
+      >
+        <template #item-icon="{ item: skill }">
+          <Star size="20" />
+        </template>
+
+        <template #item-info="{ item: skill }">
+          <div class="skill-name">{{ skill.name }}</div>
+          <div class="skill-desc">{{ skill.description || $t('skills.noDescription') }}</div>
+          <div class="skill-meta">
+            <span class="skill-file">{{ skill.folderName }}</span>
+            <span class="skill-size">{{ formatFileSize(skill.size) }}</span>
           </div>
         </template>
-        <EmptyState
-          v-else
-          :icon="Star"
-          :title="$t('skills.noSkills')"
-          :description="$t('skills.addFirstSkill')"
-          :actionText="$t('skills.importLocal')"
-          :showPlusIcon="false"
-          embedded
-          @action="importLocal"
-        />
-      </div>
+
+        <template #item-actions="{ item: skill }">
+          <button class="action-btn" @click.stop="exportSkill(skill)" :title="$t('skills.export')">
+            <Upload size="14" />
+          </button>
+          <button class="action-btn action-btn-danger" @click.stop="deleteSkill(skill)" :title="$t('skills.delete')">
+            <Delete size="14" />
+          </button>
+        </template>
+      </GenericList>
     </div>
 
     <!-- Online Import Dialog -->
@@ -82,8 +78,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Star, FolderOpen, Download, Upload, Delete } from '@icon-park/vue-next'
-import EmptyState from '@/components/EmptyState.vue'
-import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import GenericList from '@/components/GenericList.vue'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
@@ -92,7 +87,6 @@ const toast = useToast()
 const emit = defineEmits(['skills-changed', 'show-input-dialog'])
 
 const skills = ref([])
-const selectedSkill = ref(null)
 const showOnlineDialog = ref(false)
 const onlineUrl = ref('')
 const onlineName = ref('')
@@ -113,10 +107,6 @@ const loadSkills = async () => {
   } finally {
     isLoading.value = false
   }
-}
-
-const selectSkill = skill => {
-  selectedSkill.value = skill.name
 }
 
 const formatFileSize = bytes => {
@@ -170,13 +160,12 @@ const confirmOnlineImport = async () => {
 }
 
 const exportSkill = async skill => {
-  const targetSkill = skill || skills.value.find(s => s.name === selectedSkill.value)
-  if (!targetSkill) return
+  if (!skill) return
 
   try {
-    const result = await window.electronAPI.exportSkill(targetSkill.name, targetSkill.folderName)
+    const result = await window.electronAPI.exportSkill(skill.name, skill.folderName)
     if (result.success) {
-      toast.success(t(result.message, { name: targetSkill.name }))
+      toast.success(t(result.message, { name: skill.name }))
     } else if (result.cancelled) {
       // User cancelled
     } else {
@@ -204,9 +193,6 @@ const deleteSkill = skill => {
 
     window.electronAPI.deleteSkill(folderToDelete).then(result => {
       if (result.success) {
-        if (selectedSkill.value === skill.name) {
-          selectedSkill.value = null
-        }
         loadSkills()
         toast.success(t(result.message, { name: skill.name }))
       } else {
@@ -227,75 +213,6 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
-}
-
-.skill-list {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--bg-secondary);
-}
-
-.skill-item {
-  display: flex;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  animation: fadeIn 0.3s ease backwards;
-
-  &:nth-child(1) {
-    animation-delay: 0.02s;
-  }
-  &:nth-child(2) {
-    animation-delay: 0.04s;
-  }
-  &:nth-child(3) {
-    animation-delay: 0.06s;
-  }
-  &:nth-child(4) {
-    animation-delay: 0.08s;
-  }
-  &:nth-child(5) {
-    animation-delay: 0.1s;
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background: var(--control-fill);
-
-    .skill-actions {
-      opacity: 1;
-    }
-  }
-
-  &.selected {
-    background: var(--accent-light);
-    border-left: 3px solid var(--accent);
-    padding-left: 13px;
-  }
-}
-
-.skill-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: var(--bg-elevated);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 14px;
-  flex-shrink: 0;
-}
-
-.skill-info {
-  flex: 1;
-  min-width: 0;
 }
 
 .skill-name {
@@ -325,15 +242,6 @@ onMounted(() => {
   font-family: var(--font-mono);
 }
 
-.skill-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  flex-shrink: 0;
-}
-
 .action-btn {
   width: 28px;
   height: 28px;
@@ -355,17 +263,6 @@ onMounted(() => {
   &.action-btn-danger:hover {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 </style>
