@@ -573,6 +573,7 @@ export default {
       exportSuccess: 'Exported "{name}"',
       importSuccess: '{count} mod(s) imported',
       confirmDelete: 'Are you sure you want to delete mod "{name}"? This action cannot be undone.',
+      confirmToggle: 'Enabling or disabling a mod requires restarting iFlow CLI to take effect. Continue?',
       types: {
         replace: 'Replace',
         append: 'Append',

@@ -108,7 +108,7 @@
               <input
                 type="checkbox"
                 :checked="mod.enabled"
-                @change="toggleMod(mod.id, $event.target.checked)"
+                @click.prevent="toggleMod(mod.id, !mod.enabled)"
                 :disabled="isApplying"
               />
               <span class="toggle-slider"></span>
@@ -210,6 +210,21 @@ const loadMods = async () => {
 
 const toggleMod = async (modId, enabled) => {
   const mod = mods.value.find(m => m.id === modId)
+  if (!mod) return
+
+  // Confirm with user that restart is required
+  const confirmed = await new Promise(resolve => {
+    emit('show-input-dialog', {
+      type: 'confirm',
+      title: 'messages.warning',
+      placeholder: 'iflow.mods.confirmToggle',
+      callback: resolve,
+      isConfirm: true,
+    })
+  })
+
+  if (!confirmed) return
+
   isApplying.value = true
   applyingText.value = enabled ? t('iflow.applying.enabling') : t('iflow.applying.disabling')
   try {

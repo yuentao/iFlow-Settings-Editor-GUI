@@ -582,6 +582,7 @@ export default {
       exportSuccess: '已导出 "{name}"',
       importSuccess: '已导入 {count} 个 Mod',
       confirmDelete: '确定要删除 Mod "{name}" 吗？此操作不可撤销。',
+      confirmToggle: '启用/禁用 Mod 后需要重新启动 iFlow CLI 才能生效，是否继续？',
       types: {
         replace: '替换',
         append: '追加',
