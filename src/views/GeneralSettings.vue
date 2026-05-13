@@ -575,7 +575,6 @@
         </div>
       </div>
     </div>
-
   </section>
 </template>
 
@@ -1354,13 +1353,13 @@ const handleCloudSyncStatusChanged = state => {
 .general-settings {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xl);
 }
 
 .section-group {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  margin-top: var(--space-2xl);
 }
 
 .section-header {
@@ -1371,16 +1370,8 @@ const handleCloudSyncStatusChanged = state => {
   user-select: none;
 }
 
-.section-header-clickable {
-  cursor: pointer;
-  border-radius: var(--radius);
-  padding: var(--space-xs) var(--space-sm);
-  margin: 0 calc(-1 * var(--space-sm));
-  transition: background 0.15s ease;
-
-  &:hover {
-    background: var(--control-fill);
-  }
+.content-header + .section-group {
+  margin-top: 0;
 }
 
 .section-header-left {
@@ -1418,38 +1409,11 @@ const handleCloudSyncStatusChanged = state => {
   letter-spacing: normal;
 }
 
-.section-chevron {
-  display: flex;
-  align-items: center;
-  color: var(--text-tertiary);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &.is-expanded {
-    transform: rotate(180deg);
-  }
-}
-
 .section-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
   overflow: hidden;
-}
-
-// Collapse transition
-.collapse-enter-active,
-.collapse-leave-active {
-  transition:
-    max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.25s ease;
-  max-height: 2000px;
-  opacity: 1;
-}
-
-.collapse-enter-from,
-.collapse-leave-to {
-  max-height: 0;
-  opacity: 0;
 }
 
 // ============================================
