@@ -112,6 +112,8 @@
       @cancel="handleUpdateCancel"
       @install="handleInstallNow"
       @later="handleUpdateLater" />
+
+    <ToastNotification />
   </div>
 </template>
 
@@ -140,6 +142,7 @@ import QuickAddDialog from './components/QuickAddDialog.vue'
 import UpdateNotification from './components/UpdateNotification.vue'
 import UpdateProgress from './components/UpdateProgress.vue'
 import SkeletonLoader from './components/SkeletonLoader.vue'
+import ToastNotification from './components/ToastNotification.vue'
 import { useCloudSyncStore } from './stores/cloudSync'
 
 // 视图组件懒加载
