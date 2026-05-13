@@ -574,6 +574,7 @@ export default {
       exportSuccess: '"{name}" をエクスポートしました',
       importSuccess: '{count} 個の Mod をインポートしました',
       confirmDelete: 'Mod「{name}」を削除しますか？この操作は取り消せません。',
+      confirmToggle: 'Mod の有効化/無効化には iFlow CLI の再起動が必要です。続行しますか？',
       types: {
         replace: '置換',
         append: '追加',
