@@ -99,10 +99,12 @@ import { Command, Plus, FolderOpen, Edit, Upload, Delete, Tag } from '@icon-park
 import CommandEditorDialog from '@/components/CommandEditorDialog.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
+const toast = useToast()
 
-const emit = defineEmits(['show-message', 'commands-changed', 'show-input-dialog'])
+const emit = defineEmits(['commands-changed', 'show-input-dialog'])
 
 const commands = ref([])
 const selectedCommand = ref(null)
@@ -152,7 +154,7 @@ const loadCommands = async () => {
       commands.value = result.commands || []
       emit('commands-changed', commands.value.length)
     } else {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
     }
   } catch (error) {
     console.error('Failed to load commands:', error)
@@ -193,25 +195,25 @@ const saveCommand = async (data) => {
       // Update existing command
       result = await window.electronAPI.updateCommand(editingCommand.value.name, commandData)
       if (result.success) {
-        emit('show-message', { type: 'success', title: 'messages.success', message: 'commands.commandSaved' })
+        toast.success(t('commands.commandSaved'))
       }
     } else {
       // Create new command
       result = await window.electronAPI.createCommand(commandData.name, commandData)
       if (result.success) {
-        emit('show-message', { type: 'success', title: 'messages.success', message: 'commands.commandCreated', messageParams: { name: data.name } })
+        toast.success(t('commands.commandCreated', { name: data.name }))
       }
     }
 
     if (!result.success) {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
       return
     }
 
     closeEditor()
     await loadCommands()
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 
@@ -222,12 +224,12 @@ const exportCommand = async (cmd) => {
   try {
     const result = await window.electronAPI.exportCommand(targetCmd.name)
     if (result.success) {
-      emit('show-message', { type: 'success', title: 'messages.success', message: 'commands.commandExported', messageParams: { name: targetCmd.name } })
+      toast.success(t('commands.commandExported', { name: targetCmd.name }))
     } else if (!result.cancelled) {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 
@@ -250,9 +252,9 @@ const deleteCommand = (cmd) => {
           selectedCommand.value = null
         }
         loadCommands()
-        emit('show-message', { type: 'success', title: 'messages.success', message: 'commands.commandDeleted', messageParams: { name: cmd.name } })
+        toast.success(t('commands.commandDeleted', { name: cmd.name }))
       } else {
-        emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+        toast.error(result.error)
       }
     })
   })
@@ -264,13 +266,13 @@ const importCommand = async () => {
     if (result.success) {
       await loadCommands()
       if (result.imported && result.imported.length > 0) {
-        emit('show-message', { type: 'success', title: 'messages.success', message: 'commands.commandsImported', messageParams: { count: result.imported.length } })
+        toast.success(t('commands.commandsImported', { count: result.imported.length }))
       }
     } else if (!result.cancelled) {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 
