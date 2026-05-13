@@ -200,6 +200,10 @@ export default {
     expiryDaysHint: 'Set to 0 for unlimited',
     expiry: {
       expired: 'Expired {days}d ago',
+      hoursLeft: '{hours}h left',
+      daysLeft: '{days}d left',
+      monthsLeft: '{months}mo left',
+      yearsLeft: '{years}y left',
     },
     connectivity: {
       excellent: 'Excellent connectivity',
