@@ -130,12 +130,7 @@
     </div>
 
     <!-- Applying overlay -->
-    <div v-if="isApplying" class="applying-overlay">
-      <div class="applying-dialog">
-        <div class="applying-spinner"></div>
-        <div class="applying-text">{{ applyingText }}</div>
-      </div>
-    </div>
+    <ApplyingDialog :visible="isApplying" :text="applyingText" />
   </section>
 </template>
 
@@ -145,6 +140,7 @@ import { useI18n } from 'vue-i18n'
 import { Puzzle, FolderOpen, Download, Delete, Success, Caution, SwitchButton } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import ApplyingDialog from '@/components/ApplyingDialog.vue'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
@@ -641,50 +637,6 @@ onMounted(() => {
     border-radius: 50%;
     transition: 0.2s;
   }
-}
-
-// Applying overlay
-.applying-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(2px);
-}
-
-.applying-dialog {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  padding: 24px 32px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  box-shadow: var(--shadow-xl);
-}
-
-.applying-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.applying-text {
-  font-size: 14px;
-  color: var(--text-primary);
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 @keyframes fadeIn {
