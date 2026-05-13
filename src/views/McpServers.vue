@@ -14,47 +14,41 @@
           <Lightning size="14" />
           {{ $t('mcp.quickAddBtn') }}
         </button>
-    </div>
-    <div class="server-list">
-        <template v-if="serverCount > 0">
-          <div
-            v-for="(config, name) in servers"
-            :key="name"
-            class="server-item"
-          >
-            <div class="server-info">
-              <div class="server-name">{{ name }}</div>
-              <div class="server-desc">{{ config.description || $t('mcp.noDescription') }}</div>
-            </div>
-            <div class="server-actions">
-              <button class="action-btn" @click.stop="$emit('edit-server', name)" :title="$t('mcp.edit')">
-                <Edit size="14" />
-              </button>
-              <button class="action-btn action-btn-danger" @click.stop="$emit('delete-server', name)" :title="$t('mcp.delete')">
-                <Delete size="14" />
-              </button>
-            </div>
-          </div>
-        </template>
-        <EmptyState
-          v-else
-          :icon="Server"
-          :title="$t('mcp.noServers')"
-          :description="$t('mcp.addFirstServer')"
-          :actionText="$t('mcp.addServerBtn')"
-          embedded
-          @action="$emit('add-server')"
-        />
       </div>
+
+      <GenericList
+        :items="serverList"
+        item-key="name"
+        :empty-icon="Server"
+        :empty-title="$t('mcp.noServers')"
+        :empty-description="$t('mcp.addFirstServer')"
+        :empty-action-text="$t('mcp.addServerBtn')"
+        @action="$emit('add-server')"
+      >
+        <template #item-info="{ item }">
+          <div class="server-name">{{ item.name }}</div>
+          <div class="server-desc">{{ item.description || $t('mcp.noDescription') }}</div>
+        </template>
+
+        <template #item-actions="{ item }">
+          <button class="action-btn" @click.stop="$emit('edit-server', item.name)" :title="$t('mcp.edit')">
+            <Edit size="14" />
+          </button>
+          <button class="action-btn action-btn-danger" @click.stop="$emit('delete-server', item.name)" :title="$t('mcp.delete')">
+            <Delete size="14" />
+          </button>
+        </template>
+      </GenericList>
     </div>
   </section>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { Server, Plus, Lightning, Delete, Edit } from '@icon-park/vue-next'
-import EmptyState from '@/components/EmptyState.vue'
+import GenericList from '@/components/GenericList.vue'
 
-defineProps({
+const props = defineProps({
   servers: {
     type: Object,
     default: () => ({})
@@ -66,6 +60,13 @@ defineProps({
 })
 
 defineEmits(['add-server', 'quick-add', 'edit-server', 'delete-server'])
+
+const serverList = computed(() =>
+  Object.entries(props.servers).map(([name, config]) => ({
+    name,
+    description: config.description,
+  }))
+)
 </script>
 
 <style lang="less" scoped>
@@ -74,46 +75,6 @@ defineEmits(['add-server', 'quick-add', 'edit-server', 'delete-server'])
   gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
-}
-
-// Windows 11 Style Server List - Fluent Design
-.server-list {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--bg-secondary);
-}
-
-.server-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  animation: fadeIn 0.3s ease backwards;
-  
-  &:nth-child(1) { animation-delay: 0.02s; }
-  &:nth-child(2) { animation-delay: 0.04s; }
-  &:nth-child(3) { animation-delay: 0.06s; }
-  &:nth-child(4) { animation-delay: 0.08s; }
-  &:nth-child(5) { animation-delay: 0.1s; }
-  &:nth-child(6) { animation-delay: 0.12s; }
-  &:nth-child(7) { animation-delay: 0.14s; }
-  &:nth-child(8) { animation-delay: 0.16s; }
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
-  &:hover {
-    background: var(--control-fill);
-  }
-}
-
-.server-info {
-  flex: 1;
-  min-width: 0;
 }
 
 .server-name {
@@ -129,17 +90,6 @@ defineEmits(['add-server', 'quick-add', 'edit-server', 'delete-server'])
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.server-actions {
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-
-  .server-item:hover & {
-    opacity: 1;
-  }
 }
 
 .action-btn {
@@ -164,10 +114,5 @@ defineEmits(['add-server', 'quick-add', 'edit-server', 'delete-server'])
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
   }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 </style>

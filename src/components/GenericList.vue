@@ -1,0 +1,271 @@
+<template>
+  <div class="generic-list-wrapper">
+    <!-- Category Filter -->
+    <div v-if="categories && categories.length > 0" class="category-filter">
+      <button
+        v-for="cat in categories"
+        :key="cat.value"
+        class="category-btn"
+        :class="{ active: selectedCategory === cat.value }"
+        @click="$emit('update:selectedCategory', cat.value)"
+      >
+        {{ cat.label }}
+        <span class="category-count">{{ cat.count ?? 0 }}</span>
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <SkeletonLoader v-if="loading" :type="skeletonType" :count="skeletonCount" />
+
+    <!-- List -->
+    <div v-else-if="items.length > 0" class="generic-list">
+      <div
+        v-for="(item, index) in items"
+        :key="item[itemKey]"
+        class="generic-item"
+        :class="itemClass(item)"
+      >
+        <!-- Icon -->
+        <div class="item-icon" v-if="$slots['item-icon']">
+          <slot name="item-icon" :item="item" :index="index" />
+        </div>
+
+        <!-- Info -->
+        <div class="item-info">
+          <slot name="item-info" :item="item" :index="index" />
+        </div>
+
+        <!-- Actions -->
+        <div class="item-actions" v-if="$slots['item-actions']">
+          <slot name="item-actions" :item="item" :index="index" />
+        </div>
+
+        <!-- Extra -->
+        <div class="item-extra" v-if="$slots['item-extra']">
+          <slot name="item-extra" :item="item" :index="index" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <EmptyState
+      v-else
+      :icon="emptyIcon"
+      :title="emptyTitle"
+      :description="emptyDescription"
+      :actionText="emptyActionText"
+      embedded
+      @action="$emit('action')"
+    />
+  </div>
+</template>
+
+<script setup>
+import EmptyState from '@/components/EmptyState.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
+
+const props = defineProps({
+  /** 列表数据 */
+  items: {
+    type: Array,
+    required: true,
+  },
+  /** 列表项的唯一标识字段名 */
+  itemKey: {
+    type: String,
+    default: 'name',
+  },
+  /** 是否加载中 */
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+  /** 骨架屏数量 */
+  skeletonCount: {
+    type: Number,
+    default: 3,
+  },
+  /** 骨架屏类型 */
+  skeletonType: {
+    type: String,
+    default: 'list',
+  },
+  /** 空状态图标组件 */
+  emptyIcon: {
+    type: [Object, Function],
+    default: null,
+  },
+  /** 空状态标题 */
+  emptyTitle: {
+    type: String,
+    default: '',
+  },
+  /** 空状态描述 */
+  emptyDescription: {
+    type: String,
+    default: '',
+  },
+  /** 空状态操作按钮文本 */
+  emptyActionText: {
+    type: String,
+    default: '',
+  },
+  /**
+   * 判断列表项高亮样式的函数，返回 CSS class 对象
+   * 接收 item，返回 { className: boolean }
+   */
+  highlightFn: {
+    type: Function,
+    default: null,
+  },
+  /** 分类过滤选项 [{ value, label, count }] */
+  categories: {
+    type: Array,
+    default: null,
+  },
+  /** 当前选中的分类 */
+  selectedCategory: {
+    type: String,
+    default: 'all',
+  },
+})
+
+defineEmits(['action', 'update:selectedCategory'])
+
+const itemClass = (item) => {
+  const cls = {}
+  if (props.highlightFn) {
+    Object.assign(cls, props.highlightFn(item))
+  }
+  return cls
+}
+</script>
+
+<style lang="less" scoped>
+.category-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.category-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  background: var(--control-fill);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--control-fill-hover);
+    border-color: var(--border-hover);
+  }
+
+  &.active {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .category-count {
+    background: var(--bg-primary);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+  }
+}
+
+.generic-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.generic-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-light);
+  transition: all 0.15s ease;
+  animation: genericFadeIn 0.3s ease backwards;
+
+  &:nth-child(1) { animation-delay: 0.02s; }
+  &:nth-child(2) { animation-delay: 0.04s; }
+  &:nth-child(3) { animation-delay: 0.06s; }
+  &:nth-child(4) { animation-delay: 0.08s; }
+  &:nth-child(5) { animation-delay: 0.1s; }
+  &:nth-child(6) { animation-delay: 0.12s; }
+  &:nth-child(7) { animation-delay: 0.14s; }
+  &:nth-child(8) { animation-delay: 0.16s; }
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--control-fill);
+
+    .item-actions {
+      opacity: 1;
+    }
+  }
+
+  &.highlighted {
+    border-left: 3px solid var(--accent);
+    padding-left: 13px;
+  }
+}
+
+.item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 14px;
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+}
+
+.item-extra {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+@keyframes genericFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>
