@@ -52,13 +52,13 @@
 
           <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :server-count="serverCount" @add-server="addServer" @quick-add="openQuickAddDialog" @edit-server="openEditServerPanel" @delete-server="deleteServerByName" />
 
-          <SkillsView v-if="currentSection === 'skills'" @show-message="showMessage" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
+          <SkillsView v-if="currentSection === 'skills'" @show-input-dialog="showInput" @skills-changed="onSkillsChanged" />
 
-          <CommandsView v-if="currentSection === 'commands'" @show-message="showMessage" @show-input-dialog="showInput" @commands-changed="onCommandsChanged" />
+          <CommandsView v-if="currentSection === 'commands'" @show-input-dialog="showInput" @commands-changed="onCommandsChanged" />
 
           <DocsView v-if="currentSection === 'docs'" />
 
-          <IflowModsView v-if="currentSection === 'iflow'" @show-message="showMessage" @show-input-dialog="showInput" />
+          <IflowModsView v-if="currentSection === 'iflow'" @show-input-dialog="showInput" />
         </template>
       </div>
     </main>
@@ -80,8 +80,6 @@
     <QuickAddDialog v-if="showQuickAddDialog" :show="showQuickAddDialog" :existing-names="existingServerNames" @close="closeQuickAddDialog" @edit-server="handleQuickEditServer" @add-servers="handleQuickAddServers" />
 
     <InputDialog v-if="showInputDialog.show" :dialog="showInputDialog" @confirm="handleInputConfirm" @cancel="closeInputDialog" />
-
-    <MessageDialog v-if="showMessageDialog.show" :dialog="showMessageDialog" @close="closeMessageDialog" style="z-index: 1500" />
 
     <ConfirmDialog
       v-if="pendingConfirmRequest"
@@ -112,6 +110,8 @@
       @cancel="handleUpdateCancel"
       @install="handleInstallNow"
       @later="handleUpdateLater" />
+
+    <ToastNotification />
   </div>
 </template>
 
@@ -132,7 +132,6 @@ const localeMap = {
 import TitleBar from './components/TitleBar.vue'
 import SideBar from './components/SideBar.vue'
 import InputDialog from './components/InputDialog.vue'
-import MessageDialog from './components/MessageDialog.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import ApiProfileDialog from './components/ApiProfileDialog.vue'
 import ServerPanel from './components/ServerPanel.vue'
@@ -140,7 +139,9 @@ import QuickAddDialog from './components/QuickAddDialog.vue'
 import UpdateNotification from './components/UpdateNotification.vue'
 import UpdateProgress from './components/UpdateProgress.vue'
 import SkeletonLoader from './components/SkeletonLoader.vue'
+import ToastNotification from './components/ToastNotification.vue'
 import { useCloudSyncStore } from './stores/cloudSync'
+import { useToast } from './composables/useToast'
 
 // 视图组件懒加载
 import { defineAsyncComponent } from 'vue'
@@ -206,6 +207,7 @@ const IflowModsView = defineAsyncComponent({
 
 const { locale, t } = useI18n()
 const cloudSyncStore = useCloudSyncStore()
+const toast = useToast()
 
 const settings = ref({
   language: 'zh-CN',
@@ -249,7 +251,6 @@ const currentApiProfile = ref('default')
 const systemTheme = ref('Light')
 
 const showInputDialog = ref({ show: false, title: '', placeholder: '', callback: null, isConfirm: false, defaultValue: '' })
-const showMessageDialog = ref({ show: false, type: 'info', title: '', message: '' })
 const pendingConfirmRequest = ref(null)
 const pendingConfirmResolve = ref(null)
 const showServerPanel = ref(false)
@@ -262,9 +263,9 @@ const existingServerNames = computed(() => Object.keys(settings.value.mcpServers
 const skipNextSaveSettings = ref(false)
 const showApiEditDialog = ref(false)
 const editingApiProfileName = ref('')
-const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000 })
+const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 })
 const showApiCreateDialog = ref(false)
-const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000 })
+const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 })
 
 const updateSettings = newSettings => {
   settings.value = newSettings
@@ -300,12 +301,12 @@ const switchApiProfile = async () => {
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false
   } else {
-    await showMessage({ type: 'error', title: t('api.switchFailed'), message: result.error })
+    toast.error(t('api.switchFailed') + ': ' + result.error)
   }
 }
 
 const createNewApiProfile = () => {
-  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000 }
+  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 }
   showApiCreateDialog.value = true
 }
 
@@ -316,7 +317,7 @@ const closeApiCreateDialog = () => {
 const saveApiCreate = async data => {
   const name = data.name.trim()
   if (!name) {
-    await showMessage({ type: 'warning', title: t('messages.error'), message: t('messages.inputConfigName') })
+    toast.warning(t('messages.inputConfigName'))
     return
   }
   const result = await window.electronAPI.createApiProfile(name)
@@ -327,6 +328,8 @@ const saveApiCreate = async data => {
       baseUrl: data.baseUrl,
       modelName: data.modelName,
       tokensLimit: data.tokensLimit,
+      expiryDays: data.expiryDays || 0,
+      expiryStartDate: data.expiryDays > 0 ? new Date().toISOString() : undefined,
     }
     const loadResult = await window.electronAPI.loadSettings()
     if (loadResult.success) {
@@ -339,10 +342,10 @@ const saveApiCreate = async data => {
       await loadSettings()
       skipNextSaveSettings.value = false
       await loadApiProfiles()
-      await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configCreated', { name }) })
+      toast.success(t('api.configCreated', { name }))
     }
   } else {
-    await showMessage({ type: 'error', title: t('messages.error'), message: result.error })
+    toast.error(result.error)
   }
 }
 
@@ -376,9 +379,9 @@ const deleteApiProfile = async name => {
     modified.value = false
     skipNextSaveSettings.value = false
     await loadApiProfiles()
-    await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configDeleted') })
+    toast.success(t('api.configDeleted'))
   } else {
-    await showMessage({ type: 'error', title: t('messages.error'), message: result.error })
+    toast.error(result.error)
   }
 }
 
@@ -415,9 +418,9 @@ const duplicateApiProfile = async name => {
     await loadApiProfiles()
     // 重新加载当前配置的完整数据，确保 settings.value.apiProfiles 被刷新
     await switchApiProfile()
-    await showMessage({ type: 'info', title: t('messages.success'), message: t('api.configCopied', { name: newName }) })
+    toast.success(t('api.configCopied', { name: newName }))
   } else {
-    await showMessage({ type: 'error', title: t('messages.error'), message: result.error })
+    toast.error(result.error)
   }
 }
 
@@ -431,6 +434,9 @@ const openApiEditDialog = profileName => {
     baseUrl: (profile && profile.baseUrl) || settings.value.baseUrl || '',
     modelName: (profile && profile.modelName) || settings.value.modelName || '',
     tokensLimit: (profile && profile.tokensLimit) || settings.value.tokensLimit || 128000,
+    expiryDays: (profile && profile.expiryDays) || 0,
+    _originalExpiryDays: (profile && profile.expiryDays) || 0,
+    _originalExpiryStartDate: (profile && profile.expiryStartDate) || null,
   }
   showApiEditDialog.value = true
 }
@@ -446,13 +452,13 @@ const saveApiEdit = async data => {
   // 检查名称是否改变
   if (oldName !== newName) {
     if (!newName) {
-      await showMessage({ type: 'warning', title: t('messages.error'), message: t('messages.inputConfigName') })
+      toast.warning(t('messages.inputConfigName'))
       return
     }
     // 调用重命名 API
     const renameResult = await window.electronAPI.renameApiProfile(oldName, newName)
     if (!renameResult.success) {
-      await showMessage({ type: 'error', title: t('messages.error'), message: renameResult.error })
+      toast.error(renameResult.error)
       return
     }
     // 更新当前配置名称
@@ -475,6 +481,18 @@ const saveApiEdit = async data => {
   settings.value.apiProfiles[newName].baseUrl = data.baseUrl
   settings.value.apiProfiles[newName].modelName = data.modelName
   settings.value.apiProfiles[newName].tokensLimit = data.tokensLimit
+  settings.value.apiProfiles[newName].expiryDays = data.expiryDays || 0
+
+  // 仅当 expiryDays 发生变更时，才写入/重置 expiryStartDate
+  const newExpiryDays = data.expiryDays || 0
+  const oldExpiryDays = data._originalExpiryDays || 0
+  if (newExpiryDays !== oldExpiryDays) {
+    // expiryDays 被修改了：如果 >0 则重新开始倒计时，否则清除起始时间
+    settings.value.apiProfiles[newName].expiryStartDate = newExpiryDays > 0 ? new Date().toISOString() : undefined
+  } else {
+    // expiryDays 未变更：保留原始 expiryStartDate
+    settings.value.apiProfiles[newName].expiryStartDate = data._originalExpiryStartDate || undefined
+  }
 
   // 如果编辑的是当前配置，需要同步到主设置对象
   if (newName === currentApiProfile.value) {
@@ -493,7 +511,7 @@ const saveApiEdit = async data => {
     skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
     await loadSettings()
     skipNextSaveSettings.value = false
-    await showMessage({ type: 'success', title: t('messages.success'), message: t('api.configSaved') })
+    toast.success(t('api.configSaved'))
   }
 }
 
@@ -567,6 +585,11 @@ watch(
 
 const showSection = (section, subSection) => {
   currentSection.value = section
+  // 切换页面时重置滚动条
+  nextTick(() => {
+    const contentEl = document.querySelector('.content')
+    if (contentEl) contentEl.scrollTop = 0
+  })
   if (section === 'general' && subSection && subSection.section === 'cloudSync') {
     nextTick(() => {
       setTimeout(() => {
@@ -702,18 +725,18 @@ const handleQuickAddServers = async servers => {
   if (result.success) {
     originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
     modified.value = false
-    await showMessage({ type: 'info', title: t('messages.success'), message: t('mcp.quickAddSuccess', { count: servers.length }) })
+    toast.success(t('mcp.quickAddSuccess', { count: servers.length }))
   }
 }
 
 const saveServerFromPanel = async data => {
   const name = data.name.trim()
   if (!name) {
-    await showMessage({ type: 'warning', title: t('messages.error'), message: t('mcp.inputServerName') })
+    toast.warning(t('mcp.inputServerName'))
     return
   }
   if (!isEditingServer.value && settings.value.mcpServers[name]) {
-    await showMessage({ type: 'warning', title: t('messages.error'), message: t('mcp.serverNameExists') })
+    toast.warning(t('mcp.serverNameExists'))
     return
   }
   if (isEditingServer.value && currentServerName.value && currentServerName.value !== name) {
@@ -927,14 +950,14 @@ const handleDownloadBackground = async () => {
   } catch (error) {
     console.error('Background download failed:', error)
     // 后台下载失败也可以提示用户
-    await showMessage({ type: 'error', title: t('update.title'), message: t('update.error.downloadFailed', { code: '??' }) })
+    toast.error(t('update.error.downloadFailed', { code: '??' }))
   }
 }
 
 const handleUpdateCancel = async () => {
   await window.electronAPI.cancelDownload()
   showUpdateProgress.value = false
-  await showMessage({ type: 'info', title: t('update.title'), message: t('update.updateCancelled') })
+  toast.info(t('update.updateCancelled'))
 }
 
 const handleInstallNow = () => {
@@ -960,12 +983,6 @@ const closeInputDialog = () => {
   showInputDialog.value.defaultValue = ''
 }
 
-const showMessage = ({ type = 'info', title, message, messageParams }) => {
-  return new Promise(resolve => {
-    showMessageDialog.value = { show: true, type, title, message, messageParams }
-  })
-}
-
 const showInput = ({ type, title, placeholder, callback, isConfirm, defaultValue, name }) => {
   showInputDialog.value = { show: true, title, placeholder, callback, isConfirm, defaultValue, name }
 }
@@ -984,10 +1001,6 @@ const handleConfirmDialogCancel = () => {
   }
   pendingConfirmRequest.value = null
   pendingConfirmResolve.value = null
-}
-
-const closeMessageDialog = () => {
-  showMessageDialog.value.show = false
 }
 
 watch(

@@ -150,7 +150,7 @@ async function handleTestConnection() {
       await cloudStore.configureProvider('webdav', config)
     }
   } catch (error) {
-    connectionTestResult.value = { success: false, message: error.message || '' }
+    connectionTestResult.value = { success: false, message: error?.message || String(error) || '' }
   } finally {
     isTesting.value = false
   }

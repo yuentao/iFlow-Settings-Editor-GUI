@@ -17,69 +17,50 @@
         </button>
       </div>
 
-      <!-- Category Filter -->
-      <div v-if="!isLoading" class="category-filter">
-        <button
-          v-for="cat in categories"
-          :key="cat.value"
-          class="category-btn"
-          :class="{ active: selectedCategory === cat.value }"
-          @click="selectedCategory = cat.value"
-        >
-          {{ $t(cat.label) }}
-          <span class="category-count">{{ getCategoryCount(cat.value) }}</span>
-        </button>
-      </div>
-
       <!-- Command List -->
-      <SkeletonLoader v-if="isLoading" type="command" :count="3" />
-      <div class="command-list" v-else>
-        <template v-if="filteredCommands.length > 0">
-          <div
-            v-for="(cmd, index) in filteredCommands"
-            :key="cmd.name"
-            class="command-item"
-            :class="{ selected: selectedCommand === cmd.name }"
-            @click="selectCommand(cmd)"
-          >
-            <div class="command-icon">
-              <Command size="20" />
-            </div>
-            <div class="command-info">
-              <div class="command-name">{{ cmd.name }}</div>
-              <div class="command-desc">{{ cmd.description || $t('commands.noDescription') }}</div>
-              <div class="command-meta">
-                <span class="command-category">
-                  <Tag size="10" />
-                  {{ $t(`commands.category.${cmd.category}`) }}
-                </span>
-                <span class="command-version">v{{ cmd.version }}</span>
-                <span class="command-author">{{ displayAuthor(cmd.author) }}</span>
-              </div>
-            </div>
-            <div class="command-actions">
-              <button class="action-btn" @click.stop="editCommand(cmd)" :title="$t('commands.edit')">
-                <Edit size="14" />
-              </button>
-              <button class="action-btn" @click.stop="exportCommand(cmd)" :title="$t('commands.export')">
-                <Upload size="14" />
-              </button>
-              <button class="action-btn action-btn-danger" @click.stop="deleteCommand(cmd)" :title="$t('commands.delete')">
-                <Delete size="14" />
-              </button>
-            </div>
+      <GenericList
+        :items="filteredCommands"
+        item-key="name"
+        :loading="isLoading"
+        skeleton-type="command"
+        :categories="categories"
+        :selected-category="selectedCategory"
+        :empty-icon="Command"
+        :empty-title="$t('commands.noCommands')"
+        :empty-description="emptyDescription"
+        :empty-action-text="selectedCategory === 'all' ? $t('commands.create') : ''"
+        @update:selected-category="selectedCategory = $event"
+        @action="createCommand"
+      >
+        <template #item-icon>
+          <Command size="20" />
+        </template>
+
+        <template #item-info="{ item: cmd }">
+          <div class="command-name">{{ cmd.name }}</div>
+          <div class="command-desc">{{ cmd.description || $t('commands.noDescription') }}</div>
+          <div class="command-meta">
+            <span class="command-category">
+              <Tag size="10" />
+              {{ $t(`commands.category.${cmd.category}`) }}
+            </span>
+            <span class="command-version">v{{ cmd.version }}</span>
+            <span class="command-author">{{ displayAuthor(cmd.author) }}</span>
           </div>
         </template>
-        <EmptyState
-          v-else
-          :icon="Command"
-          :title="$t('commands.noCommands')"
-          :description="emptyDescription"
-          :actionText="selectedCategory === 'all' ? $t('commands.create') : ''"
-          embedded
-          @action="createCommand"
-        />
-      </div>
+
+        <template #item-actions="{ item: cmd }">
+          <button class="action-btn" @click.stop="editCommand(cmd)" :title="$t('commands.edit')">
+            <Edit size="14" />
+          </button>
+          <button class="action-btn" @click.stop="exportCommand(cmd)" :title="$t('commands.export')">
+            <Upload size="14" />
+          </button>
+          <button class="action-btn action-btn-danger" @click.stop="deleteCommand(cmd)" :title="$t('commands.delete')">
+            <Delete size="14" />
+          </button>
+        </template>
+      </GenericList>
     </div>
 
     <!-- Command Editor Dialog -->
@@ -96,26 +77,26 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Command, Plus, FolderOpen, Edit, Upload, Delete, Tag } from '@icon-park/vue-next'
+import GenericList from '@/components/GenericList.vue'
 import CommandEditorDialog from '@/components/CommandEditorDialog.vue'
-import EmptyState from '@/components/EmptyState.vue'
-import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
+const toast = useToast()
 
-const emit = defineEmits(['show-message', 'commands-changed', 'show-input-dialog'])
+const emit = defineEmits(['commands-changed', 'show-input-dialog'])
 
 const commands = ref([])
-const selectedCommand = ref(null)
 const selectedCategory = ref('all')
 const showEditor = ref(false)
 const editingCommand = ref(null)
 const isLoading = ref(true)
 
 const categories = computed(() => [
-  { value: 'all', label: 'commands.category.all' },
-  { value: 'utility', label: 'commands.category.utility' },
-  { value: 'documentation', label: 'commands.category.documentation' },
-  { value: 'other', label: 'commands.category.other' },
+  { value: 'all', label: t('commands.category.all'), count: commands.value.length },
+  { value: 'utility', label: t('commands.category.utility'), count: commands.value.filter(cmd => cmd.category === 'utility').length },
+  { value: 'documentation', label: t('commands.category.documentation'), count: commands.value.filter(cmd => cmd.category === 'documentation').length },
+  { value: 'other', label: t('commands.category.other'), count: commands.value.filter(cmd => cmd.category === 'other').length },
 ])
 
 const filteredCommands = computed(() => {
@@ -132,11 +113,6 @@ const emptyDescription = computed(() => {
   return t('commands.noCommandsInCategory')
 })
 
-const getCategoryCount = (category) => {
-  if (category === 'all') return commands.value.length
-  return commands.value.filter(cmd => cmd.category === category).length
-}
-
 const displayAuthor = (author) => {
   if (!author || author === '{{__anonymous__}}') {
     return t('commands.anonymous')
@@ -152,17 +128,13 @@ const loadCommands = async () => {
       commands.value = result.commands || []
       emit('commands-changed', commands.value.length)
     } else {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
     }
   } catch (error) {
     console.error('Failed to load commands:', error)
   } finally {
     isLoading.value = false
   }
-}
-
-const selectCommand = (cmd) => {
-  selectedCommand.value = cmd.name
 }
 
 const createCommand = () => {
@@ -182,7 +154,6 @@ const closeEditor = () => {
 
 const saveCommand = async (data) => {
   try {
-    // 处理 author 字段：如果为空则保存为匿名占位符，显示时翻译
     const commandData = { ...data }
     if (!commandData.author) {
       commandData.author = '{{__anonymous__}}'
@@ -190,44 +161,41 @@ const saveCommand = async (data) => {
 
     let result
     if (editingCommand.value) {
-      // Update existing command
       result = await window.electronAPI.updateCommand(editingCommand.value.name, commandData)
       if (result.success) {
-        emit('show-message', { type: 'success', title: 'messages.success', message: 'commands.commandSaved' })
+        toast.success(t('commands.commandSaved'))
       }
     } else {
-      // Create new command
       result = await window.electronAPI.createCommand(commandData.name, commandData)
       if (result.success) {
-        emit('show-message', { type: 'success', title: 'messages.success', message: 'commands.commandCreated', messageParams: { name: data.name } })
+        toast.success(t('commands.commandCreated', { name: data.name }))
       }
     }
 
     if (!result.success) {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
       return
     }
 
     closeEditor()
     await loadCommands()
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 
 const exportCommand = async (cmd) => {
-  const targetCmd = cmd || commands.value.find(c => c.name === selectedCommand.value)
-  if (!targetCmd) return
+  if (!cmd) return
 
   try {
-    const result = await window.electronAPI.exportCommand(targetCmd.name)
+    const result = await window.electronAPI.exportCommand(cmd.name)
     if (result.success) {
-      emit('show-message', { type: 'success', title: 'messages.success', message: 'commands.commandExported', messageParams: { name: targetCmd.name } })
+      toast.success(t('commands.commandExported', { name: cmd.name }))
     } else if (!result.cancelled) {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 
@@ -246,13 +214,10 @@ const deleteCommand = (cmd) => {
 
     window.electronAPI.deleteCommand(cmd.name).then(result => {
       if (result.success) {
-        if (selectedCommand.value === cmd.name) {
-          selectedCommand.value = null
-        }
         loadCommands()
-        emit('show-message', { type: 'success', title: 'messages.success', message: 'commands.commandDeleted', messageParams: { name: cmd.name } })
+        toast.success(t('commands.commandDeleted', { name: cmd.name }))
       } else {
-        emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+        toast.error(result.error)
       }
     })
   })
@@ -264,13 +229,13 @@ const importCommand = async () => {
     if (result.success) {
       await loadCommands()
       if (result.imported && result.imported.length > 0) {
-        emit('show-message', { type: 'success', title: 'messages.success', message: 'commands.commandsImported', messageParams: { count: result.imported.length } })
+        toast.success(t('commands.commandsImported', { count: result.imported.length }))
       }
     } else if (!result.cancelled) {
-      emit('show-message', { type: 'error', title: 'messages.error', message: result.error })
+      toast.error(result.error)
     }
   } catch (error) {
-    emit('show-message', { type: 'error', title: 'messages.error', message: error.message })
+    toast.error(error?.message || String(error))
   }
 }
 
@@ -285,105 +250,6 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
-}
-
-.category-filter {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.category-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  background: var(--control-fill);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: var(--control-fill-hover);
-    border-color: var(--border-hover);
-  }
-
-  &.active {
-    background: var(--accent-light);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .category-count {
-    background: var(--bg-primary);
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 500;
-  }
-}
-
-.command-list {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--bg-secondary);
-}
-
-.command-item {
-  display: flex;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  animation: fadeIn 0.3s ease backwards;
-
-  &:nth-child(1) { animation-delay: 0.02s; }
-  &:nth-child(2) { animation-delay: 0.04s; }
-  &:nth-child(3) { animation-delay: 0.06s; }
-  &:nth-child(4) { animation-delay: 0.08s; }
-  &:nth-child(5) { animation-delay: 0.1s; }
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background: var(--control-fill);
-
-    .command-actions {
-      opacity: 1;
-    }
-  }
-
-  &.selected {
-    background: var(--accent-light);
-    border-left: 3px solid var(--accent);
-    padding-left: 13px;
-  }
-}
-
-.command-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 14px;
-  flex-shrink: 0;
-}
-
-.command-info {
-  flex: 1;
-  min-width: 0;
 }
 
 .command-name {
@@ -420,19 +286,6 @@ onMounted(() => {
   font-family: var(--font-mono);
 }
 
-.command-author {
-  color: var(--text-tertiary);
-}
-
-.command-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  flex-shrink: 0;
-}
-
 .action-btn {
   width: 28px;
   height: 28px;
@@ -454,17 +307,6 @@ onMounted(() => {
   &.action-btn-danger:hover {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 </style>

@@ -194,6 +194,17 @@ export default {
     },
     tokensLimit: 'Context Window Size',
     tokensLimitPlaceholder: '128000',
+    expiryDays: 'Expiry',
+    expiryDaysPlaceholder: '0',
+    expiryDaysUnit: 'days',
+    expiryDaysHint: 'Set to 0 for unlimited',
+    expiry: {
+      expired: 'Expired {days}d ago',
+      hoursLeft: '{hours}h left',
+      daysLeft: '{days}d left',
+      monthsLeft: '{months}mo left',
+      yearsLeft: '{years}y left',
+    },
     connectivity: {
       excellent: 'Excellent connectivity',
       good: 'Good connectivity',
@@ -573,6 +584,7 @@ export default {
       exportSuccess: 'Exported "{name}"',
       importSuccess: '{count} mod(s) imported',
       confirmDelete: 'Are you sure you want to delete mod "{name}"? This action cannot be undone.',
+      confirmToggle: 'Enabling or disabling a mod requires restarting iFlow CLI to take effect. Continue?',
       types: {
         replace: 'Replace',
         append: 'Append',

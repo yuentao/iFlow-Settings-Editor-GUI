@@ -195,6 +195,17 @@ export default {
     },
     tokensLimit: 'コンテキストウィンドウサイズ',
     tokensLimitPlaceholder: '128000',
+    expiryDays: '有効期限',
+    expiryDaysPlaceholder: '0',
+    expiryDaysUnit: '日',
+    expiryDaysHint: '0に設定すると無期限',
+    expiry: {
+      expired: '{days}日前に期限切れ',
+      hoursLeft: 'あと{hours}時間',
+      daysLeft: 'あと{days}日',
+      monthsLeft: 'あと{months}ヶ月',
+      yearsLeft: 'あと{years}年',
+    },
     connectivity: {
       excellent: '接続性極めて良好',
       good: '接続性良好',
@@ -574,6 +585,7 @@ export default {
       exportSuccess: '"{name}" をエクスポートしました',
       importSuccess: '{count} 個の Mod をインポートしました',
       confirmDelete: 'Mod「{name}」を削除しますか？この操作は取り消せません。',
+      confirmToggle: 'Mod の有効化/無効化には iFlow CLI の再起動が必要です。続行しますか？',
       types: {
         replace: '置換',
         append: '追加',

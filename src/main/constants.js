@@ -10,6 +10,8 @@ const API_FIELDS = Object.freeze([
   'baseUrl',
   'modelName',
   'tokensLimit',
+  'expiryDays',
+  'expiryStartDate',
 ])
 
 // API 配置默认值

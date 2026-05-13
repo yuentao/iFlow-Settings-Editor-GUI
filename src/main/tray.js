@@ -124,8 +124,8 @@ function updateTrayMenu() {
     const profile = profiles[name] || {}
     const modelName = profile.modelName || ''
     const label = modelName
-      ? `${name} - ${modelName}${name === currentProfile ? ' ✓' : ''}`
-      : name + (name === currentProfile ? ' ✓' : '')
+      ? `${name} - ${modelName}`
+      : name
     return {
       label,
       type: 'radio',
