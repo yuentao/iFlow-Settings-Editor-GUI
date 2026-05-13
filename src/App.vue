@@ -263,9 +263,9 @@ const existingServerNames = computed(() => Object.keys(settings.value.mcpServers
 const skipNextSaveSettings = ref(false)
 const showApiEditDialog = ref(false)
 const editingApiProfileName = ref('')
-const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000 })
+const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 })
 const showApiCreateDialog = ref(false)
-const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000 })
+const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 })
 
 const updateSettings = newSettings => {
   settings.value = newSettings
@@ -306,7 +306,7 @@ const switchApiProfile = async () => {
 }
 
 const createNewApiProfile = () => {
-  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000 }
+  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 }
   showApiCreateDialog.value = true
 }
 
@@ -328,6 +328,8 @@ const saveApiCreate = async data => {
       baseUrl: data.baseUrl,
       modelName: data.modelName,
       tokensLimit: data.tokensLimit,
+      expiryDays: data.expiryDays || 0,
+      expiryStartDate: data.expiryDays > 0 ? new Date().toISOString() : undefined,
     }
     const loadResult = await window.electronAPI.loadSettings()
     if (loadResult.success) {
@@ -432,6 +434,9 @@ const openApiEditDialog = profileName => {
     baseUrl: (profile && profile.baseUrl) || settings.value.baseUrl || '',
     modelName: (profile && profile.modelName) || settings.value.modelName || '',
     tokensLimit: (profile && profile.tokensLimit) || settings.value.tokensLimit || 128000,
+    expiryDays: (profile && profile.expiryDays) || 0,
+    _originalExpiryDays: (profile && profile.expiryDays) || 0,
+    _originalExpiryStartDate: (profile && profile.expiryStartDate) || null,
   }
   showApiEditDialog.value = true
 }
@@ -476,6 +481,18 @@ const saveApiEdit = async data => {
   settings.value.apiProfiles[newName].baseUrl = data.baseUrl
   settings.value.apiProfiles[newName].modelName = data.modelName
   settings.value.apiProfiles[newName].tokensLimit = data.tokensLimit
+  settings.value.apiProfiles[newName].expiryDays = data.expiryDays || 0
+
+  // 仅当 expiryDays 发生变更时，才写入/重置 expiryStartDate
+  const newExpiryDays = data.expiryDays || 0
+  const oldExpiryDays = data._originalExpiryDays || 0
+  if (newExpiryDays !== oldExpiryDays) {
+    // expiryDays 被修改了：如果 >0 则重新开始倒计时，否则清除起始时间
+    settings.value.apiProfiles[newName].expiryStartDate = newExpiryDays > 0 ? new Date().toISOString() : undefined
+  } else {
+    // expiryDays 未变更：保留原始 expiryStartDate
+    settings.value.apiProfiles[newName].expiryStartDate = data._originalExpiryStartDate || undefined
+  }
 
   // 如果编辑的是当前配置，需要同步到主设置对象
   if (newName === currentApiProfile.value) {

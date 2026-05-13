@@ -195,6 +195,13 @@ export default {
     },
     tokensLimit: '上下文窗口长度',
     tokensLimitPlaceholder: '128000',
+    expiryDays: '过期时间',
+    expiryDaysPlaceholder: '0',
+    expiryDaysUnit: '天',
+    expiryDaysHint: '设置为 0 表示无限期',
+    expiry: {
+      expired: '已过期 {days} 天',
+    },
     connectivity: {
       excellent: '连通性极好',
       good: '连通性良好',

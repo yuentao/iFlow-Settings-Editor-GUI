@@ -86,6 +86,10 @@ export interface ApiProfileConfig {
   baseUrl?: string
   modelName?: string
   tokensLimit?: number
+  /** 过期天数，0 或不设置表示无限 */
+  expiryDays?: number
+  /** 过期倒计时起始时间（ISO 字符串），仅在设置/修改 expiryDays 时写入 */
+  expiryStartDate?: string
 }
 
 // ─── API Profile（列表展示用） ────────────────────────────
