@@ -194,6 +194,13 @@ export default {
     },
     tokensLimit: 'Context Window Size',
     tokensLimitPlaceholder: '128000',
+    expiryDays: 'Expiry',
+    expiryDaysPlaceholder: '0',
+    expiryDaysUnit: 'days',
+    expiryDaysHint: 'Set to 0 for unlimited',
+    expiry: {
+      expired: 'Expired {days}d ago',
+    },
     connectivity: {
       excellent: 'Excellent connectivity',
       good: 'Good connectivity',

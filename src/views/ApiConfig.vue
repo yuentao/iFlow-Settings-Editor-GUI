@@ -43,8 +43,13 @@
                           </span>
                         </div>
                       </div>
-                      <div class="profile-model" :class="{ active: currentProfile === profile.name }" v-if="getProfileModel(profile.name)">
-                        {{ getProfileModel(profile.name) }}
+                      <div class="profile-model-row">
+                        <div class="profile-model" :class="{ active: currentProfile === profile.name }" v-if="getProfileModel(profile.name)">
+                          {{ getProfileModel(profile.name) }}
+                        </div>
+                        <div class="profile-expiry" v-if="getExpiryText(profile.name)" :class="getExpiryClass(profile.name)">
+                          {{ getExpiryText(profile.name) }}
+                        </div>
                       </div>
                     </div>
           <div class="profile-status" v-if="currentProfile === profile.name">
@@ -74,10 +79,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
+import moment from 'moment'
+import 'moment/locale/zh-cn'
 
 const { t } = useI18n()
 
@@ -261,6 +268,47 @@ const getProfileIconStyle = name => {
   const index = Math.abs(hash) % profileColors.length
   return { background: profileColors[index] }
 }
+
+// --- 过期倒计时 ---
+function getProfileExpiryDays(name) {
+  if (!props.settings.apiProfiles || !props.settings.apiProfiles[name]) return 0
+  return props.settings.apiProfiles[name].expiryDays || 0
+}
+
+function getProfileExpiryStartDate(name) {
+  if (!props.settings.apiProfiles || !props.settings.apiProfiles[name]) return null
+  const profile = props.settings.apiProfiles[name]
+  return profile.expiryStartDate || null
+}
+
+function getExpiryDate(name) {
+  const days = getProfileExpiryDays(name)
+  if (!days) return null
+  const startDate = getProfileExpiryStartDate(name)
+  if (!startDate) return null
+  return moment(startDate).add(days, 'days')
+}
+
+function getExpiryText(name) {
+  const expiryDate = getExpiryDate(name)
+  if (!expiryDate) return ''
+  const now = moment()
+  if (expiryDate.isBefore(now)) {
+    return t('api.expiry.expired', { days: Math.abs(expiryDate.diff(now, 'days')) })
+  }
+  return expiryDate.fromNow(true)
+}
+
+function getExpiryClass(name) {
+  const expiryDate = getExpiryDate(name)
+  if (!expiryDate) return ''
+  const now = moment()
+  const daysLeft = expiryDate.diff(now, 'days')
+  if (daysLeft < 0) return 'expiry-expired'
+  if (daysLeft <= 3) return 'expiry-urgent'
+  if (daysLeft <= 7) return 'expiry-warning'
+  return 'expiry-normal'
+}
 </script>
 
 <style lang="less" scoped>
@@ -379,10 +427,16 @@ const getProfileIconStyle = name => {
   color: var(--text-primary);
 }
 
+.profile-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .profile-model {
   font-size: 11px;
   color: var(--text-secondary);
-  margin-top: 4px;
   display: inline-block;
   padding: 2px 8px;
   background: rgba(0, 0, 0, 0.06);
@@ -549,5 +603,58 @@ const getProfileIconStyle = name => {
   padding: 5px 10px;
   font-size: 12px;
   align-self: flex-end;
+}
+
+// Expiry countdown badge
+.profile-expiry {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+}
+
+.expiry-normal {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+
+  &::before { background: #10b981; }
+}
+
+.expiry-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+
+  &::before { background: #f59e0b; }
+}
+
+.expiry-urgent {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+
+  &::before { background: #ef4444; }
+}
+
+.expiry-expired {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-weight: 600;
+
+  &::before { background: #ef4444; }
 }
 </style>

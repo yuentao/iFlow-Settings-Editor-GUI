@@ -68,9 +68,19 @@
             </Teleport>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">{{ $t('api.tokensLimit') }}</label>
-          <input type="number" class="form-input" v-model.number="createData.tokensLimit" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">{{ $t('api.expiryDays') }}</label>
+            <div class="input-with-suffix">
+              <input type="number" class="form-input has-suffix" v-model.number="createData.expiryDays" :placeholder="$t('api.expiryDaysPlaceholder')" min="0" />
+              <span class="input-suffix">{{ $t('api.expiryDaysUnit') }}</span>
+            </div>
+            <div class="form-hint">{{ $t('api.expiryDaysHint') }}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ $t('api.tokensLimit') }}</label>
+            <input type="number" class="form-input" v-model.number="createData.tokensLimit" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+          </div>
         </div>
       </div>
       <div class="dialog-actions">
@@ -152,9 +162,19 @@
             </Teleport>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">{{ $t('api.tokensLimit') }}</label>
-          <input type="number" class="form-input" v-model.number="editData.tokensLimit" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">{{ $t('api.expiryDays') }}</label>
+            <div class="input-with-suffix">
+              <input type="number" class="form-input has-suffix" v-model.number="editData.expiryDays" :placeholder="$t('api.expiryDaysPlaceholder')" min="0" />
+              <span class="input-suffix">{{ $t('api.expiryDaysUnit') }}</span>
+            </div>
+            <div class="form-hint">{{ $t('api.expiryDaysHint') }}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ $t('api.tokensLimit') }}</label>
+            <input type="number" class="form-input" v-model.number="editData.tokensLimit" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+          </div>
         </div>
       </div>
       <div class="dialog-actions">
@@ -184,6 +204,8 @@ interface ApiProfileData {
   baseUrl: string
   modelName: string
   tokensLimit: number
+  expiryDays: number
+  createdAt: string
 }
 
 interface ModelItem {
@@ -537,6 +559,32 @@ const handleSaveEdit = (): void => {
   &.form-error--invisible {
     visibility: hidden;
   }
+}
+
+.form-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+// Input with suffix unit
+.input-with-suffix {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .has-suffix {
+    padding-right: 32px;
+  }
+}
+
+.input-suffix {
+  position: absolute;
+  right: 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  user-select: none;
 }
 
 .form-input--error {

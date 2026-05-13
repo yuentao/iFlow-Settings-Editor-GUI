@@ -195,6 +195,13 @@ export default {
     },
     tokensLimit: 'コンテキストウィンドウサイズ',
     tokensLimitPlaceholder: '128000',
+    expiryDays: '有効期限',
+    expiryDaysPlaceholder: '0',
+    expiryDaysUnit: '日',
+    expiryDaysHint: '0に設定すると無期限',
+    expiry: {
+      expired: '{days}日前に期限切れ',
+    },
     connectivity: {
       excellent: '接続性極めて良好',
       good: '接続性良好',
