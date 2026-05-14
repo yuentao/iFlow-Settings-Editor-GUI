@@ -136,6 +136,11 @@ function extractApiConfig(settings) {
       config[field] = settings[field]
     }
   }
+  // 修复：当 expiryDays 为 0 或不存在时，不应保留 expiryStartDate
+  // 避免 switch-api-profile 时把来自其他配置的 expiryStartDate 写入当前配置
+  if (!config.expiryDays || config.expiryDays <= 0) {
+    delete config.expiryStartDate
+  }
   return config
 }
 

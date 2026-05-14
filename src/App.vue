@@ -73,7 +73,8 @@
       @close-create="closeApiCreateDialog"
       @save-create="saveApiCreate"
       @close-edit="closeApiEditDialog"
-      @save-edit="saveApiEdit" />
+      @save-edit="saveApiEdit"
+      @update-model="handleUpdateModel" />
 
     <ServerPanel v-if="showServerPanel" :show="showServerPanel" :is-editing="isEditingServer" :data="editingServerData" @close="closeServerPanel" @save="saveServerFromPanel" @delete="deleteServer" />
 
@@ -312,6 +313,14 @@ const createNewApiProfile = () => {
 
 const closeApiCreateDialog = () => {
   showApiCreateDialog.value = false
+}
+
+const handleUpdateModel = (mode, modelId) => {
+  if (mode === 'create' && creatingApiData.value) {
+    creatingApiData.value.modelName = modelId
+  } else if (mode === 'edit' && editingApiData.value) {
+    editingApiData.value.modelName = modelId
+  }
 }
 
 const saveApiCreate = async data => {

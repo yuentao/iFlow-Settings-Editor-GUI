@@ -154,7 +154,7 @@ const categories = computed(() => {
 })
 
 const filteredMods = computed(() => {
-  const sorted = [...mods.value].sort((a, b) => a.installedAt - b.installedAt)
+  const sorted = [...mods.value].sort((a, b) => (a.installedAt || 0) - (b.installedAt || 0))
   if (selectedCategory.value === 'all') return sorted
   return sorted.filter(m => m.category === selectedCategory.value)
 })
@@ -433,31 +433,6 @@ onMounted(() => {
 
 .mod-icon-emoji {
   font-size: 20px;
-}
-
-// Action buttons (inside GenericList item-actions slot)
-.action-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  border-radius: var(--radius);
-  transition: all 0.1s ease;
-
-  &:hover {
-    background: var(--control-fill);
-    color: var(--text-primary);
-  }
-
-  &.action-btn-danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger);
-  }
 }
 
 // Toggle Switch

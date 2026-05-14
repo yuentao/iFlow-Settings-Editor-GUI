@@ -76,12 +76,11 @@ const emit = defineEmits(['update', 'later', 'background', 'close'])
 // 格式化 Markdown 格式的更新日志
 const formattedReleaseNotes = computed(() => {
   if (!props.releaseNotes) return ''
-  // 配置 marked 选项
-  marked.setOptions({
-    breaks: true, // 将换行转换为 <br>
-    gfm: true, // 启用 GitHub  flavored Markdown
+  // 使用 marked.use 代替弃用的 setOptions，避免全局配置冲突
+  return marked.parse(props.releaseNotes, {
+    breaks: true,
+    gfm: true,
   })
-  return marked.parse(props.releaseNotes)
 })
 
 const handleUpdate = () => {
@@ -100,26 +99,6 @@ const handleBackground = () => {
 </script>
 
 <style lang="less" scoped>
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1400;
-  animation: fadeIn 0.15s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .update-notification {
   background: var(--bg-elevated);
   border-radius: var(--radius-xl);
@@ -128,11 +107,6 @@ const handleBackground = () => {
   max-width: 90vw;
   box-shadow: var(--shadow-lg);
   animation: scaleIn 0.2s ease;
-}
-
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
 }
 
 .update-header {

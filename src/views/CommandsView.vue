@@ -199,28 +199,30 @@ const exportCommand = async (cmd) => {
   }
 }
 
-const deleteCommand = (cmd) => {
-  new Promise(resolve => {
-    emit('show-input-dialog', {
-      type: 'confirm',
-      title: 'messages.confirmDelete',
-      placeholder: 'commands.confirmDelete',
-      callback: resolve,
-      isConfirm: true,
-      name: cmd.name
+const deleteCommand = async (cmd) => {
+  try {
+    const confirmed = await new Promise(resolve => {
+      emit('show-input-dialog', {
+        type: 'confirm',
+        title: 'messages.confirmDelete',
+        placeholder: 'commands.confirmDelete',
+        callback: resolve,
+        isConfirm: true,
+        name: cmd.name
+      })
     })
-  }).then(confirmed => {
     if (!confirmed) return
 
-    window.electronAPI.deleteCommand(cmd.name).then(result => {
-      if (result.success) {
-        loadCommands()
-        toast.success(t('commands.commandDeleted', { name: cmd.name }))
-      } else {
-        toast.error(result.error)
-      }
-    })
-  })
+    const result = await window.electronAPI.deleteCommand(cmd.name)
+    if (result.success) {
+      await loadCommands()
+      toast.success(t('commands.commandDeleted', { name: cmd.name }))
+    } else {
+      toast.error(result.error)
+    }
+  } catch (error) {
+    toast.error(error?.message || String(error))
+  }
 }
 
 const importCommand = async () => {
@@ -284,29 +286,5 @@ onMounted(() => {
 
 .command-version {
   font-family: var(--font-mono);
-}
-
-.action-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  border-radius: var(--radius);
-  transition: all 0.1s ease;
-
-  &:hover {
-    background: var(--control-fill);
-    color: var(--text-primary);
-  }
-
-  &.action-btn-danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger);
-  }
 }
 </style>

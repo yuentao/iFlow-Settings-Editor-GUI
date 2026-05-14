@@ -539,7 +539,7 @@ onBeforeUnmount(() => {
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-tertiary);
-  background: rgba(2551, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.95);
   border-top: 1px solid var(--border-light);
   text-align: center;
   user-select: none;

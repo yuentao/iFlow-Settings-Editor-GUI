@@ -91,28 +91,4 @@ const serverList = computed(() =>
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.action-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  border-radius: var(--radius);
-  transition: all 0.1s ease;
-
-  &:hover {
-    background: var(--control-fill);
-    color: var(--text-primary);
-  }
-
-  &.action-btn-danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger);
-  }
-}
 </style>

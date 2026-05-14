@@ -195,7 +195,9 @@ const handleBatchAdd = () => {
     .filter(s => s._selected && !s._exists)
     .map(s => {
       const name = ensureUniqueName(s.name, props.existingNames)
-      return { name, config: s.config }
+      // 剥离运行时属性 _selected 和 _exists，避免污染保存的配置
+      const { _selected, _exists, ...cleanConfig } = s
+      return { name, config: cleanConfig.config }
     })
   if (servers.length > 0) {
     emit('add-servers', servers)
@@ -205,39 +207,6 @@ const handleBatchAdd = () => {
 </script>
 
 <style lang="less" scoped>
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1300;
-  animation: fadeIn 0.15s ease;
-}
-
-.dialog {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-xl);
-  padding: 24px;
-  min-width: 420px;
-  max-width: 560px;
-  width: 100%;
-  box-shadow: var(--shadow-xl);
-  animation: scaleIn 0.2s ease;
-}
-
-.dialog-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-}
-
 .dialog-title-row {
   display: flex;
   align-items: center;
@@ -337,13 +306,6 @@ const handleBatchAdd = () => {
   border-radius: var(--radius-sm);
 }
 
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 20px;
-}
-
 .quick-add-server-list {
   max-height: 280px;
   overflow-y: auto;
@@ -420,13 +382,4 @@ const handleBatchAdd = () => {
   margin-top: 8px;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
 </style>

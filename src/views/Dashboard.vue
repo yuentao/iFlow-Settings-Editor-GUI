@@ -197,7 +197,7 @@ const currentApiProfileData = computed(() => {
   if (props.settings.apiProfiles && props.settings.apiProfiles[props.currentApiProfile]) {
     return props.settings.apiProfiles[props.currentApiProfile]
   }
-  return props.settings
+  return null
 })
 
 const apiProfileCount = computed(() => {

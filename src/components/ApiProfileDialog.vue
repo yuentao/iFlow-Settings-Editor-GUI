@@ -234,6 +234,7 @@ const emit = defineEmits<{
   'save-create': [data: ApiProfileData]
   'close-edit': []
   'save-edit': [data: ApiProfileData]
+  'update-model': [mode: 'create' | 'edit', modelId: string]
 }>()
 
 // ---- Model fetch state ----
@@ -354,16 +355,12 @@ function onModelSearch(mode: 'create' | 'edit'): void {
 }
 
 function selectCreateModel(id: string): void {
-  if (props.createData) {
-    props.createData.modelName = id
-  }
+  emit('update-model', 'create', id)
   showCreateDropdown.value = false
 }
 
 function selectEditModel(id: string): void {
-  if (props.editData) {
-    props.editData.modelName = id
-  }
+  emit('update-model', 'edit', id)
   showEditDropdown.value = false
 }
 
@@ -641,15 +638,6 @@ const handleSaveEdit = (): void => {
   .iconpark-icon {
     display: flex;
   }
-}
-
-.spin-icon {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 // ---- Model dropdown ----

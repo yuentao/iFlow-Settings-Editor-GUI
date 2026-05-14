@@ -575,7 +575,6 @@
         </div>
       </div>
     </div>
-
   </section>
 </template>
 
@@ -1116,7 +1115,7 @@ function closeRenameDeviceDialog() {
 
 async function handleSetTombstoneRetentionDays() {
   let days = tombstoneRetentionDays.value
-  if (!days || days < 1) days = 1
+  if (typeof days !== 'number' || Number.isNaN(days) || days < 1) days = 1
   if (days > 365) days = 365
   tombstoneRetentionDays.value = days
   const result = await window.electronAPI.cloudSyncSetTombstoneRetentionDays(days)
@@ -1354,13 +1353,13 @@ const handleCloudSyncStatusChanged = state => {
 .general-settings {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xl);
 }
 
 .section-group {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  margin-top: var(--space-2xl);
 }
 
 .section-header {
@@ -1371,16 +1370,8 @@ const handleCloudSyncStatusChanged = state => {
   user-select: none;
 }
 
-.section-header-clickable {
-  cursor: pointer;
-  border-radius: var(--radius);
-  padding: var(--space-xs) var(--space-sm);
-  margin: 0 calc(-1 * var(--space-sm));
-  transition: background 0.15s ease;
-
-  &:hover {
-    background: var(--control-fill);
-  }
+.content-header + .section-group {
+  margin-top: 0;
 }
 
 .section-header-left {
@@ -1418,38 +1409,11 @@ const handleCloudSyncStatusChanged = state => {
   letter-spacing: normal;
 }
 
-.section-chevron {
-  display: flex;
-  align-items: center;
-  color: var(--text-tertiary);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &.is-expanded {
-    transform: rotate(180deg);
-  }
-}
-
 .section-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
   overflow: hidden;
-}
-
-// Collapse transition
-.collapse-enter-active,
-.collapse-leave-active {
-  transition:
-    max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.25s ease;
-  max-height: 2000px;
-  opacity: 1;
-}
-
-.collapse-enter-from,
-.collapse-leave-to {
-  max-height: 0;
-  opacity: 0;
 }
 
 // ============================================
@@ -2204,51 +2168,11 @@ input:checked + .slider:before {
   text-align: center;
 }
 
-// ============================================
-// Dialog overlays
-// ============================================
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.dialog {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  min-width: 360px;
-  max-width: 460px;
-  box-shadow: var(--shadow-xl);
-}
-
-.dialog-title {
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: var(--space-md);
-}
-
-.dialog-body {
-  padding: var(--space-md) 0;
-}
-
 .dialog-confirm-text {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   line-height: 1.5;
   margin-bottom: var(--space-md);
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-sm);
-  margin-top: var(--space-md);
 }
 
 .password-error {
@@ -2262,36 +2186,6 @@ input:checked + .slider:before {
 // ============================================
 .spin {
   animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 // ============================================
