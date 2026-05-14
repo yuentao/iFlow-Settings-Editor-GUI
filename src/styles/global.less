@@ -216,25 +216,6 @@ span.i-icon {
     }
   }
 
-  // Server list - dark mode
-  .server-list {
-    background: var(--bg-secondary);
-    border-color: var(--border-subtle);
-  }
-
-  .server-item {
-    border-bottom-color: var(--border-subtle);
-
-    &:hover {
-      background: var(--control-fill);
-    }
-
-    &.selected {
-      background: var(--accent-light);
-      border-left-color: var(--accent);
-    }
-  }
-
   // Dialog - enhanced dark mode
   .dialog {
     background: var(--bg-elevated);
@@ -283,7 +264,7 @@ span.i-icon {
   }
 
   // Title bar - dark mode
-  .title-bar {
+  .titlebar {
     background: var(--bg-secondary);
     border-bottom-color: var(--border-subtle);
   }
@@ -1006,82 +987,4 @@ body {
   }
 }
 
-// =============================================================================
-// List Items ( Server List, Profile List )
-// =============================================================================
 
-.server-list {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--bg-secondary);
-}
-
-.server-item {
-  display: flex;
-  align-items: center;
-  padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: all var(--transition-smooth);
-  animation: fadeIn 0.25s ease backwards;
-
-  &:nth-child(1) {
-    animation-delay: 0.02s;
-  }
-  &:nth-child(2) {
-    animation-delay: 0.04s;
-  }
-  &:nth-child(3) {
-    animation-delay: 0.06s;
-  }
-  &:nth-child(4) {
-    animation-delay: 0.08s;
-  }
-  &:nth-child(5) {
-    animation-delay: 0.1s;
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background: var(--control-fill);
-  }
-
-  &.selected {
-    background: var(--accent-light);
-    border-left: 3px solid var(--accent);
-    padding-left: calc(var(--space-lg) - 3px);
-  }
-}
-
-.server-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.server-name {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-}
-
-.server-desc {
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.server-status {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--success);
-  flex-shrink: 0;
-}
