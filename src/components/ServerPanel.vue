@@ -633,33 +633,6 @@ const handleSave = (): void => {
   }
 }
 
-.side-panel-close {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition);
-
-  &:hover {
-    background: var(--control-fill-hover);
-    color: var(--text-primary);
-  }
-
-  svg {
-    width: 12px;
-    height: 12px;
-    stroke: currentColor;
-    stroke-width: 1.5;
-    fill: none;
-  }
-}
-
 .side-panel-body {
   flex: 1;
   padding: var(--space-xl);
@@ -971,13 +944,5 @@ const handleSave = (): void => {
   gap: var(--space-sm);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
 
-@keyframes slideInFromRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
 </style>

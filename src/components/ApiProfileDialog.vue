@@ -640,15 +640,6 @@ const handleSaveEdit = (): void => {
   }
 }
 
-.spin-icon {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 // ---- Model dropdown ----
 .model-dropdown {
   z-index: 9999;

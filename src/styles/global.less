@@ -363,6 +363,15 @@ span.i-icon {
   }
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 // =============================================================================
 // Base Styles
 // =============================================================================
@@ -645,6 +654,30 @@ body {
 }
 
 // =============================================================================
+// Form Error & Hint
+// =============================================================================
+
+.form-error {
+  font-size: var(--font-size-xs);
+  color: var(--danger);
+  margin-top: var(--space-xs);
+  min-height: 16px;
+  transition: all var(--transition);
+}
+
+.form-error--invisible {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.form-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--space-xs);
+  line-height: 1.4;
+}
+
+// =============================================================================
 // Icon
 // =============================================================================
 
@@ -749,6 +782,34 @@ body {
 
   &:active:not(:disabled) {
     background: var(--control-fill-pressed);
+  }
+}
+
+// =============================================================================
+// Action Button (通用列表操作按钮)
+// =============================================================================
+
+.action-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.1s ease;
+
+  &:hover {
+    background: var(--control-fill);
+    color: var(--text-primary);
+  }
+
+  &.action-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
   }
 }
 

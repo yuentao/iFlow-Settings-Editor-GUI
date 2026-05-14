@@ -598,17 +598,6 @@ function getExpiryClass(name) {
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .btn-sm {
   padding: 5px 10px;
   font-size: 12px;

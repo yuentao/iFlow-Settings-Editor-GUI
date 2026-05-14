@@ -64,10 +64,6 @@ defineProps({
   color: var(--text-primary);
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 // Transition
 .applying-enter-active {
   animation: overlay-in 0.2s ease;
