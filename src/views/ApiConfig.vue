@@ -182,22 +182,38 @@ function stopPolling() {
   }
 }
 
+// 记录上一次的配置名集合，用于判断是否只是顺序变化
+let prevProfileNames = new Set()
+
 // profiles 变化时重新初始化连通性状态
 watch(
   () => props.profiles,
-  () => {
+  (newProfiles) => {
+    const newNames = new Set(newProfiles.map(p => p.name))
+    
+    // 判断是否只是顺序变化（集合相同但顺序不同）
+    const isOnlyReorder = prevProfileNames.size === newNames.size &&
+      [...prevProfileNames].every(name => newNames.has(name))
+    
+    // 更新记录
+    prevProfileNames = newNames
+    
     // 清理已不存在的 profile 的连通性数据
-    const names = new Set(props.profiles.map(p => p.name))
     for (const key of Object.keys(connectivityMap)) {
-      if (!names.has(key)) delete connectivityMap[key]
+      if (!newNames.has(key)) delete connectivityMap[key]
     }
-    // 新增的 profile 加入检测
-    pingAll()
+    
+    // 仅当有新增配置时才触发连通性检测（跳过纯顺序变化）
+    if (!isOnlyReorder) {
+      pingAll()
+    }
   },
   { deep: true },
 )
 
 onMounted(() => {
+  // 初始化配置名集合
+  prevProfileNames = new Set(props.profiles.map(p => p.name))
   startPolling()
 })
 

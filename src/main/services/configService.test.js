@@ -15,9 +15,85 @@ import {
   getProfileTombstoneTime,
   getServerTombstoneTime,
   pruneOldTombstones,
+  extractApiConfig,
 } from './configService'
 
 describe('configService', () => {
+  describe('extractApiConfig', () => {
+    it('should extract all API fields from settings', () => {
+      const settings = {
+        selectedAuthType: 'openai-compatible',
+        apiKey: 'test-key',
+        baseUrl: 'https://api.example.com',
+        modelName: 'gpt-4',
+        tokensLimit: 128000,
+        expiryDays: 30,
+        expiryStartDate: '2024-01-01T00:00:00.000Z',
+      }
+
+      const config = extractApiConfig(settings)
+
+      expect(config.selectedAuthType).toBe('openai-compatible')
+      expect(config.apiKey).toBe('test-key')
+      expect(config.baseUrl).toBe('https://api.example.com')
+      expect(config.modelName).toBe('gpt-4')
+      expect(config.tokensLimit).toBe(128000)
+      expect(config.expiryDays).toBe(30)
+      expect(config.expiryStartDate).toBe('2024-01-01T00:00:00.000Z')
+    })
+
+    it('should remove expiryStartDate when expiryDays is 0', () => {
+      const settings = {
+        apiKey: 'test-key',
+        expiryDays: 0,
+        expiryStartDate: '2024-01-01T00:00:00.000Z', // 错误数据，应该被清理
+      }
+
+      const config = extractApiConfig(settings)
+
+      expect(config.expiryDays).toBe(0)
+      expect(config.expiryStartDate).toBeUndefined()
+    })
+
+    it('should remove expiryStartDate when expiryDays is not set', () => {
+      const settings = {
+        apiKey: 'test-key',
+        expiryStartDate: '2024-01-01T00:00:00.000Z', // 错误数据，应该被清理
+      }
+
+      const config = extractApiConfig(settings)
+
+      expect(config.expiryDays).toBeUndefined()
+      expect(config.expiryStartDate).toBeUndefined()
+    })
+
+    it('should keep expiryStartDate when expiryDays > 0', () => {
+      const settings = {
+        apiKey: 'test-key',
+        expiryDays: 30,
+        expiryStartDate: '2024-01-01T00:00:00.000Z',
+      }
+
+      const config = extractApiConfig(settings)
+
+      expect(config.expiryDays).toBe(30)
+      expect(config.expiryStartDate).toBe('2024-01-01T00:00:00.000Z')
+    })
+
+    it('should handle null expiryStartDate gracefully', () => {
+      const settings = {
+        apiKey: 'test-key',
+        expiryDays: 0,
+        expiryStartDate: null,
+      }
+
+      const config = extractApiConfig(settings)
+
+      expect(config.expiryDays).toBe(0)
+      expect(config.expiryStartDate).toBeUndefined()
+    })
+  })
+
   describe('stampModifiedItems', () => {
     it('should set _lastModified on new profile', () => {
       const oldSettings = { apiProfiles: {} }
