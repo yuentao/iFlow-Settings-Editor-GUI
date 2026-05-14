@@ -163,10 +163,8 @@ async function pingProfile(name) {
 }
 
 async function pingAll() {
-  for (const profile of props.profiles) {
-    if (pollingCancelled) break
-    await pingProfile(profile.name)
-  }
+  if (pollingCancelled) return
+  await Promise.all(props.profiles.map(p => pingProfile(p.name)))
 }
 
 function startPolling() {

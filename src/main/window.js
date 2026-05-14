@@ -252,6 +252,19 @@ function setIsQuitting(value) {
  * @returns {boolean}
  */
 /**
+ * 切换最大化/还原
+ */
+function toggleMaximize() {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow.maximize()
+    }
+  }
+}
+
+/**
  * 获取退出状态
  * @returns {boolean}
  */
@@ -281,6 +294,7 @@ module.exports = {
   getMainWindow,
   isMaximized,
   minimize,
+  toggleMaximize,
   close,
   showAndFocus,
   getLoadUrl,

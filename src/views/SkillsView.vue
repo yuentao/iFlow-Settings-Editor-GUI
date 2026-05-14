@@ -176,30 +176,32 @@ const exportSkill = async skill => {
   }
 }
 
-const deleteSkill = skill => {
+const deleteSkill = async skill => {
   const folderToDelete = skill.folderName || skill.name
 
-  new Promise(resolve => {
-    emit('show-input-dialog', {
-      type: 'confirm',
-      title: 'messages.confirmDelete',
-      placeholder: 'messages.confirmDeleteSkill',
-      callback: resolve,
-      isConfirm: true,
-      name: skill.name
+  try {
+    const confirmed = await new Promise(resolve => {
+      emit('show-input-dialog', {
+        type: 'confirm',
+        title: 'messages.confirmDelete',
+        placeholder: 'messages.confirmDeleteSkill',
+        callback: resolve,
+        isConfirm: true,
+        name: skill.name
+      })
     })
-  }).then(confirmed => {
     if (!confirmed) return
 
-    window.electronAPI.deleteSkill(folderToDelete).then(result => {
-      if (result.success) {
-        loadSkills()
-        toast.success(t(result.message, { name: skill.name }))
-      } else {
-        toast.error(result.error)
-      }
-    })
-  })
+    const result = await window.electronAPI.deleteSkill(folderToDelete)
+    if (result.success) {
+      await loadSkills()
+      toast.success(t(result.message, { name: skill.name }))
+    } else {
+      toast.error(result.error)
+    }
+  } catch (error) {
+    toast.error(error?.message || String(error))
+  }
 }
 
 onMounted(() => {

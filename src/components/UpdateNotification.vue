@@ -76,12 +76,11 @@ const emit = defineEmits(['update', 'later', 'background', 'close'])
 // 格式化 Markdown 格式的更新日志
 const formattedReleaseNotes = computed(() => {
   if (!props.releaseNotes) return ''
-  // 配置 marked 选项
-  marked.setOptions({
-    breaks: true, // 将换行转换为 <br>
-    gfm: true, // 启用 GitHub  flavored Markdown
+  // 使用 marked.use 代替弃用的 setOptions，避免全局配置冲突
+  return marked.parse(props.releaseNotes, {
+    breaks: true,
+    gfm: true,
   })
-  return marked.parse(props.releaseNotes)
 })
 
 const handleUpdate = () => {

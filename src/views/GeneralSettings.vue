@@ -1115,7 +1115,7 @@ function closeRenameDeviceDialog() {
 
 async function handleSetTombstoneRetentionDays() {
   let days = tombstoneRetentionDays.value
-  if (!days || days < 1) days = 1
+  if (typeof days !== 'number' || Number.isNaN(days) || days < 1) days = 1
   if (days > 365) days = 365
   tombstoneRetentionDays.value = days
   const result = await window.electronAPI.cloudSyncSetTombstoneRetentionDays(days)

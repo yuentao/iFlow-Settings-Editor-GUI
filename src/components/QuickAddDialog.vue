@@ -195,7 +195,9 @@ const handleBatchAdd = () => {
     .filter(s => s._selected && !s._exists)
     .map(s => {
       const name = ensureUniqueName(s.name, props.existingNames)
-      return { name, config: s.config }
+      // 剥离运行时属性 _selected 和 _exists，避免污染保存的配置
+      const { _selected, _exists, ...cleanConfig } = s
+      return { name, config: cleanConfig.config }
     })
   if (servers.length > 0) {
     emit('add-servers', servers)

@@ -101,11 +101,10 @@ import { marked } from 'marked'
 // 格式化 Markdown 格式的更新日志
 const formattedReleaseNotes = computed(() => {
   if (!props.releaseNotes) return ''
-  marked.setOptions({
+  return marked.parse(props.releaseNotes, {
     breaks: true,
     gfm: true,
   })
-  return marked.parse(props.releaseNotes)
 })
 
 const handleCancel = () => {

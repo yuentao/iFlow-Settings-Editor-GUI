@@ -154,7 +154,7 @@ const categories = computed(() => {
 })
 
 const filteredMods = computed(() => {
-  const sorted = [...mods.value].sort((a, b) => a.installedAt - b.installedAt)
+  const sorted = [...mods.value].sort((a, b) => (a.installedAt || 0) - (b.installedAt || 0))
   if (selectedCategory.value === 'all') return sorted
   return sorted.filter(m => m.category === selectedCategory.value)
 })
