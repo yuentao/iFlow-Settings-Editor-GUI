@@ -1,9 +1,7 @@
 <template>
   <section>
-    <div class="content-header">
-      <h1 class="content-title">{{ $t('dashboard.title') }}</h1>
-      <p class="content-desc">{{ $t('dashboard.description') }}</p>
-    </div>
+    <!-- 模型使用趋势图表 -->
+    <ModelUsageChart :stats="modelStats" :loading="modelStatsLoading" :error="modelStatsError" :refreshing="modelStatsRefreshing" @refresh="handleModelStatsRefresh" />
 
     <!-- 状态卡片网格 -->
     <div class="stats-grid">
@@ -98,19 +96,13 @@
         <div class="stat-content">
           <div class="stat-label">{{ $t('dashboard.cloudSync') }}</div>
           <div class="stat-value stat-value-sm">{{ cloudSyncStatusLabel }}</div>
-          <div class="stat-sub" v-if="syncEnabled && cloudStore.isConfigured && cloudStore.status.lastSyncAt">
-            {{ $t('dashboard.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }}
-          </div>
+          <div class="stat-sub" v-if="syncEnabled && cloudStore.isConfigured && cloudStore.status.lastSyncAt"> {{ $t('dashboard.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }} </div>
           <div class="stat-sub stat-sub-empty" v-else-if="syncEnabled && cloudStore.isConfigured">
             {{ $t('dashboard.neverSynced') }}
           </div>
         </div>
         <div class="stat-actions">
-          <button
-            class="btn btn-primary btn-xs"
-            :disabled="!syncEnabled || !cloudStore.isConfigured || cloudStore.isSyncing"
-            @click.stop="handleSyncNow"
-          >
+          <button class="btn btn-primary btn-xs" :disabled="!syncEnabled || !cloudStore.isConfigured || cloudStore.isSyncing" @click.stop="handleSyncNow">
             <Loading v-if="cloudStore.isSyncing" size="12" class="spin" />
             <Refresh v-else size="12" />
           </button>
@@ -123,14 +115,7 @@
           <div class="dialog-title">{{ $t('cloudSync.enterPassword') }}</div>
           <div class="dialog-body">
             <div class="form-group">
-              <input
-                type="password"
-                class="form-input"
-                v-model="syncPasswordDialog.password"
-                :placeholder="$t('cloudSync.enterPassword')"
-                @keyup.enter="handleSyncPasswordConfirm"
-                autofocus
-              />
+              <input type="password" class="form-input" v-model="syncPasswordDialog.password" :placeholder="$t('cloudSync.enterPassword')" @keyup.enter="handleSyncPasswordConfirm" autofocus />
             </div>
             <div class="password-error" v-if="syncPasswordDialog.error">{{ syncPasswordDialog.error }}</div>
           </div>
@@ -147,13 +132,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Key, Server, Star, Command, Refresh, Loading, Puzzle } from '@icon-park/vue-next'
 import { useCloudSyncStore } from '@/stores/cloudSync'
+import ModelUsageChart from '@/components/ModelUsageChart.vue'
+import { useModelUsageStats } from '@/composables/useModelUsageStats'
 
 const { t } = useI18n()
 const cloudStore = useCloudSyncStore()
+
+// 模型使用统计
+const { loading: modelStatsLoading, error: modelStatsError, stats: modelStats, refreshing: modelStatsRefreshing, fetchStats, startAutoRefresh, stopAutoRefresh } = useModelUsageStats()
+
+async function handleModelStatsRefresh(days) {
+  await fetchStats({ days })
+  const interval = props.settings?.modelUsageRefreshInterval ?? 5
+  startAutoRefresh(days, interval)
+}
 
 // 云同步开关状态（由 cloudSync store 统一管理，包括 localStorage 持久化）
 const syncEnabled = computed(() => cloudStore.syncEnabled)
@@ -267,6 +263,14 @@ function closeSyncPasswordDialog() {
 
 onMounted(async () => {
   await cloudStore.loadStatus()
+  // 加载模型使用统计并启动自动刷新
+  const interval = props.settings?.modelUsageRefreshInterval ?? 5
+  await fetchStats({ days: 7 })
+  startAutoRefresh(7, interval)
+})
+
+onUnmounted(() => {
+  stopAutoRefresh()
 })
 </script>
 
@@ -283,7 +287,7 @@ onMounted(async () => {
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-lg);
   align-content: center;
-
+  margin-top: var(--space-lg);
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
@@ -473,7 +477,8 @@ onMounted(async () => {
 
 // 图标脉冲动画（hover时）
 @keyframes iconPulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {

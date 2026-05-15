@@ -23,6 +23,7 @@
           <SkeletonLoader v-else-if="currentSection === 'skills'" type="list" :count="3" />
           <SkeletonLoader v-else-if="currentSection === 'commands'" type="command" :count="3" />
           <SkeletonLoader v-else-if="currentSection === 'iflow'" type="list" :count="4" />
+          <SkeletonLoader v-else-if="currentSection === 'projects'" type="card" :count="3" />
           <SkeletonLoader v-else type="form" :count="4" />
         </template>
         <template v-else>
@@ -59,6 +60,9 @@
           <DocsView v-if="currentSection === 'docs'" />
 
           <IflowModsView v-if="currentSection === 'iflow'" @show-input-dialog="showInput" />
+
+          <ProjectsView v-if="currentSection === 'projects' && !activeSession" @open-session="openSessionDetail" />
+          <SessionDetailView v-if="currentSection === 'projects' && activeSession" :project="activeSession.project" :session="activeSession.session" @back="closeSessionDetail" />
         </template>
       </div>
     </main>
@@ -145,16 +149,26 @@ import { useCloudSyncStore } from './stores/cloudSync'
 import { useToast } from './composables/useToast'
 
 // 视图组件懒加载
-import { defineAsyncComponent } from 'vue'
+import { defineAsyncComponent, h } from 'vue'
 
 const loadingComponent = {
-  template: '<div class="async-loading"><div class="skeleton-header-title"></div><div class="skeleton-header-desc"></div></div>',
+  render() {
+    return h('div', { class: 'async-loading' }, [
+      h('div', { class: 'skeleton-header-title' }),
+      h('div', { class: 'skeleton-header-desc' }),
+    ])
+  },
 }
 
 const errorComponent = {
-  template: '<div class="async-error"><p>{{ error }}</p><button @click="$emit(\'retry\')">{{ $t(\'app.retry\') }}</button></div>',
   props: ['error'],
   emits: ['retry'],
+  render() {
+    return h('div', { class: 'async-error' }, [
+      h('p', this.error),
+      h('button', { onClick: () => this.$emit('retry') }, this.$t('app.retry')),
+    ])
+  },
 }
 
 const Dashboard = defineAsyncComponent({
@@ -205,6 +219,18 @@ const IflowModsView = defineAsyncComponent({
   errorComponent,
   delay: 200,
 })
+const ProjectsView = defineAsyncComponent({
+  loader: () => import('./views/ProjectsView.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200,
+})
+const SessionDetailView = defineAsyncComponent({
+  loader: () => import('./views/SessionDetailView.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200,
+})
 
 const { locale, t } = useI18n()
 const cloudSyncStore = useCloudSyncStore()
@@ -240,6 +266,7 @@ const settings = ref({
   approvalMode: 'autoEdit',
   thinkingModeEnabled: 'true',
   connectivityPollInterval: 30,
+      modelUsageRefreshInterval: 5,
 })
 
 const originalSettings = ref({})
@@ -558,6 +585,7 @@ const loadSettings = async () => {
     if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
     if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
+    if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
     settings.value = data
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false
@@ -616,6 +644,17 @@ const skillCount = ref(0)
 const commandCount = ref(0)
 
 const modCount = ref(0)
+
+// 项目会话导航状态
+const activeSession = ref(null)
+
+const openSessionDetail = (project, session) => {
+  activeSession.value = { project, session }
+}
+
+const closeSessionDetail = () => {
+  activeSession.value = null
+}
 
 const loadSkillCount = async () => {
   try {
