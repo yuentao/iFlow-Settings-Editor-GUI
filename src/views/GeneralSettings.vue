@@ -496,13 +496,6 @@
             </div>
           </div>
         </div>
-        <!-- 后台下载进度指示器 -->
-        <div v-if="isBackgroundDownloading" class="background-progress">
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: backgroundProgress + '%' }"></div>
-          </div>
-          <div class="progress-text">{{ $t('update.backgroundDownloading', { progress: backgroundProgress }) }}</div>
-        </div>
       </div>
     </div>
 
@@ -662,8 +655,6 @@ const cloudConfirmDialog = ref({
 // 更新相关状态
 const updateReady = ref(false)
 const updateVersion = ref('')
-const isBackgroundDownloading = ref(false)
-const backgroundProgress = ref(0)
 
 const supportsAcrylic = computed(() => {
   if (typeof document === 'undefined' || !('backdropFilter' in document.documentElement.style)) return false
@@ -676,23 +667,8 @@ const handleStatusChanged = state => {
   if (state.status === 'downloaded') {
     updateReady.value = true
     updateVersion.value = state.info?.version || ''
-    isBackgroundDownloading.value = false
-    backgroundProgress.value = 100
-  } else if (state.status === 'downloading' && state.isBackground) {
-    isBackgroundDownloading.value = true
-    updateReady.value = false
-    backgroundProgress.value = state.progress || 0
   } else {
-    isBackgroundDownloading.value = false
     updateReady.value = false
-    backgroundProgress.value = 0
-  }
-}
-
-// 后台下载进度处理
-const handleBackgroundProgress = progress => {
-  if (isBackgroundDownloading.value) {
-    backgroundProgress.value = typeof progress === 'object' ? progress.percent : progress
   }
 }
 
@@ -761,8 +737,6 @@ onMounted(async () => {
 
   // 监听更新状态变化
   window.electronAPI.onUpdateStatusChanged(handleStatusChanged)
-  // 监听下载进度（后台下载用）
-  window.electronAPI.onUpdateDownloadProgress(handleBackgroundProgress)
 
   // 初始化云同步状态（开关状态由 localStorage 持久化，不从 settings.json 加载）
   await cloudStore.loadStatus()
@@ -781,7 +755,6 @@ onMounted(async () => {
 onUnmounted(() => {
   if (window.electronAPI && window.electronAPI.removeUpdateListener) {
     window.electronAPI.removeUpdateListener('update-status-changed', handleStatusChanged)
-    window.electronAPI.removeUpdateListener('update-download-progress', handleBackgroundProgress)
   }
   if (window.electronAPI?.removeListener) {
     window.electronAPI.removeListener('cloud-sync:status-changed', handleCloudSyncStatusChanged)
@@ -2146,33 +2119,6 @@ input:checked + .slider:before {
 .about-btn-group {
   display: flex;
   gap: var(--space-sm);
-}
-
-// Background download progress
-.background-progress {
-  margin-top: var(--space-md);
-  padding: 0 var(--space-sm);
-}
-
-.background-progress .progress-bar {
-  height: 6px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  margin-bottom: var(--space-xs);
-}
-
-.background-progress .progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-light));
-  border-radius: var(--radius-sm);
-  transition: width 0.2s ease;
-}
-
-.background-progress .progress-text {
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-  text-align: center;
 }
 
 .dialog-confirm-text {
