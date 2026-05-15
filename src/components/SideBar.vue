@@ -18,6 +18,7 @@
         <div class="nav-item" :class="{ active: currentSection === 'projects' }" @click="$emit('navigate', 'projects')">
           <FolderOpen size="16" />
           <span class="nav-item-text">{{ $t('sidebar.projects') }}</span>
+          <span class="experimental-badge">{{ $t('sidebar.experimental') }}</span>
         </div>
       </div>
       <div class="sidebar-section">

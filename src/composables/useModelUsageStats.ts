@@ -33,6 +33,7 @@ export function useModelUsageStats() {
   const loading = ref(false)
   const error = ref<Error | null>(null)
   const stats = ref<ModelUsageTrendResponse | null>(null)
+  const refreshing = ref(false)
 
   let refreshTimer: ReturnType<typeof setInterval> | null = null
 
@@ -74,9 +75,10 @@ export function useModelUsageStats() {
     })
   }
 
-  async function fetchStats(options: { days?: number } = {}): Promise<void> {
+  async function fetchStats(options: { days?: number; silent?: boolean } = {}): Promise<void> {
     const days = options.days || 7
-    loading.value = true
+    refreshing.value = true
+    if (!options.silent) loading.value = true
     error.value = null
 
     try {
@@ -88,9 +90,10 @@ export function useModelUsageStats() {
       const rawMessages: RawMessage[] = result.messages || []
       stats.value = await processWithWorker(rawMessages, days)
     } catch (e) {
-      error.value = e instanceof Error ? e : new Error(String(e))
+      if (!options.silent) error.value = e instanceof Error ? e : new Error(String(e))
     } finally {
-      loading.value = false
+      refreshing.value = false
+      if (!options.silent) loading.value = false
     }
   }
 
@@ -98,7 +101,7 @@ export function useModelUsageStats() {
     stopAutoRefresh()
     const ms = Math.max(60000, intervalMinutes * 60000)
     refreshTimer = setInterval(() => {
-      fetchStats({ days })
+      fetchStats({ days, silent: true })
     }, ms)
   }
 
@@ -121,6 +124,7 @@ export function useModelUsageStats() {
     loading,
     error,
     stats,
+    refreshing,
     fetchStats,
     startAutoRefresh,
     stopAutoRefresh,

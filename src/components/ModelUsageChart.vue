@@ -13,7 +13,7 @@
             :key="opt.value"
             class="range-btn"
             :class="{ active: activeDays === opt.value }"
-            :disabled="switching"
+            :disabled="refreshing"
             @click="handleTimeRangeChange(opt.value)"
           >
             {{ opt.label }}
@@ -81,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import VueApexCharts from 'vue3-apexcharts'
 import type { ModelUsageTrendResponse } from '@/composables/useModelUsageStats'
@@ -92,6 +92,7 @@ const props = defineProps<{
   stats: ModelUsageTrendResponse | null
   loading: boolean
   error: string | null
+  refreshing: boolean
 }>()
 
 const emit = defineEmits<{
@@ -249,22 +250,14 @@ function formatDateLabel(dateStr: string): string {
   })
 }
 
-const switching = ref(false)
-
 function handleTimeRangeChange(days: number) {
-  if (switching.value) return
   activeDays.value = days
-  switching.value = true
   emit('refresh', days)
 }
 
 function handleRefresh() {
   emit('refresh', activeDays.value)
 }
-
-watch(() => props.loading, (val) => {
-  if (!val) switching.value = false
-})
 </script>
 
 <script lang="ts">

@@ -1,7 +1,7 @@
 <template>
   <section>
     <!-- 模型使用趋势图表 -->
-    <ModelUsageChart :stats="modelStats" :loading="modelStatsLoading" :error="modelStatsError" @refresh="handleModelStatsRefresh" />
+    <ModelUsageChart :stats="modelStats" :loading="modelStatsLoading" :error="modelStatsError" :refreshing="modelStatsRefreshing" @refresh="handleModelStatsRefresh" />
 
     <!-- 状态卡片网格 -->
     <div class="stats-grid">
@@ -143,7 +143,7 @@ const { t } = useI18n()
 const cloudStore = useCloudSyncStore()
 
 // 模型使用统计
-const { loading: modelStatsLoading, error: modelStatsError, stats: modelStats, fetchStats, startAutoRefresh, stopAutoRefresh } = useModelUsageStats()
+const { loading: modelStatsLoading, error: modelStatsError, stats: modelStats, refreshing: modelStatsRefreshing, fetchStats, startAutoRefresh, stopAutoRefresh } = useModelUsageStats()
 
 async function handleModelStatsRefresh(days) {
   await fetchStats({ days })
