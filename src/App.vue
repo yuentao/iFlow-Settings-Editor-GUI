@@ -348,7 +348,14 @@ const switchApiProfile = async () => {
     if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
     if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     settings.value = data
-    originalSettings.value = structuredClone(data) = () => {
+    originalSettings.value = structuredClone(data)
+    modified.value = false
+  } else {
+    toast.error(t('api.switchFailed') + ': ' + result.error)
+  }
+}
+
+const createNewApiProfile = () => {
   creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 }
   showApiCreateDialog.value = true
 }
@@ -424,6 +431,10 @@ const deleteApiProfile = async name => {
     if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     settings.value = data
     originalSettings.value = structuredClone(data)
+    modified.value = false
+    skipNextSaveSettings.value = false
+    await loadApiProfiles()
+    toast.success(t('api.configDeleted'))
   } else {
     toast.error(result.error)
   }
@@ -549,6 +560,13 @@ const saveApiEdit = async data => {
 
   showApiEditDialog.value = false
   const dataToSave = structuredClone(settings.value)
+  const result = await window.electronAPI.saveSettings(dataToSave)
+  skipNextSaveSettings.value = false
+  if (result.success) {
+    skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
+    await loadSettings()
+    skipNextSaveSettings.value = false
+    toast.success(t('api.configSaved'))
   }
 }
 
@@ -589,6 +607,12 @@ const loadSettings = async () => {
     if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
     settings.value = data
     originalSettings.value = structuredClone(data)
+    modified.value = false
+  }
+  isLoading.value = false
+}
+
+watch(
   settings,
   () => {
     if (!isLoading.value) {
