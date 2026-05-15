@@ -46,6 +46,18 @@
         </div>
       </div>
     </div>
+    <!-- 全局后台下载进度条 -->
+    <Transition name="download-bar">
+      <div v-if="isBackgroundDownloading" class="global-download-bar">
+        <div class="global-download-fill" :style="{ width: updateDownloadProgress + '%' }"></div>
+        <div class="global-download-inner">
+          <svg class="global-download-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 1v9M4 7l4 4 4-4M2 13h12" />
+          </svg>
+          <span class="global-download-text">{{ $t('update.backgroundDownloading', { progress: Math.round(updateDownloadProgress) }) }}</span>
+        </div>
+      </div>
+    </Transition>
     <div class="collapse-btn" @click="toggleCollapse">
       <span class="collapse-arrow" :class="{ rotated: collapsed }">‹</span>
     </div>
@@ -61,14 +73,19 @@ import { Config, Key, Server, Star, Dashboard, Command, Book, Puzzle, FolderOpen
 
 interface Props {
   currentSection?: string
+  isBackgroundDownloading?: boolean
+  updateDownloadProgress?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   currentSection: 'dashboard',
+  isBackgroundDownloading: false,
+  updateDownloadProgress: 0,
 })
 
 const emit = defineEmits<{
   navigate: [section: string]
+  'show-download-detail': []
 }>()
 
 const collapsed = ref(false)
@@ -101,6 +118,128 @@ const toggleCollapse = (): void => {
   flex-direction: column;
   gap: 24px;
   overflow-y: auto;
+}
+
+// 全局后台下载进度条（侧边栏底部）
+.global-download-bar {
+  height: 28px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-light);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+
+  .sidebar.collapsed & {
+    height: 24px;
+  }
+}
+
+.global-download-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.12;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -60%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    animation: download-shimmer 2s ease-in-out infinite;
+  }
+}
+
+@keyframes download-shimmer {
+  0% { left: -60%; }
+  100% { left: 100%; }
+}
+
+.global-download-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  width: 100%;
+  transition: transform 0.15s ease;
+
+  .sidebar.collapsed & {
+    justify-content: center;
+    padding: 0 4px;
+  }
+}
+
+.global-download-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+  flex-shrink: 0;
+  animation: download-bounce 1.5s ease-in-out infinite;
+
+  .sidebar.collapsed & {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@keyframes download-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(2px); }
+}
+
+.global-download-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .sidebar.collapsed & {
+    display: none;
+  }
+}
+
+// 进度条进出动画
+.download-bar-enter-active {
+  animation: bar-slide-in 0.25s ease-out;
+}
+
+.download-bar-leave-active {
+  animation: bar-slide-out 0.2s ease-in;
+}
+
+@keyframes bar-slide-in {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 28px;
+  }
+}
+
+@keyframes bar-slide-out {
+  from {
+    opacity: 1;
+    max-height: 28px;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+  }
 }
 
 .collapse-btn {

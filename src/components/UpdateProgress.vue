@@ -3,9 +3,7 @@
     <div class="update-progress" @click.stop>
       <div class="progress-header">
         <div class="progress-icon">
-          <svg v-if="status === 'downloading'" class="spinning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12a9 9 0 11-6.219-8.56" />
-          </svg>
+          <div v-if="status === 'downloading'" class="progress-spinner"></div>
           <svg v-else-if="status === 'downloaded'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10" />
             <path d="M9 12l2 2 4-4" />
@@ -140,17 +138,33 @@ const handleLater = () => {
   width: 56px;
   height: 56px;
   margin: 0 auto var(--space-md);
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+
+  &:has(.progress-spinner) {
+    background: none;
+  }
+
+  &:has(svg) {
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  }
 
   svg {
     width: 28px;
     height: 28px;
     color: white;
   }
+}
+
+.progress-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .progress-title {

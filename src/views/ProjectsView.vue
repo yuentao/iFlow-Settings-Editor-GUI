@@ -189,9 +189,10 @@ async function handleDeleteSession(session: SessionSummary) {
       const result = await store.deleteSessionAction(expandedProjectId.value!, session.id)
       if (result.success) {
         toast.success(t('projects.deleteSuccess'))
+        // 从 store 的 sessions 数组重新计算实际数量
         const project = store.projects.find(p => p.id === expandedProjectId.value)
         if (project) {
-          project.sessionCount = Math.max(0, project.sessionCount - 1)
+          project.sessionCount = store.sessions.length
         }
       } else {
         toast.error(t('projects.deleteFailed') + ': ' + (result.error || ''))

@@ -2,14 +2,14 @@
   <div class="app" :class="themeClass">
     <TitleBar @minimize="minimize" @maximize="maximize" @close="close" />
 
-    <!-- 全局后台下载进度条 -->
-    <div v-if="isBackgroundDownloading" class="global-download-bar" @click="showDownloadDetail">
-      <div class="global-download-fill" :style="{ width: updateDownloadProgress + '%' }"></div>
-      <span class="global-download-text">{{ $t('update.backgroundDownloading', { progress: Math.round(updateDownloadProgress) }) }}</span>
-    </div>
-
     <main class="main">
-      <SideBar :current-section="currentSection" @navigate="showSection" />
+      <SideBar
+        :current-section="currentSection"
+        :is-background-downloading="isBackgroundDownloading"
+        :update-download-progress="updateDownloadProgress"
+        @navigate="showSection"
+        @show-download-detail="showDownloadDetail"
+      />
 
       <div class="content">
         <template v-if="isLoading">
@@ -61,7 +61,7 @@
 
           <IflowModsView v-if="currentSection === 'iflow'" @show-input-dialog="showInput" />
 
-          <ProjectsView v-if="currentSection === 'projects' && !activeSession" @open-session="openSessionDetail" />
+          <ProjectsView v-show="currentSection === 'projects' && !activeSession" @open-session="openSessionDetail" />
           <SessionDetailView v-if="currentSection === 'projects' && activeSession" :project="activeSession.project" :session="activeSession.session" @back="closeSessionDetail" />
         </template>
       </div>
@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRaw } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import locales from './locales/index.js'
@@ -132,6 +132,34 @@ const localeMap = {
   'zh-CN': locales,
   'en-US': enUS,
   'ja-JP': jaJP,
+}
+
+// 安全深拷贝：先解包 Vue reactive proxy，再用 structuredClone
+const deepClone = (obj) => structuredClone(toRaw(obj))
+
+// 防抖：settings 深度 watcher 合并连续修改为一次 IPC 保存
+let _settingsSaveTimer = null
+const SETTINGS_SAVE_DELAY = 500
+
+const debouncedSaveSettings = (getSettings) => {
+  if (_settingsSaveTimer) clearTimeout(_settingsSaveTimer)
+  _settingsSaveTimer = setTimeout(async () => {
+    _settingsSaveTimer = null
+    // 窗口隐藏到托盘时跳过保存，减少后台 IPC 开销
+    if (document.hidden) return
+    const dataToSave = deepClone(getSettings())
+    await window.electronAPI.saveSettings(dataToSave)
+  }, SETTINGS_SAVE_DELAY)
+}
+
+// 立即刷新待保存的设置（组件卸载或关键操作前调用）
+const flushPendingSave = async () => {
+  if (_settingsSaveTimer) {
+    clearTimeout(_settingsSaveTimer)
+    _settingsSaveTimer = null
+    const dataToSave = deepClone(settings.value)
+    await window.electronAPI.saveSettings(dataToSave)
+  }
 }
 
 import TitleBar from './components/TitleBar.vue'
@@ -310,10 +338,7 @@ const loadApiProfiles = async () => {
 const switchApiProfile = async () => {
   const result = await window.electronAPI.switchApiProfile(currentApiProfile.value)
   if (result.success) {
-    const data = JSON.parse(JSON.stringify(result.data))
-    if (!data.checkpointing) data.checkpointing = { enabled: true }
-    if (!data.mcpServers) data.mcpServers = {}
-    // CLI 行为控制 - 新字段默认值
+    const data = structuredClone(result.data)
     if (data.autoAccept === undefined) data.autoAccept = false
     if (data.hideBanner === undefined) data.hideBanner = false
     if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
@@ -326,7 +351,7 @@ const switchApiProfile = async () => {
     if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
     if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     settings.value = data
-    originalSettings.value = JSON.parse(JSON.stringify(data))
+    originalSettings.value = structuredClone(data)
     modified.value = false
   } else {
     toast.error(t('api.switchFailed') + ': ' + result.error)
@@ -394,10 +419,7 @@ const deleteApiProfile = async name => {
   if (!confirmed) return
   const result = await window.electronAPI.deleteApiProfile(profileName)
   if (result.success) {
-    const data = JSON.parse(JSON.stringify(result.data))
-    if (!data.checkpointing) data.checkpointing = { enabled: true }
-    if (!data.mcpServers) data.mcpServers = {}
-    skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
+    const data = structuredClone(result.data)
     // CLI 行为控制 - 新字段默认值
     if (data.autoAccept === undefined) data.autoAccept = false
     if (data.hideBanner === undefined) data.hideBanner = false
@@ -411,7 +433,7 @@ const deleteApiProfile = async name => {
     if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
     if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     settings.value = data
-    originalSettings.value = JSON.parse(JSON.stringify(data))
+    originalSettings.value = structuredClone(data)
     modified.value = false
     skipNextSaveSettings.value = false
     await loadApiProfiles()
@@ -427,11 +449,11 @@ const reorderApiProfiles = async newProfiles => {
   // 保存排序顺序到settings
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
   settings.value.apiProfilesOrder = newProfiles.map(p => p.name)
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const dataToSave = deepClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    originalSettings.value = structuredClone(dataToSave)
     modified.value = false
   }
 }
@@ -540,7 +562,7 @@ const saveApiEdit = async data => {
   }
 
   showApiEditDialog.value = false
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const dataToSave = deepClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
@@ -554,7 +576,7 @@ const saveApiEdit = async data => {
 const loadSettings = async () => {
   const result = await window.electronAPI.loadSettings()
   if (result.success) {
-    const data = JSON.parse(JSON.stringify(result.data))
+    const data = structuredClone(result.data)
     if (!data.checkpointing) data.checkpointing = { enabled: true }
     if (!data.mcpServers) data.mcpServers = {}
     if (data.language === undefined) data.language = 'zh-CN'
@@ -587,7 +609,7 @@ const loadSettings = async () => {
     if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
     if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
     settings.value = data
-    originalSettings.value = JSON.parse(JSON.stringify(data))
+    originalSettings.value = structuredClone(data)
     modified.value = false
   }
   isLoading.value = false
@@ -595,15 +617,14 @@ const loadSettings = async () => {
 
 watch(
   settings,
-  async () => {
+  () => {
     if (!isLoading.value) {
       if (skipNextSaveSettings.value) {
         skipNextSaveSettings.value = false
         return
       }
       modified.value = true
-      const dataToSave = JSON.parse(JSON.stringify(settings.value))
-      await window.electronAPI.saveSettings(dataToSave)
+      debouncedSaveSettings(() => settings.value)
     }
   },
   { deep: true },
@@ -767,11 +788,11 @@ const handleQuickAddServers = async servers => {
     settings.value.mcpServers[name] = config
   }
   skipNextSaveSettings.value = true
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const dataToSave = deepClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    originalSettings.value = structuredClone(dataToSave)
     modified.value = false
     toast.success(t('mcp.quickAddSuccess', { count: servers.length }))
   }
@@ -796,11 +817,11 @@ const saveServerFromPanel = async data => {
   currentServerName.value = name
   showServerPanel.value = false
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const dataToSave = deepClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    originalSettings.value = structuredClone(dataToSave)
     modified.value = false
   }
 }
@@ -827,11 +848,11 @@ const deleteServerByName = async serverName => {
     showServerPanel.value = false
   }
   skipNextSaveSettings.value = true
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const dataToSave = deepClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    originalSettings.value = structuredClone(dataToSave)
     modified.value = false
   }
 }
@@ -1163,6 +1184,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  // 刷新待保存的设置，避免防抖未触发导致数据丢失
+  flushPendingSave()
   // P0-05 + P0-06：移除所有事件监听器，防止内存泄漏
   for (const cleanup of cleanupFns) {
     try {
@@ -1177,58 +1200,6 @@ onUnmounted(() => {
 
 <style lang="less">
 @import './styles/global.less';
-
-// 全局后台下载进度条
-.global-download-bar {
-  height: 22px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-light);
-  position: relative;
-  cursor: pointer;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: opacity 0.3s ease;
-
-  &:hover {
-    .global-download-fill {
-      filter: brightness(1.1);
-    }
-  }
-}
-
-.global-download-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--accent));
-  background-size: 200% 100%;
-  animation: download-shimmer 2s ease-in-out infinite;
-  transition: width 0.3s ease;
-  opacity: 0.15;
-}
-
-@keyframes download-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-.global-download-text {
-  position: relative;
-  z-index: 1;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  letter-spacing: -0.01em;
-  user-select: none;
-}
 
 .skeleton-header-title {
   width: 120px;

@@ -1,5 +1,22 @@
 <template>
   <div class="session-detail">
+    <!-- 空值保护 -->
+    <template v-if="!project || !session">
+      <div class="detail-header">
+        <div class="header-left">
+          <button class="back-btn" @click="goBack">
+            <Left size="16" />
+            <span>{{ $t('projects.backToList') }}</span>
+          </button>
+        </div>
+      </div>
+      <EmptyState
+        :title="$t('projects.sessionNotFound')"
+        :icon="Folder"
+      />
+    </template>
+
+    <template v-else>
     <!-- 顶部导航栏 -->
     <div class="detail-header">
       <div class="header-left">
@@ -50,13 +67,6 @@
 
     <!-- 消息列表 -->
     <div class="messages-container" ref="messagesContainer">
-      <!-- 加载更多 -->
-      <div v-if="messagesHasMore" class="load-more-top">
-        <button class="load-more-btn" @click="loadMoreMessages" :disabled="isLoadingMessages">
-          {{ isLoadingMessages ? $t('projects.loading') : $t('projects.loadMore') }}
-        </button>
-      </div>
-
       <!-- 加载中 -->
       <div v-if="isLoadingMessages && messages.length === 0" class="loading-state">
         <SkeletonLoader type="list" :count="5" />
@@ -72,6 +82,13 @@
           :is-selected="selectedMessageUuids.has(msg.uuid)"
           @toggle-select="toggleMessageSelect"
         />
+      </div>
+
+      <!-- 加载更多（底部） -->
+      <div v-if="messagesHasMore && messages.length > 0" class="load-more-bottom">
+        <button class="load-more-btn" @click="loadMoreMessages" :disabled="isLoadingMessages">
+          {{ isLoadingMessages ? $t('projects.loading') : $t('projects.loadMore') }}
+        </button>
       </div>
 
       <!-- 空状态 -->
@@ -94,8 +111,6 @@
       <span v-if="stats.toolCalls > 0" class="stat-item success-rate">
         ({{ (stats.toolCallSuccess / stats.toolCalls * 100).toFixed(0) }}%)
       </span>
-      <span class="stat-divider">|</span>
-      <span class="stat-item">Token: {{ formatTokenCount(stats.totalTokens) }}</span>
     </div>
 
     <!-- 确认对话框 -->
@@ -108,6 +123,7 @@
       @confirm="handleConfirm"
       @cancel="closeConfirm"
     />
+  </template>
   </div>
 </template>
 
@@ -131,8 +147,8 @@ const store = useProjectsStore()
 const toast = useToast()
 
 const props = defineProps<{
-  project: Project
-  session: SessionSummary
+  project: Project | null
+  session: SessionSummary | null
 }>()
 
 const emit = defineEmits<{
@@ -161,14 +177,13 @@ const confirmState = ref<{
 const messages = computed(() => store.messages)
 const visibleMessages = computed(() =>
   messages.value.filter(msg => {
-    if (msg.type !== 'user') return true
-    // 判断用户消息是否有文本内容
+    // 非用户消息（助手/系统）始终显示
+    if (msg.role !== 'user') return true
+    // 用户消息：仅当 content 为字符串类型且有文本内容时才显示
     const content = msg.rawContent || msg.content
     if (typeof content === 'string') return content.trim().length > 0
-    if (Array.isArray(content)) {
-      return content.some((c: any) => c.type === 'text' && c.text?.trim())
-    }
-    return !!msg.content?.trim()
+    // content 为数组/对象/null 时，不是用户文本消息，过滤掉
+    return false
   })
 )
 const stats = computed(() => store.currentStats)
@@ -179,25 +194,8 @@ const selectedMessageUuids = computed(() => store.selectedMessageUuids)
 const selectedCount = computed(() => selectedMessageUuids.value.size)
 
 const sessionTitle = computed(() => {
-  return props.session?.firstUserMessage
-    ? truncateText(props.session.firstUserMessage, 50)
-    : truncateId(props.session?.id || '')
+  return props.session?.firstUserMessage || t('projects.newSession')
 })
-
-function truncateText(text: string, maxLen: number): string {
-  if (!text) return ''
-  return text.length > maxLen ? text.slice(0, maxLen) + '...' : text
-}
-
-function truncateId(id: string): string {
-  if (!id) return ''
-  const match = id.match(/session-([a-f0-9-]+)/)
-  if (match) {
-    const parts = match[1].split('-')
-    return parts[0] || id.slice(0, 8)
-  }
-  return id.slice(0, 8)
-}
 
 function goBack() {
   store.resetMessages()
@@ -290,14 +288,8 @@ function closeConfirm() {
   confirmState.value.show = false
 }
 
-function formatTokenCount(count: number): string {
-  if (!count) return '0'
-  if (count >= 1000000) return (count / 1000000).toFixed(1) + 'M'
-  if (count >= 1000) return (count / 1000).toFixed(1) + 'K'
-  return String(count)
-}
-
 onMounted(async () => {
+  if (!props.project || !props.session) return
   store.resetMessages()
   await Promise.all([
     store.loadMessages(props.project.id, props.session.id, { limit: 50 }),
@@ -444,7 +436,7 @@ onUnmounted(() => {
   padding: 8px 0;
 }
 
-.load-more-top {
+.load-more-bottom {
   display: flex;
   justify-content: center;
   padding: 8px;

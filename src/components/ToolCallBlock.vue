@@ -17,7 +17,31 @@
       </div>
     </div>
     <div v-if="isExpanded" class="tool-content">
-      <pre v-if="type === 'tool_use' && input" class="tool-input"><code>{{ formatJson(input) }}</code></pre>
+      <!-- todo_write 特殊渲染：任务列表 -->
+      <div v-if="isTodoWrite" class="todo-list">
+        <div
+          v-for="todo in parsedTodos"
+          :key="todo.id"
+          class="todo-item"
+          :class="todo.status"
+        >
+          <div class="todo-status-icon">
+            <span v-if="todo.status === 'completed'">&#10003;</span>
+            <span v-else-if="todo.status === 'in_progress'">&#9679;</span>
+            <span v-else>&#9675;</span>
+          </div>
+          <div class="todo-content">
+            <span class="todo-task">{{ todo.task }}</span>
+            <div class="todo-meta">
+              <span class="todo-priority" :class="todo.priority">{{ todo.priority }}</span>
+              <span class="todo-id">#{{ todo.id }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 普通 tool_use：JSON 展示 -->
+      <pre v-else-if="type === 'tool_use' && input" class="tool-input"><code>{{ formatJson(input) }}</code></pre>
+      <!-- tool_result 展示 -->
       <div v-if="type === 'tool_result' && display" class="tool-result-display" v-html="parsedDisplay"></div>
     </div>
   </div>
@@ -36,6 +60,22 @@ const props = defineProps<{
 }>()
 
 const isExpanded = ref(false)
+
+// 检测是否为 todo_write 工具调用
+const isTodoWrite = computed(() => {
+  return props.type === 'tool_use' && props.name === 'todo_write' && props.input?.todos
+})
+
+// 解析 todo_write 的任务列表
+const parsedTodos = computed(() => {
+  if (!isTodoWrite.value) return []
+  return (props.input.todos as Array<{
+    id: string
+    task: string
+    status: string
+    priority: string
+  }>)
+})
 
 function toggleExpand() {
   isExpanded.value = !isExpanded.value
@@ -193,5 +233,117 @@ const parsedDisplay = computed(() => {
   word-break: break-word;
   max-height: 300px;
   overflow-y: auto;
+}
+
+// todo_write 任务列表样式
+.todo-list {
+  margin: 6px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--control-fill-hover);
+  }
+
+  &.completed {
+    opacity: 0.65;
+
+    .todo-task {
+      text-decoration: line-through;
+      color: var(--text-tertiary);
+    }
+  }
+
+  &.in_progress {
+    border-left: 3px solid #FD7E14;
+  }
+
+  &.failed {
+    border-left: 3px solid #C43131;
+  }
+}
+
+.todo-status-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  margin-top: 1px;
+
+  .completed & {
+    color: #00B894;
+  }
+
+  .in_progress & {
+    color: #FD7E14;
+  }
+
+  .pending & {
+    color: var(--text-tertiary);
+  }
+}
+
+.todo-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.todo-task {
+  display: block;
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.todo-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.todo-priority {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+
+  &.high {
+    background: rgba(196, 49, 49, 0.12);
+    color: #e06c75;
+  }
+
+  &.medium {
+    background: rgba(253, 126, 20, 0.12);
+    color: #e5c07b;
+  }
+
+  &.low {
+    background: rgba(0, 184, 148, 0.12);
+    color: #98c379;
+  }
+}
+
+.todo-id {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-family: 'Cascadia Code', Consolas, monospace;
 }
 </style>

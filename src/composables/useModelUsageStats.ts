@@ -39,43 +39,65 @@ export function useModelUsageStats() {
 
   // Worker 实例，随 composable 创建而初始化
   let worker: Worker | null = null
-  let pendingResolve: ((value: ModelUsageTrendResponse) => void) | null = null
-  let pendingReject: ((reason: Error) => void) | null = null
 
   function initWorker() {
     if (worker) return
-    worker = new Worker(
-      new URL('@/workers/modelStatsWorker.js', import.meta.url),
-      { type: 'module' }
-    )
-
-    worker.onmessage = (e: MessageEvent) => {
-      if (e.data.type === 'SUCCESS') {
-        pendingResolve?.(e.data.payload)
-      } else {
-        pendingReject?.(new Error(e.data.payload?.message || 'Worker 处理失败'))
-      }
-      pendingResolve = null
-      pendingReject = null
-    }
-
-    worker.onerror = (e: ErrorEvent) => {
-      pendingReject?.(new Error(e.message))
-      pendingResolve = null
-      pendingReject = null
+    try {
+      worker = new Worker(
+        new URL('@/workers/modelStatsWorker.js', import.meta.url),
+        { type: 'module' }
+      )
+    } catch (e) {
+      console.error('Worker 初始化失败:', e)
+      worker = null
     }
   }
 
   function processWithWorker(messages: RawMessage[], days: number): Promise<ModelUsageTrendResponse> {
     return new Promise((resolve, reject) => {
       initWorker()
-      pendingResolve = resolve
-      pendingReject = reject
-      worker!.postMessage({ type: 'AGGREGATE', payload: { messages, days } })
+      if (!worker) {
+        reject(new Error('Worker 初始化失败'))
+        return
+      }
+
+      const timeoutId = setTimeout(() => {
+        cleanup()
+        reject(new Error('Worker 处理超时，数据量可能过大'))
+      }, 30000)
+
+      const cleanup = () => {
+        clearTimeout(timeoutId)
+        if (worker) {
+          worker.onmessage = null
+          worker.onerror = null
+        }
+      }
+
+      const handleMessage = (e: MessageEvent) => {
+        cleanup()
+        if (e.data.type === 'SUCCESS') {
+          resolve(e.data.payload)
+        } else {
+          reject(new Error(e.data.payload?.message || 'Worker 处理失败'))
+        }
+      }
+
+      const handleError = (e: ErrorEvent) => {
+        cleanup()
+        reject(new Error(e.message))
+      }
+
+      worker.onmessage = handleMessage
+      worker.onerror = handleError
+      worker.postMessage({ type: 'AGGREGATE', payload: { messages, days } })
     })
   }
 
-  async function fetchStats(options: { days?: number; silent?: boolean } = {}): Promise<void> {
+  async function fetchStats(options: { days?: number; silent?: boolean; force?: boolean } = {}): Promise<void> {
+    if (refreshing.value && !options.force) {
+      return
+    }
     const days = options.days || 7
     refreshing.value = true
     if (!options.silent) loading.value = true

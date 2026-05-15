@@ -172,10 +172,16 @@ async function getProjectSessions(projectId, options = {}) {
     let totalOutputTokens = 0
     let toolCallCount = 0
     let toolCallSuccess = 0
+    let firstUserMessage = ''
 
     for (const msg of messages) {
       if (msg.type === 'user') userCount++
       else if (msg.type === 'assistant') assistantCount++
+
+      // 提取第一条用户消息的文本
+      if (!firstUserMessage && msg.type === 'user') {
+        firstUserMessage = extractTextContent(msg.message?.content)
+      }
 
       if (msg.message?.usage) {
         totalInputTokens += msg.message.usage.input_tokens || 0
@@ -208,6 +214,7 @@ async function getProjectSessions(projectId, options = {}) {
       createdAt: createdAt ? createdAt.toISOString() : null,
       lastMessageAt: lastMessageAt ? lastMessageAt.toISOString() : null,
       gitBranch,
+      firstUserMessage,
       totalInputTokens,
       totalOutputTokens,
       totalTokens: totalInputTokens + totalOutputTokens,
@@ -383,9 +390,27 @@ async function deleteMessages(projectId, sessionId, messageUuids) {
   const messages = parseJsonlFile(filePath)
   const remaining = messages.filter(m => !uuidSet.has(m.uuid))
 
-  // 写回文件
+  // 使用临时文件 + 原子替换保证写入原子性
+  const tempPath = filePath + '.tmp.' + Date.now()
   const lines = remaining.map(m => JSON.stringify(m)).join('\n') + '\n'
-  fs.writeFileSync(filePath, lines, 'utf-8')
+  fs.writeFileSync(tempPath, lines, 'utf-8')
+
+  // 验证临时文件完整性
+  try {
+    const tempContent = fs.readFileSync(tempPath, 'utf-8')
+    const parsedLines = tempContent.split('\n').filter(l => l.trim())
+    if (parsedLines.length !== remaining.length) {
+      fs.unlinkSync(tempPath)
+      throw new Error('写入验证失败：行数不匹配')
+    }
+  } catch (verifyError) {
+    // 清理临时文件后重新抛出
+    try { fs.unlinkSync(tempPath) } catch (_) {}
+    throw verifyError
+  }
+
+  // 原子替换
+  fs.renameSync(tempPath, filePath)
   return true
 }
 

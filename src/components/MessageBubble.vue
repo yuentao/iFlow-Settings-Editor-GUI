@@ -285,8 +285,8 @@ function formatTokens(count: number): string {
 }
 
 .user-avatar {
-  background: rgba(0, 184, 148, 0.15);
-  color: #00B894;
+  background: rgba(0, 103, 192, 0.12);
+  color: var(--accent);
 }
 
 .assistant-avatar {
@@ -302,9 +302,10 @@ function formatTokens(count: number): string {
 }
 
 .user-bubble {
-  background: #00B894;
+  background: var(--accent);
   color: #fff;
   border-bottom-right-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 
   .bubble-meta {
     color: rgba(255, 255, 255, 0.7);
@@ -324,11 +325,9 @@ function formatTokens(count: number): string {
 
     .text-body {
       :deep(.code-block) {
-        background: rgba(0, 0, 0, 0.15);
         code { color: #fff; }
       }
       :deep(.inline-code) {
-        background: rgba(0, 0, 0, 0.12);
         color: #fff;
       }
     }
@@ -351,6 +350,7 @@ function formatTokens(count: number): string {
   border: 1px solid var(--border-light);
   border-bottom-left-radius: 4px;
   color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 // 气泡内元素
@@ -390,23 +390,12 @@ function formatTokens(count: number): string {
     max-height: 120px;
     overflow: hidden;
     position: relative;
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 40px;
-      background: linear-gradient(transparent, var(--bg-primary));
-    }
   }
 
   .text-body {
     word-break: break-word;
 
     :deep(.code-block) {
-      background: var(--bg-secondary);
       padding: 8px 12px;
       border-radius: var(--radius-sm);
       margin: 6px 0;
@@ -422,7 +411,6 @@ function formatTokens(count: number): string {
     :deep(.inline-code) {
       font-family: 'Cascadia Code', Consolas, monospace;
       font-size: 12px;
-      background: var(--control-fill);
       padding: 1px 4px;
       border-radius: 3px;
       color: var(--text-primary);

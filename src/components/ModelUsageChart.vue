@@ -107,7 +107,7 @@ const timeRangeOptions = computed(() => [
 ])
 
 const hasData = computed(() => {
-  return props.stats && props.stats.data.some(d => d.models.length > 0)
+  return props.stats?.data?.some(d => d.models.length > 0) ?? false
 })
 
 const chartColors = [

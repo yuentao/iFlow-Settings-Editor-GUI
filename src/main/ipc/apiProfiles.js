@@ -55,7 +55,7 @@ function registerApiProfilesIpcHandlers() {
     if (!settings) {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
-    const oldSnapshot = JSON.parse(JSON.stringify(settings))
+    const oldSnapshot = structuredClone(settings)
 
     const profiles = settings.apiProfiles || {}
     if (!profiles[profileName]) {
@@ -87,7 +87,7 @@ function registerApiProfilesIpcHandlers() {
     if (!settings) {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
-    const oldSnapshot = JSON.parse(JSON.stringify(settings))
+    const oldSnapshot = structuredClone(settings)
 
     if (!settings.apiProfiles) {
       settings.apiProfiles = { default: {} }
@@ -132,7 +132,7 @@ function registerApiProfilesIpcHandlers() {
     if (!settings) {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
-    const oldSnapshot = JSON.parse(JSON.stringify(settings))
+    const oldSnapshot = structuredClone(settings)
 
     if (!settings.apiProfilesOrder || settings.apiProfilesOrder.length === 0 || name === settings.apiProfilesOrder[0]) {
       return { success: false, error: t('errors.cannotDeleteDefault'), code: ErrorCodes.CANNOT_DELETE_DEFAULT }
@@ -172,7 +172,7 @@ function registerApiProfilesIpcHandlers() {
     if (!settings) {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
-    const oldSnapshot = JSON.parse(JSON.stringify(settings))
+    const oldSnapshot = structuredClone(settings)
 
     const profiles = settings.apiProfiles || {}
     if (!profiles[oldName]) {
@@ -281,7 +281,7 @@ function registerApiProfilesIpcHandlers() {
     if (!settings) {
       return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
     }
-    const oldSnapshot = JSON.parse(JSON.stringify(settings))
+    const oldSnapshot = structuredClone(settings)
 
     const profiles = settings.apiProfiles || {}
     if (!profiles[sourceName]) {
@@ -292,7 +292,7 @@ function registerApiProfilesIpcHandlers() {
       return { success: false, error: t('errors.configAlreadyExists', { name: newName }), code: ErrorCodes.PROFILE_EXISTS }
     }
 
-    const cloned = JSON.parse(JSON.stringify(profiles[sourceName]))
+    const cloned = structuredClone(profiles[sourceName])
     delete cloned._lastModified // 由 stampModifiedItems 重新打时间戳
     profiles[newName] = cloned
     settings.apiProfiles = profiles
