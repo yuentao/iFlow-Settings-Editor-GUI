@@ -603,6 +603,7 @@ export default {
     user: 'User',
     assistant: 'Assistant',
     noMessages: 'No messages',
+    newSession: 'New Session',
     totalMessages: 'Messages',
     toolCalls: 'Tool calls',
     deleteConfirm: 'Are you sure you want to delete this session? This cannot be undone.',

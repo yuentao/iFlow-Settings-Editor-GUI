@@ -16,7 +16,7 @@
 
       <template #item-info="{ item: session }">
         <div class="session-title" @click="$emit('openSession', session)">
-          <span class="session-id">{{ session.firstUserMessage || truncateId(session.id) }}</span>
+          <span class="session-id">{{ session.firstUserMessage || $t('projects.newSession') }}</span>
           <span v-if="session.gitBranch" class="git-branch">
             <GeneralBranch size="10" />
             {{ session.gitBranch }}
@@ -36,13 +36,6 @@
       </template>
 
       <template #item-actions="{ item: session }">
-        <button
-          class="action-btn"
-          :title="$t('projects.viewSession')"
-          @click.stop="$emit('openSession', session)"
-        >
-          <PreviewOpen size="14" />
-        </button>
         <button
           class="action-btn"
           :title="$t('projects.export')"
@@ -73,7 +66,7 @@
 import { useI18n } from 'vue-i18n'
 import GenericList from '@/components/GenericList.vue'
 import {
-  Message, GeneralBranch, PreviewOpen, Export, Delete,
+  Message, GeneralBranch, Export, Delete,
 } from '@icon-park/vue-next'
 import type { SessionSummary } from '@/stores/projects'
 
@@ -92,16 +85,6 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-function truncateId(id: string): string {
-  if (!id) return ''
-  const match = id.match(/session-([a-f0-9-]+)/)
-  if (match) {
-    const parts = match[1].split('-')
-    return parts[0] || id.slice(0, 8)
-  }
-  return id.slice(0, 8)
-}
 
 function formatDateTime(dateStr: string): string {
   if (!dateStr) return ''
@@ -123,10 +106,9 @@ function formatTokenCount(count: number): string {
 
 <style lang="less" scoped>
 .sessions-section {
-  margin-left: 20px;
-  padding-left: 16px;
+  margin: 0 20px 8px;
+  padding: 0 16px;
   border-left: 2px solid var(--border-light);
-  margin-bottom: 8px;
 }
 
 .sessions-header {
@@ -138,6 +120,7 @@ function formatTokenCount(count: number): string {
 
 .session-title {
   cursor: pointer;
+  min-width: 0;
 
   .session-id {
     font-size: 13px;
@@ -145,7 +128,7 @@ function formatTokenCount(count: number): string {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 300px;
+    display: block;
   }
 
   &:hover .session-id {

@@ -604,6 +604,7 @@ export default {
     user: 'ユーザー',
     assistant: 'アシスタント',
     noMessages: 'メッセージがありません',
+    newSession: '新しいセッション',
     totalMessages: 'メッセージ',
     toolCalls: 'ツール呼び出し',
     deleteConfirm: 'このセッションを削除してよろしいですか？元に戻せません。',

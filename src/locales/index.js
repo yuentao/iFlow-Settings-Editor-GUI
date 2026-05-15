@@ -612,6 +612,7 @@ export default {
     user: '用户',
     assistant: '助手',
     noMessages: '暂无消息',
+    newSession: '新会话',
     totalMessages: '消息',
     toolCalls: '工具调用',
     deleteConfirm: '确定要删除这个会话吗？此操作不可恢复。',

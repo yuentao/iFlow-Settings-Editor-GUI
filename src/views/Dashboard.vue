@@ -20,6 +20,27 @@
         <div class="stat-badge">{{ apiProfileCount }} {{ $t('dashboard.profiles') }}</div>
       </div>
 
+       <!-- 云同步 -->
+      <div class="stat-card card-appear" style="animation-delay: 0.1s" @click="$emit('navigate', 'general', { section: 'cloudSync' })">
+        <div class="stat-icon" :class="cloudSyncStatusClass">
+          <Refresh size="28" />
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">{{ $t('dashboard.cloudSync') }}</div>
+          <div class="stat-value stat-value-sm">{{ cloudSyncStatusLabel }}</div>
+          <div class="stat-sub" v-if="syncEnabled && cloudStore.isConfigured && cloudStore.status.lastSyncAt"> {{ $t('dashboard.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }} </div>
+          <div class="stat-sub stat-sub-empty" v-else-if="syncEnabled && cloudStore.isConfigured">
+            {{ $t('dashboard.neverSynced') }}
+          </div>
+        </div>
+        <div class="stat-actions">
+          <button class="btn btn-primary btn-xs" :disabled="!syncEnabled || !cloudStore.isConfigured || cloudStore.isSyncing" @click.stop="handleSyncNow">
+            <Loading v-if="cloudStore.isSyncing" size="12" class="spin" />
+            <Refresh v-else size="12" />
+          </button>
+        </div>
+      </div>
+
       <!-- MCP 服务器 -->
       <div class="stat-card card-appear" style="animation-delay: 0.04s" @click="$emit('navigate', 'mcp')">
         <div class="stat-icon stat-icon-success">
@@ -88,26 +109,7 @@
         </div>
       </div>
 
-      <!-- 云同步 -->
-      <div class="stat-card card-appear" style="animation-delay: 0.1s" @click="$emit('navigate', 'general', { section: 'cloudSync' })">
-        <div class="stat-icon" :class="cloudSyncStatusClass">
-          <Refresh size="28" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">{{ $t('dashboard.cloudSync') }}</div>
-          <div class="stat-value stat-value-sm">{{ cloudSyncStatusLabel }}</div>
-          <div class="stat-sub" v-if="syncEnabled && cloudStore.isConfigured && cloudStore.status.lastSyncAt"> {{ $t('dashboard.lastSync') }}: {{ formatTime(cloudStore.status.lastSyncAt) }} </div>
-          <div class="stat-sub stat-sub-empty" v-else-if="syncEnabled && cloudStore.isConfigured">
-            {{ $t('dashboard.neverSynced') }}
-          </div>
-        </div>
-        <div class="stat-actions">
-          <button class="btn btn-primary btn-xs" :disabled="!syncEnabled || !cloudStore.isConfigured || cloudStore.isSyncing" @click.stop="handleSyncNow">
-            <Loading v-if="cloudStore.isSyncing" size="12" class="spin" />
-            <Refresh v-else size="12" />
-          </button>
-        </div>
-      </div>
+     
 
       <!-- 同步密码输入对话框 -->
       <div v-if="syncPasswordDialog.show" class="dialog-overlay sync-password-overlay" @click.self="closeSyncPasswordDialog">
