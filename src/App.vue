@@ -266,6 +266,7 @@ const settings = ref({
   approvalMode: 'autoEdit',
   thinkingModeEnabled: 'true',
   connectivityPollInterval: 30,
+      modelUsageRefreshInterval: 5,
 })
 
 const originalSettings = ref({})
@@ -584,6 +585,7 @@ const loadSettings = async () => {
     if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
     if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
+    if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
     settings.value = data
     originalSettings.value = JSON.parse(JSON.stringify(data))
     modified.value = false

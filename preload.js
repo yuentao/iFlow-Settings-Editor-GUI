@@ -188,6 +188,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportSession: (projectId, sessionId, format) => ipcRenderer.invoke('projects:sessions:export', projectId, sessionId, format),
   searchSessions: (query, options) => ipcRenderer.invoke('projects:search', query, options),
   getSessionStats: (projectId, sessionId) => ipcRenderer.invoke('projects:sessions:stats', projectId, sessionId),
+  getAllSessionMessagesForStats: (days) => ipcRenderer.invoke('projects:messages:for-stats', days),
 
   // iFlow Mod 管理
   iflowGetIflowVersion: () => ipcRenderer.invoke('iflow:get-version'),

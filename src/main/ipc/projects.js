@@ -17,6 +17,7 @@ const {
   exportSession,
   searchSessions,
   getSessionStats,
+  getAllSessionMessagesForStats,
 } = require('../services/projectService')
 
 /**
@@ -95,6 +96,12 @@ function registerProjectsIpcHandlers() {
     const stats = await getSessionStats(projectId, sessionId)
     return { success: true, stats }
   }, 'projects:sessions:stats'))
+
+  // 获取所有会话中用于模型统计的消息数据
+  ipcMain.handle('projects:messages:for-stats', wrapIpcHandler(async (event, days) => {
+    const messages = await getAllSessionMessagesForStats(days || 7)
+    return { success: true, messages }
+  }, 'projects:messages:for-stats'))
 }
 
 module.exports = {

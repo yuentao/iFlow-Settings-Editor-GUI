@@ -178,6 +178,13 @@
           </div>
           <div class="setting-item">
             <div class="setting-info">
+              <label class="setting-label">{{ $t('general.modelUsageRefreshInterval') }}</label>
+              <p class="setting-desc">{{ $t('general.modelUsageRefreshIntervalDesc') }}</p>
+            </div>
+            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.modelUsageRefreshInterval" min="1" max="60" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
               <label class="setting-label">{{ $t('general.approvalMode') }}</label>
               <p class="setting-desc">{{ $t('general.approvalModeDesc') }}</p>
             </div>

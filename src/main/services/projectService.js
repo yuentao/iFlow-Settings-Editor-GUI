@@ -603,6 +603,77 @@ async function deleteProject(projectId) {
   return true
 }
 
+/**
+ * 获取所有会话中用于模型统计的消息数据（异步，不阻塞主进程）
+ * 只返回必要字段，减少数据传输量
+ * @param {number} days - 查询最近几天的数据，默认 7
+ * @returns {Promise<Array>} 精简后的消息数组
+ */
+async function getAllSessionMessagesForStats(days = 7) {
+  const projectsDir = getProjectsDir()
+  try {
+    await fs.promises.access(projectsDir)
+  } catch {
+    return []
+  }
+
+  const messages = []
+  const cutoffDate = new Date()
+  cutoffDate.setDate(cutoffDate.getDate() - days)
+
+  let projectDirs
+  try {
+    projectDirs = await fs.promises.readdir(projectsDir)
+  } catch {
+    return []
+  }
+
+  for (const dir of projectDirs) {
+    const projectPath = path.join(projectsDir, dir)
+    try {
+      const stat = await fs.promises.stat(projectPath)
+      if (!stat.isDirectory()) continue
+
+      const files = await fs.promises.readdir(projectPath)
+      const jsonlFiles = files.filter(f => f.endsWith('.jsonl'))
+
+      for (const file of jsonlFiles) {
+        const filePath = path.join(projectPath, file)
+        const content = await fs.promises.readFile(filePath, 'utf-8')
+        const lines = content.split('\n')
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) continue
+          try {
+            const msg = JSON.parse(trimmed)
+            if (!msg.timestamp) continue
+            const msgDate = new Date(msg.timestamp)
+            if (msgDate >= cutoffDate && msg.message?.model) {
+              messages.push({
+                timestamp: msg.timestamp,
+                message: {
+                  model: msg.message.model,
+                  usage: msg.message.usage ? {
+                    input_tokens: msg.message.usage.input_tokens || 0,
+                    output_tokens: msg.message.usage.output_tokens || 0,
+                  } : null,
+                },
+              })
+            }
+          } catch (_) {
+            // 跳过无法解析的行
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to read project for stats: ${dir}`, error.message)
+    }
+  }
+
+  return messages
+}
+
 module.exports = {
   listProjects,
   getProjectSessions,
@@ -613,4 +684,5 @@ module.exports = {
   exportSession,
   searchSessions,
   getSessionStats,
+  getAllSessionMessagesForStats,
 }
