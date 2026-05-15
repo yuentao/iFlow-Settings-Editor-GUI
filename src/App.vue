@@ -61,7 +61,7 @@
 
           <IflowModsView v-if="currentSection === 'iflow'" @show-input-dialog="showInput" />
 
-          <ProjectsView v-if="currentSection === 'projects' && !activeSession" @open-session="openSessionDetail" />
+          <ProjectsView v-show="currentSection === 'projects' && !activeSession" @open-session="openSessionDetail" />
           <SessionDetailView v-if="currentSection === 'projects' && activeSession" :project="activeSession.project" :session="activeSession.session" @back="closeSessionDetail" />
         </template>
       </div>
