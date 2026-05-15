@@ -23,6 +23,7 @@
           <SkeletonLoader v-else-if="currentSection === 'skills'" type="list" :count="3" />
           <SkeletonLoader v-else-if="currentSection === 'commands'" type="command" :count="3" />
           <SkeletonLoader v-else-if="currentSection === 'iflow'" type="list" :count="4" />
+          <SkeletonLoader v-else-if="currentSection === 'projects'" type="card" :count="3" />
           <SkeletonLoader v-else type="form" :count="4" />
         </template>
         <template v-else>
@@ -59,6 +60,9 @@
           <DocsView v-if="currentSection === 'docs'" />
 
           <IflowModsView v-if="currentSection === 'iflow'" @show-input-dialog="showInput" />
+
+          <ProjectsView v-if="currentSection === 'projects' && !activeSession" @open-session="openSessionDetail" />
+          <SessionDetailView v-if="currentSection === 'projects' && activeSession" :project="activeSession.project" :session="activeSession.session" @back="closeSessionDetail" />
         </template>
       </div>
     </main>
@@ -145,16 +149,26 @@ import { useCloudSyncStore } from './stores/cloudSync'
 import { useToast } from './composables/useToast'
 
 // 视图组件懒加载
-import { defineAsyncComponent } from 'vue'
+import { defineAsyncComponent, h } from 'vue'
 
 const loadingComponent = {
-  template: '<div class="async-loading"><div class="skeleton-header-title"></div><div class="skeleton-header-desc"></div></div>',
+  render() {
+    return h('div', { class: 'async-loading' }, [
+      h('div', { class: 'skeleton-header-title' }),
+      h('div', { class: 'skeleton-header-desc' }),
+    ])
+  },
 }
 
 const errorComponent = {
-  template: '<div class="async-error"><p>{{ error }}</p><button @click="$emit(\'retry\')">{{ $t(\'app.retry\') }}</button></div>',
   props: ['error'],
   emits: ['retry'],
+  render() {
+    return h('div', { class: 'async-error' }, [
+      h('p', this.error),
+      h('button', { onClick: () => this.$emit('retry') }, this.$t('app.retry')),
+    ])
+  },
 }
 
 const Dashboard = defineAsyncComponent({
@@ -201,6 +215,18 @@ const DocsView = defineAsyncComponent({
 })
 const IflowModsView = defineAsyncComponent({
   loader: () => import('./views/IflowModsView.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200,
+})
+const ProjectsView = defineAsyncComponent({
+  loader: () => import('./views/ProjectsView.vue'),
+  loadingComponent,
+  errorComponent,
+  delay: 200,
+})
+const SessionDetailView = defineAsyncComponent({
+  loader: () => import('./views/SessionDetailView.vue'),
   loadingComponent,
   errorComponent,
   delay: 200,
@@ -616,6 +642,17 @@ const skillCount = ref(0)
 const commandCount = ref(0)
 
 const modCount = ref(0)
+
+// 项目会话导航状态
+const activeSession = ref(null)
+
+const openSessionDetail = (project, session) => {
+  activeSession.value = { project, session }
+}
+
+const closeSessionDetail = () => {
+  activeSession.value = null
+}
 
 const loadSkillCount = async () => {
   try {

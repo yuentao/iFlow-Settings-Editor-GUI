@@ -22,27 +22,35 @@
       <div
         v-for="(item, index) in items"
         :key="item[itemKey]"
-        class="generic-item"
-        :class="itemClass(item)"
       >
-        <!-- Icon -->
-        <div class="item-icon" v-if="$slots['item-icon']">
-          <slot name="item-icon" :item="item" :index="index" />
+        <div
+          class="generic-item"
+          :class="itemClass(item)"
+        >
+          <!-- Icon -->
+          <div class="item-icon" v-if="$slots['item-icon']">
+            <slot name="item-icon" :item="item" :index="index" />
+          </div>
+
+          <!-- Info -->
+          <div class="item-info">
+            <slot name="item-info" :item="item" :index="index" />
+          </div>
+
+          <!-- Actions -->
+          <div class="item-actions" v-if="$slots['item-actions']">
+            <slot name="item-actions" :item="item" :index="index" />
+          </div>
+
+          <!-- Extra -->
+          <div class="item-extra" v-if="$slots['item-extra']">
+            <slot name="item-extra" :item="item" :index="index" />
+          </div>
         </div>
 
-        <!-- Info -->
-        <div class="item-info">
-          <slot name="item-info" :item="item" :index="index" />
-        </div>
-
-        <!-- Actions -->
-        <div class="item-actions" v-if="$slots['item-actions']">
-          <slot name="item-actions" :item="item" :index="index" />
-        </div>
-
-        <!-- Extra -->
-        <div class="item-extra" v-if="$slots['item-extra']">
-          <slot name="item-extra" :item="item" :index="index" />
+        <!-- Children (展开的子内容) -->
+        <div v-if="$slots['item-children']" class="item-children">
+          <slot name="item-children" :item="item" :index="index" />
         </div>
       </div>
     </div>
@@ -221,6 +229,7 @@ const itemClass = (item) => {
   &.highlighted {
     border-left: 3px solid var(--accent);
     padding-left: 13px;
+    border-bottom: 1px solid var(--border-light);
   }
 }
 
@@ -256,6 +265,11 @@ const itemClass = (item) => {
   align-items: center;
   flex-shrink: 0;
   margin-left: 8px;
+}
+
+.item-children {
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-primary);
 }
 
 @keyframes genericFadeIn {

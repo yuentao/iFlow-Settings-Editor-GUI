@@ -178,6 +178,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 外部链接
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 
+  // 项目会话管理
+  listProjects: () => ipcRenderer.invoke('projects:list'),
+  getProjectSessions: (projectId, options) => ipcRenderer.invoke('projects:sessions:list', projectId, options),
+  getSessionMessages: (projectId, sessionId, options) => ipcRenderer.invoke('projects:sessions:messages', projectId, sessionId, options),
+  deleteSession: (projectId, sessionId) => ipcRenderer.invoke('projects:sessions:delete', projectId, sessionId),
+  deleteProject: (projectId) => ipcRenderer.invoke('projects:delete', projectId),
+  deleteMessages: (projectId, sessionId, messageUuids) => ipcRenderer.invoke('projects:messages:delete', projectId, sessionId, messageUuids),
+  exportSession: (projectId, sessionId, format) => ipcRenderer.invoke('projects:sessions:export', projectId, sessionId, format),
+  searchSessions: (query, options) => ipcRenderer.invoke('projects:search', query, options),
+  getSessionStats: (projectId, sessionId) => ipcRenderer.invoke('projects:sessions:stats', projectId, sessionId),
+
   // iFlow Mod 管理
   iflowGetIflowVersion: () => ipcRenderer.invoke('iflow:get-version'),
   iflowListMods: () => ipcRenderer.invoke('iflow:list-mods'),

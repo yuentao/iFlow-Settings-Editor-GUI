@@ -15,6 +15,10 @@
           <Config size="16" />
           <span class="nav-item-text">{{ $t('sidebar.generalSettings') }}</span>
         </div>
+        <div class="nav-item" :class="{ active: currentSection === 'projects' }" @click="$emit('navigate', 'projects')">
+          <FolderOpen size="16" />
+          <span class="nav-item-text">{{ $t('sidebar.projects') }}</span>
+        </div>
       </div>
       <div class="sidebar-section">
         <div class="sidebar-title" v-show="!collapsed">{{ $t('sidebar.advanced') }}</div>
@@ -52,7 +56,7 @@
  * SideBar - 侧边导航栏组件
  */
 import { ref } from 'vue'
-import { Config, Key, Server, Star, Dashboard, Command, Book, Puzzle } from '@icon-park/vue-next'
+import { Config, Key, Server, Star, Dashboard, Command, Book, Puzzle, FolderOpen } from '@icon-park/vue-next'
 
 interface Props {
   currentSection?: string
