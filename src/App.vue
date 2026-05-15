@@ -134,6 +134,29 @@ const localeMap = {
   'ja-JP': jaJP,
 }
 
+// 防抖：settings 深度 watcher 合并连续修改为一次 IPC 保存
+let _settingsSaveTimer = null
+const SETTINGS_SAVE_DELAY = 500
+
+const debouncedSaveSettings = (getSettings) => {
+  if (_settingsSaveTimer) clearTimeout(_settingsSaveTimer)
+  _settingsSaveTimer = setTimeout(async () => {
+    _settingsSaveTimer = null
+    const dataToSave = JSON.parse(JSON.stringify(getSettings()))
+    await window.electronAPI.saveSettings(dataToSave)
+  }, SETTINGS_SAVE_DELAY)
+}
+
+// 立即刷新待保存的设置（组件卸载或关键操作前调用）
+const flushPendingSave = async () => {
+  if (_settingsSaveTimer) {
+    clearTimeout(_settingsSaveTimer)
+    _settingsSaveTimer = null
+    const dataToSave = JSON.parse(JSON.stringify(settings.value))
+    await window.electronAPI.saveSettings(dataToSave)
+  }
+}
+
 import TitleBar from './components/TitleBar.vue'
 import SideBar from './components/SideBar.vue'
 import InputDialog from './components/InputDialog.vue'
@@ -595,15 +618,14 @@ const loadSettings = async () => {
 
 watch(
   settings,
-  async () => {
+  () => {
     if (!isLoading.value) {
       if (skipNextSaveSettings.value) {
         skipNextSaveSettings.value = false
         return
       }
       modified.value = true
-      const dataToSave = JSON.parse(JSON.stringify(settings.value))
-      await window.electronAPI.saveSettings(dataToSave)
+      debouncedSaveSettings(() => settings.value)
     }
   },
   { deep: true },
@@ -1163,6 +1185,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  // 刷新待保存的设置，避免防抖未触发导致数据丢失
+  flushPendingSave()
   // P0-05 + P0-06：移除所有事件监听器，防止内存泄漏
   for (const cleanup of cleanupFns) {
     try {
