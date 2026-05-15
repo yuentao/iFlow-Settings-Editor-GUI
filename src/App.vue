@@ -144,7 +144,7 @@ const debouncedSaveSettings = (getSettings) => {
     _settingsSaveTimer = null
     // 窗口隐藏到托盘时跳过保存，减少后台 IPC 开销
     if (document.hidden) return
-    const dataToSave = JSON.parse(JSON.stringify(getSettings()))
+    const dataToSave = structuredClone(getSettings())
     await window.electronAPI.saveSettings(dataToSave)
   }, SETTINGS_SAVE_DELAY)
 }
@@ -154,7 +154,7 @@ const flushPendingSave = async () => {
   if (_settingsSaveTimer) {
     clearTimeout(_settingsSaveTimer)
     _settingsSaveTimer = null
-    const dataToSave = JSON.parse(JSON.stringify(settings.value))
+    const dataToSave = structuredClone(settings.value)
     await window.electronAPI.saveSettings(dataToSave)
   }
 }
@@ -335,10 +335,7 @@ const loadApiProfiles = async () => {
 const switchApiProfile = async () => {
   const result = await window.electronAPI.switchApiProfile(currentApiProfile.value)
   if (result.success) {
-    const data = JSON.parse(JSON.stringify(result.data))
-    if (!data.checkpointing) data.checkpointing = { enabled: true }
-    if (!data.mcpServers) data.mcpServers = {}
-    // CLI 行为控制 - 新字段默认值
+    const data = structuredClone(result.data)
     if (data.autoAccept === undefined) data.autoAccept = false
     if (data.hideBanner === undefined) data.hideBanner = false
     if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
@@ -351,14 +348,7 @@ const switchApiProfile = async () => {
     if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
     if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     settings.value = data
-    originalSettings.value = JSON.parse(JSON.stringify(data))
-    modified.value = false
-  } else {
-    toast.error(t('api.switchFailed') + ': ' + result.error)
-  }
-}
-
-const createNewApiProfile = () => {
+    originalSettings.value = structuredClone(data) = () => {
   creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 }
   showApiCreateDialog.value = true
 }
@@ -419,10 +409,7 @@ const deleteApiProfile = async name => {
   if (!confirmed) return
   const result = await window.electronAPI.deleteApiProfile(profileName)
   if (result.success) {
-    const data = JSON.parse(JSON.stringify(result.data))
-    if (!data.checkpointing) data.checkpointing = { enabled: true }
-    if (!data.mcpServers) data.mcpServers = {}
-    skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
+    const data = structuredClone(result.data)
     // CLI 行为控制 - 新字段默认值
     if (data.autoAccept === undefined) data.autoAccept = false
     if (data.hideBanner === undefined) data.hideBanner = false
@@ -436,11 +423,7 @@ const deleteApiProfile = async name => {
     if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
     if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     settings.value = data
-    originalSettings.value = JSON.parse(JSON.stringify(data))
-    modified.value = false
-    skipNextSaveSettings.value = false
-    await loadApiProfiles()
-    toast.success(t('api.configDeleted'))
+    originalSettings.value = structuredClone(data)
   } else {
     toast.error(result.error)
   }
@@ -452,11 +435,11 @@ const reorderApiProfiles = async newProfiles => {
   // 保存排序顺序到settings
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
   settings.value.apiProfilesOrder = newProfiles.map(p => p.name)
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const dataToSave = structuredClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    originalSettings.value = structuredClone(dataToSave)
     modified.value = false
   }
 }
@@ -565,21 +548,14 @@ const saveApiEdit = async data => {
   }
 
   showApiEditDialog.value = false
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
-  if (result.success) {
-    skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
-    await loadSettings()
-    skipNextSaveSettings.value = false
-    toast.success(t('api.configSaved'))
+  const dataToSave = structuredClone(settings.value)
   }
 }
 
 const loadSettings = async () => {
   const result = await window.electronAPI.loadSettings()
   if (result.success) {
-    const data = JSON.parse(JSON.stringify(result.data))
+    const data = structuredClone(result.data)
     if (!data.checkpointing) data.checkpointing = { enabled: true }
     if (!data.mcpServers) data.mcpServers = {}
     if (data.language === undefined) data.language = 'zh-CN'
@@ -612,13 +588,7 @@ const loadSettings = async () => {
     if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
     if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
     settings.value = data
-    originalSettings.value = JSON.parse(JSON.stringify(data))
-    modified.value = false
-  }
-  isLoading.value = false
-}
-
-watch(
+    originalSettings.value = structuredClone(data)
   settings,
   () => {
     if (!isLoading.value) {
@@ -791,11 +761,11 @@ const handleQuickAddServers = async servers => {
     settings.value.mcpServers[name] = config
   }
   skipNextSaveSettings.value = true
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const dataToSave = structuredClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    originalSettings.value = structuredClone(dataToSave)
     modified.value = false
     toast.success(t('mcp.quickAddSuccess', { count: servers.length }))
   }
@@ -820,11 +790,11 @@ const saveServerFromPanel = async data => {
   currentServerName.value = name
   showServerPanel.value = false
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const dataToSave = structuredClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    originalSettings.value = structuredClone(dataToSave)
     modified.value = false
   }
 }
@@ -851,11 +821,11 @@ const deleteServerByName = async serverName => {
     showServerPanel.value = false
   }
   skipNextSaveSettings.value = true
-  const dataToSave = JSON.parse(JSON.stringify(settings.value))
+  const dataToSave = structuredClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
-    originalSettings.value = JSON.parse(JSON.stringify(dataToSave))
+    originalSettings.value = structuredClone(dataToSave)
     modified.value = false
   }
 }
