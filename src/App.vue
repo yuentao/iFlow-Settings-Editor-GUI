@@ -2,14 +2,14 @@
   <div class="app" :class="themeClass">
     <TitleBar @minimize="minimize" @maximize="maximize" @close="close" />
 
-    <!-- 全局后台下载进度条 -->
-    <div v-if="isBackgroundDownloading" class="global-download-bar" @click="showDownloadDetail">
-      <div class="global-download-fill" :style="{ width: updateDownloadProgress + '%' }"></div>
-      <span class="global-download-text">{{ $t('update.backgroundDownloading', { progress: Math.round(updateDownloadProgress) }) }}</span>
-    </div>
-
     <main class="main">
-      <SideBar :current-section="currentSection" @navigate="showSection" />
+      <SideBar
+        :current-section="currentSection"
+        :is-background-downloading="isBackgroundDownloading"
+        :update-download-progress="updateDownloadProgress"
+        @navigate="showSection"
+        @show-download-detail="showDownloadDetail"
+      />
 
       <div class="content">
         <template v-if="isLoading">
@@ -1200,58 +1200,6 @@ onUnmounted(() => {
 
 <style lang="less">
 @import './styles/global.less';
-
-// 全局后台下载进度条
-.global-download-bar {
-  height: 22px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-light);
-  position: relative;
-  cursor: pointer;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: opacity 0.3s ease;
-
-  &:hover {
-    .global-download-fill {
-      filter: brightness(1.1);
-    }
-  }
-}
-
-.global-download-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--accent));
-  background-size: 200% 100%;
-  animation: download-shimmer 2s ease-in-out infinite;
-  transition: width 0.3s ease;
-  opacity: 0.15;
-}
-
-@keyframes download-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-.global-download-text {
-  position: relative;
-  z-index: 1;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  letter-spacing: -0.01em;
-  user-select: none;
-}
 
 .skeleton-header-title {
   width: 120px;
