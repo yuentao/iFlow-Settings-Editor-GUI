@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRaw } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import locales from './locales/index.js'
@@ -134,6 +134,9 @@ const localeMap = {
   'ja-JP': jaJP,
 }
 
+// 安全深拷贝：先解包 Vue reactive proxy，再用 structuredClone
+const deepClone = (obj) => structuredClone(toRaw(obj))
+
 // 防抖：settings 深度 watcher 合并连续修改为一次 IPC 保存
 let _settingsSaveTimer = null
 const SETTINGS_SAVE_DELAY = 500
@@ -144,7 +147,7 @@ const debouncedSaveSettings = (getSettings) => {
     _settingsSaveTimer = null
     // 窗口隐藏到托盘时跳过保存，减少后台 IPC 开销
     if (document.hidden) return
-    const dataToSave = structuredClone(getSettings())
+    const dataToSave = deepClone(getSettings())
     await window.electronAPI.saveSettings(dataToSave)
   }, SETTINGS_SAVE_DELAY)
 }
@@ -154,7 +157,7 @@ const flushPendingSave = async () => {
   if (_settingsSaveTimer) {
     clearTimeout(_settingsSaveTimer)
     _settingsSaveTimer = null
-    const dataToSave = structuredClone(settings.value)
+    const dataToSave = deepClone(settings.value)
     await window.electronAPI.saveSettings(dataToSave)
   }
 }
@@ -446,7 +449,7 @@ const reorderApiProfiles = async newProfiles => {
   // 保存排序顺序到settings
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
   settings.value.apiProfilesOrder = newProfiles.map(p => p.name)
-  const dataToSave = structuredClone(settings.value)
+  const dataToSave = deepClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
@@ -559,7 +562,7 @@ const saveApiEdit = async data => {
   }
 
   showApiEditDialog.value = false
-  const dataToSave = structuredClone(settings.value)
+  const dataToSave = deepClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
@@ -785,7 +788,7 @@ const handleQuickAddServers = async servers => {
     settings.value.mcpServers[name] = config
   }
   skipNextSaveSettings.value = true
-  const dataToSave = structuredClone(settings.value)
+  const dataToSave = deepClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
@@ -814,7 +817,7 @@ const saveServerFromPanel = async data => {
   currentServerName.value = name
   showServerPanel.value = false
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
-  const dataToSave = structuredClone(settings.value)
+  const dataToSave = deepClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
@@ -845,7 +848,7 @@ const deleteServerByName = async serverName => {
     showServerPanel.value = false
   }
   skipNextSaveSettings.value = true
-  const dataToSave = structuredClone(settings.value)
+  const dataToSave = deepClone(settings.value)
   const result = await window.electronAPI.saveSettings(dataToSave)
   skipNextSaveSettings.value = false
   if (result.success) {
