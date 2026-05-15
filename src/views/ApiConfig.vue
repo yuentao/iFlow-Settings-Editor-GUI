@@ -211,14 +211,32 @@ watch(
   { deep: true },
 )
 
+// 窗口可见性监听清理函数
+let visibilityHandler = null
+
 onMounted(() => {
   // 初始化配置名集合
   prevProfileNames = new Set(props.profiles.map(p => p.name))
   startPolling()
+
+  // 窗口隐藏到托盘时暂停连通性轮询，恢复时重启
+  visibilityHandler = () => {
+    if (document.hidden) {
+      stopPolling()
+    } else {
+      startPolling()
+    }
+  }
+  document.addEventListener('visibilitychange', visibilityHandler)
 })
 
 onUnmounted(() => {
   stopPolling()
+  // 移除窗口可见性监听
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler)
+    visibilityHandler = null
+  }
 })
 
 const onDragStart = index => {

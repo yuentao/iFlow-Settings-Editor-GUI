@@ -142,6 +142,8 @@ const debouncedSaveSettings = (getSettings) => {
   if (_settingsSaveTimer) clearTimeout(_settingsSaveTimer)
   _settingsSaveTimer = setTimeout(async () => {
     _settingsSaveTimer = null
+    // 窗口隐藏到托盘时跳过保存，减少后台 IPC 开销
+    if (document.hidden) return
     const dataToSave = JSON.parse(JSON.stringify(getSettings()))
     await window.electronAPI.saveSettings(dataToSave)
   }, SETTINGS_SAVE_DELAY)
