@@ -27,7 +27,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      '/icon.png': path.resolve(__dirname, 'public/icon.png')
+      '/icon.png': path.resolve(__dirname, 'public/icon.png'),
+      '@icon-park/vue-next': path.resolve(__dirname, 'src/__mocks__/icon-park.js'),
+      'vue-i18n': path.resolve(__dirname, 'src/__mocks__/vue-i18n.js'),
     }
   },
   server: {
