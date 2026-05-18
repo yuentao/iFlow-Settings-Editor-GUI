@@ -464,6 +464,7 @@ export default {
     neverSynced: 'Never synced',
     syncNow: 'Sync Now',
     syncSuccess: 'Sync successful',
+    syncCompleted: 'Sync completed successfully!',
     syncFailed: 'Sync failed',
     toggleTitle: 'Sync Settings',
     enableSync: 'Enable Cloud Sync',

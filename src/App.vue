@@ -264,6 +264,29 @@ const { locale, t } = useI18n()
 const cloudSyncStore = useCloudSyncStore()
 const toast = useToast()
 
+// 云同步完成后自动刷新 API 配置列表数据
+watch(
+  () => cloudSyncStore.status.lastSyncAt,
+  async (newVal, oldVal) => {
+    if (newVal && newVal !== oldVal) {
+      await loadApiProfiles()
+      toast.success(t('cloudSync.syncCompleted'))
+    }
+  },
+)
+
+// 云同步失败提示
+watch(
+  () => cloudSyncStore.status.lastSyncError,
+  (newVal, oldVal) => {
+    if (newVal && newVal !== oldVal) {
+      const key = 'cloudSync.' + newVal
+      const translated = t(key)
+      toast.error(translated !== key ? translated : newVal)
+    }
+  },
+)
+
 const settings = ref({
   language: 'zh-CN',
   uiTheme: 'Light',

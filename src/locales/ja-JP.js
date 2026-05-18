@@ -465,6 +465,7 @@ export default {
     neverSynced: '未同期',
     syncNow: '今すぐ同期',
     syncSuccess: '同期成功',
+    syncCompleted: '同期が完了しました！',
     syncFailed: '同期失敗',
     toggleTitle: '同期設定',
     enableSync: 'クラウド同期を有効にする',
