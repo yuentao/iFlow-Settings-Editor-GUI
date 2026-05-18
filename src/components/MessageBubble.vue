@@ -2,7 +2,7 @@
   <div
     class="message-bubble"
     :class="[
-      message.type,
+      effectiveType,
       { selected: isSelected, 'selection-mode': selectionMode }
     ]"
   >
@@ -16,7 +16,7 @@
     </div>
 
     <!-- 用户消息：右侧布局 -->
-    <template v-if="message.type === 'user'">
+    <template v-if="effectiveType === 'user'">
       <div class="bubble-wrapper user-side">
         <div class="bubble user-bubble">
           <button class="copy-btn" :class="{ copied }" @click="handleCopy" :title="t('projects.copy')">
@@ -116,6 +116,13 @@ const props = defineProps<{
 const emit = defineEmits<{
   toggleSelect: [uuid: string]
 }>()
+
+// content 为字符串且包含 toolUseResult 时视为助手消息
+const effectiveType = computed(() => {
+  const c = props.message.content
+  if (props.message.toolUseResult && typeof c === 'string') return 'assistant'
+  return props.message.type
+})
 
 const isCollapsed = ref(true)
 const copied = ref(false)
