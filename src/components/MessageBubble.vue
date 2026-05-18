@@ -95,6 +95,7 @@ import { useI18n } from 'vue-i18n'
 import { User, Robot } from '@icon-park/vue-next'
 import ToolCallBlock from './ToolCallBlock.vue'
 import type { Message } from '@/stores/projects'
+import { marked } from 'marked'
 
 const { t } = useI18n()
 
@@ -192,13 +193,13 @@ function extractResultDisplay(content: any): string {
 const isTextLong = computed(() => textContent.value.length > 200)
 
 const renderedText = computed(() => {
-  let text = textContent.value
+  const text = textContent.value
   if (!text) return ''
-  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="code-block"><code>$2</code></pre>')
-  text = text.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
-  text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-  text = text.replace(/\n/g, '<br>')
-  return text
+  try {
+    return marked.parse(text) as string
+  } catch {
+    return text.replace(/\n/g, '<br>')
+  }
 })
 
 function onToggleSelect() {
@@ -324,12 +325,15 @@ function formatTokens(count: number): string {
     color: #fff;
 
     .text-body {
-      :deep(.code-block) {
-        code { color: #fff; }
-      }
-      :deep(.inline-code) {
-        color: #fff;
-      }
+      :deep(*) { color: #fff; }
+      :deep(pre) { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+      :deep(code) { background: rgba(255,255,255,0.15); }
+      :deep(blockquote) { border-left-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.8); }
+      :deep(a) { color: rgba(255,255,255,0.9); text-decoration: underline; }
+      :deep(hr) { border-top-color: rgba(255,255,255,0.2); }
+      :deep(th),
+      :deep(td) { border-color: rgba(255,255,255,0.2); }
+      :deep(th) { background: rgba(255,255,255,0.1); }
     }
   }
 
@@ -394,26 +398,108 @@ function formatTokens(count: number): string {
 
   .text-body {
     word-break: break-word;
+    line-height: 1.6;
 
-    :deep(.code-block) {
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
+    // 段落间距
+    :deep(p) {
       margin: 6px 0;
-      overflow-x: auto;
-
-      code {
-        font-family: 'Cascadia Code', Consolas, monospace;
-        font-size: 12px;
-        color: var(--text-primary);
-      }
+      &:first-child { margin-top: 0; }
+      &:last-child { margin-bottom: 0; }
     }
 
-    :deep(.inline-code) {
+    // 代码块 (<pre><code class="language-xxx">)
+    :deep(pre) {
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      margin: 8px 8px 0;
+      overflow-x: auto;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+    }
+
+    :deep(pre code) {
+      font-family: 'Cascadia Code', Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      background: transparent;
+      padding: 0;
+    }
+
+    // 行内代码
+    :deep(code) {
       font-family: 'Cascadia Code', Consolas, monospace;
       font-size: 12px;
       padding: 1px 4px;
       border-radius: 3px;
-      color: var(--text-primary);
+      background: var(--control-fill);
+    }
+
+    // 列表
+    :deep(ul),
+    :deep(ol) {
+      padding-left: 20px;
+      margin: 6px 0;
+    }
+    :deep(li) {
+      margin: 3px 0;
+    }
+
+    // 标题（气泡内缩小字号）
+    :deep(h1),
+    :deep(h2),
+    :deep(h3),
+    :deep(h4) {
+      margin: 10px 0 4px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    :deep(h1) { font-size: 16px; }
+    :deep(h2) { font-size: 15px; }
+    :deep(h3) { font-size: 14px; }
+    :deep(h4) { font-size: 13px; }
+
+    // 引用
+    :deep(blockquote) {
+      border-left: 3px solid var(--border-light);
+      margin: 8px 0;
+      padding: 4px 10px;
+      color: var(--text-tertiary);
+    }
+
+    // 链接
+    :deep(a) {
+      color: var(--accent);
+      text-decoration: none;
+      &:hover { text-decoration: underline; }
+    }
+
+    // 粗体/斜体
+    :deep(strong) { font-weight: 600; }
+    :deep(em) { font-style: italic; }
+
+    // 分隔线
+    :deep(hr) {
+      border: none;
+      border-top: 1px solid var(--border-light);
+      margin: 12px 0;
+    }
+
+    // 表格
+    :deep(table) {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 8px 0;
+      font-size: 12px;
+    }
+    :deep(th),
+    :deep(td) {
+      border: 1px solid var(--border-light);
+      padding: 4px 8px;
+      text-align: left;
+    }
+    :deep(th) {
+      background: var(--control-fill);
+      font-weight: 600;
     }
   }
 }
