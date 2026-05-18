@@ -622,6 +622,8 @@ export default {
     deleteProject: '删除项目',
     deleteProjectConfirm: '确定要删除项目「{name}」及其所有会话（共 {count} 个）吗？此操作不可恢复。',
     deleteProjectSuccess: '项目已删除',
+    scrollForMore: '继续向下滚动查看更多',
+    backToTop: '返回顶部',
     deleteProjectFailed: '项目删除失败',
     exportSuccess: '会话已导出',
     exportFailed: '导出失败',

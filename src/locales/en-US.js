@@ -613,6 +613,8 @@ export default {
     deleteProject: 'Delete Project',
     deleteProjectConfirm: 'Are you sure you want to delete project "{name}" and all its sessions ({count} total)? This action cannot be undone.',
     deleteProjectSuccess: 'Project deleted',
+    scrollForMore: 'Scroll down to see more',
+    backToTop: 'Back to top',
     deleteProjectFailed: 'Failed to delete project',
     exportSuccess: 'Session exported',
     exportFailed: 'Export failed',

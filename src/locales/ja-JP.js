@@ -614,6 +614,8 @@ export default {
     deleteProject: 'プロジェクトを削除',
     deleteProjectConfirm: 'プロジェクト「{name}」とその全セッション（{count}件）を削除してよろしいですか？この操作は取り消せません。',
     deleteProjectSuccess: 'プロジェクトを削除しました',
+    scrollForMore: '下にスクロールしてさらに表示',
+    backToTop: 'トップへ戻る',
     deleteProjectFailed: 'プロジェクトの削除に失敗しました',
     exportSuccess: 'セッションをエクスポートしました',
     exportFailed: 'エクスポートに失敗しました',
