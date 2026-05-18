@@ -918,6 +918,9 @@ const initUpdateListeners = () => {
       } else if (state.status === 'idle' || state.status === 'error') {
         isBackgroundDownloading.value = false
         showUpdateProgress.value = false
+        if (state.status === 'error' && state.error) {
+          toast.error(t('update.checkFailed') + ': ' + state.error)
+        }
       }
     }),
   )
