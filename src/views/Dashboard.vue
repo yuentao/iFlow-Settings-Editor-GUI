@@ -147,7 +147,11 @@ const cloudStore = useCloudSyncStore()
 // 模型使用统计
 const { loading: modelStatsLoading, error: modelStatsError, stats: modelStats, refreshing: modelStatsRefreshing, fetchStats, startAutoRefresh, stopAutoRefresh } = useModelUsageStats()
 
+// 用户选中的模型统计时间维度（默认 7 天）
+const selectedModelStatsDays = ref(7)
+
 async function handleModelStatsRefresh(days) {
+  selectedModelStatsDays.value = days
   await fetchStats({ days })
   const interval = props.settings?.modelUsageRefreshInterval ?? 5
   startAutoRefresh(days, interval)
@@ -267,7 +271,7 @@ function handleVisibilityChange() {
   if (document.hidden) {
     stopAutoRefresh()
   } else {
-    const days = 7
+    const days = selectedModelStatsDays.value
     const interval = props.settings?.modelUsageRefreshInterval ?? 5
     fetchStats({ days, silent: true })
     startAutoRefresh(days, interval)
@@ -277,9 +281,10 @@ function handleVisibilityChange() {
 onMounted(async () => {
   await cloudStore.loadStatus()
   // 加载模型使用统计并启动自动刷新
+  const days = selectedModelStatsDays.value
   const interval = props.settings?.modelUsageRefreshInterval ?? 5
-  await fetchStats({ days: 7 })
-  startAutoRefresh(7, interval)
+  await fetchStats({ days })
+  startAutoRefresh(days, interval)
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
