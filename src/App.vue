@@ -288,7 +288,7 @@ watch(
 watch(
   () => cloudSyncStore.status.lastSyncError,
   (newVal, oldVal) => {
-    if (newVal && newVal !== oldVal) {
+    if (newVal && newVal !== oldVal && !document.hidden) {
       const key = 'cloudSync.' + newVal
       const translated = t(key)
       toast.error(translated !== key ? translated : newVal)
