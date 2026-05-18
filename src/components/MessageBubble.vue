@@ -92,7 +92,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { User, Robot } from '@icon-park/vue-next'
+import { User, Robot, Copy } from '@icon-park/vue-next'
 import ToolCallBlock from './ToolCallBlock.vue'
 import type { Message } from '@/stores/projects'
 import { marked } from 'marked'
@@ -399,6 +399,8 @@ function formatTokens(count: number): string {
   .text-body {
     word-break: break-word;
     line-height: 1.6;
+    user-select: text;
+    -webkit-user-select: text;
 
     // 段落间距
     :deep(p) {
