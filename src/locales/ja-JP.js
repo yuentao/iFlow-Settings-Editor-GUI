@@ -616,6 +616,7 @@ export default {
     deleteProjectSuccess: 'プロジェクトを削除しました',
     scrollForMore: '下にスクロールしてさらに表示',
     backToTop: 'トップへ戻る',
+    copy: 'コピー',
     deleteProjectFailed: 'プロジェクトの削除に失敗しました',
     exportSuccess: 'セッションをエクスポートしました',
     exportFailed: 'エクスポートに失敗しました',

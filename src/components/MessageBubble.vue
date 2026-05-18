@@ -19,6 +19,10 @@
     <template v-if="message.type === 'user'">
       <div class="bubble-wrapper user-side">
         <div class="bubble user-bubble">
+          <button class="copy-btn" :class="{ copied }" @click="handleCopy" :title="t('projects.copy')">
+            <Copy v-if="!copied" size="12" />
+            <Check v-else size="12" />
+          </button>
           <!-- 气泡头部 -->
           <div class="bubble-meta">
             <span v-if="message.model" class="message-model">{{ message.model }}</span>
@@ -49,6 +53,10 @@
           <Robot size="14" />
         </div>
         <div class="bubble assistant-bubble">
+          <button class="copy-btn" :class="{ copied }" @click="handleCopy" :title="t('projects.copy')">
+            <Copy v-if="!copied" size="12" />
+            <Check v-else size="12" />
+          </button>
           <!-- 气泡头部 -->
           <div class="bubble-meta">
             <span class="message-role">{{ t('projects.assistant') }}</span>
@@ -92,7 +100,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { User, Robot, Copy } from '@icon-park/vue-next'
+import { User, Robot, Copy, Check } from '@icon-park/vue-next'
 import ToolCallBlock from './ToolCallBlock.vue'
 import type { Message } from '@/stores/projects'
 import { marked } from 'marked'
@@ -110,6 +118,16 @@ const emit = defineEmits<{
 }>()
 
 const isCollapsed = ref(true)
+const copied = ref(false)
+let copyTimer: ReturnType<typeof setTimeout> | null = null
+
+function handleCopy() {
+  navigator.clipboard.writeText(textContent.value).then(() => {
+    copied.value = true
+    if (copyTimer) clearTimeout(copyTimer)
+    copyTimer = setTimeout(() => { copied.value = false }, 1500)
+  })
+}
 
 // 提取纯文本内容
 const textContent = computed(() => {
@@ -300,6 +318,42 @@ function formatTokens(count: number): string {
   border-radius: var(--radius-lg);
   padding: 8px 12px;
   min-width: 0;
+  position: relative;
+}
+
+// ── 复制按钮 ──────────────────────────────
+.copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-light);
+  background: var(--bg-elevated);
+  color: var(--text-tertiary);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+  z-index: 2;
+
+  .bubble:hover & {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--control-fill-hover);
+    color: var(--text-primary);
+  }
+
+  &.copied {
+    opacity: 1;
+    color: var(--success);
+    border-color: var(--success);
+  }
 }
 
 .user-bubble {
@@ -337,6 +391,23 @@ function formatTokens(count: number): string {
     }
   }
 
+  .copy-btn {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.6);
+
+    &:hover {
+      background: rgba(255,255,255,0.22);
+      color: #fff;
+    }
+
+    &.copied {
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      border-color: rgba(255,255,255,0.4);
+    }
+  }
+
   .toggle-btn {
     border-color: rgba(255, 255, 255, 0.3);
     background: rgba(255, 255, 255, 0.1);
@@ -364,6 +435,7 @@ function formatTokens(count: number): string {
   gap: 6px;
   margin-bottom: 4px;
   font-size: 11px;
+  padding-right: 28px;
 }
 
 .message-role {

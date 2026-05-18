@@ -119,13 +119,13 @@
         :icon="Message"
       />
 
-      <!-- 返回顶部按钮 -->
+      <!-- 前往顶部按钮 -->
       <button
         v-if="showBackToTop"
         class="back-to-top"
         @click="scrollToTop"
         :title="$t('projects.backToTop')">
-        <TopBar size="16" />
+        <ArrowUp size="16" />
       </button>
     </div>
 

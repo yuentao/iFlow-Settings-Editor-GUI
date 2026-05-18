@@ -615,6 +615,7 @@ export default {
     deleteProjectSuccess: 'Project deleted',
     scrollForMore: 'Scroll down to see more',
     backToTop: 'Back to top',
+    copy: 'Copy',
     deleteProjectFailed: 'Failed to delete project',
     exportSuccess: 'Session exported',
     exportFailed: 'Export failed',
