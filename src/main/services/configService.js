@@ -73,6 +73,9 @@ function _doWrite(data) {
   const SETTINGS_FILE = getSettingsFile()
   const tmpFile = SETTINGS_FILE + '.tmp'
   try {
+    // 记录本次写入时间戳，用于文件监听区分内部/外部修改
+    _lastWriteTime = Date.now()
+
     // 先创建备份（N-6：备份失败仅 warn，不阻塞主写入）
     if (fs.existsSync(SETTINGS_FILE)) {
       const backupPath = SETTINGS_FILE + '.bak'
@@ -154,6 +157,65 @@ function applyApiConfig(settings, apiConfig) {
     if (apiConfig[field] !== undefined) {
       settings[field] = apiConfig[field]
     }
+  }
+}
+
+// ─── 文件监听 ────────────────────────────
+// 用于检测外部应用对 settings.json 的修改
+let _fileWatcher = null
+let _watchDebounceTimer = null
+let _lastWriteTime = 0
+let _watchCallback = null
+
+/**
+ * 开始监听 settings.json 文件变化（外部修改）
+ * 内部写入通过 _lastWriteTime 时间戳区分，避免自我触发
+ * @param {Function} onChange - 外部修改时的回调函数
+ */
+function startWatching(onChange) {
+  const filePath = getSettingsFile()
+  _watchCallback = typeof onChange === 'function' ? onChange : null
+
+  try {
+    stopWatching()
+
+    if (!fs.existsSync(filePath)) return
+
+    _fileWatcher = fs.watch(filePath, (eventType) => {
+      if (eventType !== 'change' && eventType !== 'rename') return
+
+      // 如果文件刚被本应用写入（1 秒内），跳过
+      if (Date.now() - _lastWriteTime < 1000) return
+
+      // 防抖：合并短时间内多次触发
+      if (_watchDebounceTimer) clearTimeout(_watchDebounceTimer)
+      _watchDebounceTimer = setTimeout(() => {
+        _watchDebounceTimer = null
+        if (typeof _watchCallback === 'function') {
+          _watchCallback()
+        }
+      }, 300)
+    })
+
+    _fileWatcher.on('error', () => {
+      stopWatching()
+    })
+  } catch (err) {
+    console.warn('Failed to watch settings file:', err.message)
+  }
+}
+
+/**
+ * 停止文件监听
+ */
+function stopWatching() {
+  if (_watchDebounceTimer) {
+    clearTimeout(_watchDebounceTimer)
+    _watchDebounceTimer = null
+  }
+  if (_fileWatcher) {
+    _fileWatcher.close()
+    _fileWatcher = null
   }
 }
 
@@ -323,4 +385,6 @@ module.exports = {
   getServerTombstoneTime,
   pruneOldTombstones,
   DEFAULT_TOMBSTONE_RETENTION_DAYS,
+  startWatching,
+  stopWatching,
 }

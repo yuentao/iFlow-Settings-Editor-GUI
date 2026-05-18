@@ -201,6 +201,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   iflowOpenImportDialog: () => ipcRenderer.invoke('iflow:open-import-dialog'),
   iflowCheckIflowStatus: () => ipcRenderer.invoke('iflow:check-iflow-status'),
 
+  // 文件变化监听（外部修改 settings.json）
+  onSettingsFileChanged: (callback) => {
+    const handler = () => callback()
+    ipcRenderer.on('settings-file-changed', handler)
+    return () => ipcRenderer.removeListener('settings-file-changed', handler)
+  },
+
   // 云同步事件监听
   onCloudSyncStatusChanged: (callback) => {
     const handler = (_event, state) => callback(state)

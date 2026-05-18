@@ -257,10 +257,21 @@ async function handleSyncPasswordConfirm() {
   closeSyncPasswordDialog()
   await cloudStore.syncNow(password)
 }
-
 function closeSyncPasswordDialog() {
   syncPasswordDialog.value.show = false
   syncPasswordDialog.value.error = ''
+}
+
+// 窗口隐藏时暂停模型统计刷新，恢复时立即刷新
+function handleVisibilityChange() {
+  if (document.hidden) {
+    stopAutoRefresh()
+  } else {
+    const days = 7
+    const interval = props.settings?.modelUsageRefreshInterval ?? 5
+    fetchStats({ days, silent: true })
+    startAutoRefresh(days, interval)
+  }
 }
 
 onMounted(async () => {
@@ -269,10 +280,12 @@ onMounted(async () => {
   const interval = props.settings?.modelUsageRefreshInterval ?? 5
   await fetchStats({ days: 7 })
   startAutoRefresh(7, interval)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onUnmounted(() => {
   stopAutoRefresh()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 

@@ -466,6 +466,7 @@ export default {
     neverSynced: '从未同步',
     syncNow: '立即同步',
     syncSuccess: '同步成功',
+    syncCompleted: '已成功同步！',
     syncFailed: '同步失败',
     // 开关
     toggleTitle: '同步设置',
