@@ -59,10 +59,25 @@
       </div>
     </div>
 
-    <!-- 项目信息 -->
+    <!-- 项目信息 + 消息统计 -->
     <div v-if="project" class="project-info-bar">
-      <Folder size="12" />
-      <span>{{ project.name }}</span>
+      <span class="project-name-row">
+        <Folder size="12" />
+        <span>{{ project.name }}</span>
+      </span>
+      <span class="stat-separator"></span>
+      <span v-if="stats" class="stats-row">
+        <span class="stat-item">{{ $t('projects.totalMessages') }}: {{ stats.totalMessages }}</span>
+        <span class="stat-divider">|</span>
+        <span class="stat-item">{{ $t('projects.user') }}: {{ stats.userMessages }}</span>
+        <span class="stat-divider">|</span>
+        <span class="stat-item">{{ $t('projects.assistant') }}: {{ stats.assistantMessages }}</span>
+        <span class="stat-divider">|</span>
+        <span class="stat-item">{{ $t('projects.toolCalls') }}: {{ stats.toolCalls }}</span>
+        <span v-if="stats.toolCalls > 0" class="stat-item success-rate">
+          ({{ (stats.toolCallSuccess / stats.toolCalls * 100).toFixed(0) }}%)
+        </span>
+      </span>
     </div>
 
     <!-- 消息列表 -->
@@ -74,6 +89,14 @@
 
       <!-- 消息列表 -->
       <div v-else class="messages-list">
+        <!-- 顶部滚动提示（有更早消息时提示向上滚动） -->
+        <Transition name="hint-fade">
+          <div v-if="showScrollHint" class="scroll-hint scroll-hint-top" key="scroll-hint">
+            <ArrowUp size="14" />
+            <span>{{ $t('projects.scrollForMore') }}</span>
+            <ArrowUp size="14" />
+          </div>
+        </Transition>
         <MessageBubble
           v-for="msg in visibleMessages"
           :key="msg.uuid"
@@ -84,11 +107,9 @@
         />
       </div>
 
-      <!-- 加载更多（底部） -->
-      <div v-if="messagesHasMore && messages.length > 0" class="load-more-bottom">
-        <button class="load-more-btn" @click="loadMoreMessages" :disabled="isLoadingMessages">
-          {{ isLoadingMessages ? $t('projects.loading') : $t('projects.loadMore') }}
-        </button>
+      <!-- 滚动加载更多（触顶自动触发） -->
+      <div v-if="isLoadingMessages && messages.length > 0" class="load-more-scroll">
+        <span>{{ $t('projects.loading') }}</span>
       </div>
 
       <!-- 空状态 -->
@@ -97,20 +118,15 @@
         :title="$t('projects.noMessages')"
         :icon="Message"
       />
-    </div>
 
-    <!-- 底部统计栏 -->
-    <div v-if="stats" class="stats-bar">
-      <span class="stat-item">{{ $t('projects.totalMessages') }}: {{ stats.totalMessages }}</span>
-      <span class="stat-divider">|</span>
-      <span class="stat-item">{{ $t('projects.user') }}: {{ stats.userMessages }}</span>
-      <span class="stat-divider">|</span>
-      <span class="stat-item">{{ $t('projects.assistant') }}: {{ stats.assistantMessages }}</span>
-      <span class="stat-divider">|</span>
-      <span class="stat-item">{{ $t('projects.toolCalls') }}: {{ stats.toolCalls }}</span>
-      <span v-if="stats.toolCalls > 0" class="stat-item success-rate">
-        ({{ (stats.toolCallSuccess / stats.toolCalls * 100).toFixed(0) }}%)
-      </span>
+      <!-- 前往顶部按钮 -->
+      <button
+        v-if="showBackToTop"
+        class="back-to-top"
+        @click="scrollToTop"
+        :title="$t('projects.backToTop')">
+        <ArrowUp size="16" />
+      </button>
     </div>
 
     <!-- 确认对话框 -->
@@ -139,7 +155,7 @@ import MessageBubble from '@/components/MessageBubble.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import {
   Left, Folder, GeneralBranch, Export, Delete,
-  FullSelection, Close, Message,
+  FullSelection, Close, Message, TopBar, ArrowUp,
 } from '@icon-park/vue-next'
 
 const { t } = useI18n()
@@ -156,6 +172,13 @@ const emit = defineEmits<{
 }>()
 
 const messagesContainer = ref<HTMLElement | null>(null)
+const showBackToTop = ref(false)
+const showScrollHint = ref(false)
+const _hideHintOnScroll = ref(false) // 用户首次滚动后永久隐藏提示
+const currentTopOffset = ref(0) // 当前加载批次在消息文件中的起始偏移
+
+const SCROLL_MORE_THRESHOLD = 150 // 距离底部多少 px 触发加载更多
+const BACK_TO_TOP_THRESHOLD = 400 // 向下滚动多少 px 显示返回顶部按钮
 
 const confirmState = ref<{
   show: boolean
@@ -188,7 +211,6 @@ const visibleMessages = computed(() =>
 )
 const stats = computed(() => store.currentStats)
 const isLoadingMessages = computed(() => store.isLoadingMessages)
-const messagesHasMore = computed(() => store.messagesHasMore)
 const isSelectionMode = computed(() => store.isSelectionMode)
 const selectedMessageUuids = computed(() => store.selectedMessageUuids)
 const selectedCount = computed(() => selectedMessageUuids.value.size)
@@ -203,10 +225,52 @@ function goBack() {
 }
 
 async function loadMoreMessages() {
-  await store.loadMessages(props.project.id, props.session.id, {
-    offset: store.messages.length,
-    limit: 50,
-  })
+  if (currentTopOffset.value <= 0) return
+  const newOffset = Math.max(0, currentTopOffset.value - 50)
+  const result = await window.electronAPI.getSessionMessages(
+    props.project.id,
+    props.session.id,
+    { offset: newOffset, limit: 50 },
+  )
+  if (result.success) {
+    const el = messagesContainer.value
+    const prevScrollHeight = el?.scrollHeight || 0
+
+    // 将更早的消息 prepend 到列表开头
+    store.messages = [...(result.data || []), ...store.messages]
+    store.messagesHasMore = newOffset > 0
+    currentTopOffset.value = newOffset
+
+    await nextTick()
+    // 恢复滚动位置：新内容插入后 scrollHeight 增加，补偿差额
+    if (el) {
+      el.scrollTop = el.scrollHeight - prevScrollHeight
+    }
+  }
+}
+
+// 向上滚动触顶自动加载更多
+function handleScroll() {
+  const el = messagesContainer.value
+  if (!el) return
+
+  // 显示/隐藏返回顶部按钮
+  showBackToTop.value = el.scrollTop > BACK_TO_TOP_THRESHOLD
+
+  // 用户首次滚动时隐藏提示
+  if (!_hideHintOnScroll.value && el.scrollTop > 0) {
+    _hideHintOnScroll.value = true
+    showScrollHint.value = false
+  }
+
+  // 向上滚动到接近顶部时加载更早的消息
+  if (el.scrollTop < SCROLL_MORE_THRESHOLD && !isLoadingMessages.value && store.messagesHasMore) {
+    loadMoreMessages()
+  }
+}
+
+function scrollToTop() {
+  messagesContainer.value?.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function enterSelectionMode() {
@@ -291,19 +355,46 @@ function closeConfirm() {
 onMounted(async () => {
   if (!props.project || !props.session) return
   store.resetMessages()
+  currentTopOffset.value = 0
+
+  // 先获取总消息数，计算从末尾加载的偏移量
+  const countResult = await window.electronAPI.getSessionMessages(
+    props.project.id,
+    props.session.id,
+    { limit: 1 },
+  )
+  const total = countResult?.success ? (countResult.total || 0) : 0
+  const startOffset = Math.max(0, total - 50)
+  currentTopOffset.value = startOffset
+
   await Promise.all([
-    store.loadMessages(props.project.id, props.session.id, { limit: 50 }),
+    store.loadMessages(props.project.id, props.session.id, {
+      offset: startOffset,
+      limit: 50,
+    }),
     store.loadSessionStats(props.project.id, props.session.id),
   ])
-  // 滚动到底部
+
+  // 如果还有更早的消息，手动设置 hasMore
+  if (startOffset > 0) {
+    store.messagesHasMore = true
+  }
+
+  // 滚动到底部（等待布局稳定）
   await nextTick()
+  await new Promise(resolve => requestAnimationFrame(resolve))
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    messagesContainer.value.addEventListener('scroll', handleScroll)
+    if (store.messagesHasMore) {
+      showScrollHint.value = true
+    }
   }
 })
 
 onUnmounted(() => {
   store.resetMessages()
+  messagesContainer.value?.removeEventListener('scroll', handleScroll)
 })
 </script>
 
@@ -421,13 +512,46 @@ onUnmounted(() => {
 .project-info-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 20px;
+  gap: 8px;
+  padding: 5px 20px;
   font-size: 11px;
   color: var(--text-tertiary);
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-secondary);
   flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.project-name-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.stat-separator {
+  display: inline-block;
+  width: 1px;
+  height: 12px;
+  background: var(--border-light);
+  flex-shrink: 0;
+}
+
+.stats-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+
+  .stat-divider {
+    color: var(--border-light);
+    margin: 0 2px;
+  }
+
+  .success-rate {
+    color: #00B894;
+  }
 }
 
 .messages-container {
@@ -436,28 +560,12 @@ onUnmounted(() => {
   padding: 8px 0;
 }
 
-.load-more-bottom {
+.load-more-scroll {
   display: flex;
   justify-content: center;
   padding: 8px;
-
-  .load-more-btn {
-    padding: 4px 14px;
-    border: 1px solid var(--border-light);
-    background: var(--control-fill);
-    color: var(--text-secondary);
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-size: 12px;
-
-    &:hover:not(:disabled) {
-      background: var(--control-fill-hover);
-    }
-
-    &:disabled {
-      opacity: 0.5;
-    }
-  }
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .loading-state {
@@ -471,29 +579,65 @@ onUnmounted(() => {
   padding: 8px 0;
 }
 
-.stats-bar {
+// ── 滚动提示 ──────────────────────────────
+.scroll-hint {
   display: flex;
   align-items: center;
-  padding: 8px 20px;
-  border-top: 1px solid var(--border-light);
-  background: var(--bg-secondary);
-  font-size: 11px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 12px;
   color: var(--text-tertiary);
-  flex-shrink: 0;
-  gap: 4px;
-  overflow-x: auto;
+  animation: hint-bounce 2s 1.5s ease-in-out infinite;
+}
 
-  .stat-item {
-    white-space: nowrap;
+.scroll-hint-top {
+  margin: 0 auto 8px;
+}
+
+@keyframes hint-bounce {
+  0%, 100% { opacity: 0.5; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
+// hint-fade 退出动画
+.hint-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.hint-fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+// ── 返回顶部悬浮按钮 ──────────────────────────────
+.back-to-top {
+  position: sticky;
+  bottom: 20px;
+  float: right;
+  margin-right: 16px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-light);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+  z-index: 10;
+
+  &:hover {
+    background: var(--control-fill-hover);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
   }
 
-  .stat-divider {
-    color: var(--border-light);
-    margin: 0 4px;
-  }
-
-  .success-rate {
-    color: #00B894;
+  &:active {
+    transform: translateY(0);
   }
 }
 </style>

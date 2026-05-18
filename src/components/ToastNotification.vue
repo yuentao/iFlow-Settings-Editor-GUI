@@ -39,6 +39,7 @@ const { toasts, pauseTimer, resumeTimer } = useToast()
   background: var(--bg-elevated);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
+  opacity: 0.95;
 }
 
 .toast-body {
@@ -76,22 +77,22 @@ const { toasts, pauseTimer, resumeTimer } = useToast()
 @keyframes toast-in {
   0% {
     opacity: 0;
-    transform: translateY(20px) scale(0.94);
+    transform: translateY(100%);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
 @keyframes toast-out {
   0% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
   100% {
     opacity: 0;
-    transform: translateY(-8px) scale(0.94);
+    transform: translateY(100%);
   }
 }
 </style>

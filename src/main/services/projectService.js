@@ -83,8 +83,7 @@ async function listProjects() {
       if (!stat.isDirectory()) continue
 
       // 读取该目录下所有 .jsonl 文件
-      const jsonlFiles = fs.readdirSync(projectPath)
-        .filter(f => f.endsWith('.jsonl'))
+      const jsonlFiles = fs.readdirSync(projectPath).filter(f => f.endsWith('.jsonl'))
 
       if (jsonlFiles.length === 0) continue
 
@@ -154,8 +153,7 @@ async function getProjectSessions(projectId, options = {}) {
     return { data: [], total: 0, hasMore: false }
   }
 
-  const jsonlFiles = fs.readdirSync(projectPath)
-    .filter(f => f.endsWith('.jsonl'))
+  const jsonlFiles = fs.readdirSync(projectPath).filter(f => f.endsWith('.jsonl'))
 
   const sessions = []
 
@@ -308,6 +306,7 @@ async function getSessionMessages(projectId, sessionId, options = {}) {
     stopSequence: m.message?.stop_sequence || null,
     usage: m.message?.usage || null,
     toolUseResult: m.toolUseResult || null,
+    isMeta: m.isMeta || null,
     cwd: m.cwd || '',
     gitBranch: m.gitBranch || '',
   }))
@@ -405,7 +404,9 @@ async function deleteMessages(projectId, sessionId, messageUuids) {
     }
   } catch (verifyError) {
     // 清理临时文件后重新抛出
-    try { fs.unlinkSync(tempPath) } catch (_) {}
+    try {
+      fs.unlinkSync(tempPath)
+    } catch (_) {}
     throw verifyError
   }
 
@@ -679,10 +680,12 @@ async function getAllSessionMessagesForStats(days = 7) {
                 timestamp: msg.timestamp,
                 message: {
                   model: msg.message.model,
-                  usage: msg.message.usage ? {
-                    input_tokens: msg.message.usage.input_tokens || 0,
-                    output_tokens: msg.message.usage.output_tokens || 0,
-                  } : null,
+                  usage: msg.message.usage
+                    ? {
+                        input_tokens: msg.message.usage.input_tokens || 0,
+                        output_tokens: msg.message.usage.output_tokens || 0,
+                      }
+                    : null,
                 },
               })
             }

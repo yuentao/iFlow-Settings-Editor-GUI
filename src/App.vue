@@ -265,12 +265,21 @@ const cloudSyncStore = useCloudSyncStore()
 const toast = useToast()
 
 // 云同步完成后自动刷新 API 配置列表数据
+// 防抖：sync() 内部 pull 和 push 各写一次 lastSyncAt，防抖 coalesce 两次触发
+let _syncToastTimer = null
 watch(
   () => cloudSyncStore.status.lastSyncAt,
   async (newVal, oldVal) => {
     if (newVal && newVal !== oldVal) {
-      await loadApiProfiles()
-      toast.success(t('cloudSync.syncCompleted'))
+      if (_syncToastTimer) clearTimeout(_syncToastTimer)
+      _syncToastTimer = setTimeout(async () => {
+        _syncToastTimer = null
+        await loadApiProfiles()
+        // 仅在应用前台时显示同步成功 toast，避免后台累积多次同步后恢复窗口时弹出大量 toast
+        if (!document.hidden) {
+          toast.success(t('cloudSync.syncCompleted'))
+        }
+      }, 300)
     }
   },
 )
@@ -279,7 +288,7 @@ watch(
 watch(
   () => cloudSyncStore.status.lastSyncError,
   (newVal, oldVal) => {
-    if (newVal && newVal !== oldVal) {
+    if (newVal && newVal !== oldVal && !document.hidden) {
       const key = 'cloudSync.' + newVal
       const translated = t(key)
       toast.error(translated !== key ? translated : newVal)
