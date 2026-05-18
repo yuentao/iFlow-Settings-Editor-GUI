@@ -1,18 +1,8 @@
 <template>
-  <div
-    class="message-bubble"
-    :class="[
-      effectiveType,
-      { selected: isSelected, 'selection-mode': selectionMode }
-    ]"
-  >
+  <div class="message-bubble" :class="[effectiveType, { selected: isSelected, 'selection-mode': selectionMode }]">
     <!-- 选择模式复选框 -->
     <div v-if="selectionMode" class="message-checkbox">
-      <input
-        type="checkbox"
-        :checked="isSelected"
-        @change="onToggleSelect"
-      />
+      <input type="checkbox" :checked="isSelected" @change="onToggleSelect" />
     </div>
 
     <!-- 用户消息：右侧布局 -->
@@ -31,11 +21,7 @@
           <!-- 文本内容 -->
           <div v-if="textContent" class="bubble-text" :class="{ collapsed: isCollapsed }">
             <div class="text-body" v-html="renderedText"></div>
-            <button
-              v-if="isTextLong"
-              class="toggle-btn"
-              @click="isCollapsed = !isCollapsed"
-            >
+            <button v-if="isTextLong" class="toggle-btn" @click="isCollapsed = !isCollapsed">
               {{ isCollapsed ? t('projects.expand') : t('projects.collapse') }}
             </button>
           </div>
@@ -66,25 +52,13 @@
           <!-- 文本内容 -->
           <div v-if="textContent" class="bubble-text" :class="{ collapsed: isCollapsed }">
             <div class="text-body" v-html="renderedText"></div>
-            <button
-              v-if="isTextLong"
-              class="toggle-btn"
-              @click="isCollapsed = !isCollapsed"
-            >
+            <button v-if="isTextLong" class="toggle-btn" @click="isCollapsed = !isCollapsed">
               {{ isCollapsed ? t('projects.expand') : t('projects.collapse') }}
             </button>
           </div>
           <!-- 工具调用内容 -->
           <template v-if="toolUseBlocks.length > 0">
-            <ToolCallBlock
-              v-for="block in toolUseBlocks"
-              :key="block.id"
-              :type="block.type"
-              :name="block.name"
-              :input="block.input"
-              :display="block.display"
-              :status="block.status"
-            />
+            <ToolCallBlock v-for="block in toolUseBlocks" :key="block.id" :type="block.type" :name="block.name" :input="block.input" :display="block.display" :status="block.status" />
           </template>
           <!-- Token 使用统计 -->
           <div v-if="message.usage && (message.usage.input_tokens || message.usage.output_tokens)" class="message-usage">
@@ -117,10 +91,14 @@ const emit = defineEmits<{
   toggleSelect: [uuid: string]
 }>()
 
-// content 为字符串且包含 toolUseResult 时视为助手消息
+// content 为字符串且包含 toolUseResult 或 analysis/summary 标签时视为助手消息
 const effectiveType = computed(() => {
   const c = props.message.content
-  if (props.message.toolUseResult && typeof c === 'string') return 'assistant'
+  if (typeof c === 'string') {
+    if (props.message.toolUseResult) return 'assistant'
+    if (c.includes('<analysis>') || c.includes('</summary>')) return 'assistant'
+  }
+  if (props.message.isMeta) return 'assistant'
   return props.message.type
 })
 
@@ -132,7 +110,9 @@ function handleCopy() {
   navigator.clipboard.writeText(textContent.value).then(() => {
     copied.value = true
     if (copyTimer) clearTimeout(copyTimer)
-    copyTimer = setTimeout(() => { copied.value = false }, 1500)
+    copyTimer = setTimeout(() => {
+      copied.value = false
+    }, 1500)
   })
 }
 
@@ -141,9 +121,7 @@ const textContent = computed(() => {
   const content = props.message.rawContent || props.message.content
   if (typeof content === 'string') return content
   if (Array.isArray(content)) {
-    const textParts = content
-      .filter((c: any) => c.type === 'text' && c.text)
-      .map((c: any) => c.text)
+    const textParts = content.filter((c: any) => c.type === 'text' && c.text).map((c: any) => c.text)
     return textParts.join('\n')
   }
   return props.message.content || ''
@@ -154,13 +132,15 @@ const toolUseBlocks = computed(() => {
   const content = props.message.rawContent
   if (!content || typeof content === 'string') {
     if (props.message.toolUseResult) {
-      return [{
-        id: 'result-' + props.message.uuid,
-        type: 'tool_result' as const,
-        name: props.message.toolUseResult.toolName,
-        status: props.message.toolUseResult.status,
-        display: extractResultDisplay(content),
-      }]
+      return [
+        {
+          id: 'result-' + props.message.uuid,
+          type: 'tool_result' as const,
+          name: props.message.toolUseResult.toolName,
+          status: props.message.toolUseResult.status,
+          display: extractResultDisplay(content),
+        },
+      ]
     }
     return []
   }
@@ -269,7 +249,7 @@ function formatTokens(count: number): string {
   padding-top: 8px;
   flex-shrink: 0;
 
-  input[type="checkbox"] {
+  input[type='checkbox'] {
     width: 16px;
     height: 16px;
     cursor: pointer;
@@ -386,32 +366,51 @@ function formatTokens(count: number): string {
     color: #fff;
 
     .text-body {
-      :deep(*) { color: #fff; }
-      :deep(pre) { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
-      :deep(code) { background: rgba(255,255,255,0.15); }
-      :deep(blockquote) { border-left-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.8); }
-      :deep(a) { color: rgba(255,255,255,0.9); text-decoration: underline; }
-      :deep(hr) { border-top-color: rgba(255,255,255,0.2); }
+      :deep(*) {
+        color: #fff;
+      }
+      :deep(pre) {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+      :deep(code) {
+        background: rgba(255, 255, 255, 0.15);
+      }
+      :deep(blockquote) {
+        border-left-color: rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.8);
+      }
+      :deep(a) {
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: underline;
+      }
+      :deep(hr) {
+        border-top-color: rgba(255, 255, 255, 0.2);
+      }
       :deep(th),
-      :deep(td) { border-color: rgba(255,255,255,0.2); }
-      :deep(th) { background: rgba(255,255,255,0.1); }
+      :deep(td) {
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+      :deep(th) {
+        background: rgba(255, 255, 255, 0.1);
+      }
     }
   }
 
   .copy-btn {
-    background: rgba(255,255,255,0.12);
-    border-color: rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.6);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.6);
 
     &:hover {
-      background: rgba(255,255,255,0.22);
+      background: rgba(255, 255, 255, 0.22);
       color: #fff;
     }
 
     &.copied {
-      background: rgba(255,255,255,0.18);
+      background: rgba(255, 255, 255, 0.18);
       color: #fff;
-      border-color: rgba(255,255,255,0.4);
+      border-color: rgba(255, 255, 255, 0.4);
     }
   }
 
@@ -484,8 +483,12 @@ function formatTokens(count: number): string {
     // 段落间距
     :deep(p) {
       margin: 6px 0;
-      &:first-child { margin-top: 0; }
-      &:last-child { margin-bottom: 0; }
+      &:first-child {
+        margin-top: 0;
+      }
+      &:last-child {
+        margin-bottom: 0;
+      }
     }
 
     // 代码块 (<pre><code class="language-xxx">)
@@ -534,10 +537,18 @@ function formatTokens(count: number): string {
       font-weight: 600;
       line-height: 1.4;
     }
-    :deep(h1) { font-size: 16px; }
-    :deep(h2) { font-size: 15px; }
-    :deep(h3) { font-size: 14px; }
-    :deep(h4) { font-size: 13px; }
+    :deep(h1) {
+      font-size: 16px;
+    }
+    :deep(h2) {
+      font-size: 15px;
+    }
+    :deep(h3) {
+      font-size: 14px;
+    }
+    :deep(h4) {
+      font-size: 13px;
+    }
 
     // 引用
     :deep(blockquote) {
@@ -551,12 +562,18 @@ function formatTokens(count: number): string {
     :deep(a) {
       color: var(--accent);
       text-decoration: none;
-      &:hover { text-decoration: underline; }
+      &:hover {
+        text-decoration: underline;
+      }
     }
 
     // 粗体/斜体
-    :deep(strong) { font-weight: 600; }
-    :deep(em) { font-style: italic; }
+    :deep(strong) {
+      font-weight: 600;
+    }
+    :deep(em) {
+      font-style: italic;
+    }
 
     // 分隔线
     :deep(hr) {

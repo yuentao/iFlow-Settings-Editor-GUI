@@ -211,7 +211,6 @@ const visibleMessages = computed(() =>
 )
 const stats = computed(() => store.currentStats)
 const isLoadingMessages = computed(() => store.isLoadingMessages)
-const messagesHasMore = computed(() => store.messagesHasMore)
 const isSelectionMode = computed(() => store.isSelectionMode)
 const selectedMessageUuids = computed(() => store.selectedMessageUuids)
 const selectedCount = computed(() => selectedMessageUuids.value.size)

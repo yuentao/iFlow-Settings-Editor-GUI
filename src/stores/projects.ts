@@ -43,6 +43,7 @@ export interface Message {
   rawContent: any
   messageId?: string
   messageType?: string
+  isMeta?: boolean
   model?: string
   stopReason?: string | null
   stopSequence?: string | null
@@ -107,10 +108,7 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  async function loadSessions(
-    projectId: string,
-    options?: { offset?: number; limit?: number; sortBy?: string; sortOrder?: string }
-  ): Promise<{ success: boolean; error?: string }> {
+  async function loadSessions(projectId: string, options?: { offset?: number; limit?: number; sortBy?: string; sortOrder?: string }): Promise<{ success: boolean; error?: string }> {
     isLoadingSessions.value = true
     try {
       const result = await window.electronAPI.getProjectSessions(projectId, options)
@@ -132,11 +130,7 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  async function loadMessages(
-    projectId: string,
-    sessionId: string,
-    options?: { offset?: number; limit?: number; filterType?: string }
-  ): Promise<{ success: boolean; error?: string }> {
+  async function loadMessages(projectId: string, sessionId: string, options?: { offset?: number; limit?: number; filterType?: string }): Promise<{ success: boolean; error?: string }> {
     isLoadingMessages.value = true
     try {
       const result = await window.electronAPI.getSessionMessages(projectId, sessionId, options)
@@ -175,16 +169,11 @@ export const useProjectsStore = defineStore('projects', () => {
         currentProject.value = null
         resetSessions()
       }
-
     }
     return result
   }
 
-  async function deleteMessagesAction(
-    projectId: string,
-    sessionId: string,
-    uuids: string[]
-  ): Promise<{ success: boolean; error?: string }> {
+  async function deleteMessagesAction(projectId: string, sessionId: string, uuids: string[]): Promise<{ success: boolean; error?: string }> {
     const result = await window.electronAPI.deleteMessages(projectId, sessionId, uuids)
     if (result.success) {
       messages.value = messages.value.filter(m => !uuids.includes(m.uuid))
@@ -194,18 +183,11 @@ export const useProjectsStore = defineStore('projects', () => {
     return result
   }
 
-  async function exportSessionAction(
-    projectId: string,
-    sessionId: string,
-    format: 'markdown' | 'json' = 'markdown'
-  ): Promise<{ success: boolean; error?: string; cancelled?: boolean }> {
+  async function exportSessionAction(projectId: string, sessionId: string, format: 'markdown' | 'json' = 'markdown'): Promise<{ success: boolean; error?: string; cancelled?: boolean }> {
     return await window.electronAPI.exportSession(projectId, sessionId, format)
   }
 
-  async function loadSessionStats(
-    projectId: string,
-    sessionId: string
-  ): Promise<{ success: boolean; error?: string }> {
+  async function loadSessionStats(projectId: string, sessionId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await window.electronAPI.getSessionStats(projectId, sessionId)
       if (result.success) {
@@ -218,10 +200,7 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  async function searchSessionsAction(
-    query: string,
-    options?: { projectId?: string; dateFrom?: string; dateTo?: string; limit?: number }
-  ): Promise<{ success: boolean; results?: any[]; error?: string }> {
+  async function searchSessionsAction(query: string, options?: { projectId?: string; dateFrom?: string; dateTo?: string; limit?: number }): Promise<{ success: boolean; results?: any[]; error?: string }> {
     try {
       return await window.electronAPI.searchSessions(query, options)
     } catch (error) {
