@@ -1197,6 +1197,14 @@ onMounted(async () => {
     }),
   )
 
+  // 监听外部应用对 settings.json 的修改
+  cleanupFns.push(
+    window.electronAPI.onSettingsFileChanged(async () => {
+      await loadSettings()
+      await loadApiProfiles()
+    }),
+  )
+
   // 恢复自动同步定时器（由 cloudSync store 统一管理，包括 localStorage 持久化）
   if (cloudSyncStore.autoSyncEnabled) {
     await cloudSyncStore.loadStatus()

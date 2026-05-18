@@ -3,8 +3,8 @@
  * 处理设置相关的 IPC 通信
  */
 
-const { ipcMain } = require('electron')
-const { readSettings, writeSettings, API_FIELDS, extractApiConfig, stampModifiedItems, markDeletedProfile, markDeletedServer } = require('../services/configService')
+const { ipcMain, BrowserWindow } = require('electron')
+const { readSettings, writeSettings, API_FIELDS, extractApiConfig, stampModifiedItems, markDeletedProfile, markDeletedServer, startWatching, stopWatching } = require('../services/configService')
 const { handleIpcError, wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 const { t } = require('../utils/translations')
 
@@ -114,6 +114,15 @@ function registerSettingsIpcHandlers() {
     await writeSettings(settings)
     return successResult()
   }, 'set-acrylic-enabled'))
+// 监听外部对 settings.json 文件的修改
+  startWatching(() => {
+    const wins = BrowserWindow.getAllWindows()
+    for (const win of wins) {
+      if (!win.isDestroyed() && win.webContents) {
+        win.webContents.send('settings-file-changed')
+      }
+    }
+  })
 }
 
 module.exports = {
