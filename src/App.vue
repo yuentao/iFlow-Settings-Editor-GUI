@@ -275,7 +275,10 @@ watch(
       _syncToastTimer = setTimeout(async () => {
         _syncToastTimer = null
         await loadApiProfiles()
-        toast.success(t('cloudSync.syncCompleted'))
+        // 仅在应用前台时显示同步成功 toast，避免后台累积多次同步后恢复窗口时弹出大量 toast
+        if (!document.hidden) {
+          toast.success(t('cloudSync.syncCompleted'))
+        }
       }, 300)
     }
   },

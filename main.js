@@ -11,7 +11,6 @@
  */
 
 const { app } = require('electron')
-const path = require('path')
 
 console.log('[iFlow] main.js entry point loaded')
 
