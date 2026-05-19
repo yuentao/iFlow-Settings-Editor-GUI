@@ -60,7 +60,8 @@
         @action="openImportDialog"
       >
         <template #item-icon="{ item: mod }">
-          <span v-if="mod.icon" class="mod-icon-emoji">{{ mod.icon }}</span>
+          <span v-if="mod.enabled" class="mod-enable-index">{{ enableIndexMap[mod.id] }}</span>
+          <span v-else-if="mod.icon" class="mod-icon-emoji">{{ mod.icon }}</span>
           <Puzzle v-else size="18" />
         </template>
 
@@ -161,6 +162,16 @@ const filteredMods = computed(() => {
 
 const modHighlightFn = (mod) => ({ highlighted: mod.enabled })
 
+// 计算已启用 mod 的序号（按 installedAt 排序）
+const enableIndexMap = computed(() => {
+  const map = {}
+  const enabled = [...mods.value]
+    .filter(m => m.enabled)
+    .sort((a, b) => (a.installedAt || 0) - (b.installedAt || 0))
+  enabled.forEach((m, i) => { map[m.id] = i + 1 })
+  return map
+})
+
 // Actions
 const loadMods = async () => {
   isLoading.value = true
@@ -185,6 +196,53 @@ const loadMods = async () => {
 const toggleMod = async (modId, enabled) => {
   const mod = mods.value.find(m => m.id === modId)
   if (!mod) return
+
+  // replace 类型冲突检测：启用 replace 时检查是否有其他已启用的 replace mod
+  if (enabled && mod.type === 'replace') {
+    const conflicting = mods.value.find(m => m.id !== modId && m.enabled && m.type === 'replace')
+    if (conflicting) {
+      // 弹出冲突确认对话框，用户确认后自动禁用旧的、启用新的
+      const confirmed = await new Promise(resolve => {
+        emit('show-input-dialog', {
+          type: 'confirm',
+          title: 'messages.warning',
+          placeholder: 'iflow.mods.replaceConflict',
+          callback: resolve,
+          isConfirm: true,
+          name: mod.name,
+          conflict: conflicting.name,
+        })
+      })
+      if (!confirmed) return
+
+      isApplying.value = true
+      applyingText.value = t('iflow.applying.swapping')
+      try {
+        // 先禁用旧的 replace mod
+        const disableResult = await window.electronAPI.iflowEnableMod(conflicting.id, false)
+        if (!disableResult.success) {
+          toast.error(disableResult.error || t('iflow.mods.disableFailed', { name: conflicting.name }))
+          return
+        }
+        // 再启用新的 replace mod
+        const enableResult = await window.electronAPI.iflowEnableMod(modId, true)
+        if (enableResult.success) {
+          await loadMods()
+          toast.success(t('iflow.mods.replaceSwapSuccess', { name: mod.name, conflict: conflicting.name }))
+        } else if (enableResult.code === 'IFLOW_VERSION_INCOMPATIBLE') {
+          await loadMods()
+          toast.warning(enableResult.error)
+        } else {
+          toast.error(enableResult.error)
+        }
+      } catch (error) {
+        toast.error(error?.message || String(error))
+      } finally {
+        isApplying.value = false
+      }
+      return
+    }
+  }
 
   const confirmed = await new Promise(resolve => {
     emit('show-input-dialog', {
@@ -399,6 +457,28 @@ onMounted(() => {
     color: #f59e0b;
     border-color: rgba(245, 158, 11, 0.2);
   }
+
+  &.type-diff {
+    background: rgba(236, 72, 153, 0.1);
+    color: #ec4899;
+    border-color: rgba(236, 72, 153, 0.2);
+  }
+}
+
+// 启用索引序号
+.mod-enable-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  flex-shrink: 0;
 }
 
 .mod-desc {

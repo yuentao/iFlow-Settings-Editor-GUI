@@ -660,6 +660,7 @@ export default {
       enableSuccess: '已启用 "{name}"',
       disableSuccess: '已禁用 "{name}"',
       deleteSuccess: '已删除 "{name}"',
+      disableFailed: '禁用 "{name}" 失败',
       exportSuccess: '已导出 "{name}"',
       importSuccess: '已导入 {count} 个 Mod',
       confirmDelete: '确定要删除 Mod "{name}" 吗？此操作不可撤销。',
@@ -668,12 +669,16 @@ export default {
         replace: '替换',
         append: '追加',
         prepend: '前置',
-        patch: '补丁'
-      }
+        patch: '补丁',
+        diff: '差异'
+      },
+      replaceConflict: 'Replace 类型 Mod "{conflict}" 已启用。启用 "{name}" 将自动禁用 "{conflict}"，是否继续？',
+      replaceSwapSuccess: '已替换为 {name}（已禁用 {conflict}）'
     },
     applying: {
       enabling: '正在启用 Mod…',
-      disabling: '正在禁用 Mod…'
+      disabling: '正在禁用 Mod…',
+      swapping: '正在替换 Mod…'
     },
     category: {
       all: '全部'

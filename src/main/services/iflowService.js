@@ -264,13 +264,13 @@ function validateModPackage(extractDir) {
   }
 
   // 4. 检查 type 有效性
-  const validTypes = ['patch', 'replace', 'append', 'prepend']
+  const validTypes = ['patch', 'replace', 'append', 'prepend', 'diff']
   if (!validTypes.includes(metadata.type)) {
     return { valid: false, error: t('iflow.errors.invalidModType', { type: metadata.type }) }
   }
 
   // 5. 检查主体文件
-  const mainFile = metadata.type === 'patch' ? 'patch.diff' : 'code.js'
+  const mainFile = metadata.type === 'patch' || metadata.type === 'diff' ? 'patch.diff' : 'code.js'
   const mainFilePath = path.join(extractDir, mainFile)
   if (!fs.existsSync(mainFilePath)) {
     return { valid: false, error: t('iflow.errors.missingMainFile', { file: mainFile }) }
@@ -344,7 +344,7 @@ async function applyModsToIflowJs(enabledMods, iflowPath) {
 
   for (const mod of enabledMods) {
     const modDir = path.join(MODS_DIR, mod.id)
-    const mainFile = mod.type === 'patch' ? 'patch.diff' : 'code.js'
+    const mainFile = mod.type === 'patch' || mod.type === 'diff' ? 'patch.diff' : 'code.js'
     const mainFilePath = path.join(modDir, mainFile)
 
     if (!fs.existsSync(mainFilePath)) {
@@ -366,6 +366,9 @@ async function applyModsToIflowJs(enabledMods, iflowPath) {
       case 'patch':
         // Phase 1 不实现 patch 类型
         throw new Error(t('iflow.errors.patchNotSupported'))
+      case 'diff':
+        content = applyUnifiedDiff(content, modContent)
+        break
       default:
         throw new Error(t('iflow.errors.invalidModType', { type: mod.type }))
     }
@@ -406,6 +409,64 @@ async function reapplyMods(stillEnabledMods, iflowPath) {
   }
 }
 
+/**
+ * 应用 unified diff（unified format patch）到文本内容
+ * 支持标准 @@ -line,count +line,count @@ 格式
+ * 从后往前应用 hunk，避免行号偏移
+ * @param {string} content - 原始文本
+ * @param {string} diffText - unified diff 文本
+ * @returns {string} 打补丁后的文本
+ */
+function applyUnifiedDiff(content, diffText) {
+  let lines = content.split('\n')
+  const diffLines = diffText.split('\n')
+
+  // 解析 hunks
+  const hunks = []
+  let currentHunk = null
+
+  for (const rawLine of diffLines) {
+    const hunkMatch = rawLine.match(/^@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@/)
+    if (hunkMatch) {
+      if (currentHunk) hunks.push(currentHunk)
+      currentHunk = {
+        oldStart: parseInt(hunkMatch[1], 10),
+        oldCount: parseInt(hunkMatch[2] || '1', 10),
+        ops: [],
+      }
+    } else if (currentHunk) {
+      if (rawLine.length > 0) {
+        const op = rawLine[0]
+        if (op === ' ' || op === '-' || op === '+') {
+          currentHunk.ops.push({ type: op === '-' ? 'remove' : op === '+' ? 'add' : 'context', text: rawLine.substring(1) })
+        }
+      } else {
+        currentHunk.ops.push({ type: 'context', text: '' })
+      }
+    }
+  }
+  if (currentHunk) hunks.push(currentHunk)
+
+  // 从后往前应用 hunks，避免行号偏移
+  for (let h = hunks.length - 1; h >= 0; h--) {
+    const hunk = hunks[h]
+    const startIdx = hunk.oldStart - 1
+
+    // 构建替换后的行
+    const newLines = []
+    for (const op of hunk.ops) {
+      if (op.type === 'context' || op.type === 'add') {
+        newLines.push(op.text)
+      }
+      // 'remove' 行被跳过（不复制）
+    }
+
+    lines.splice(startIdx, hunk.oldCount, ...newLines)
+  }
+
+  return lines.join('\n')
+}
+
 module.exports = {
   isPathSafe,
   ensureModsDir,
@@ -424,6 +485,7 @@ module.exports = {
   writeFileAtomically,
   applyModsToIflowJs,
   reapplyMods,
+  applyUnifiedDiff,
   MODS_DIR,
   MODS_JSON_PATH,
 }

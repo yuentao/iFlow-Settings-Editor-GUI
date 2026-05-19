@@ -649,6 +649,7 @@ export default {
       enableSuccess: 'Enabled "{name}"',
       disableSuccess: 'Disabled "{name}"',
       deleteSuccess: 'Deleted "{name}"',
+      disableFailed: 'Failed to disable "{name}"',
       exportSuccess: 'Exported "{name}"',
       importSuccess: '{count} mod(s) imported',
       confirmDelete: 'Are you sure you want to delete mod "{name}"? This action cannot be undone.',
@@ -657,12 +658,16 @@ export default {
         replace: 'Replace',
         append: 'Append',
         prepend: 'Prepend',
-        patch: 'Patch'
-      }
+        patch: 'Patch',
+        diff: 'Diff'
+      },
+      replaceConflict: 'Replace mod "{conflict}" is already enabled. Enabling "{name}" will disable "{conflict}". Continue?',
+      replaceSwapSuccess: 'Replaced with {name} (disabled {conflict})'
     },
     applying: {
       enabling: 'Enabling mod…',
-      disabling: 'Disabling mod…'
+      disabling: 'Disabling mod…',
+      swapping: 'Swapping mod…'
     },
     category: {
       all: 'All'
