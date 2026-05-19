@@ -8,6 +8,7 @@ const path = require('path')
 const fs = require('fs')
 const { exec } = require('child_process')
 const crypto = require('crypto')
+const diff = require('diff')
 
 const { t } = require('../utils/translations')
 const { logger } = require('../utils/logger')
@@ -366,7 +367,8 @@ async function applyModsToIflowJs(enabledMods, iflowPath) {
       case 'patch':
         // Phase 1 不实现 patch 类型
         throw new Error(t('iflow.errors.patchNotSupported'))
-      case 'diff':
+case 'diff':
+        // 应用 unified diff 补丁到当前内容
         content = applyUnifiedDiff(content, modContent)
         break
       default:
@@ -410,61 +412,20 @@ async function reapplyMods(stillEnabledMods, iflowPath) {
 }
 
 /**
- * 应用 unified diff（unified format patch）到文本内容
- * 支持标准 @@ -line,count +line,count @@ 格式
- * 从后往前应用 hunk，避免行号偏移
- * @param {string} content - 原始文本
- * @param {string} diffText - unified diff 文本
- * @returns {string} 打补丁后的文本
+ * 对内容应用 unified diff 补丁
+ * 使用 diff 库的 applyPatch，已处理尾随换行符兼容性
  */
 function applyUnifiedDiff(content, diffText) {
-  let lines = content.split('\n')
-  const diffLines = diffText.split('\n')
-
-  // 解析 hunks
-  const hunks = []
-  let currentHunk = null
-
-  for (const rawLine of diffLines) {
-    const hunkMatch = rawLine.match(/^@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@/)
-    if (hunkMatch) {
-      if (currentHunk) hunks.push(currentHunk)
-      currentHunk = {
-        oldStart: parseInt(hunkMatch[1], 10),
-        oldCount: parseInt(hunkMatch[2] || '1', 10),
-        ops: [],
-      }
-    } else if (currentHunk) {
-      if (rawLine.length > 0) {
-        const op = rawLine[0]
-        if (op === ' ' || op === '-' || op === '+') {
-          currentHunk.ops.push({ type: op === '-' ? 'remove' : op === '+' ? 'add' : 'context', text: rawLine.substring(1) })
-        }
-      } else {
-        currentHunk.ops.push({ type: 'context', text: '' })
-      }
-    }
+  // 给末尾无换行的内容加一个换行，避免 diff 库因尾随换行缺失而拒绝应用
+  const hasTrailingNewline = content.endsWith('\n')
+  const source = hasTrailingNewline ? content : content + '\n'
+  try {
+    const result = diff.applyPatch(source, diffText)
+    // 若原始内容尾部无换行，移除补丁结果尾部新加的换行，保持行为一致
+    return hasTrailingNewline ? result : result.replace(/\n$/, '')
+  } catch (err) {
+    throw new Error('diff.applyPatch: ' + err.message)
   }
-  if (currentHunk) hunks.push(currentHunk)
-
-  // 从后往前应用 hunks，避免行号偏移
-  for (let h = hunks.length - 1; h >= 0; h--) {
-    const hunk = hunks[h]
-    const startIdx = hunk.oldStart - 1
-
-    // 构建替换后的行
-    const newLines = []
-    for (const op of hunk.ops) {
-      if (op.type === 'context' || op.type === 'add') {
-        newLines.push(op.text)
-      }
-      // 'remove' 行被跳过（不复制）
-    }
-
-    lines.splice(startIdx, hunk.oldCount, ...newLines)
-  }
-
-  return lines.join('\n')
 }
 
 module.exports = {
