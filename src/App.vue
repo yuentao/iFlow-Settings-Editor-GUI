@@ -1100,8 +1100,8 @@ const closeInputDialog = () => {
   showInputDialog.value.defaultValue = ''
 }
 
-const showInput = ({ type, title, placeholder, callback, isConfirm, defaultValue, name }) => {
-  showInputDialog.value = { show: true, title, placeholder, callback, isConfirm, defaultValue, name }
+const showInput = ({ type, title, placeholder, callback, isConfirm, defaultValue, name, conflict }) => {
+  showInputDialog.value = { show: true, title, placeholder, callback, isConfirm, defaultValue, name, conflict }
 }
 
 const handleConfirmDialogConfirm = () => {

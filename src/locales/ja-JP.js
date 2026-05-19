@@ -662,7 +662,7 @@ deleteSuccess: '「{name}」を削除しました',
         patch: 'パッチ',
         diff: '差分'
       },
-      replaceConflict: 'Replace タイプの Mod「{conflict}」が既に有効です。「{name}」を有効にすると「{conflict}」は自動的に無効になります。続行しますか？',
+      replaceConflict: '置換タイプの Mod「{conflict}」が既に有効です。「{name}」を有効にすると「{conflict}」は自動的に無効になります。続行しますか？',
       replaceSwapSuccess: '{name} に置き換えました（{conflict} を無効化）'
     },
     applying: {

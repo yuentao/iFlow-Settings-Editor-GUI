@@ -672,7 +672,7 @@ export default {
         patch: '补丁',
         diff: '差异'
       },
-      replaceConflict: 'Replace 类型 Mod "{conflict}" 已启用。启用 "{name}" 将自动禁用 "{conflict}"，是否继续？',
+      replaceConflict: '替换类型 Mod "{conflict}" 已启用。启用 "{name}" 将自动禁用 "{conflict}"，是否继续？',
       replaceSwapSuccess: '已替换为 {name}（已禁用 {conflict}）'
     },
     applying: {

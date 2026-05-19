@@ -27,6 +27,11 @@
           class="generic-item"
           :class="itemClass(item)"
         >
+          <!-- Prefix (e.g. enable index) -->
+          <div class="item-prefix" v-if="$slots['item-prefix']">
+            <slot name="item-prefix" :item="item" :index="index" />
+          </div>
+
           <!-- Icon -->
           <div class="item-icon" v-if="$slots['item-icon']">
             <slot name="item-icon" :item="item" :index="index" />
@@ -231,6 +236,13 @@ const itemClass = (item) => {
     padding-left: 13px;
     border-bottom: 1px solid var(--border-light);
   }
+}
+
+.item-prefix {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+  flex-shrink: 0;
 }
 
 .item-icon {

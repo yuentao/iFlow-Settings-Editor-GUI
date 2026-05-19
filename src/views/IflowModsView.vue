@@ -59,8 +59,12 @@
         @update:selected-category="selectedCategory = $event"
         @action="openImportDialog"
       >
-        <template #item-icon="{ item: mod }">
+        <template #item-prefix="{ item: mod }">
           <span v-if="mod.enabled" class="mod-enable-index">{{ enableIndexMap[mod.id] }}</span>
+        </template>
+
+        <template #item-icon="{ item: mod }">
+          <img v-if="mod.icon && isImageIcon(mod.icon)" :src="mod.icon" class="mod-icon-img" />
           <span v-else-if="mod.icon" class="mod-icon-emoji">{{ mod.icon }}</span>
           <Puzzle v-else size="18" />
         </template>
@@ -161,6 +165,10 @@ const filteredMods = computed(() => {
 })
 
 const modHighlightFn = (mod) => ({ highlighted: mod.enabled })
+
+const isImageIcon = (icon) => {
+  return /^(https?:\/\/|data:|\/[^/]|[a-zA-Z]:\\)/.test(icon) && /\.(png|jpg|jpeg|gif|svg|webp|ico)(\?|#|$)/i.test(icon)
+}
 
 // 计算已启用 mod 的序号（按 installedAt 排序）
 const enableIndexMap = computed(() => {
@@ -465,29 +473,32 @@ onMounted(() => {
   }
 }
 
+// 启用索引序号（显示在图标左侧）
 // 启用索引序号
 .mod-enable-index {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--accent);
   color: #fff;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   font-family: var(--font-mono);
-  flex-shrink: 0;
+  line-height: 1;
 }
 
 .mod-desc {
   font-size: 12px;
   color: var(--text-tertiary);
   margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
 }
 
 .mod-meta {
@@ -513,6 +524,14 @@ onMounted(() => {
 
 .mod-icon-emoji {
   font-size: 20px;
+}
+
+.mod-icon-img {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 // Toggle Switch
