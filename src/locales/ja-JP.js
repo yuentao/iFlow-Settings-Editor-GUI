@@ -702,6 +702,10 @@ deleteSuccess: '「{name}」を削除しました',
       overwriteConfirm: 'Mod「{name}」は既に存在します。上書きしますか？',
       importError: 'Mod のインポートに失敗しました: {error}',
       diffGenerationError: 'パッチファイルの自動生成に失敗しました: {error}'
+    },
+    conflictDetection: {
+      title: 'Mod 競合検出',
+      message: '「{modA}」と「{modB}」の間に競合が見つかりました。両方の Mod が同じ {count} 行を変更しています：{lines}\n\n「{modB}」の変更が「{modA}」の変更を上書きします。続行しますか？'
     }
   },
   docs: {

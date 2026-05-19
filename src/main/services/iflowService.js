@@ -478,9 +478,10 @@ async function generateDiffFromCode(modId) {
  * 这样非重叠区域的改动（来自其他已启用 Mod）会被保留。
  */
 function applyCodeJsChanges(original, codeJs, content) {
-  const origLines = original.split('\n')
-  const codeLines = codeJs.split('\n')
-  const contentLines = content.split('\n')
+  // 统一去掉 \r，避免 \r\n vs \n 导致 diffArray 认为每行都不同
+  const origLines = original.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
+  const codeLines = codeJs.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
+  const contentLines = content.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
 
   const changes = diff.diffArrays(origLines, codeLines)
 
@@ -530,6 +531,61 @@ function applyUnifiedDiff(content, diffText) {
   return hasTrailingNewline ? result : result.replace(/\n$/, '')
 }
 
+/**
+ * 检测已启用 Mod 之间的冲突
+ * 比较每个 Mod 的 code.js 与原始备份的差异，找出多个 Mod 修改了同一行的冲突
+ * @param {Object[]} enabledMods - 已启用的 Mod 列表（含即将启用的）
+ * @returns {Array<{modA: Object, modB: Object, lines: Array<number>}>}
+ */
+function detectConflicts(enabledMods) {
+  const backupPath = path.join(MODS_DIR, 'iflow.js.original')
+  if (!fs.existsSync(backupPath)) return []
+
+  const normalize = s => s.replace(/\r\n/g, '\n').replace(/\r/g, '')
+  const original = normalize(fs.readFileSync(backupPath, 'utf-8')).split('\n')
+
+  // 收集每个 Mod 改动过的行号
+  const modChanges = []
+  for (const mod of enabledMods) {
+    const codeJsPath = path.join(MODS_DIR, mod.id, 'code.js')
+    if (!fs.existsSync(codeJsPath)) continue
+
+    try {
+      const code = normalize(fs.readFileSync(codeJsPath, 'utf-8')).split('\n')
+      const changedLines = []
+      const maxLen = Math.max(original.length, code.length)
+      for (let i = 0; i < maxLen; i++) {
+        if ((original[i] || '') !== (code[i] || '')) {
+          changedLines.push(i + 1) // 1-based 行号
+        }
+      }
+      modChanges.push({ mod, changedLines })
+    } catch {
+      // 无法读取的 Mod 跳过
+    }
+  }
+
+  // 查找冲突：多个 Mod 改动了同一行
+  const conflicts = []
+  for (let i = 0; i < modChanges.length; i++) {
+    for (let j = i + 1; j < modChanges.length; j++) {
+      const a = modChanges[i]
+      const b = modChanges[j]
+      const lineSetA = new Set(a.changedLines)
+      const conflictingLines = b.changedLines.filter(ln => lineSetA.has(ln))
+      if (conflictingLines.length > 0) {
+        conflicts.push({
+          modA: a.mod,
+          modB: b.mod,
+          lines: conflictingLines,
+        })
+      }
+    }
+  }
+
+  return conflicts
+}
+
 module.exports = {
   isPathSafe,
   ensureModsDir,
@@ -550,6 +606,7 @@ module.exports = {
   reapplyMods,
   generateDiffFromCode,
   applyUnifiedDiff,
+  detectConflicts,
   MODS_DIR,
   MODS_JSON_PATH,
 }

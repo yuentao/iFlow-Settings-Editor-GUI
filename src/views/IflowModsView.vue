@@ -268,6 +268,9 @@ const toggleMod = async (modId, enabled) => {
   applyingText.value = enabled ? t('iflow.applying.enabling') : t('iflow.applying.disabling')
   try {
     const result = await window.electronAPI.iflowEnableMod(modId, enabled)
+    if (result?.cancelled) {
+      return
+    }
     if (result.success) {
       await loadMods()
       toast.success(t(enabled ? 'iflow.mods.enableSuccess' : 'iflow.mods.disableSuccess', { name: mod.name }))

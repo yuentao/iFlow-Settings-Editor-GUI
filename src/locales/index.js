@@ -712,6 +712,10 @@ export default {
       overwriteConfirm: '已存在同名 Mod "{name}"，是否覆盖？',
       importError: '导入 Mod 失败: {error}',
       diffGenerationError: '自动生成补丁文件失败: {error}'
+    },
+    conflictDetection: {
+      title: 'Mod 冲突检测',
+      message: '发现 "{modA}" 与 "{modB}" 存在冲突，两个 Mod 修改了相同的 {count} 行代码：{lines}\n\n"{modB}" 的改动会覆盖 "{modA}" 的改动，是否继续？'
     }
   },
   docs: {

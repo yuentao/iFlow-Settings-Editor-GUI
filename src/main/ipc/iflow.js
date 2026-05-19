@@ -23,6 +23,7 @@ const {
   applyModsToIflowJs,
   reapplyMods,
   generateDiffFromCode,
+  detectConflicts,
   MODS_DIR,
 } = require('../services/iflowService')
 
@@ -143,6 +144,39 @@ function registerIflowIpcHandlers() {
     const enabledMods = metadata.mods
       .filter(m => m.enabled)
       .sort((a, b) => a.installedAt - b.installedAt)
+
+    // 启用时检测冲突
+    if (enabled) {
+      const conflicts = detectConflicts(enabledMods)
+      if (conflicts.length > 0) {
+        // 构建冲突描述
+        const conflictLines = []
+        let nameA = '', nameB = ''
+        for (const c of conflicts) {
+          nameA = c.modA.name || c.modA.id
+          nameB = c.modB.name || c.modB.id
+          conflictLines.push(...c.lines)
+        }
+        conflictLines.sort((a, b) => a - b)
+
+        const conflictDetail = conflictLines.slice(0, 5).join(', ') + (conflictLines.length > 5 ? `... (共${conflictLines.length}行)` : '')
+
+        const { callConfirmDialog } = require('./dialogs')
+        const confirmed = await callConfirmDialog(
+          'iflow.conflictDetection.title',
+          'iflow.conflictDetection.message',
+          { modA: nameA, modB: nameB, count: conflictLines.length, lines: conflictDetail }
+        )
+
+        if (!confirmed) {
+          // 用户取消，回滚状态
+          metadata.mods[modIndex].enabled = false
+          metadata.mods[modIndex].lastModified = Date.now()
+          writeModsMetadata(metadata)
+          return { success: false, cancelled: true, conflicts: true }
+        }
+      }
+    }
 
     try {
       // 重新应用所有启用的 Mod

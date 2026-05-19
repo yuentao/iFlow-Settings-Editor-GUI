@@ -701,6 +701,10 @@ export default {
       overwriteConfirm: 'Mod "{name}" already exists. Overwrite?',
       importError: 'Failed to import mod: {error}',
       diffGenerationError: 'Failed to auto-generate patch file: {error}'
+    },
+    conflictDetection: {
+      title: 'Mod Conflict Detected',
+      message: 'Conflict found between "{modA}" and "{modB}". Both mods modify the same {count} line(s): {lines}\n\n"{modB}" will overwrite "{modA}" changes. Continue?'
     }
   },
   docs: {
