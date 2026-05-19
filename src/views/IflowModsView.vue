@@ -59,8 +59,13 @@
         @update:selected-category="selectedCategory = $event"
         @action="openImportDialog"
       >
+        <template #item-prefix="{ item: mod }">
+          <span v-if="mod.enabled" class="mod-enable-index">{{ enableIndexMap[mod.id] }}</span>
+        </template>
+
         <template #item-icon="{ item: mod }">
-          <span v-if="mod.icon" class="mod-icon-emoji">{{ mod.icon }}</span>
+          <img v-if="mod.icon && isImageIcon(mod.icon)" :src="mod.icon" class="mod-icon-img" />
+          <span v-else-if="mod.icon" class="mod-icon-emoji">{{ mod.icon }}</span>
           <Puzzle v-else size="18" />
         </template>
 
@@ -161,6 +166,20 @@ const filteredMods = computed(() => {
 
 const modHighlightFn = (mod) => ({ highlighted: mod.enabled })
 
+const isImageIcon = (icon) => {
+  return /^(https?:\/\/|data:|\/[^/]|[a-zA-Z]:\\)/.test(icon) && /\.(png|jpg|jpeg|gif|svg|webp|ico)(\?|#|$)/i.test(icon)
+}
+
+// 计算已启用 mod 的序号（按 installedAt 排序）
+const enableIndexMap = computed(() => {
+  const map = {}
+  const enabled = [...mods.value]
+    .filter(m => m.enabled)
+    .sort((a, b) => (a.installedAt || 0) - (b.installedAt || 0))
+  enabled.forEach((m, i) => { map[m.id] = i + 1 })
+  return map
+})
+
 // Actions
 const loadMods = async () => {
   isLoading.value = true
@@ -186,6 +205,53 @@ const toggleMod = async (modId, enabled) => {
   const mod = mods.value.find(m => m.id === modId)
   if (!mod) return
 
+  // replace 类型冲突检测：启用 replace 时检查是否有其他已启用的 replace mod
+  if (enabled && mod.type === 'replace') {
+    const conflicting = mods.value.find(m => m.id !== modId && m.enabled && m.type === 'replace')
+    if (conflicting) {
+      // 弹出冲突确认对话框，用户确认后自动禁用旧的、启用新的
+      const confirmed = await new Promise(resolve => {
+        emit('show-input-dialog', {
+          type: 'confirm',
+          title: 'messages.warning',
+          placeholder: 'iflow.mods.replaceConflict',
+          callback: resolve,
+          isConfirm: true,
+          name: mod.name,
+          conflict: conflicting.name,
+        })
+      })
+      if (!confirmed) return
+
+      isApplying.value = true
+      applyingText.value = t('iflow.applying.swapping')
+      try {
+        // 先禁用旧的 replace mod
+        const disableResult = await window.electronAPI.iflowEnableMod(conflicting.id, false)
+        if (!disableResult.success) {
+          toast.error(disableResult.error || t('iflow.mods.disableFailed', { name: conflicting.name }))
+          return
+        }
+        // 再启用新的 replace mod
+        const enableResult = await window.electronAPI.iflowEnableMod(modId, true)
+        if (enableResult.success) {
+          await loadMods()
+          toast.success(t('iflow.mods.replaceSwapSuccess', { name: mod.name, conflict: conflicting.name }))
+        } else if (enableResult.code === 'IFLOW_VERSION_INCOMPATIBLE') {
+          await loadMods()
+          toast.warning(enableResult.error)
+        } else {
+          toast.error(enableResult.error)
+        }
+      } catch (error) {
+        toast.error(error?.message || String(error))
+      } finally {
+        isApplying.value = false
+      }
+      return
+    }
+  }
+
   const confirmed = await new Promise(resolve => {
     emit('show-input-dialog', {
       type: 'confirm',
@@ -202,6 +268,9 @@ const toggleMod = async (modId, enabled) => {
   applyingText.value = enabled ? t('iflow.applying.enabling') : t('iflow.applying.disabling')
   try {
     const result = await window.electronAPI.iflowEnableMod(modId, enabled)
+    if (result?.cancelled) {
+      return
+    }
     if (result.success) {
       await loadMods()
       toast.success(t(enabled ? 'iflow.mods.enableSuccess' : 'iflow.mods.disableSuccess', { name: mod.name }))
@@ -399,15 +468,40 @@ onMounted(() => {
     color: #f59e0b;
     border-color: rgba(245, 158, 11, 0.2);
   }
+
+  &.type-diff {
+    background: rgba(236, 72, 153, 0.1);
+    color: #ec4899;
+    border-color: rgba(236, 72, 153, 0.2);
+  }
+}
+
+// 启用索引序号（显示在图标左侧）
+// 启用索引序号
+.mod-enable-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
 }
 
 .mod-desc {
   font-size: 12px;
   color: var(--text-tertiary);
   margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
 }
 
 .mod-meta {
@@ -433,6 +527,14 @@ onMounted(() => {
 
 .mod-icon-emoji {
   font-size: 20px;
+}
+
+.mod-icon-img {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 // Toggle Switch

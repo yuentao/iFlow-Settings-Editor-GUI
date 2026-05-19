@@ -649,6 +649,7 @@ export default {
       enableSuccess: 'Enabled "{name}"',
       disableSuccess: 'Disabled "{name}"',
       deleteSuccess: 'Deleted "{name}"',
+      disableFailed: 'Failed to disable "{name}"',
       exportSuccess: 'Exported "{name}"',
       importSuccess: '{count} mod(s) imported',
       confirmDelete: 'Are you sure you want to delete mod "{name}"? This action cannot be undone.',
@@ -657,12 +658,16 @@ export default {
         replace: 'Replace',
         append: 'Append',
         prepend: 'Prepend',
-        patch: 'Patch'
-      }
+        patch: 'Patch',
+        diff: 'Diff'
+      },
+      replaceConflict: 'Replace mod "{conflict}" is already enabled. Enabling "{name}" will disable "{conflict}". Continue?',
+      replaceSwapSuccess: 'Replaced with {name} (disabled {conflict})'
     },
     applying: {
       enabling: 'Enabling mod…',
-      disabling: 'Disabling mod…'
+      disabling: 'Disabling mod…',
+      swapping: 'Swapping mod…'
     },
     category: {
       all: 'All'
@@ -679,6 +684,7 @@ export default {
       missingRequiredField: 'mod.json is missing required field: {field}',
       invalidModType: 'Invalid mod type: {type}',
       missingMainFile: 'Mod package is missing main file: {file}',
+      diffApplyFailed: 'Failed to apply mod "{mod}": patch context mismatch',
       modNotFound: 'Mod not found: {id}',
       iflowPathNotFound: 'iFlow installation path not found',
       iflowNotFound: 'iFlow.js file not found, please verify iFlow is installed correctly',
@@ -693,7 +699,12 @@ export default {
     importExport: {
       importTitle: 'Import Mod',
       overwriteConfirm: 'Mod "{name}" already exists. Overwrite?',
-      importError: 'Failed to import mod: {error}'
+      importError: 'Failed to import mod: {error}',
+      diffGenerationError: 'Failed to auto-generate patch file: {error}'
+    },
+    conflictDetection: {
+      title: 'Mod Conflict Detected',
+      message: 'Conflict found between "{modA}" and "{modB}". Both mods modify the same {count} line(s): {lines}\n\n"{modB}" will overwrite "{modA}" changes. Continue?'
     }
   },
   docs: {

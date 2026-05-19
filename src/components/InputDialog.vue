@@ -2,7 +2,7 @@
   <div v-if="dialog.show" class="dialog-overlay dialog-overlay-top">
     <div class="dialog" @click.stop>
       <div class="dialog-title">{{ $t(dialog.title) }}</div>
-      <div v-if="dialog.isConfirm" class="dialog-confirm-text">{{ $t(dialog.placeholder, { name: dialog.name }) }}</div>
+      <div v-if="dialog.isConfirm" class="dialog-confirm-text">{{ $t(dialog.placeholder, { name: dialog.name, conflict: dialog.conflict }) }}</div>
       <input
         v-else
         type="text"
@@ -33,6 +33,7 @@ interface DialogState {
   isConfirm: boolean
   defaultValue?: string
   name?: string
+  conflict?: string
 }
 
 interface Props {

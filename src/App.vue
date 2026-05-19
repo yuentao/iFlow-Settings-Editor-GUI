@@ -265,21 +265,34 @@ const cloudSyncStore = useCloudSyncStore()
 const toast = useToast()
 
 // 云同步完成后自动刷新 API 配置列表数据
-// 防抖：sync() 内部 pull 和 push 各写一次 lastSyncAt，防抖 coalesce 两次触发
-let _syncToastTimer = null
+// 监听 isSyncing 而非 lastSyncAt，解决 sync() 内部 pull 和 push
+// 各触发一次 lastSyncAt 写入导致重复 toast 的问题。
+// 1s 防抖：pull 结束 → isSyncing:false → 若 push 在 1s 内开始则取消上一 toast；
+// 只有最后一次 isSyncing:false（push 结束）且 1s 内无新同步时，才真正显示 toast。
+let _syncEndTimer = null
 watch(
-  () => cloudSyncStore.status.lastSyncAt,
-  async (newVal, oldVal) => {
-    if (newVal && newVal !== oldVal) {
-      if (_syncToastTimer) clearTimeout(_syncToastTimer)
-      _syncToastTimer = setTimeout(async () => {
-        _syncToastTimer = null
-        await loadApiProfiles()
-        // 仅在应用前台时显示同步成功 toast，避免后台累积多次同步后恢复窗口时弹出大量 toast
-        if (!document.hidden) {
-          toast.success(t('cloudSync.syncCompleted'))
+  () => cloudSyncStore.isSyncing,
+  (newVal, oldVal) => {
+    if (oldVal === true && newVal === false) {
+      // isSyncing 从 true → false：一个同步阶段（pull 或 push）结束。
+      // 启动防抖等待，看是否紧跟下一个同步阶段（push 或下一次 sync）。
+      if (_syncEndTimer) clearTimeout(_syncEndTimer)
+      _syncEndTimer = setTimeout(async () => {
+        _syncEndTimer = null
+        // 确认防抖期间无新同步启动、同步成功（有 lastSyncAt）且无错误
+        if (!cloudSyncStore.isSyncing && cloudSyncStore.status.lastSyncAt && !cloudSyncStore.status.lastSyncError) {
+          await loadApiProfiles()
+          if (!document.hidden) {
+            toast.success(t('cloudSync.syncCompleted'))
+          }
         }
-      }, 300)
+      }, 1000)
+    } else if (newVal === true && oldVal === false) {
+      // 新的同步开始（可能是 pull 紧跟 pull 结束，或新的 sync 调用），取消待显示的 toast
+      if (_syncEndTimer) {
+        clearTimeout(_syncEndTimer)
+        _syncEndTimer = null
+      }
     }
   },
 )
@@ -1087,8 +1100,8 @@ const closeInputDialog = () => {
   showInputDialog.value.defaultValue = ''
 }
 
-const showInput = ({ type, title, placeholder, callback, isConfirm, defaultValue, name }) => {
-  showInputDialog.value = { show: true, title, placeholder, callback, isConfirm, defaultValue, name }
+const showInput = ({ type, title, placeholder, callback, isConfirm, defaultValue, name, conflict }) => {
+  showInputDialog.value = { show: true, title, placeholder, callback, isConfirm, defaultValue, name, conflict }
 }
 
 const handleConfirmDialogConfirm = () => {

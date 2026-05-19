@@ -22,6 +22,8 @@ const {
   sanitizeFileName,
   applyModsToIflowJs,
   reapplyMods,
+  generateDiffFromCode,
+  detectConflicts,
   MODS_DIR,
 } = require('../services/iflowService')
 
@@ -142,6 +144,39 @@ function registerIflowIpcHandlers() {
     const enabledMods = metadata.mods
       .filter(m => m.enabled)
       .sort((a, b) => a.installedAt - b.installedAt)
+
+    // 启用时检测冲突
+    if (enabled) {
+      const conflicts = detectConflicts(enabledMods)
+      if (conflicts.length > 0) {
+        // 构建冲突描述
+        const conflictLines = []
+        let nameA = '', nameB = ''
+        for (const c of conflicts) {
+          nameA = c.modA.name || c.modA.id
+          nameB = c.modB.name || c.modB.id
+          conflictLines.push(...c.lines)
+        }
+        conflictLines.sort((a, b) => a - b)
+
+        const conflictDetail = conflictLines.slice(0, 5).join(', ') + (conflictLines.length > 5 ? `... (共${conflictLines.length}行)` : '')
+
+        const { callConfirmDialog } = require('./dialogs')
+        const confirmed = await callConfirmDialog(
+          'iflow.conflictDetection.title',
+          'iflow.conflictDetection.message',
+          { modA: nameA, modB: nameB, count: conflictLines.length, lines: conflictDetail }
+        )
+
+        if (!confirmed) {
+          // 用户取消，回滚状态
+          metadata.mods[modIndex].enabled = false
+          metadata.mods[modIndex].lastModified = Date.now()
+          writeModsMetadata(metadata)
+          return { success: false, cancelled: true, conflicts: true }
+        }
+      }
+    }
 
     try {
       // 重新应用所有启用的 Mod
@@ -348,6 +383,22 @@ function registerIflowIpcHandlers() {
         }
       }
 
+      // 如果导入的是 patch/diff 类型但只提供了 code.js，自动生成 patch.diff
+      if (metadata._needsDiffGeneration) {
+        try {
+          await generateDiffFromCode(metadata.id)
+        } catch (genError) {
+          // 生成 diff 失败，清理并返回错误
+          if (fs.existsSync(destDir)) {
+            fs.rmSync(destDir, { recursive: true, force: true })
+          }
+          return errorResult(
+            t('iflow.importExport.diffGenerationError', { error: genError.message }),
+            'IFLOW_IMPORT_ERROR'
+          )
+        }
+      }
+
       // 添加到 mods.json
       const modRecord = {
         id: metadata.id,
@@ -367,6 +418,7 @@ function registerIflowIpcHandlers() {
         enabled: false,
         installedAt: Date.now(),
         lastModified: Date.now(),
+        _autoGenPatch: metadata._needsDiffGeneration || false,
       }
 
       modsMetadata.mods.push(modRecord)

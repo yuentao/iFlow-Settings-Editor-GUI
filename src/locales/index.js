@@ -660,6 +660,7 @@ export default {
       enableSuccess: '已启用 "{name}"',
       disableSuccess: '已禁用 "{name}"',
       deleteSuccess: '已删除 "{name}"',
+      disableFailed: '禁用 "{name}" 失败',
       exportSuccess: '已导出 "{name}"',
       importSuccess: '已导入 {count} 个 Mod',
       confirmDelete: '确定要删除 Mod "{name}" 吗？此操作不可撤销。',
@@ -668,12 +669,16 @@ export default {
         replace: '替换',
         append: '追加',
         prepend: '前置',
-        patch: '补丁'
-      }
+        patch: '补丁',
+        diff: '差异'
+      },
+      replaceConflict: '替换类型 Mod "{conflict}" 已启用。启用 "{name}" 将自动禁用 "{conflict}"，是否继续？',
+      replaceSwapSuccess: '已替换为 {name}（已禁用 {conflict}）'
     },
     applying: {
       enabling: '正在启用 Mod…',
-      disabling: '正在禁用 Mod…'
+      disabling: '正在禁用 Mod…',
+      swapping: '正在替换 Mod…'
     },
     category: {
       all: '全部'
@@ -690,6 +695,7 @@ export default {
       missingRequiredField: 'mod.json 缺少必填字段: {field}',
       invalidModType: '无效的 Mod 类型: {type}',
       missingMainFile: 'Mod 包缺少主文件: {file}',
+      diffApplyFailed: '应用 Mod "{mod}" 失败: 补丁上下文不匹配',
       modNotFound: '未找到 Mod: {id}',
       iflowPathNotFound: '未找到 iFlow 安装路径',
       iflowNotFound: '未找到 iFlow.js 文件，请确认 iFlow 已正确安装',
@@ -704,7 +710,12 @@ export default {
     importExport: {
       importTitle: '导入 Mod',
       overwriteConfirm: '已存在同名 Mod "{name}"，是否覆盖？',
-      importError: '导入 Mod 失败: {error}'
+      importError: '导入 Mod 失败: {error}',
+      diffGenerationError: '自动生成补丁文件失败: {error}'
+    },
+    conflictDetection: {
+      title: 'Mod 冲突检测',
+      message: '发现 "{modA}" 与 "{modB}" 存在冲突，两个 Mod 修改了相同的 {count} 行代码：{lines}\n\n"{modB}" 的改动会覆盖 "{modA}" 的改动，是否继续？'
     }
   },
   docs: {

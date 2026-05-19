@@ -649,8 +649,9 @@ export default {
       emptyDesc: 'Mod をインポートして iFlow コアファイルの機能を変更',
       enableSuccess: '"{name}" を有効化しました',
       disableSuccess: '"{name}" を無効化しました',
-      deleteSuccess: '"{name}" を削除しました',
-      exportSuccess: '"{name}" をエクスポートしました',
+deleteSuccess: '「{name}」を削除しました',
+      disableFailed: '「{name}」の無効化に失敗しました',
+      exportSuccess: '「{name}」をエクスポートしました',
       importSuccess: '{count} 個の Mod をインポートしました',
       confirmDelete: 'Mod「{name}」を削除しますか？この操作は取り消せません。',
       confirmToggle: 'Mod の有効化/無効化には iFlow CLI の再起動が必要です。続行しますか？',
@@ -658,12 +659,16 @@ export default {
         replace: '置換',
         append: '追加',
         prepend: '先頭追加',
-        patch: 'パッチ'
-      }
+        patch: 'パッチ',
+        diff: '差分'
+      },
+      replaceConflict: '置換タイプの Mod「{conflict}」が既に有効です。「{name}」を有効にすると「{conflict}」は自動的に無効になります。続行しますか？',
+      replaceSwapSuccess: '{name} に置き換えました（{conflict} を無効化）'
     },
     applying: {
       enabling: 'Mod を有効化中…',
-      disabling: 'Mod を無効化中…'
+      disabling: 'Mod を無効化中…',
+      swapping: 'Mod を置き換え中…'
     },
     category: {
       all: 'すべて'
@@ -680,6 +685,7 @@ export default {
       missingRequiredField: 'mod.json に必須フィールドがありません: {field}',
       invalidModType: '無効な Mod タイプ: {type}',
       missingMainFile: 'Mod パッケージにメインファイルがありません: {file}',
+      diffApplyFailed: 'Mod "{mod}" の適用に失敗しました: パッチコンテキストの不一致',
       modNotFound: 'Mod が見つかりません: {id}',
       iflowPathNotFound: 'iFlow のインストールパスが見つかりません',
       iflowNotFound: 'iFlow.js ファイルが見つかりません。iFlow が正しくインストールされているか確認してください',
@@ -694,7 +700,12 @@ export default {
     importExport: {
       importTitle: 'Mod をインポート',
       overwriteConfirm: 'Mod「{name}」は既に存在します。上書きしますか？',
-      importError: 'Mod のインポートに失敗しました: {error}'
+      importError: 'Mod のインポートに失敗しました: {error}',
+      diffGenerationError: 'パッチファイルの自動生成に失敗しました: {error}'
+    },
+    conflictDetection: {
+      title: 'Mod 競合検出',
+      message: '「{modA}」と「{modB}」の間に競合が見つかりました。両方の Mod が同じ {count} 行を変更しています：{lines}\n\n「{modB}」の変更が「{modA}」の変更を上書きします。続行しますか？'
     }
   },
   docs: {
