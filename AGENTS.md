@@ -4,7 +4,7 @@
 
 **iFlow 设置编辑器** 是一个用于编辑 iFlow CLI 配置文件 (`~/.iflow/settings.json`) 的桌面应用程序，采用 **Electron + Vue 3** 技术栈构建，支持多语言（中文/英文/日文）、云同步（WebDAV）、iFlow Mod 模组管理和自动更新功能。
 
-**当前版本**: v1.17.3 (2026-05-10)
+**当前版本**: v1.18.4 (2026-05-19)
 
 ### 技术栈
 
@@ -25,6 +25,9 @@
 | XML 解析 | fast-xml-parser | 5.7.2 |
 | Markdown 解析 | marked | 18.0.2 |
 | ZIP 处理 | adm-zip | 0.5.17 |
+| Diff 补丁 | diff | 9.0.0 |
+| 日期处理 | moment | 2.30.1 |
+| 图表库 | apexcharts / vue3-apexcharts | 5.11.0 / 1.11.1 |
 | 日志 | electron-log | 5.4.3 |
 | 自动更新 | electron-updater | 6.8.3 |
 
@@ -51,13 +54,15 @@
 │    │   ├── cloud.js     - 云同步 IPC 桥接                │
 │    │   ├── dialogs.js   - 对话框控制（消息/确认/输入）   │
 │    │   ├── updates.js   - 自动更新检查/下载/安装         │
-│    │   └── iflow.js     - iFlow Mod 管理                │
+│    │   ├── iflow.js     - iFlow Mod 管理                │
+│    │   └── projects.js  - 项目会话管理                  │
 │    │                                                    │
 │    ├── services/        - 业务逻辑层                      │
 │    │   ├── configService.js   - 配置文件读写封装         │
 │    │   ├── autoLaunchService.js - 开机自启管理          │
 │    │   ├── SyncService.js     - 云同步核心逻辑          │
 │    │   ├── iflowService.js    - iFlow Mod 业务逻辑     │
+│    │   ├── projectService.js  - 项目会话业务逻辑        │
 │    │   └── cloud/             - 云存储适配器层           │
 │    │       └── WebDAVProvider.js - WebDAV 协议实现      │
 │    │                                                    │
@@ -93,7 +98,13 @@
 │    │   ├── UpdateNotification.vue - 更新可用通知         │
 │    │   ├── UpdateProgress.vue  - 下载进度显示            │
 │    │   ├── CloudSyncWizard.vue - 云同步引导向导         │
-│    │   └── ToastNotification.vue - 全局 Toast 通知      │
+│    │   ├── ToastNotification.vue - 全局 Toast 通知      │
+│    │   ├── GenericList.vue     - 通用列表组件            │
+│    │   ├── MessageBubble.vue   - 消息气泡组件            │
+│    │   ├── ModelUsageChart.vue - 模型使用图表            │
+│    │   ├── ProjectSessionList.vue - 项目会话列表         │
+│    │   ├── ToolCallBlock.vue   - 工具调用块              │
+│    │   └── ApplyingDialog.vue  - 操作进度对话框          │
 │    │                                                    │
 │    ├── views/           - 页面视图（按导航切换）          │
 │    │   ├── Dashboard.vue       - 仪表盘（概览+快捷操作） │
@@ -102,7 +113,9 @@
 │    │   ├── McpServers.vue      - MCP 服务器管理（快速添加+高级配置）│
 │    │   ├── SkillsView.vue      - 技能管理（本地/在线导入导出）│
 │    │   ├── CommandsView.vue    - 命令管理（CRUD+分类筛选）│
-│    │   ├── IflowModsView.vue   - iFlow Mod 管理（实验性）│
+│    │   ├── IflowModsView.vue   - iFlow Mod 管理          │
+│    │   ├── ProjectsView.vue    - 项目会话管理（实验性）  │
+│    │   ├── SessionDetailView.vue - 会话详情页            │
 │    │   └── DocsView.vue        - 文档查看器              │
 │    │                                                    │
 │    ├── stores/          - Pinia 状态管理（TypeScript）    │
@@ -112,13 +125,15 @@
 │    │   ├── commands.ts         - 命令状态                 │
 │    │   ├── cloudSync.ts        - 云同步状态（WebDAV）     │
 │    │   ├── iflowMods.ts        - iFlow Mod 状态          │
+│    │   ├── projects.ts         - 项目会话状态             │
 │    │   ├── ui.ts               - UI 状态（导航/弹窗）     │
 │    │   └── index.js            - Store 聚合入口           │
 │    │                                                    │
 │    ├── composables/     - Vue 组合式函数                  │
-│    │   ├── useLocale.ts   - 国际化支持                   │
-│    │   ├── useSettings.ts - 设置操作封装                 │
-│    │   └── useToast.ts    - 全局 Toast 通知状态管理     │
+│    │   ├── useLocale.ts        - 国际化支持               │
+│    │   ├── useSettings.ts      - 设置操作封装             │
+│    │   ├── useToast.ts         - 全局 Toast 通知          │
+│    │   └── useModelUsageStats.ts - 模型统计              │
 │    │                                                    │
 │    ├── locales/         - 国际化语言包（i18n）            │
 │    │   ├── index.js    - 中文（简体，默认）              │
@@ -187,6 +202,9 @@ npm run dist
 
 # 发布到 GitHub Releases (需配置 GH_TOKEN)
 npm run publish
+npm run publish:win    # 仅 Windows
+npm run publish:mac    # 仅 macOS
+npm run publish:all    # 全平台
 
 # 清理更新缓存
 npm run clean:updates
@@ -233,137 +251,6 @@ CSS 变量定义在 `src/styles/global.less`，包括：
 - 背景透明度随 `acrylicIntensity` (0-100) 变化
 - 深色/浅色主题有独立的透明度计算逻辑
 - 通过 `--acrylic-bg` CSS 变量动态应用
-
-## 项目结构
-
-```
-src/
-├── main.js              # Vue 应用入口 (渲染进程)
-├── App.vue              # 根组件
-├── components/          # 可复用组件
-│   ├── TitleBar.vue     # 标题栏 (最小化/关闭按钮)
-│   ├── TitleBar.test.js
-│   ├── SideBar.vue      # 侧边导航栏
-│   ├── SideBar.test.js
-│   ├── InputDialog.vue  # 输入对话框
-│   ├── InputDialog.test.js
-│   ├── MessageDialog.vue    # 消息对话框
-│   ├── MessageDialog.test.js
-│   ├── ConfirmDialog.vue    # 确认对话框
-│   ├── ConfirmDialog.test.js
-│   ├── ApiProfileDialog.vue # API 配置弹窗
-│   ├── ApiProfileDialog.test.js
-│   ├── ServerPanel.vue  # 服务器编辑面板
-│   ├── ServerPanel.test.js
-│   ├── SkeletonLoader.vue   # 骨架屏
-│   ├── SkeletonLoader.test.js
-│   ├── UpdateNotification.vue # 更新通知
-│   ├── UpdateProgress.vue   # 下载进度
-│   ├── CommandEditorDialog.vue # 命令编辑器
-│   ├── CloudSyncWizard.vue  # 云同步引导向导 (新增)
-│   ├── QuickAddDialog.vue   # 快速添加对话框
-│   └── ToastNotification.vue # 全局 Toast 通知
-├── views/               # 页面视图
-│   ├── Dashboard.vue    # 仪表盘
-│   ├── Dashboard.test.js
-│   ├── GeneralSettings.vue  # 基础设置
-│   ├── GeneralSettings.test.js
-│   ├── ApiConfig.vue    # API 配置管理
-│   ├── ApiConfig.test.js
-│   ├── McpServers.vue   # MCP 服务器管理
-│   ├── McpServers.test.js
-│   ├── SkillsView.vue   # 技能管理
-│   ├── SkillsView.test.js
-│   ├── CommandsView.vue # 命令管理
-│   ├── CommandsView.test.js
-│   ├── IflowModsView.vue # iFlow Mod 管理 (新增)
-│   └── DocsView.vue     # 文档查看器 (新增)
-├── stores/              # Pinia 状态管理
-│   ├── settings.ts      # 设置状态
-│   ├── settings.test.ts
-│   ├── apiProfiles.ts   # API 配置状态
-│   ├── apiProfiles.test.ts
-│   ├── skills.ts        # 技能状态
-│   ├── skills.test.ts
-│   ├── commands.ts      # 命令状态
-│   ├── commands.test.ts
-│   ├── cloudSync.ts     # 云同步状态
-│   ├── iflowMods.ts     # iFlow Mod 状态 (新增)
-│   ├── ui.ts            # UI 状态
-│   └── index.js         # 入口
-├── composables/         # Vue 组合式函数 (新增)
-│   ├── useLocale.ts     # 国际化支持
-│   ├── useSettings.ts   # 设置操作封装
-│   └── useToast.ts      # 全局 Toast 通知
-├── main/                # Electron 主进程
-│   ├── index.js         # 主进程入口
-│   ├── constants.js     # 常量定义
-│   ├── window.js        # 窗口管理
-│   ├── tray.js          # 系统托盘
-│   ├── autoUpdater.js   # 自动更新模块 (重构)
-│   ├── crypto/          # 加密模块
-│   │   ├── CryptoManager.js
-│   │   └── CryptoManager.test.js
-│   ├── ipc/             # IPC 处理器
-│   │   ├── index.js     # 注册中心
-│   │   ├── settings.js  # 设置操作
-│   │   ├── apiProfiles.js # API 配置
-│   │   ├── skills.js    # 技能管理
-│   │   ├── commands.js  # 命令管理
-│   │   ├── cloud.js     # 云同步
-│   │   ├── dialogs.js   # 对话框
-│   │   ├── updates.js   # 自动更新
-│   │   └── iflow.js     # iFlow Mod (新增)
-│   ├── services/        # 业务服务
-│   │   ├── configService.js    # 配置读写
-│   │   ├── configService.test.js
-│   │   ├── autoLaunchService.js # 自启动
-│   │   ├── SyncService.js      # 云同步核心
-│   │   ├── SyncService.test.js
-│   │   ├── iflowService.js     # iFlow Mod 业务逻辑 (新增)
-│   │   └── cloud/              # 云存储适配器
-│   │       ├── WebDAVProvider.js
-│   │       └── WebDAVProvider.test.js
-│   └── utils/           # 工具函数
-│       ├── errors.js    # 错误处理
-│       ├── logger.js    # 日志
-│       ├── translations.js # 翻译
-│       └── validator.js # 验证
-├── shared/              # 共享类型定义
-│   ├── types.ts         # TypeScript 类型
-│   ├── errors.js        # 错误常量
-│   └── mcpParser.js     # MCP 配置解析
-├── locales/             # 国际化
-│   ├── index.js (zh-CN) # 中文 (默认)
-│   ├── en-US.js        # 英文
-│   └── ja-JP.js        # 日文
-└── styles/
-    └── global.less      # 全局样式 (Fluent Design)
-
-scripts/
-└── publish.js          # 发布辅助脚本 (新增)
-
-.github/workflows/
-└── build.yml           # GitHub 自动构建发布 (新增)
-
-assets/docs/             # 内置帮助文档 (重构)
-├── quickstart.md
-├── configuration/
-│   └── settings.md
-├── examples/
-│   ├── basic-usage.md
-│   ├── hooks.md
-│   ├── keyboard-shortcuts.md
-│   ├── mcp.md
-│   ├── plan-mode.md
-│   ├── skill.md
-│   ├── slash-commands.md
-│   ├── subagent.md
-│   ├── subcommand.md
-│   └── workflow.md
-└── features/
-    └── interactive.md
-```
 
 ## 关键模块
 
@@ -454,6 +341,14 @@ window.electronAPI.iflowExportMod(modId)           // 导出 Mod
 window.electronAPI.iflowImportMod(filePath)        // 导入 Mod
 window.electronAPI.iflowOpenImportDialog()         // 打开导入文件选择
 window.electronAPI.iflowCheckIflowStatus()         // 检查 iFlow.js 状态
+
+// ── 项目会话管理 (实验性) ────────────────────────────────
+window.electronAPI.projectsList()                   // 列出所有项目
+window.electronAPI.projectsListSessions(projectId)  // 列出项目会话
+window.electronAPI.projectsGetSession(sessionId)    // 获取会话详情
+window.electronAPI.projectsDeleteSession(sessionId) // 删除会话
+window.electronAPI.projectsDeleteProject(projectId) // 删除项目
+window.electronAPI.projectsExportSession(sessionId) // 导出会话
 
 // ── 云同步（WebDAV） ─────────────────────────────────────
 window.electronAPI.cloudSyncGetStatus()             // 获取同步状态
@@ -562,17 +457,32 @@ iFlow Mod 是实验性功能，支持加载和管理 iFlow 修饰符模块，可
 - **启用/禁用控制**：可随时开启或关闭特定模组，灵活控制功能扩展
 - **导入/导出功能**：支持从本地文件导入模组配置或将已有模组导出分享
 - **版本兼容性检查**：自动检查模组与当前 iFlow 版本的兼容性
+- **冲突检测**：启用模组前自动检测行级冲突，多个模组修改同一行时弹出警告
+- **冲突自动替换**：启用 replace 类型模组时如遇冲突，支持一键自动替换
 
 **Mod 类型**：
 - `replace` - 替换 iFlow.js 全部内容
 - `append` - 在 iFlow.js 末尾追加代码
 - `prepend` - 在 iFlow.js 开头插入代码
+- `diff` - 以 unified diff 补丁形式应用改动
 - `patch` - 补丁模式（Phase 1 暂不支持）
 
 **数据结构**：
 - 模组存储在 `~/.iflow/mods/iflow/` 目录
 - 元数据记录在 `mods.json` 文件中
 - 支持 `mod.json` 配置文件的模组包导入
+
+### 项目会话管理 (实验性)
+
+iFlow 项目与会话的查看和管理功能：
+
+**核心功能**：
+- **项目列表**：展示所有 iFlow 项目，显示会话数量和最后活动时间
+- **会话展开**：点击项目可展开查看该项目的所有会话记录
+- **会话详情**：查看会话消息内容、统计信息（消息数、工具调用数等）
+- **导出功能**：将会话导出为 Markdown 格式
+- **删除管理**：支持删除单个会话或整个项目
+- **加载更多**：支持分页加载历史会话
 
 ### 云同步 (WebDAV)
 
@@ -747,6 +657,11 @@ export function useToast() {
   toast.success('操作完成')
   // ...
 }
+
+// useModelUsageStats.ts - 模型使用统计
+export function useModelUsageStats() {
+  // ...
+}
 ```
 
 ### 样式规范
@@ -766,8 +681,9 @@ export function useToast() {
 - 运行命令：
   ```bash
   npm run test           # 监听模式
-  npm run test:run       # 单次运行
+  npm run test:ui        # UI 模式
   npm run test:coverage  # 覆盖率报告
+  npm run test:run       # 单次运行
   ```
 
 ### TypeScript 配置
@@ -776,30 +692,6 @@ export function useToast() {
 - `tsconfig.node.json` - Node/Electron 配置
 - 严格模式：`strict: true`
 - 目标：ESNext
-
-## 快捷键与交互
-
-| 操作 | 说明 |
-|------|------|
-| 窗口关闭 | 隐藏到系统托盘（非退出） |
-| 双击托盘 | 显示/隐藏主窗口 |
-| Ctrl+S | 自动保存设置（通过 watch 监听） |
-| 侧边栏导航 | 点击导航项切换视图 |
-| 对话框确认 | Enter 键确认，Escape 键取消 |
-
-## 常见问题
-
-1. **图标不显示**: 检查 `build/icon.ico` 和 `build/icon.icns` 是否存在
-2. **配置不保存**: 确认 `~/.iflow/settings.json` 目录可写，检查文件权限
-3. **亚克力效果异常**: 检查 `acrylicIntensity` 值是否在 0-100 范围内
-4. **技能导入失败**: 确保压缩包内包含有效的 `SKILL.md` 文件
-5. **云同步失败**:
-   - 检查 WebDAV 服务器地址、用户名、密码是否正确
-   - 确认网络连接
-   - 查看控制台日志中的错误信息
-6. **命令导入失败**: 确保命令 JSON 格式正确，包含必需的 `name` 和 `content` 字段
-7. **自动更新不工作**: 检查网络连接，确认 GitHub Releases 配置正确
-8. **差分更新失败**: 确保发布时生成了 .blockmap 文件，检查网络和 GitHub 连接
 
 ## 开发建议
 
@@ -836,26 +728,7 @@ npm install -D @types/<package-name>
 - 查看日志：应用日志存储在 `~/.iflow/logs/`（如果配置了 electron-log）
 - 测试运行：`npm run test:ui` 打开 UI 界面
 
-## 版本历史
-
-- **v1.17.3** (2026-05-10) - API 配置架构重构（tokensLimit 迁移为配置级字段）、API 配置保护机制
-- **v1.17.2** (2026-05-09) - 自动更新模块重构、差分更新支持、GitHub 自动发布、窗口控制简化
-- **v1.17.1** (2026-05-09) - 全局 Toast 通知组件（ToastNotification + useToast）
-- **v1.17.0** (2026-05-08) - 自动更新模块重构、差分更新支持、GitHub 自动发布、窗口控制简化
-- **v1.16.2** (2026-05-08) - 稳定性提升
-- **v1.16.1** (2026-05-07) - iFlow Mod 页面体验优化、空状态优化、模组删除防误触
-- **v1.16.0** (2026-05-06) - iFlow Mod 功能模块（实验性）
-- **v1.15.14** (2026-05-05) - 文档系统重构、删除记录保留期设置、API 配置排序优化
-- **v1.15.7** (2026-05-03) - 文档查看器、动画效果优化、云同步体验改进
-- **v1.14.8** (2026-05-02) - API 模型智能获取、连通性实时监控、界面视觉统一
-- **v1.14.5** (2026-05-01) - MCP 服务器快速添加、MCP 服务器高级配置
-- **v1.14.0** (2026-05-01) - 云同步功能正式版（WebDAV）、命令管理模块、崩溃自动恢复
-- **v1.13.0** (2026-04-29) - CLI 行为控制面板（14 项配置）
-- **v1.12.1** (2026-04-28) - 云同步删除同步、密码持久化开关
-- **v1.12.0** - 云同步 Beta、MCP 服务器管理、API 配置重构、技能系统增强
-- **v1.11.x** - 首次公开发布
-
 ---
 
-最后更新：2026-05-13
+最后更新：2026-05-19
 维护者：iFlow 团队
