@@ -271,10 +271,21 @@ function validateModPackage(extractDir) {
   }
 
   // 5. 检查主体文件
-  const mainFile = metadata.type === 'patch' || metadata.type === 'diff' ? 'patch.diff' : 'code.js'
+  const isPatchType = metadata.type === 'patch' || metadata.type === 'diff'
+  const mainFile = isPatchType ? 'patch.diff' : 'code.js'
   const mainFilePath = path.join(extractDir, mainFile)
   if (!fs.existsSync(mainFilePath)) {
-    return { valid: false, error: t('iflow.errors.missingMainFile', { file: mainFile }) }
+    // patch/diff 类型可接受 code.js 作为替代，后续自动生成 patch.diff
+    if (isPatchType) {
+      const altFilePath = path.join(extractDir, 'code.js')
+      if (fs.existsSync(altFilePath)) {
+        metadata._needsDiffGeneration = true
+      } else {
+        return { valid: false, error: t('iflow.errors.missingMainFile', { file: `${mainFile} 或 code.js` }) }
+      }
+    } else {
+      return { valid: false, error: t('iflow.errors.missingMainFile', { file: mainFile }) }
+    }
   }
 
   // 6. 如果没有 id，生成一个
@@ -365,12 +376,21 @@ async function applyModsToIflowJs(enabledMods, iflowPath) {
         content = modContent + '\n' + content
         break
       case 'patch':
-        // Phase 1 不实现 patch 类型
-        throw new Error(t('iflow.errors.patchNotSupported'))
-case 'diff':
-        // 应用 unified diff 补丁到当前内容
-        content = applyUnifiedDiff(content, modContent)
+      case 'diff': {
+        const codeJsPath = path.join(modDir, 'code.js')
+        if (fs.existsSync(codeJsPath)) {
+          // code.js 存在：使用上下文无关的行级 patch 应用，
+          // 仅应用用户对原始文件的改动，不干扰其他 Mod 的变更
+          const codeJsContent = fs.readFileSync(codeJsPath, 'utf-8')
+          const backupPath = path.join(MODS_DIR, 'iflow.js.original')
+          const originalContent = fs.existsSync(backupPath) ? fs.readFileSync(backupPath, 'utf-8') : content
+          content = applyCodeJsChanges(originalContent, codeJsContent, content)
+        } else {
+          // 无 code.js（手写 patch.diff 或旧版本导入），使用预生成补丁
+          content = applyUnifiedDiff(content, modContent)
+        }
         break
+      }
       default:
         throw new Error(t('iflow.errors.invalidModType', { type: mod.type }))
     }
@@ -412,6 +432,89 @@ async function reapplyMods(stillEnabledMods, iflowPath) {
 }
 
 /**
+ * 从 code.js 自动生成 patch.diff
+ * 使用当前的 iflow.js（已包含所有已启用 Mod）作为 base，
+ * 生成 unified diff。code.js 会保留以供后续启用时重新生成。
+ *
+ * @param {string} modId - Mod ID
+ */
+async function generateDiffFromCode(modId) {
+  const modDir = path.join(MODS_DIR, modId)
+  const codePath = path.join(modDir, 'code.js')
+  const patchPath = path.join(modDir, 'patch.diff')
+
+  if (!fs.existsSync(codePath)) return
+  if (fs.existsSync(patchPath)) return  // patch.diff 已存在，优先保留
+
+  const iflowPath = await getIflowPath()
+  if (!fs.existsSync(iflowPath)) {
+    throw new Error(t('iflow.errors.iflowNotFound'))
+  }
+
+  const codeContent = fs.readFileSync(codePath, 'utf-8')
+
+  // 使用原始 iflow.js 备份作为生成 patch 的基准，
+  // 这样 patch 仅包含用户实际意图的改动，不包含其他已启用 Mod 的变更
+  const backupPath = path.join(MODS_DIR, 'iflow.js.original')
+  if (!fs.existsSync(backupPath)) {
+    // 尚无原始备份时，用当前 iflow.js 创建并作为基准
+    const currentContent = await readFileStream(iflowPath)
+    const patchContent = diff.createPatch('iflow.js', currentContent, codeContent)
+    fs.writeFileSync(patchPath, patchContent, 'utf-8')
+    return
+  }
+
+  const baseContent = await readFileStream(backupPath)
+  const patchContent = diff.createPatch('iflow.js', baseContent, codeContent)
+
+  // 写入 patch.diff，保留 code.js 供后续启用时重新生成
+  fs.writeFileSync(patchPath, patchContent, 'utf-8')
+}
+
+/**
+ * 上下文无关的行级 code.js 补丁应用
+ * 使用 diff.diffArrays 计算用户对原始文件的改动（新增/删除/不变的行），
+ * 然后逐块应用到目标 content 上，不进行上下文校验。
+ * 这样非重叠区域的改动（来自其他已启用 Mod）会被保留。
+ */
+function applyCodeJsChanges(original, codeJs, content) {
+  const origLines = original.split('\n')
+  const codeLines = codeJs.split('\n')
+  const contentLines = content.split('\n')
+
+  const changes = diff.diffArrays(origLines, codeLines)
+
+  const result = []
+  let contentPos = 0
+
+  for (const change of changes) {
+    if (change.removed) {
+      // 用户删除了这些行 → content 中跳过对应的行
+      contentPos += change.count
+    } else if (change.added) {
+      // 用户添加了这些行 → 直接插入
+      result.push(...change.value)
+    } else {
+      // 未变行 → 保留 content 的版本
+      for (let i = 0; i < change.count; i++) {
+        if (contentPos < contentLines.length) {
+          result.push(contentLines[contentPos])
+          contentPos++
+        }
+      }
+    }
+  }
+
+  // 保留 content 中超出原始范围的行（被其他 Mod 新增的）
+  while (contentPos < contentLines.length) {
+    result.push(contentLines[contentPos])
+    contentPos++
+  }
+
+  return result.join('\n')
+}
+
+/**
  * 对内容应用 unified diff 补丁
  * 使用 diff 库的 applyPatch，已处理尾随换行符兼容性
  */
@@ -419,13 +522,12 @@ function applyUnifiedDiff(content, diffText) {
   // 给末尾无换行的内容加一个换行，避免 diff 库因尾随换行缺失而拒绝应用
   const hasTrailingNewline = content.endsWith('\n')
   const source = hasTrailingNewline ? content : content + '\n'
-  try {
-    const result = diff.applyPatch(source, diffText)
-    // 若原始内容尾部无换行，移除补丁结果尾部新加的换行，保持行为一致
-    return hasTrailingNewline ? result : result.replace(/\n$/, '')
-  } catch (err) {
-    throw new Error('diff.applyPatch: ' + err.message)
+  const result = diff.applyPatch(source, diffText)
+  if (result === false) {
+    throw new Error('diff.applyPatch: Patch application returned false (context mismatch)')
   }
+  // 若原始内容尾部无换行，移除补丁结果尾部新加的换行，保持行为一致
+  return hasTrailingNewline ? result : result.replace(/\n$/, '')
 }
 
 module.exports = {
@@ -446,6 +548,7 @@ module.exports = {
   writeFileAtomically,
   applyModsToIflowJs,
   reapplyMods,
+  generateDiffFromCode,
   applyUnifiedDiff,
   MODS_DIR,
   MODS_JSON_PATH,

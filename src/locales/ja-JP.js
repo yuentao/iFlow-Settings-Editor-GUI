@@ -685,6 +685,7 @@ deleteSuccess: '「{name}」を削除しました',
       missingRequiredField: 'mod.json に必須フィールドがありません: {field}',
       invalidModType: '無効な Mod タイプ: {type}',
       missingMainFile: 'Mod パッケージにメインファイルがありません: {file}',
+      diffApplyFailed: 'Mod "{mod}" の適用に失敗しました: パッチコンテキストの不一致',
       modNotFound: 'Mod が見つかりません: {id}',
       iflowPathNotFound: 'iFlow のインストールパスが見つかりません',
       iflowNotFound: 'iFlow.js ファイルが見つかりません。iFlow が正しくインストールされているか確認してください',
@@ -699,7 +700,8 @@ deleteSuccess: '「{name}」を削除しました',
     importExport: {
       importTitle: 'Mod をインポート',
       overwriteConfirm: 'Mod「{name}」は既に存在します。上書きしますか？',
-      importError: 'Mod のインポートに失敗しました: {error}'
+      importError: 'Mod のインポートに失敗しました: {error}',
+      diffGenerationError: 'パッチファイルの自動生成に失敗しました: {error}'
     }
   },
   docs: {

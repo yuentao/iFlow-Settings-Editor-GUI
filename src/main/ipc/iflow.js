@@ -22,6 +22,7 @@ const {
   sanitizeFileName,
   applyModsToIflowJs,
   reapplyMods,
+  generateDiffFromCode,
   MODS_DIR,
 } = require('../services/iflowService')
 
@@ -348,6 +349,22 @@ function registerIflowIpcHandlers() {
         }
       }
 
+      // 如果导入的是 patch/diff 类型但只提供了 code.js，自动生成 patch.diff
+      if (metadata._needsDiffGeneration) {
+        try {
+          await generateDiffFromCode(metadata.id)
+        } catch (genError) {
+          // 生成 diff 失败，清理并返回错误
+          if (fs.existsSync(destDir)) {
+            fs.rmSync(destDir, { recursive: true, force: true })
+          }
+          return errorResult(
+            t('iflow.importExport.diffGenerationError', { error: genError.message }),
+            'IFLOW_IMPORT_ERROR'
+          )
+        }
+      }
+
       // 添加到 mods.json
       const modRecord = {
         id: metadata.id,
@@ -367,6 +384,7 @@ function registerIflowIpcHandlers() {
         enabled: false,
         installedAt: Date.now(),
         lastModified: Date.now(),
+        _autoGenPatch: metadata._needsDiffGeneration || false,
       }
 
       modsMetadata.mods.push(modRecord)

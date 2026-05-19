@@ -684,6 +684,7 @@ export default {
       missingRequiredField: 'mod.json is missing required field: {field}',
       invalidModType: 'Invalid mod type: {type}',
       missingMainFile: 'Mod package is missing main file: {file}',
+      diffApplyFailed: 'Failed to apply mod "{mod}": patch context mismatch',
       modNotFound: 'Mod not found: {id}',
       iflowPathNotFound: 'iFlow installation path not found',
       iflowNotFound: 'iFlow.js file not found, please verify iFlow is installed correctly',
@@ -698,7 +699,8 @@ export default {
     importExport: {
       importTitle: 'Import Mod',
       overwriteConfirm: 'Mod "{name}" already exists. Overwrite?',
-      importError: 'Failed to import mod: {error}'
+      importError: 'Failed to import mod: {error}',
+      diffGenerationError: 'Failed to auto-generate patch file: {error}'
     }
   },
   docs: {

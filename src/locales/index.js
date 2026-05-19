@@ -695,6 +695,7 @@ export default {
       missingRequiredField: 'mod.json 缺少必填字段: {field}',
       invalidModType: '无效的 Mod 类型: {type}',
       missingMainFile: 'Mod 包缺少主文件: {file}',
+      diffApplyFailed: '应用 Mod "{mod}" 失败: 补丁上下文不匹配',
       modNotFound: '未找到 Mod: {id}',
       iflowPathNotFound: '未找到 iFlow 安装路径',
       iflowNotFound: '未找到 iFlow.js 文件，请确认 iFlow 已正确安装',
@@ -709,7 +710,8 @@ export default {
     importExport: {
       importTitle: '导入 Mod',
       overwriteConfirm: '已存在同名 Mod "{name}"，是否覆盖？',
-      importError: '导入 Mod 失败: {error}'
+      importError: '导入 Mod 失败: {error}',
+      diffGenerationError: '自动生成补丁文件失败: {error}'
     }
   },
   docs: {
