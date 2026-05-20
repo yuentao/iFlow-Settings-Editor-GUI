@@ -6,7 +6,7 @@
 
       <!-- Status Cards -->
       <div class="status-cards" v-if="!isLoading">
-        <div class="status-card" :class="{ warning: !iflowStatus.exists }">
+        <div class="status-card" :class="{ warning: !iflowStatus.exists }" @click="openDirectory(coreDir)" :title="coreDir">
           <div class="status-card-icon">
             <Success v-if="iflowStatus.exists" size="20" theme="filled" fill="var(--success)" />
             <Caution v-else size="20" theme="filled" fill="var(--warning)" />
@@ -21,15 +21,19 @@
               <template v-else>{{ $t('iflow.statusNotFound') }}</template>
             </div>
           </div>
+          <FolderSettingsOne size="20" class="status-card-action" />
         </div>
-        <div class="status-card" v-if="iflowStatus.exists">
+        <div class="status-card" :class="{ clickable: !!iflowDir }" @click="openDirectory(iflowDir)" :title="iflowDir">
           <div class="status-card-icon">
-            <SwitchButton size="20" :fill="enabledCount > 0 ? 'var(--accent)' : 'var(--text-tertiary)'" />
+            <SwitchButton v-if="iflowStatus.exists" size="20" :fill="enabledCount > 0 ? 'var(--accent)' : 'var(--text-tertiary)'" />
+            <FolderSettingsOne v-else size="20" fill="var(--text-tertiary)" />
           </div>
           <div class="status-card-info">
             <div class="status-card-label">{{ $t('iflow.enabledMods') }}</div>
-            <div class="status-card-value">{{ enabledCount }} / {{ totalCount }}</div>
+            <div class="status-card-value" v-if="iflowStatus.exists">{{ enabledCount }} / {{ totalCount }}</div>
+            <div class="status-card-value" v-else>{{ $t('iflow.quickOpen.config') }}</div>
           </div>
+          <FolderCodeOne size="20" class="status-card-action" />
         </div>
       </div>
     </div>
@@ -57,8 +61,7 @@
         :selected-category="selectedCategory"
         :highlight-fn="modHighlightFn"
         @update:selected-category="selectedCategory = $event"
-        @action="openImportDialog"
-      >
+        @action="openImportDialog">
         <template #item-prefix="{ item: mod }">
           <span v-if="mod.enabled" class="mod-enable-index">{{ enableIndexMap[mod.id] }}</span>
         </template>
@@ -81,9 +84,7 @@
           <div class="mod-meta">
             <span class="mod-author" v-if="mod.author">{{ mod.author }}</span>
             <span class="mod-category" v-if="mod.category">{{ mod.category }}</span>
-            <span class="mod-compat" v-if="mod.iflowVersion" :title="`iflow ${mod.iflowVersionConstraint || '0.5.19+'}`">
-              iflow {{ mod.iflowVersionConstraint || '0.5.19+' }}
-            </span>
+            <span class="mod-compat" v-if="mod.iflowVersion" :title="`iflow ${mod.iflowVersionConstraint || '0.5.19+'}`"> iflow {{ mod.iflowVersionConstraint || '0.5.19+' }} </span>
           </div>
         </template>
 
@@ -100,12 +101,7 @@
 
         <template #item-extra="{ item: mod }">
           <label class="toggle-switch" :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')">
-            <input
-              type="checkbox"
-              :checked="mod.enabled"
-              @click.prevent="toggleMod(mod.id, !mod.enabled)"
-              :disabled="isApplying"
-            />
+            <input type="checkbox" :checked="mod.enabled" @click.prevent="toggleMod(mod.id, !mod.enabled)" :disabled="isApplying" />
             <span class="toggle-slider"></span>
           </label>
         </template>
@@ -120,7 +116,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Puzzle, FolderOpen, Download, Delete, Success, Caution, SwitchButton } from '@icon-park/vue-next'
+import { Puzzle, FolderOpen, Download, Delete, Success, Caution, SwitchButton, FolderSettingsOne, FolderCodeOne } from '@icon-park/vue-next'
 import GenericList from '@/components/GenericList.vue'
 import ApplyingDialog from '@/components/ApplyingDialog.vue'
 import { useToast } from '@/composables/useToast'
@@ -164,19 +160,42 @@ const filteredMods = computed(() => {
   return sorted.filter(m => m.category === selectedCategory.value)
 })
 
-const modHighlightFn = (mod) => ({ highlighted: mod.enabled })
+const modHighlightFn = mod => ({ highlighted: mod.enabled })
 
-const isImageIcon = (icon) => {
+const isImageIcon = icon => {
   return /^(https?:\/\/|data:|\/[^/]|[a-zA-Z]:\\)/.test(icon) && /\.(png|jpg|jpeg|gif|svg|webp|ico)(\?|#|$)/i.test(icon)
+}
+
+// 目录路径
+const coreDir = computed(() => {
+  if (iflowStatus.value?.path) {
+    // iflow.js 所在目录（即 bundle/ 目录）
+    const match = iflowStatus.value.path.match(/^(.+?)[/\\]iflow\.js$/i)
+    return match ? match[1] : ''
+  }
+  return ''
+})
+
+const iflowDir = computed(() => {
+  return iflowStatus.value?.iflowDir || ''
+})
+
+const openDirectory = async dirPath => {
+  if (!dirPath) return
+  try {
+    await window.electronAPI.openPath(dirPath)
+  } catch (error) {
+    toast.error(String(error?.message || error))
+  }
 }
 
 // 计算已启用 mod 的序号（按 installedAt 排序）
 const enableIndexMap = computed(() => {
   const map = {}
-  const enabled = [...mods.value]
-    .filter(m => m.enabled)
-    .sort((a, b) => (a.installedAt || 0) - (b.installedAt || 0))
-  enabled.forEach((m, i) => { map[m.id] = i + 1 })
+  const enabled = [...mods.value].filter(m => m.enabled).sort((a, b) => (a.installedAt || 0) - (b.installedAt || 0))
+  enabled.forEach((m, i) => {
+    map[m.id] = i + 1
+  })
   return map
 })
 
@@ -184,10 +203,7 @@ const enableIndexMap = computed(() => {
 const loadMods = async () => {
   isLoading.value = true
   try {
-    const [modsResult, statusResult] = await Promise.all([
-      window.electronAPI.iflowListMods(),
-      window.electronAPI.iflowCheckIflowStatus(),
-    ])
+    const [modsResult, statusResult] = await Promise.all([window.electronAPI.iflowListMods(), window.electronAPI.iflowCheckIflowStatus()])
     if (modsResult.success) {
       mods.value = modsResult.mods || []
     }
@@ -286,7 +302,7 @@ const toggleMod = async (modId, enabled) => {
   }
 }
 
-const deleteMod = async (modId) => {
+const deleteMod = async modId => {
   const mod = mods.value.find(m => m.id === modId)
   if (!mod) return
 
@@ -319,7 +335,7 @@ const deleteMod = async (modId) => {
   }
 }
 
-const exportMod = async (modId) => {
+const exportMod = async modId => {
   const mod = mods.value.find(m => m.id === modId)
   try {
     const result = await window.electronAPI.iflowExportMod(modId)
@@ -378,12 +394,31 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   flex: 1;
   min-width: 200px;
+  cursor: pointer;
   transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--bg-elevated, var(--bg-primary));
+    border-color: var(--accent);
+
+    .status-card-action {
+      color: var(--accent);
+      opacity: 1;
+    }
+  }
 
   &.warning {
     border-color: var(--warning);
     background: rgba(234, 179, 8, 0.05);
   }
+}
+
+.status-card-action {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  opacity: 0.4;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .status-card-icon {

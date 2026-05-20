@@ -637,6 +637,10 @@ export default {
     enabledMods: 'Enabled Mods',
     statusFound: 'Found',
     statusNotFound: 'Not Found',
+    quickOpen: {
+      core: 'iFlow Core Dir',
+      config: 'iFlow Config Dir'
+    },
     mods: {
       title: 'Installed Mods',
       import: 'Import Mod',
@@ -691,7 +695,10 @@ export default {
       invalidModId: 'Invalid mod ID',
       modDirNotFound: 'Mod directory does not exist',
       noOriginalBackup: 'Original backup file not found, cannot restore',
-      patchNotSupported: 'Patch type mods are not yet supported'
+      patchNotSupported: 'Patch type mods are not yet supported',
+      includeMapFileNotFound: 'Mod extra file "{file}" not found in package',
+      includeMapDeployFailed: 'Failed to deploy extra files: {error}',
+      includeMapRemoveFailed: 'Failed to clean up extra files: {error}'
     },
     exportDialog: {
       title: 'Export Mod'

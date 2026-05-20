@@ -112,6 +112,19 @@ function registerIpcHandlers(getMainWindow, t) {
     }
   })
 
+  // 本地路径：在系统文件管理器中打开目录
+  ipcMain.handle('open-path', async (event, filePath) => {
+    try {
+      if (typeof filePath !== 'string') {
+        return { success: false, error: 'Invalid path' }
+      }
+      await shell.openPath(filePath)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
   console.log('All IPC handlers registered')
 }
 

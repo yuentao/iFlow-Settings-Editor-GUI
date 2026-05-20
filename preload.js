@@ -176,8 +176,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cloudSyncRemoveDevice: (deviceId) => ipcRenderer.invoke('cloud-sync:remove-device', deviceId),
 
   // 外部链接
-  openExternal: (url) => ipcRenderer.invoke('open-external', url),
-
+      openExternal: (url) => ipcRenderer.invoke('open-external', url),
+      openPath: (filePath) => ipcRenderer.invoke('open-path', filePath),
   // 项目会话管理
   listProjects: () => ipcRenderer.invoke('projects:list'),
   getProjectSessions: (projectId, options) => ipcRenderer.invoke('projects:sessions:list', projectId, options),

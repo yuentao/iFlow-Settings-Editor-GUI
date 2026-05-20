@@ -648,6 +648,10 @@ export default {
     enabledMods: '已启用 Mod',
     statusFound: '已找到',
     statusNotFound: '未找到',
+    quickOpen: {
+      core: 'iFlow 核心目录',
+      config: 'iFlow 配置目录'
+    },
     mods: {
       title: '已安装的 Mod',
       import: '导入 Mod',
@@ -702,7 +706,10 @@ export default {
       invalidModId: '无效的 Mod ID',
       modDirNotFound: 'Mod 目录不存在',
       noOriginalBackup: '未找到原始备份文件，无法恢复',
-      patchNotSupported: '补丁类型 Mod 暂不支持'
+      patchNotSupported: '补丁类型 Mod 暂不支持',
+      includeMapFileNotFound: 'Mod 额外文件 "{file}" 在包中不存在',
+      includeMapDeployFailed: '部署额外文件失败: {error}',
+      includeMapRemoveFailed: '清理额外文件失败: {error}'
     },
     exportDialog: {
       title: '导出 Mod'
