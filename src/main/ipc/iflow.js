@@ -8,6 +8,7 @@ const path = require('path')
 const fs = require('fs')
 
 const { t } = require('../utils/translations')
+const { logger } = require('../utils/logger')
 const { wrapIpcHandler, successResult, errorResult, ErrorCodes } = require('../utils/errors')
 const {
   isPathSafe,
@@ -24,7 +25,10 @@ const {
   reapplyMods,
   generateDiffFromCode,
   detectConflicts,
+  deployIncludeFiles,
+  removeIncludeFiles,
   MODS_DIR,
+  IFLOW_BASE_DIR,
 } = require('../services/iflowService')
 
 /**
@@ -95,6 +99,28 @@ function registerIflowIpcHandlers() {
     }
 
     const mod = metadata.mods[modIndex]
+
+    // 如果 mods.json 中没有 includeMap，尝试从 mod 目录的 mod.json 读取
+    if (!mod.includeMap) {
+      const modJsonPath = path.join(MODS_DIR, modId, 'mod.json')
+      if (fs.existsSync(modJsonPath)) {
+        try {
+          const modJson = JSON.parse(fs.readFileSync(modJsonPath, 'utf-8'))
+          if (modJson.includeMap) {
+            mod.includeMap = modJson.includeMap
+            // 同步回写到 mods.json
+            metadata.mods[modIndex].includeMap = modJson.includeMap
+          }
+          // 同步 include 字段
+          if (modJson.include && !mod.include) {
+            mod.include = modJson.include
+            metadata.mods[modIndex].include = modJson.include
+          }
+        } catch (e) {
+          logger.warn(`Failed to read mod.json for includeMap: ${e.message}`)
+        }
+      }
+    }
 
     // 如果已经是目标状态，直接返回
     if (mod.enabled === enabled) {
@@ -178,11 +204,39 @@ function registerIflowIpcHandlers() {
       }
     }
 
+    // 部署/移除 includeMap 额外文件（必须在 reapplyMods 之前，
+    // 因为 includeMap 文件可能被 iflow.js 引用）
+    let deployedFiles = []
+    try {
+      if (enabled && mod.includeMap) {
+        deployedFiles = await deployIncludeFiles(mod.id, mod.includeMap, iflowPath)
+      } else if (!enabled && mod.includeMap) {
+        await removeIncludeFiles(mod.id, mod.includeMap, iflowPath)
+      }
+    } catch (includeError) {
+      // includeMap 部署失败，回滚状态
+      metadata.mods[modIndex].enabled = !enabled
+      metadata.mods[modIndex].lastModified = Date.now()
+      writeModsMetadata(metadata)
+      return errorResult(
+        t('iflow.errors.includeMapDeployFailed', { error: includeError.message }),
+        'IFLOW_INCLUDE_MAP_ERROR'
+      )
+    }
+
     try {
       // 重新应用所有启用的 Mod
       await reapplyMods(enabledMods, iflowPath)
     } catch (applyError) {
-      // 应用失败，回滚状态
+      // 应用失败，回滚 includeMap 部署的文件
+      if (deployedFiles.length > 0 && mod.includeMap) {
+        try {
+          await removeIncludeFiles(mod.id, mod.includeMap, iflowPath)
+        } catch (rollbackErr) {
+          logger.warn(`Failed to rollback includeMap for mod ${mod.id}:`, rollbackErr)
+        }
+      }
+      // 回滚状态
       metadata.mods[modIndex].enabled = !enabled
       metadata.mods[modIndex].lastModified = Date.now()
       writeModsMetadata(metadata)
@@ -229,6 +283,17 @@ function registerIflowIpcHandlers() {
             // 重新应用失败，继续删除操作
           }
         }
+      }
+    }
+
+    // 清理 includeMap 部署的额外文件
+    if (mod.includeMap) {
+      try {
+        let iflowPath
+        try { iflowPath = await getIflowPath() } catch { /* ignore */ }
+        await removeIncludeFiles(modId, mod.includeMap, iflowPath)
+      } catch (err) {
+        logger.warn(`Failed to cleanup includeMap files for mod ${modId}:`, err)
       }
     }
 
@@ -415,6 +480,8 @@ function registerIflowIpcHandlers() {
         homepage: metadata.homepage || undefined,
         repository: metadata.repository || undefined,
         license: metadata.license || undefined,
+        include: metadata.include || undefined,
+        includeMap: metadata.includeMap || undefined,
         enabled: false,
         installedAt: Date.now(),
         lastModified: Date.now(),
@@ -482,6 +549,7 @@ function registerIflowIpcHandlers() {
         exists: status.exists,
         path: status.path,
         version,
+        iflowDir: IFLOW_BASE_DIR,
       }
     } catch (error) {
       return { success: true, exists: false, path: '', version: null }

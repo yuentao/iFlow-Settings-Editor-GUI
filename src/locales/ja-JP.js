@@ -638,6 +638,10 @@ export default {
     enabledMods: '有効な Mod',
     statusFound: '検出済み',
     statusNotFound: '未検出',
+    quickOpen: {
+      core: 'iFlow コアディレクトリ',
+      config: 'iFlow 設定ディレクトリ'
+    },
     mods: {
       title: 'インストール済み Mod',
       import: 'Mod をインポート',
@@ -692,7 +696,10 @@ deleteSuccess: '「{name}」を削除しました',
       invalidModId: '無効な Mod ID',
       modDirNotFound: 'Mod ディレクトリが存在しません',
       noOriginalBackup: 'オリジナルバックアップファイルが見つかりません、復元できません',
-      patchNotSupported: 'パッチタイプの Mod はまだサポートされていません'
+      patchNotSupported: 'パッチタイプの Mod はまだサポートされていません',
+      includeMapFileNotFound: 'Mod 追加ファイル「{file}」がパッケージに見つかりません',
+      includeMapDeployFailed: '追加ファイルのデプロイに失敗しました: {error}',
+      includeMapRemoveFailed: '追加ファイルのクリーンアップに失敗しました: {error}'
     },
     exportDialog: {
       title: 'Mod をエクスポート'

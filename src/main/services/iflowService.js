@@ -586,6 +586,116 @@ function detectConflicts(enabledMods) {
   return conflicts
 }
 
+/**
+ * 解析 includeMap 中的路径标记为实际路径
+ * "core" → iflow.js 所在目录 (bundle/)
+ * "~/.iflow" → ~/.iflow/ 目录
+ * 其他值 → 原样返回（视为相对 ~/.iflow 的子路径）
+ * @param {string} token - includeMap 中的目标路径标记
+ * @param {string} iflowPath - iflow.js 文件路径（用于解析 "core"）
+ * @returns {Promise<string>} 解析后的绝对路径
+ */
+async function resolveIncludeMapPath(token, iflowPath) {
+  if (token === 'core') {
+    // iflow.js 所在目录（即 bundle/ 目录）
+    if (iflowPath && fs.existsSync(iflowPath)) {
+      return path.dirname(iflowPath)
+    }
+    // 如果 iflowPath 不可用，尝试获取
+    try {
+      const resolvedPath = await getIflowPath()
+      return path.dirname(resolvedPath)
+    } catch {
+      throw new Error(t('iflow.errors.iflowPathNotFound'))
+    }
+  }
+  if (token === '~/.iflow') {
+    return IFLOW_BASE_DIR
+  }
+  // 其他值视为相对 ~/.iflow 的子路径
+  return path.join(IFLOW_BASE_DIR, token)
+}
+
+/**
+ * 部署 includeMap 中指定的额外文件到目标目录
+ * 在 Mod 启用时调用
+ * @param {string} modId - Mod ID
+ * @param {Object} includeMap - 文件名 → 目标路径标记的映射
+ * @param {string} iflowPath - iflow.js 文件路径
+ * @returns {Promise<Array<{file: string, target: string}>>} 已部署的文件列表
+ */
+async function deployIncludeFiles(modId, includeMap, iflowPath) {
+  if (!includeMap || typeof includeMap !== 'object') {
+    logger.warn(`deployIncludeFiles: includeMap is empty or not an object for mod ${modId}`, includeMap)
+    return []
+  }
+
+  const modDir = path.join(MODS_DIR, modId)
+  if (!fs.existsSync(modDir)) {
+    throw new Error(`Mod directory not found: ${modDir}`)
+  }
+
+  const deployed = []
+
+  for (const [fileName, targetToken] of Object.entries(includeMap)) {
+    const srcPath = path.join(modDir, fileName)
+    if (!fs.existsSync(srcPath)) {
+      throw new Error(t('iflow.errors.includeMapFileNotFound', { file: fileName }))
+    }
+
+    const targetDir = await resolveIncludeMapPath(targetToken, iflowPath)
+    // 确保目标目录存在
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true })
+    }
+
+    const destPath = path.join(targetDir, fileName)
+
+    // 备份已存在的目标文件（如果存在且尚未备份）
+    if (fs.existsSync(destPath)) {
+      const bakPath = destPath + '.iflow-mod-bak'
+      if (!fs.existsSync(bakPath)) {
+        fs.copyFileSync(destPath, bakPath)
+      }
+    }
+
+    fs.copyFileSync(srcPath, destPath)
+    logger.info(`includeMap deployed: ${srcPath} -> ${destPath}`)
+    deployed.push({ file: fileName, target: destPath })
+  }
+
+  return deployed
+}
+
+/**
+ * 移除 includeMap 中部署的额外文件，恢复备份
+ * 在 Mod 禁用或删除时调用
+ * @param {string} modId - Mod ID
+ * @param {Object} includeMap - 文件名 → 目标路径标记的映射
+ * @param {string} iflowPath - iflow.js 文件路径
+ * @returns {Promise<void>}
+ */
+async function removeIncludeFiles(modId, includeMap, iflowPath) {
+  if (!includeMap || typeof includeMap !== 'object') return
+
+  for (const [fileName, targetToken] of Object.entries(includeMap)) {
+    const targetDir = await resolveIncludeMapPath(targetToken, iflowPath)
+    const destPath = path.join(targetDir, fileName)
+    const bakPath = destPath + '.iflow-mod-bak'
+
+    // 恢复备份文件
+    if (fs.existsSync(bakPath)) {
+      fs.copyFileSync(bakPath, destPath)
+      fs.unlinkSync(bakPath)
+      logger.info(`includeMap restored backup: ${bakPath} -> ${destPath}`)
+    } else if (fs.existsSync(destPath)) {
+      // 没有备份，直接删除（此文件是由 mod 添加的）
+      fs.unlinkSync(destPath)
+      logger.info(`includeMap removed: ${destPath}`)
+    }
+  }
+}
+
 module.exports = {
   isPathSafe,
   ensureModsDir,
@@ -607,6 +717,10 @@ module.exports = {
   generateDiffFromCode,
   applyUnifiedDiff,
   detectConflicts,
+  resolveIncludeMapPath,
+  deployIncludeFiles,
+  removeIncludeFiles,
   MODS_DIR,
   MODS_JSON_PATH,
+  IFLOW_BASE_DIR,
 }
