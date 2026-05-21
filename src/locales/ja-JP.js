@@ -667,7 +667,21 @@ deleteSuccess: '「{name}」を削除しました',
         diff: '差分'
       },
       replaceConflict: '置換タイプの Mod「{conflict}」が既に有効です。「{name}」を有効にすると「{conflict}」は自動的に無効になります。続行しますか？',
-      replaceSwapSuccess: '{name} に置き換えました（{conflict} を無効化）'
+      replaceSwapSuccess: '{name} に置き換えました（{conflict} を無効化）',
+      detail: {
+        id: 'ID',
+        type: 'タイプ',
+        version: 'バージョン',
+        author: '作者',
+        category: 'カテゴリ',
+        compatibility: '互換性',
+        license: 'ライセンス',
+        homepage: 'ホームページ',
+        repository: 'リポジトリ',
+        tags: 'タグ',
+        include: '含むファイル',
+        description: '説明'
+      }
     },
     applying: {
       enabling: 'Mod を有効化中…',

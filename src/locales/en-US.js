@@ -670,6 +670,20 @@ export default {
       },
       replaceConflict: 'Replace mod "{conflict}" is already enabled. Enabling "{name}" will disable "{conflict}". Continue?',
       replaceSwapSuccess: 'Replaced with {name} (disabled {conflict})',
+      detail: {
+        id: 'ID',
+        type: 'Type',
+        version: 'Version',
+        author: 'Author',
+        category: 'Category',
+        compatibility: 'Compatibility',
+        license: 'License',
+        homepage: 'Homepage',
+        repository: 'Repository',
+        tags: 'Tags',
+        include: 'Includes',
+        description: 'Description'
+      }
     },
     applying: {
       enabling: 'Enabling mod…',
