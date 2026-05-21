@@ -58,7 +58,7 @@ describe('UpdateProgress.vue', () => {
       },
     });
 
-    expect(wrapper.find('.progress-icon .spinning').exists()).toBe(true);
+    expect(wrapper.find('.progress-spinner').exists()).toBe(true);
     expect(wrapper.find('.progress-title').text()).toBe('update.downloading');
   });
 

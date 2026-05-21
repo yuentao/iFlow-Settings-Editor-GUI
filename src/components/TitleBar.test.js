@@ -43,7 +43,7 @@ describe('TitleBar.vue', () => {
     expect(wrapper.find('.titlebar-title').text()).toBe('app.title');
   });
 
-  it('has three window control buttons', () => {
+  it('has two window control buttons', () => {
     const wrapper = mount(TitleBar, {
       global: {
         mocks: {
@@ -53,7 +53,7 @@ describe('TitleBar.vue', () => {
     });
 
     const buttons = wrapper.findAll('.titlebar-btn');
-    expect(buttons.length).toBe(3);
+    expect(buttons.length).toBe(2);
   });
 
   it('calls minimize when minimize button is clicked', async () => {
@@ -71,20 +71,6 @@ describe('TitleBar.vue', () => {
     expect(window.electronAPI.minimize).toHaveBeenCalledOnce();
   });
 
-  it('calls maximize when maximize button is clicked', async () => {
-    const wrapper = mount(TitleBar, {
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    const maximizeButton = wrapper.findAll('.titlebar-btn')[1];
-    await maximizeButton.trigger('click');
-
-    expect(window.electronAPI.maximize).toHaveBeenCalledOnce();
-  });
 
   it('calls close when close button is clicked', async () => {
     const wrapper = mount(TitleBar, {
@@ -95,7 +81,7 @@ describe('TitleBar.vue', () => {
       },
     });
 
-    const closeButton = wrapper.findAll('.titlebar-btn')[2];
+    const closeButton = wrapper.findAll('.titlebar-btn')[1];
     await closeButton.trigger('click');
 
     expect(window.electronAPI.close).toHaveBeenCalledOnce();
@@ -110,7 +96,7 @@ describe('TitleBar.vue', () => {
       },
     });
 
-    const closeButton = wrapper.findAll('.titlebar-btn')[2];
+    const closeButton = wrapper.findAll('.titlebar-btn')[1];
     expect(closeButton.classes()).toContain('close');
   });
 
@@ -125,7 +111,6 @@ describe('TitleBar.vue', () => {
 
     const buttons = wrapper.findAll('.titlebar-btn');
     expect(buttons[0].attributes('title')).toBe('translated-window.minimize');
-    expect(buttons[1].attributes('title')).toBe('translated-window.maximize');
-    expect(buttons[2].attributes('title')).toBe('translated-window.close');
+    expect(buttons[1].attributes('title')).toBe('translated-window.close');
   });
 });

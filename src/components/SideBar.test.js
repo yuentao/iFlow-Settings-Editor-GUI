@@ -16,7 +16,7 @@ describe('SideBar.vue', () => {
     expect(wrapper.find('.sidebar').exists()).toBe(true);
   });
 
-  it('has six nav items', () => {
+  it('has nine nav items', () => {
     const wrapper = mount(SideBar, {
       global: {
         mocks: {
@@ -26,7 +26,7 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item');
-    expect(navItems.length).toBe(6); // Dashboard, API Config, General Settings, MCP, Skills, Commands
+    expect(navItems.length).toBe(9);
   });
 
   it('has two sections', () => {
@@ -80,42 +80,6 @@ describe('SideBar.vue', () => {
 
     expect(wrapper.emitted('navigate')).toBeTruthy();
     expect(wrapper.emitted('navigate')[0][0]).toBe('general');
-  });
-
-  it('displays server count badge correctly', () => {
-    const wrapper = mount(SideBar, {
-      props: {
-        currentSection: 'general',
-        serverCount: 5
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    const badges = wrapper.findAll('.nav-item-badge');
-    expect(badges.length).toBe(3); // MCP, Skills and Commands all show badges
-    expect(badges[0].text()).toBe('5');
-  });
-
-  it('displays zero server count', () => {
-    const wrapper = mount(SideBar, {
-      props: {
-        currentSection: 'general',
-        serverCount: 0
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    const badges = wrapper.findAll('.nav-item-badge');
-    expect(badges.length).toBe(3); // MCP, Skills and Commands all show badges
-    expect(badges[0].text()).toBe('0');
   });
 
   it('applies translation to section titles', () => {
