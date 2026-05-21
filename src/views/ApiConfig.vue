@@ -329,10 +329,15 @@ function getExpiryText(name) {
   const expiryDate = getExpiryDate(name)
   if (!expiryDate) return ''
   const now = moment()
-  const diffDays = expiryDate.diff(now, 'days')
-  if (diffDays < 0) {
-    return t('api.expiry.expired', { days: Math.abs(diffDays) })
+
+  // Check expired first — moment.diff truncates toward zero, so a profile that
+  // expired just hours ago would show diffDays === 0 and incorrectly fall into
+  // the "hours left" branch.
+  if (now.isAfter(expiryDate)) {
+    return t('api.expiry.expired')
   }
+
+  const diffDays = expiryDate.diff(now, 'days')
   if (diffDays === 0) {
     const diffHours = expiryDate.diff(now, 'hours')
     return t('api.expiry.hoursLeft', { hours: Math.max(diffHours, 1) })
@@ -358,8 +363,11 @@ function getExpiryClass(name) {
   const expiryDate = getExpiryDate(name)
   if (!expiryDate) return ''
   const now = moment()
+
+  // Must check expired first — same truncation issue as getExpiryText
+  if (now.isAfter(expiryDate)) return 'expiry-expired'
+
   const daysLeft = expiryDate.diff(now, 'days')
-  if (daysLeft < 0) return 'expiry-expired'
   if (daysLeft <= 3) return 'expiry-urgent'
   if (daysLeft <= 7) return 'expiry-warning'
   return 'expiry-normal'
@@ -588,17 +596,20 @@ function getExpiryClass(name) {
   }
 }
 
-// Disabled / expired state
+// Disabled / expired state — only block profile selection, keep actions/sort active
 .profile-item.expired {
   cursor: not-allowed;
-  opacity: 0.55;
-  filter: grayscale(0.6);
-  pointer-events: none;
 
-  // Allow connectivity indicator and expiry badge to still show tooltip
-  .connectivity-indicator,
-  .profile-expiry {
-    pointer-events: auto;
+  // Hide connectivity dot for expired profiles
+  .connectivity-indicator {
+    display: none;
+  }
+
+  // Apply disabled visual only to non-action parts
+  > :not(.drag-handle):not(.profile-actions) {
+    opacity: 0.55;
+    filter: grayscale(0.6);
+    pointer-events: none;
   }
 
   &:hover {
@@ -690,11 +701,11 @@ function getExpiryClass(name) {
 }
 
 .expiry-expired {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  font-weight: 600;
+  background: rgba(128, 128, 128, 0.12);
+  color: var(--text-tertiary);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  font-weight: 500;
 
-  &::before { background: #ef4444; }
+  &::before { background: var(--text-tertiary); }
 }
 </style>

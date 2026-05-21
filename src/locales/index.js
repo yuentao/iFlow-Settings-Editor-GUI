@@ -221,7 +221,7 @@ export default {
     expiryDaysUnit: '天',
     expiryDaysHint: '设置为 0 表示无限期',
     expiry: {
-      expired: '已过期 {days} 天',
+      expired: '已过期',
       hoursLeft: '{hours}小时后',
       daysLeft: '{days}天后',
       monthsLeft: '{months}个月后',

@@ -221,7 +221,7 @@ export default {
     expiryDaysUnit: '日',
     expiryDaysHint: '0に設定すると無期限',
     expiry: {
-      expired: '{days}日前に期限切れ',
+      expired: '期限切れ',
       hoursLeft: 'あと{hours}時間',
       daysLeft: 'あと{days}日',
       monthsLeft: 'あと{months}ヶ月',

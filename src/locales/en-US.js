@@ -222,7 +222,7 @@ export default {
     expiryDaysUnit: 'days',
     expiryDaysHint: 'Set to 0 for unlimited',
     expiry: {
-      expired: 'Expired {days}d ago',
+      expired: 'Expired',
       hoursLeft: '{hours}h left',
       daysLeft: '{days}d left',
       monthsLeft: '{months}mo left',
