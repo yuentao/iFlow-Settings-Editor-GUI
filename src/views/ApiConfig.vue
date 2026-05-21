@@ -13,22 +13,16 @@
       </div>
     </div>
     <div class="card" v-if="profiles.length > 0">
-      <div class="profile-list">
+      <VueDraggable v-model="localProfiles" class="profile-list" handle=".drag-handle" :animation="250" ghostClass="sortable-ghost" @start="onDragStart" @end="onDragEnd">
         <div
-          v-for="(profile, index) in profiles"
+          v-for="(profile, index) in localProfiles"
           :key="profile.name"
           class="profile-item"
           :class="{
             active: currentProfile === profile.name,
             expired: isProfileExpired(profile.name),
-            dragging: dragIndex === index,
           }"
           :title="isProfileExpired(profile.name) ? t('api.expiry.cannotSwitch') : ''"
-          draggable="true"
-          @dragstart="onDragStart(index)"
-          @dragover.prevent="onDragOver(index)"
-          @drop="onDrop(index)"
-          @dragend="onDragEnd"
           @click="isProfileExpired(profile.name) ? null : $emit('select-profile', profile.name)">
           <div class="drag-handle" :title="$t('api.dragToSort')"> ⋮⋮ </div>
           <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
@@ -77,17 +71,18 @@
             </button>
           </div>
         </div>
-      </div>
+      </VueDraggable>
     </div>
     <EmptyState v-else :icon="Exchange" :title="$t('api.noProfiles')" :description="$t('api.addFirstProfile')" :actionText="$t('api.newProfile')" embedded @action="$emit('create-profile')" />
   </section>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
+import { VueDraggable } from 'vue-draggable-plus'
 import moment from 'moment'
 
 const { t } = useI18n()
@@ -108,8 +103,21 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['create-profile', 'select-profile', 'edit-profile', 'duplicate-profile', 'delete-profile', 'reorder-profiles'])
-const dragIndex = ref(-1)
-const dragOverIndex = ref(-1)
+
+// Local copy of profiles for VueDraggable v-model sync
+const localProfiles = ref([...props.profiles])
+watch(() => props.profiles, (val) => { localProfiles.value = [...val] }, { deep: true })
+watch(localProfiles, (val) => {
+  // Emit reorder only when order actually differs from prop
+  const sameOrder = val.length === props.profiles.length && val.every((p, i) => p.name === props.profiles[i].name)
+  if (!sameOrder) {
+    emit('reorder-profiles', [...val])
+  }
+}, { deep: true })
+
+let isDragging = false
+const onDragStart = () => { isDragging = true; document.body.style.userSelect = 'none' }
+const onDragEnd = () => { isDragging = false; document.body.style.userSelect = '' }
 
 // --- 连通性监控 ---
 const connectivityMap = reactive({}) // { profileName: { level: 'excellent'|'good'|'slow'|'unreachable'|'checking', latency: number } }
@@ -243,31 +251,6 @@ onUnmounted(() => {
     visibilityHandler = null
   }
 })
-
-const onDragStart = index => {
-  dragIndex.value = index
-}
-
-const onDragOver = index => {
-  dragOverIndex.value = index
-}
-
-const onDrop = index => {
-  if (dragIndex.value !== -1 && dragIndex.value !== index) {
-    const newProfiles = [...props.profiles]
-    const [removed] = newProfiles.splice(dragIndex.value, 1)
-    newProfiles.splice(index, 0, removed)
-    // 通过emit通知父组件排序变化
-    emit('reorder-profiles', newProfiles)
-  }
-  dragIndex.value = -1
-  dragOverIndex.value = -1
-}
-
-const onDragEnd = () => {
-  dragIndex.value = -1
-  dragOverIndex.value = -1
-}
 
 const profileColors = [
   'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
@@ -427,11 +410,15 @@ function getExpiryClass(name) {
     border-color: var(--accent);
     box-shadow: var(--shadow-sm);
   }
+}
 
-  &.dragging {
-    opacity: 0.5;
-    transform: scale(1.02);
-  }
+// SortableJS ghost placeholder — the animated "gap" during drag
+.sortable-ghost {
+  opacity: 0.4;
+  background: var(--accent-light) !important;
+  border: 2px dashed var(--accent) !important;
+  box-shadow: var(--shadow-sm);
+  transform: scale(1.02);
 }
 
 .drag-handle {
