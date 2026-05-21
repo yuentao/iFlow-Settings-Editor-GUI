@@ -226,6 +226,7 @@ export default {
       daysLeft: 'あと{days}日',
       monthsLeft: 'あと{months}ヶ月',
       yearsLeft: 'あと{years}年',
+      cannotSwitch: 'この設定は期限切れのため切り替えられません',
     },
     connectivity: {
       excellent: '接続性極めて良好',
@@ -564,6 +565,7 @@ export default {
       switchApiConfig: 'API 設定切替',
       exit: '終了',
       tooltip: 'iFlow 設定エディタ',
+      expired: '期限切れ',
     },
     errors: {
       configNotFound: '設定ファイルが存在しません',

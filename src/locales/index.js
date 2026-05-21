@@ -226,6 +226,7 @@ export default {
       daysLeft: '{days}天后',
       monthsLeft: '{months}个月后',
       yearsLeft: '{years}年后',
+      cannotSwitch: '该配置已过期，无法切换',
     },
     connectivity: {
       excellent: '连通性极好',
@@ -572,6 +573,7 @@ export default {
       switchApiConfig: '切换 API 配置',
       exit: '退出',
       tooltip: 'iFlow 设置编辑器',
+      expired: '已过期',
     },
     errors: {
       configNotFound: '配置文件不存在',

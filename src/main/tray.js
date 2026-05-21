@@ -6,6 +6,7 @@
 const { Tray, Menu, nativeImage, app } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const moment = require('moment')
 
 // 全局托盘引用
 let tray = null
@@ -123,14 +124,25 @@ function updateTrayMenu() {
   const profileMenuItems = profileList.map(name => {
     const profile = profiles[name] || {}
     const modelName = profile.modelName || ''
+    const isExpired = (() => {
+      const expiryDays = profile.expiryDays
+      const expiryStartDate = profile.expiryStartDate
+      if (!expiryDays || !expiryStartDate) return false
+      return moment().isAfter(moment(expiryStartDate).add(expiryDays, 'days'))
+    })()
+    const expiredSuffix = isExpired ? ` (${t('tray.expired')})` : ''
     const label = modelName
-      ? `${name} - ${modelName}`
-      : name
+      ? `${name} - ${modelName}${expiredSuffix}`
+      : `${name}${expiredSuffix}`
     return {
       label,
       type: 'radio',
       checked: name === currentProfile,
-      click: () => switchApiProfileFromTray(name),
+      enabled: !isExpired,
+      click: () => {
+        if (isExpired) return
+        switchApiProfileFromTray(name)
+      },
     }
   })
 

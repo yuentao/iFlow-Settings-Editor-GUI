@@ -227,6 +227,7 @@ export default {
       daysLeft: '{days}d left',
       monthsLeft: '{months}mo left',
       yearsLeft: '{years}y left',
+      cannotSwitch: 'This profile has expired and cannot be switched',
     },
     connectivity: {
       excellent: 'Excellent connectivity',
@@ -566,6 +567,7 @@ export default {
       switchApiConfig: 'Switch API Config',
       exit: 'Exit',
       tooltip: 'iFlow Settings Editor',
+      expired: 'Expired',
     },
     errors: {
       configNotFound: 'Configuration file not found',

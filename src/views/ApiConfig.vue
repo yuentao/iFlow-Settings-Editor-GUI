@@ -18,13 +18,18 @@
           v-for="(profile, index) in profiles"
           :key="profile.name"
           class="profile-item"
-          :class="{ active: currentProfile === profile.name, dragging: dragIndex === index }"
+          :class="{
+            active: currentProfile === profile.name,
+            expired: isProfileExpired(profile.name),
+            dragging: dragIndex === index,
+          }"
+          :title="isProfileExpired(profile.name) ? t('api.expiry.cannotSwitch') : ''"
           draggable="true"
           @dragstart="onDragStart(index)"
           @dragover.prevent="onDragOver(index)"
           @drop="onDrop(index)"
           @dragend="onDragEnd"
-          @click="$emit('select-profile', profile.name)">
+          @click="isProfileExpired(profile.name) ? null : $emit('select-profile', profile.name)">
           <div class="drag-handle" :title="$t('api.dragToSort')"> ⋮⋮ </div>
           <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
             <span class="profile-icon-text">{{ getProfileInitial(profile.name) }}</span>
@@ -164,7 +169,7 @@ async function pingProfile(name) {
 
 async function pingAll() {
   if (pollingCancelled) return
-  await Promise.all(props.profiles.map(p => pingProfile(p.name)))
+  await Promise.all(props.profiles.filter(p => !isProfileExpired(p.name)).map(p => pingProfile(p.name)))
 }
 
 function startPolling() {
@@ -341,6 +346,12 @@ function getExpiryText(name) {
   }
   const diffYears = expiryDate.diff(now, 'years')
   return t('api.expiry.yearsLeft', { years: diffYears })
+}
+
+function isProfileExpired(name) {
+  const expiryDate = getExpiryDate(name)
+  if (!expiryDate) return false
+  return moment().isAfter(expiryDate)
 }
 
 function getExpiryClass(name) {
@@ -574,6 +585,26 @@ function getExpiryClass(name) {
   50% {
     opacity: 1;
     transform: scale(1.1);
+  }
+}
+
+// Disabled / expired state
+.profile-item.expired {
+  cursor: not-allowed;
+  opacity: 0.55;
+  filter: grayscale(0.6);
+  pointer-events: none;
+
+  // Allow connectivity indicator and expiry badge to still show tooltip
+  .connectivity-indicator,
+  .profile-expiry {
+    pointer-events: auto;
+  }
+
+  &:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+    transform: none;
   }
 }
 
