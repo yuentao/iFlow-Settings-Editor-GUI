@@ -7,7 +7,19 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/vue') || id.includes('node_modules/pinia') || id.includes('node_modules/vue-i18n')) {
+            return 'vendor-vue'
+          }
+          if (id.includes('node_modules/apexcharts') || id.includes('node_modules/vue3-apexcharts')) {
+            return 'vendor-echarts'
+          }
+        }
+      }
+    }
   },
   resolve: {
     alias: {

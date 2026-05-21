@@ -123,15 +123,23 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRaw } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { i18n } from './i18n'
 
-import locales from './locales/index.js'
-import enUS from './locales/en-US.js'
-import jaJP from './locales/ja-JP.js'
+const localeLoaders = {
+  'zh-CN': () => import('./locales/index.js'),
+  'en-US': () => import('./locales/en-US.js'),
+  'ja-JP': () => import('./locales/ja-JP.js'),
+}
 
-const localeMap = {
-  'zh-CN': locales,
-  'en-US': enUS,
-  'ja-JP': jaJP,
+// 缓存已加载的语言包
+const loadedLocales = {}
+
+// 动态加载语言包
+async function loadLocale(lang) {
+  if (loadedLocales[lang]) return loadedLocales[lang]
+  const loader = localeLoaders[lang] || localeLoaders['zh-CN']
+  loadedLocales[lang] = (await loader()).default
+  return loadedLocales[lang]
 }
 
 // 安全深拷贝：先解包 Vue reactive proxy，再用 structuredClone
@@ -680,9 +688,11 @@ watch(
   newLang => {
     locale.value = newLang
     window.electronAPI.notifyLanguageChanged()
-    // 发送翻译数据给主进程
-    const translations = localeMap[newLang] || locales
-    window.electronAPI.sendTranslation(translations)
+    // 动态加载并注册语言包到 vue-i18n
+    loadLocale(newLang).then(messages => {
+      i18n.global.setLocaleMessage(newLang, messages)
+      window.electronAPI.sendTranslation(messages)
+    })
   },
 )
 
@@ -1167,19 +1177,26 @@ onMounted(async () => {
   // 优先初始化更新监听，确保在主进程发送 auto-check-update 事件前注册好
   initUpdateListeners()
 
-  await loadApiProfiles()
-  await loadSettings()
-  await loadSkillCount()
-  await loadCommandCount()
-  await loadModCount()
+  // 关键数据并行加载（减少串行 IPC 等待）
+  await Promise.all([
+    loadApiProfiles(),
+    loadSettings(),
+  ])
+
+  // 非关键计数数据延迟加载，不阻塞首次渲染
+  loadSkillCount()
+  loadCommandCount()
+  loadModCount()
   locale.value = settings.value.language
 
   // 初始化系统主题
   updateSystemTheme()
 
-  // 发送翻译数据给主进程
-  const translations = localeMap[settings.value.language] || locales
-  window.electronAPI.sendTranslation(translations)
+  // 动态加载并注册语言包到 vue-i18n
+  loadLocale(settings.value.language).then(messages => {
+    i18n.global.setLocaleMessage(settings.value.language, messages)
+    window.electronAPI.sendTranslation(messages)
+  })
 
   // 监听系统主题变化
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')

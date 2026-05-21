@@ -3,18 +3,17 @@
  * 模块化的主进程入口文件
  */
 
-const { app, BrowserWindow, Menu, nativeImage } = require('electron')
-const path = require('path')
+const { app, BrowserWindow } = require('electron')
 
 console.log('[iFlow] src/main/index.js module loaded')
 
 // 导入各模块
-const { createWindow, getMainWindow, isMaximized, minimize, toggleMaximize, close, setIsQuitting } = require('./window')
-const { createTray, destroyTray, updateTrayMenu } = require('./tray')
+const { createWindow, getMainWindow, setIsQuitting } = require('./window')
+const { createTray, destroyTray } = require('./tray')
 const { registerIpcHandlers } = require('./ipc')
 const { initAutoLaunch } = require('./services/autoLaunchService')
 const { readSettings } = require('./services/configService')
-const { t, defaultTranslations, updateTranslations } = require('./utils/translations')
+const { t } = require('./utils/translations')
 const { logger } = require('./utils/logger')
 const { initAutoUpdater, setMainWindowRef, cleanupTempFiles } = require('./autoUpdater')
 
@@ -42,13 +41,9 @@ function createMainWindow() {
     win.hide()
   }
 
-  // 加载初始页面
+  // 开发模式打开开发者工具
   if (isDev) {
-    win.loadURL('http://localhost:5173')
-    // 开发模式打开开发者工具
     win.webContents.openDevTools()
-  } else {
-    win.loadFile(path.join(__dirname, '../../dist/index.html'))
   }
 
   // 窗口准备好后显示（如果不是静默启动）
@@ -81,7 +76,7 @@ async function initializeApp() {
   }
 
   // 监听第二个实例
-  app.on('second-instance', (event, commandLine, workingDirectory) => {
+  app.on('second-instance', () => {
     logger.info('Second instance detected, focusing main window...')
     const mainWindow = getMainWindow()
     if (mainWindow) {

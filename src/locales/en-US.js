@@ -3,12 +3,12 @@ export default {
     title: 'iFlow Settings Editor',
     name: 'iFlow Settings Editor',
     company: 'Pandora Studio Co., Ltd.',
-    retry: 'Retry'
+    retry: 'Retry',
   },
   window: {
     minimize: 'Minimize',
     maximize: 'Maximize',
-    close: 'Close'
+    close: 'Close',
   },
   sidebar: {
     general: 'General',
@@ -17,12 +17,12 @@ export default {
     projects: 'Project Sessions',
     apiConfig: 'API Config',
     advanced: 'Advanced',
-    mcpServers: 'MCP Servers',
-    iflowMod: 'iFlow Mod',
-    experimental: 'Experimental',
+    mcpServers: 'MCPs',
+    iflowMod: 'Mods',
+    experimental: 'Expt',
     skills: 'Skills',
     commands: 'Commands',
-    docs: 'Docs'
+    docs: 'Docs',
   },
   dashboard: {
     title: 'Dashboard',
@@ -82,7 +82,8 @@ export default {
     selectAll: 'Select All',
     invertSelect: 'Invert Selection',
     searchModel: 'Search models...',
-  },  general: {
+  },
+  general: {
     title: 'General Settings',
     description: 'Configure general application options',
     language: 'Language',
@@ -98,7 +99,8 @@ export default {
     modelUsageRefreshInterval: 'Chart Refresh Interval',
     modelUsageRefreshIntervalDesc: 'Auto-refresh interval (in minutes) for the model usage chart',
     excludeTools: 'Exclude Tools',
-    excludeToolsDesc: 'Specify a list of core tool names to exclude from the CLI. You can also specify command-specific restrictions for supported tools like ShellTool. For example, "excludeTools": ["ShellTool(rm -rf)"] would block the rm -rf command. Default: no tools excluded.',
+    excludeToolsDesc:
+      'Specify a list of core tool names to exclude from the CLI. You can also specify command-specific restrictions for supported tools like ShellTool. For example, "excludeTools": ["ShellTool(rm -rf)"] would block the rm -rf command. Default: no tools excluded.',
     excludeToolsSecurityNote: 'Command-specific restrictions for ShellTool are based on simple string matching and can be easily bypassed. This is not a security mechanism and should not be relied upon for safe execution of untrusted code.',
     excludeToolsSecurityNoteLabel: 'Security Note',
     excludeToolsPlaceholder: 'e.g. ShellTool, glob',
@@ -147,16 +149,16 @@ export default {
     sectionPreferences: 'Preferences',
     sectionCloudSync: 'Cloud Sync',
     experimental: 'Experimental',
-    sectionAbout: 'About'
+    sectionAbout: 'About',
   },
   theme: {
     dark: 'Dark',
     light: 'Light',
-    system: 'System'
+    system: 'System',
   },
   api: {
     title: 'API Configuration',
-    description: 'Configure AI services and search API',
+    description: 'Configure AI services',
     currentConfig: 'Current Config',
     createTitle: 'Create API Configuration',
     editTitle: 'Edit API Configuration',
@@ -193,7 +195,7 @@ export default {
     auth: {
       iflow: 'iFlow',
       api: 'API Key',
-      openaiCompatible: 'OpenAI Compatible'
+      openaiCompatible: 'OpenAI Compatible',
     },
     fetchModelsBtn: 'Fetch model list',
     noModelsFound: 'No matching models found',
@@ -205,13 +207,13 @@ export default {
       httpError: 'Request failed (HTTP {status})',
       invalidResponse: 'Server returned an invalid response',
       networkError: 'Network error, please check your connection',
-      timeout: 'Request timed out, please try again later'
+      timeout: 'Request timed out, please try again later',
     },
     validation: {
       nameNoSpecial: 'Name can only contain letters, numbers, Chinese, hyphens, and underscores, and cannot start with a digit',
       nameNoDigitStart: 'Name cannot start with a digit',
       urlFormat: 'Please enter a valid URL format, e.g. https://api.example.com',
-      modelNoSpecial: 'Model name can only contain letters, digits, dots, hyphens, underscores, colons, and slashes'
+      modelNoSpecial: 'Model name can only contain letters, digits, dots, hyphens, underscores, colons, and slashes',
     },
     tokensLimit: 'Context Window Size',
     tokensLimitPlaceholder: '128000',
@@ -232,8 +234,8 @@ export default {
       slow: 'High latency',
       unreachable: 'Unreachable',
       checking: 'Checking...',
-      latency: '{ms}ms'
-    }
+      latency: '{ms}ms',
+    },
   },
   mcp: {
     title: 'MCP Servers',
@@ -291,8 +293,8 @@ export default {
     quickAddTitle: 'Quick Add MCP Server',
     quickAddPlaceholder: 'Paste JSON config, command line, or URL...',
     quickAddHint: 'Supports JSON config, command line, URL formats. Ctrl+Enter to parse.',
-  quickAddHelp: 'View format examples',
-  quickAddHelpCmd: 'Command Line',
+    quickAddHelp: 'View format examples',
+    quickAddHelpCmd: 'Command Line',
     quickAddParse: 'Parse',
     quickAddResultTitle: '{count} server(s) found',
     quickAddUnnamed: 'Unnamed',
@@ -307,7 +309,7 @@ export default {
     quickAddErrorUnrecognized: 'Unrecognized input format',
     quickAddErrorNotMcpConfig: 'JSON is not a valid MCP server configuration',
     quickAddErrorCmdInvalid: 'Invalid command line format',
-    quickAddErrorUrlInvalid: 'Invalid URL format'
+    quickAddErrorUrlInvalid: 'Invalid URL format',
   },
   skills: {
     title: 'Skills',
@@ -324,7 +326,7 @@ export default {
     skillName: 'Skill Name',
     namePlaceholder: 'my-skill',
     cancel: 'Cancel',
-    import: 'Import'
+    import: 'Import',
   },
   commands: {
     title: 'Commands',
@@ -335,7 +337,7 @@ export default {
       all: 'All',
       utility: 'Utility',
       documentation: 'Documentation',
-      other: 'Other'
+      other: 'Other',
     },
     noCommands: 'No Commands',
     addFirstCommand: 'Click the button above to add your first command',
@@ -361,7 +363,7 @@ export default {
       promptPlaceholder: 'Enter the command prompt...',
       promptHint: 'The prompt content sent to AI',
       cancel: 'Cancel',
-      save: 'Save'
+      save: 'Save',
     },
     commandSaved: 'Command saved',
     commandCreated: 'Command "{name}" created',
@@ -373,8 +375,8 @@ export default {
     errors: {
       notFound: 'Command not found',
       alreadyExists: 'Command already exists',
-      invalidName: 'Command name can only contain letters, numbers, hyphens, and underscores'
-    }
+      invalidName: 'Command name can only contain letters, numbers, hyphens, and underscores',
+    },
   },
   messages: {
     error: 'Error',
@@ -394,14 +396,14 @@ export default {
     skillOnlineImportSuccess: 'Skill "{name}" imported online successfully',
     skillArchiveInvalid: 'No valid skill folder found in archive (missing SKILL.md)\nArchive contents:\n{content}',
     downloadFailed: 'Download failed: HTTP {code}',
-    overwriteConfirm: 'Skill "{name}" already exists. Do you want to overwrite it?'
+    overwriteConfirm: 'Skill "{name}" already exists. Do you want to overwrite it?',
   },
   dialog: {
     confirm: 'Confirm',
-    cancel: 'Cancel'
+    cancel: 'Cancel',
   },
   footer: {
-    config: 'Config'
+    config: 'Config',
   },
   update: {
     title: 'Check for Updates',
@@ -441,14 +443,14 @@ export default {
     menu: {
       checkUpdate: 'Check for Updates',
       about: 'About',
-      autoUpdate: 'Auto Update'
+      autoUpdate: 'Auto Update',
     },
-    checking: 'Checking...'
+    checking: 'Checking...',
   },
   languages: {
     'zh-CN': '简体中文',
     'en-US': 'English',
-    'ja-JP': '日本語'
+    'ja-JP': '日本語',
   },
   cloudSync: {
     title: 'Cloud Sync',
@@ -495,7 +497,7 @@ export default {
     changePassword: 'Change Password',
     passwordHint: 'Used to encrypt sensitive data. Keep it safe (cannot be recovered)',
     rememberPassword: 'Remember Sync Password',
-    rememberPasswordDesc: 'When enabled, the password is securely stored by the system so you don\'t need to re-enter it after restarting',
+    rememberPasswordDesc: "When enabled, the password is securely stored by the system so you don't need to re-enter it after restarting",
     passwordMinLength: 'Password must be at least 8 characters',
     passwordMismatch: 'Passwords do not match',
     oldPassword: 'Old Password',
@@ -509,9 +511,10 @@ export default {
     errPasswordLikelyIncorrect: 'Sync password may be incorrect — remote files could not be decrypted. Please verify and try again.',
     deviceTitle: 'Device Management',
     deviceName: 'Device Name',
-      renameDevice: 'Rename Device',
-      unnamedDevice: 'Unnamed Device',
-      deviceNamePlaceholder: 'Enter device name',    syncedDevices: 'Synced Devices',
+    renameDevice: 'Rename Device',
+    unnamedDevice: 'Unnamed Device',
+    deviceNamePlaceholder: 'Enter device name',
+    syncedDevices: 'Synced Devices',
     thisDevice: 'This device',
     removeDevice: 'Remove',
     confirmRemoveDevice: 'Remove cloud data for device "{name}"?',
@@ -639,7 +642,7 @@ export default {
     statusNotFound: 'Not Found',
     quickOpen: {
       core: 'iFlow Core Dir',
-      config: 'iFlow Config Dir'
+      config: 'iFlow Config Dir',
     },
     mods: {
       title: 'Installed Mods',
@@ -663,24 +666,24 @@ export default {
         append: 'Append',
         prepend: 'Prepend',
         patch: 'Patch',
-        diff: 'Diff'
+        diff: 'Diff',
       },
       replaceConflict: 'Replace mod "{conflict}" is already enabled. Enabling "{name}" will disable "{conflict}". Continue?',
-      replaceSwapSuccess: 'Replaced with {name} (disabled {conflict})'
+      replaceSwapSuccess: 'Replaced with {name} (disabled {conflict})',
     },
     applying: {
       enabling: 'Enabling mod…',
       disabling: 'Disabling mod…',
-      swapping: 'Swapping mod…'
+      swapping: 'Swapping mod…',
     },
     category: {
-      all: 'All'
+      all: 'All',
     },
     compatibility: {
       tooOld: 'Requires iFlow v{required}, current v{current} is too old',
       tooNew: 'Requires iFlow v{required}, current v{current} is too new',
       exactRequired: 'Requires iFlow v{required}, current v{current} does not match',
-      versionUnavailable: 'Cannot detect iFlow version, skipping compatibility check'
+      versionUnavailable: 'Cannot detect iFlow version, skipping compatibility check',
     },
     errors: {
       missingModJson: 'Mod package is missing mod.json file',
@@ -698,21 +701,21 @@ export default {
       patchNotSupported: 'Patch type mods are not yet supported',
       includeMapFileNotFound: 'Mod extra file "{file}" not found in package',
       includeMapDeployFailed: 'Failed to deploy extra files: {error}',
-      includeMapRemoveFailed: 'Failed to clean up extra files: {error}'
+      includeMapRemoveFailed: 'Failed to clean up extra files: {error}',
     },
     exportDialog: {
-      title: 'Export Mod'
+      title: 'Export Mod',
     },
     importExport: {
       importTitle: 'Import Mod',
       overwriteConfirm: 'Mod "{name}" already exists. Overwrite?',
       importError: 'Failed to import mod: {error}',
-      diffGenerationError: 'Failed to auto-generate patch file: {error}'
+      diffGenerationError: 'Failed to auto-generate patch file: {error}',
     },
     conflictDetection: {
       title: 'Mod Conflict Detected',
-      message: 'Conflict found between "{modA}" and "{modB}". Both mods modify the same {count} line(s): {lines}\n\n"{modB}" will overwrite "{modA}" changes. Continue?'
-    }
+      message: 'Conflict found between "{modA}" and "{modB}". Both mods modify the same {count} line(s): {lines}\n\n"{modB}" will overwrite "{modA}" changes. Continue?',
+    },
   },
   docs: {
     title: 'Documentation',
@@ -742,6 +745,6 @@ export default {
     loadFailed: 'Failed to load document',
     retry: 'Retry',
     toc: 'Contents',
-    navHint: 'Hover over the left stripe to open the document navigation'
-  }
+    navHint: 'Hover over the left stripe to open the document navigation',
+  },
 }

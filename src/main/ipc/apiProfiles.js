@@ -6,7 +6,7 @@
 const { ipcMain, net } = require('electron')
 const { readSettings, writeSettings, API_FIELDS, extractApiConfig, applyApiConfig, stampModifiedItems, markDeletedProfile } = require('../services/configService')
 const { updateTrayMenu } = require('../tray')
-const { handleIpcError, wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
+const { wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 const { t } = require('../utils/translations')
 
 /**
@@ -14,337 +14,358 @@ const { t } = require('../utils/translations')
  */
 function registerApiProfilesIpcHandlers() {
   // 获取 API 配置列表
-  ipcMain.handle('list-api-profiles', wrapIpcHandler(async () => {
-    const settings = readSettings()
-    if (!settings) {
+  ipcMain.handle(
+    'list-api-profiles',
+    wrapIpcHandler(async () => {
+      const settings = readSettings()
+      if (!settings) {
+        return {
+          success: true,
+          profiles: [{ name: 'default', isDefault: true }],
+          currentProfile: 'default',
+        }
+      }
+
+      const profiles = settings.apiProfiles || {}
+      if (Object.keys(profiles).length === 0) {
+        profiles.default = {}
+      }
+
+      // 按 apiProfilesOrder 排序，未在排序列表中的配置追加到末尾
+      const order = settings.apiProfilesOrder || []
+      const allNames = Object.keys(profiles)
+      const orderedNames = [...order.filter(name => profiles[name]), ...allNames.filter(name => !order.includes(name))]
+
+      const profileList = orderedNames.map(name => ({
+        name,
+        isDefault: name === 'default',
+      }))
+
       return {
         success: true,
-        profiles: [{ name: 'default', isDefault: true }],
-        currentProfile: 'default'
+        profiles: profileList,
+        currentProfile: settings.currentApiProfile || 'default',
       }
-    }
-
-    const profiles = settings.apiProfiles || {}
-    if (Object.keys(profiles).length === 0) {
-      profiles.default = {}
-    }
-
-    // 按 apiProfilesOrder 排序，未在排序列表中的配置追加到末尾
-    const order = settings.apiProfilesOrder || []
-    const allNames = Object.keys(profiles)
-    const orderedNames = [
-      ...order.filter(name => profiles[name]),
-      ...allNames.filter(name => !order.includes(name)),
-    ]
-
-    const profileList = orderedNames.map(name => ({
-      name,
-      isDefault: name === 'default',
-    }))
-
-    return {
-      success: true,
-      profiles: profileList,
-      currentProfile: settings.currentApiProfile || 'default',
-    }
-  }, 'list-api-profiles'))
+    }, 'list-api-profiles'),
+  )
 
   // 切换 API 配置
-  ipcMain.handle('switch-api-profile', wrapIpcHandler(async (event, profileName) => {
-    const settings = readSettings()
-    if (!settings) {
-      return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
-    }
-    const oldSnapshot = structuredClone(settings)
+  ipcMain.handle(
+    'switch-api-profile',
+    wrapIpcHandler(async (event, profileName) => {
+      const settings = readSettings()
+      if (!settings) {
+        return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
+      }
+      const oldSnapshot = structuredClone(settings)
 
-    const profiles = settings.apiProfiles || {}
-    if (!profiles[profileName]) {
-      return { success: false, error: t('errors.configNotExist', { name: profileName }), code: ErrorCodes.PROFILE_NOT_FOUND }
-    }
+      const profiles = settings.apiProfiles || {}
+      if (!profiles[profileName]) {
+        return { success: false, error: t('errors.configNotExist', { name: profileName }), code: ErrorCodes.PROFILE_NOT_FOUND }
+      }
 
-    const currentProfile = settings.currentApiProfile || 'default'
+      const currentProfile = settings.currentApiProfile || 'default'
 
-    // 保存当前配置
-    if (profiles[currentProfile]) {
-      profiles[currentProfile] = extractApiConfig(settings)
-    }
+      // 保存当前配置
+      if (profiles[currentProfile]) {
+        profiles[currentProfile] = extractApiConfig(settings)
+      }
 
-    // 加载新配置
-    const newConfig = profiles[profileName]
-    applyApiConfig(settings, newConfig)
-    settings.currentApiProfile = profileName
-    settings.apiProfiles = profiles
-    stampModifiedItems(oldSnapshot, settings)
-    await writeSettings(settings)
+      // 加载新配置
+      const newConfig = profiles[profileName]
+      applyApiConfig(settings, newConfig)
+      settings.currentApiProfile = profileName
+      settings.apiProfiles = profiles
+      stampModifiedItems(oldSnapshot, settings)
+      await writeSettings(settings)
 
-    updateTrayMenu()
-    return successResult(settings)
-  }, 'switch-api-profile'))
+      updateTrayMenu()
+      return successResult(settings)
+    }, 'switch-api-profile'),
+  )
 
   // 创建 API 配置
-  ipcMain.handle('create-api-profile', wrapIpcHandler(async (event, name) => {
-    const settings = readSettings()
-    if (!settings) {
-      return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
-    }
-    const oldSnapshot = structuredClone(settings)
+  ipcMain.handle(
+    'create-api-profile',
+    wrapIpcHandler(async (event, name) => {
+      const settings = readSettings()
+      if (!settings) {
+        return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
+      }
+      const oldSnapshot = structuredClone(settings)
 
-    if (!settings.apiProfiles) {
-      settings.apiProfiles = { default: {} }
+      if (!settings.apiProfiles) {
+        settings.apiProfiles = { default: {} }
+        for (const field of API_FIELDS) {
+          if (settings[field] !== undefined) {
+            settings.apiProfiles.default[field] = settings[field]
+          }
+        }
+      }
+
+      if (settings.apiProfiles[name]) {
+        return { success: false, error: t('errors.configAlreadyExists', { name }), code: ErrorCodes.PROFILE_EXISTS }
+      }
+
+      // 复制当前配置到新配置
+      const newConfig = {}
       for (const field of API_FIELDS) {
         if (settings[field] !== undefined) {
-          settings.apiProfiles.default[field] = settings[field]
+          newConfig[field] = settings[field]
         }
       }
-    }
-
-    if (settings.apiProfiles[name]) {
-      return { success: false, error: t('errors.configAlreadyExists', { name }), code: ErrorCodes.PROFILE_EXISTS }
-    }
-
-    // 复制当前配置到新配置
-    const newConfig = {}
-    for (const field of API_FIELDS) {
-      if (settings[field] !== undefined) {
-        newConfig[field] = settings[field]
+      settings.apiProfiles[name] = newConfig
+      // 维护 apiProfilesOrder：追加新配置名
+      if (!settings.apiProfilesOrder) settings.apiProfilesOrder = []
+      if (!settings.apiProfilesOrder.includes(name)) {
+        settings.apiProfilesOrder.push(name)
       }
-    }
-    settings.apiProfiles[name] = newConfig
-    // 维护 apiProfilesOrder：追加新配置名
-    if (!settings.apiProfilesOrder) settings.apiProfilesOrder = []
-    if (!settings.apiProfilesOrder.includes(name)) {
-      settings.apiProfilesOrder.push(name)
-    }
-    // 用户先删除再重建：移除同名 tombstone，避免合并时被云端误删
-    if (settings._deletedProfiles && settings._deletedProfiles[name]) {
-      delete settings._deletedProfiles[name]
-    }
-    stampModifiedItems(oldSnapshot, settings)
-    await writeSettings(settings)
+      // 用户先删除再重建：移除同名 tombstone，避免合并时被云端误删
+      if (settings._deletedProfiles && settings._deletedProfiles[name]) {
+        delete settings._deletedProfiles[name]
+      }
+      stampModifiedItems(oldSnapshot, settings)
+      await writeSettings(settings)
 
-    updateTrayMenu()
-    return successResult()
-  }, 'create-api-profile'))
+      updateTrayMenu()
+      return successResult()
+    }, 'create-api-profile'),
+  )
 
   // 删除 API 配置
-  ipcMain.handle('delete-api-profile', wrapIpcHandler(async (event, name) => {
-    const settings = readSettings()
-    if (!settings) {
-      return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
-    }
-    const oldSnapshot = structuredClone(settings)
-
-    if (!settings.apiProfilesOrder || settings.apiProfilesOrder.length === 0 || name === settings.apiProfilesOrder[0]) {
-      return { success: false, error: t('errors.cannotDeleteDefault'), code: ErrorCodes.CANNOT_DELETE_DEFAULT }
-    }
-
-    const profiles = settings.apiProfiles || {}
-    if (!profiles[name]) {
-      return { success: false, error: t('errors.configNotExist', { name }), code: ErrorCodes.PROFILE_NOT_FOUND }
-    }
-
-    // 写入 tombstone，云同步合并时其他设备会据此物理删除
-    markDeletedProfile(settings, name)
-    delete profiles[name]
-    settings.apiProfiles = profiles
-    // 维护 apiProfilesOrder：移除已删除的配置名
-    if (Array.isArray(settings.apiProfilesOrder)) {
-      settings.apiProfilesOrder = settings.apiProfilesOrder.filter(n => n !== name)
-    }
-
-    // 如果删除的是当前配置，切换到 default
-    if (settings.currentApiProfile === name) {
-      settings.currentApiProfile = 'default'
-      if (profiles.default) {
-        applyApiConfig(settings, profiles.default)
+  ipcMain.handle(
+    'delete-api-profile',
+    wrapIpcHandler(async (event, name) => {
+      const settings = readSettings()
+      if (!settings) {
+        return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
       }
-    }
+      const oldSnapshot = structuredClone(settings)
 
-    stampModifiedItems(oldSnapshot, settings)
-    await writeSettings(settings)
-    updateTrayMenu()
-    return successResult(settings)
-  }, 'delete-api-profile'))
+      if (!settings.apiProfilesOrder || settings.apiProfilesOrder.length === 0 || name === settings.apiProfilesOrder[0]) {
+        return { success: false, error: t('errors.cannotDeleteDefault'), code: ErrorCodes.CANNOT_DELETE_DEFAULT }
+      }
+
+      const profiles = settings.apiProfiles || {}
+      if (!profiles[name]) {
+        return { success: false, error: t('errors.configNotExist', { name }), code: ErrorCodes.PROFILE_NOT_FOUND }
+      }
+
+      // 写入 tombstone，云同步合并时其他设备会据此物理删除
+      markDeletedProfile(settings, name)
+      delete profiles[name]
+      settings.apiProfiles = profiles
+      // 维护 apiProfilesOrder：移除已删除的配置名
+      if (Array.isArray(settings.apiProfilesOrder)) {
+        settings.apiProfilesOrder = settings.apiProfilesOrder.filter(n => n !== name)
+      }
+
+      // 如果删除的是当前配置，切换到 default
+      if (settings.currentApiProfile === name) {
+        settings.currentApiProfile = 'default'
+        if (profiles.default) {
+          applyApiConfig(settings, profiles.default)
+        }
+      }
+
+      stampModifiedItems(oldSnapshot, settings)
+      await writeSettings(settings)
+      updateTrayMenu()
+      return successResult(settings)
+    }, 'delete-api-profile'),
+  )
 
   // 重命名 API 配置
-  ipcMain.handle('rename-api-profile', wrapIpcHandler(async (event, oldName, newName) => {
-    const settings = readSettings()
-    if (!settings) {
-      return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
-    }
-    const oldSnapshot = structuredClone(settings)
-
-    const profiles = settings.apiProfiles || {}
-    if (!profiles[oldName]) {
-      return { success: false, error: t('errors.configNotExist', { name: oldName }), code: ErrorCodes.PROFILE_NOT_FOUND }
-    }
-
-    if (profiles[newName]) {
-      return { success: false, error: t('errors.configAlreadyExists', { name: newName }), code: ErrorCodes.PROFILE_EXISTS }
-    }
-
-    // 重命名 = 旧名删除 + 新名新增；新名上若有旧 tombstone 应清掉，避免远端把新创建的视为已删除
-    const renamed = profiles[oldName]
-    if (renamed && typeof renamed === 'object') {
-      delete renamed._lastModified // 让 stampModifiedItems 视为内容变化重新打戳
-    }
-    profiles[newName] = renamed
-    delete profiles[oldName]
-    markDeletedProfile(settings, oldName)
-    if (settings._deletedProfiles && settings._deletedProfiles[newName]) {
-      delete settings._deletedProfiles[newName]
-    }
-    settings.apiProfiles = profiles
-    // 维护 apiProfilesOrder：将旧名替换为新名
-    if (Array.isArray(settings.apiProfilesOrder)) {
-      const idx = settings.apiProfilesOrder.indexOf(oldName)
-      if (idx !== -1) {
-        settings.apiProfilesOrder[idx] = newName
-      } else if (!settings.apiProfilesOrder.includes(newName)) {
-        settings.apiProfilesOrder.push(newName)
+  ipcMain.handle(
+    'rename-api-profile',
+    wrapIpcHandler(async (event, oldName, newName) => {
+      const settings = readSettings()
+      if (!settings) {
+        return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
       }
-    }
+      const oldSnapshot = structuredClone(settings)
 
-    if (settings.currentApiProfile === oldName) {
-      settings.currentApiProfile = newName
-    }
+      const profiles = settings.apiProfiles || {}
+      if (!profiles[oldName]) {
+        return { success: false, error: t('errors.configNotExist', { name: oldName }), code: ErrorCodes.PROFILE_NOT_FOUND }
+      }
 
-    stampModifiedItems(oldSnapshot, settings)
-    await writeSettings(settings)
-    updateTrayMenu()
-    return successResult()
-  }, 'rename-api-profile'))
+      if (profiles[newName]) {
+        return { success: false, error: t('errors.configAlreadyExists', { name: newName }), code: ErrorCodes.PROFILE_EXISTS }
+      }
+
+      // 重命名 = 旧名删除 + 新名新增；新名上若有旧 tombstone 应清掉，避免远端把新创建的视为已删除
+      const renamed = profiles[oldName]
+      if (renamed && typeof renamed === 'object') {
+        delete renamed._lastModified // 让 stampModifiedItems 视为内容变化重新打戳
+      }
+      profiles[newName] = renamed
+      delete profiles[oldName]
+      markDeletedProfile(settings, oldName)
+      if (settings._deletedProfiles && settings._deletedProfiles[newName]) {
+        delete settings._deletedProfiles[newName]
+      }
+      settings.apiProfiles = profiles
+      // 维护 apiProfilesOrder：将旧名替换为新名
+      if (Array.isArray(settings.apiProfilesOrder)) {
+        const idx = settings.apiProfilesOrder.indexOf(oldName)
+        if (idx !== -1) {
+          settings.apiProfilesOrder[idx] = newName
+        } else if (!settings.apiProfilesOrder.includes(newName)) {
+          settings.apiProfilesOrder.push(newName)
+        }
+      }
+
+      if (settings.currentApiProfile === oldName) {
+        settings.currentApiProfile = newName
+      }
+
+      stampModifiedItems(oldSnapshot, settings)
+      await writeSettings(settings)
+      updateTrayMenu()
+      return successResult()
+    }, 'rename-api-profile'),
+  )
 
   // 获取模型列表（OpenAI 兼容 /models 接口）
-  ipcMain.handle('fetch-models', wrapIpcHandler(async (event, baseUrl, apiKey) => {
-    if (!baseUrl || !baseUrl.trim()) {
-      return { success: false, error: 'api.fetchModels.baseUrlRequired' }
-    }
-    if (!apiKey || !apiKey.trim()) {
-      return { success: false, error: 'api.fetchModels.apiKeyRequired' }
-    }
+  ipcMain.handle(
+    'fetch-models',
+    wrapIpcHandler(async (event, baseUrl, apiKey) => {
+      if (!baseUrl || !baseUrl.trim()) {
+        return { success: false, error: 'api.fetchModels.baseUrlRequired' }
+      }
+      if (!apiKey || !apiKey.trim()) {
+        return { success: false, error: 'api.fetchModels.apiKeyRequired' }
+      }
 
-    let url = baseUrl.trim().replace(/\/+$/, '') + '/models'
+      let url = baseUrl.trim().replace(/\/+$/, '') + '/models'
 
-    return new Promise((resolve) => {
-      const request = net.request({
-        url,
-        method: 'GET',
-      })
-
-      request.setHeader('Authorization', `Bearer ${apiKey.trim()}`)
-
-      let body = ''
-      request.on('response', (response) => {
-        const statusCode = response.statusCode
-        if (statusCode !== 200) {
-          request.destroy()
-          resolve({ success: false, error: 'api.fetchModels.httpError', code: statusCode, httpStatus: statusCode })
-          return
-        }
-
-        response.on('data', (chunk) => {
-          body += chunk.toString()
+      return new Promise(resolve => {
+        const request = net.request({
+          url,
+          method: 'GET',
         })
 
-        response.on('end', () => {
-          try {
-            const json = JSON.parse(body)
-            const models = (json.data || [])
-              .filter((m) => m && m.id)
-              .map((m) => ({ id: m.id, owned_by: m.owned_by || '' }))
-              .sort((a, b) => a.id.localeCompare(b.id))
-            resolve({ success: true, models })
-          } catch (e) {
-            resolve({ success: false, error: 'api.fetchModels.invalidResponse' })
+        request.setHeader('Authorization', `Bearer ${apiKey.trim()}`)
+
+        let body = ''
+        request.on('response', response => {
+          const statusCode = response.statusCode
+          if (statusCode !== 200) {
+            request.destroy()
+            resolve({ success: false, error: 'api.fetchModels.httpError', code: statusCode, httpStatus: statusCode })
+            return
           }
+
+          response.on('data', chunk => {
+            body += chunk.toString()
+          })
+
+          response.on('end', () => {
+            try {
+              const json = JSON.parse(body)
+              const models = (json.data || [])
+                .filter(m => m && m.id)
+                .map(m => ({ id: m.id, owned_by: m.owned_by || '' }))
+                .sort((a, b) => a.id.localeCompare(b.id))
+              resolve({ success: true, models })
+            } catch (e) {
+              resolve({ success: false, error: 'api.fetchModels.invalidResponse' })
+            }
+          })
         })
+
+        request.on('error', error => {
+          resolve({ success: false, error: 'api.fetchModels.networkError' })
+        })
+
+        // 10 秒超时
+        setTimeout(() => {
+          request.destroy()
+          resolve({ success: false, error: 'api.fetchModels.timeout' })
+        }, 10000)
+
+        request.end()
       })
-
-      request.on('error', (error) => {
-        resolve({ success: false, error: 'api.fetchModels.networkError' })
-      })
-
-      // 10 秒超时
-      setTimeout(() => {
-        request.destroy()
-        resolve({ success: false, error: 'api.fetchModels.timeout' })
-      }, 10000)
-
-      request.end()
-    })
-  }, 'fetch-models'))
+    }, 'fetch-models'),
+  )
 
   // 复制 API 配置
-  ipcMain.handle('duplicate-api-profile', wrapIpcHandler(async (event, sourceName, newName) => {
-    const settings = readSettings()
-    if (!settings) {
-      return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
-    }
-    const oldSnapshot = structuredClone(settings)
+  ipcMain.handle(
+    'duplicate-api-profile',
+    wrapIpcHandler(async (event, sourceName, newName) => {
+      const settings = readSettings()
+      if (!settings) {
+        return { success: false, error: t('errors.configNotFound'), code: ErrorCodes.CONFIG_NOT_FOUND }
+      }
+      const oldSnapshot = structuredClone(settings)
 
-    const profiles = settings.apiProfiles || {}
-    if (!profiles[sourceName]) {
-      return { success: false, error: t('errors.configNotExist', { name: sourceName }), code: ErrorCodes.PROFILE_NOT_FOUND }
-    }
+      const profiles = settings.apiProfiles || {}
+      if (!profiles[sourceName]) {
+        return { success: false, error: t('errors.configNotExist', { name: sourceName }), code: ErrorCodes.PROFILE_NOT_FOUND }
+      }
 
-    if (profiles[newName]) {
-      return { success: false, error: t('errors.configAlreadyExists', { name: newName }), code: ErrorCodes.PROFILE_EXISTS }
-    }
+      if (profiles[newName]) {
+        return { success: false, error: t('errors.configAlreadyExists', { name: newName }), code: ErrorCodes.PROFILE_EXISTS }
+      }
 
-    const cloned = structuredClone(profiles[sourceName])
-    delete cloned._lastModified // 由 stampModifiedItems 重新打时间戳
-    profiles[newName] = cloned
-    settings.apiProfiles = profiles
-    // 维护 apiProfilesOrder：追加新配置名
-    if (!settings.apiProfilesOrder) settings.apiProfilesOrder = []
-    if (!settings.apiProfilesOrder.includes(newName)) {
-      settings.apiProfilesOrder.push(newName)
-    }
-    if (settings._deletedProfiles && settings._deletedProfiles[newName]) {
-      delete settings._deletedProfiles[newName]
-    }
-    stampModifiedItems(oldSnapshot, settings)
-    await writeSettings(settings)
+      const cloned = structuredClone(profiles[sourceName])
+      delete cloned._lastModified // 由 stampModifiedItems 重新打时间戳
+      profiles[newName] = cloned
+      settings.apiProfiles = profiles
+      // 维护 apiProfilesOrder：追加新配置名
+      if (!settings.apiProfilesOrder) settings.apiProfilesOrder = []
+      if (!settings.apiProfilesOrder.includes(newName)) {
+        settings.apiProfilesOrder.push(newName)
+      }
+      if (settings._deletedProfiles && settings._deletedProfiles[newName]) {
+        delete settings._deletedProfiles[newName]
+      }
+      stampModifiedItems(oldSnapshot, settings)
+      await writeSettings(settings)
 
-    updateTrayMenu()
-    return successResult()
-  }, 'duplicate-api-profile'))
+      updateTrayMenu()
+      return successResult()
+    }, 'duplicate-api-profile'),
+  )
 
   // 检测 API 配置连通性（测量延迟）
-  ipcMain.handle('ping-api-profile', wrapIpcHandler(async (event, baseUrl) => {
-    if (!baseUrl || !baseUrl.trim()) {
-      return { success: false, error: 'api.fetchModels.baseUrlRequired', latency: -1 }
-    }
+  ipcMain.handle(
+    'ping-api-profile',
+    wrapIpcHandler(async (event, baseUrl) => {
+      if (!baseUrl || !baseUrl.trim()) {
+        return { success: false, error: 'api.fetchModels.baseUrlRequired', latency: -1 }
+      }
 
-    const url = baseUrl.trim().replace(/\/+$/, '')
+      const url = baseUrl.trim().replace(/\/+$/, '')
 
-    return new Promise((resolve) => {
-      const startTime = Date.now()
-      const request = net.request({
-        url,
-        method: 'HEAD',
+      return new Promise(resolve => {
+        const startTime = Date.now()
+        const request = net.request({
+          url,
+          method: 'HEAD',
+        })
+
+        request.on('response', response => {
+          const latency = Date.now() - startTime
+          request.destroy()
+          resolve({ success: true, latency, statusCode: response.statusCode })
+        })
+
+        request.on('error', () => {
+          resolve({ success: false, latency: -1 })
+        })
+
+        // 8 秒超时
+        setTimeout(() => {
+          request.destroy()
+          resolve({ success: false, latency: -1 })
+        }, 8000)
+
+        request.end()
       })
-
-      request.on('response', (response) => {
-        const latency = Date.now() - startTime
-        request.destroy()
-        resolve({ success: true, latency, statusCode: response.statusCode })
-      })
-
-      request.on('error', () => {
-        resolve({ success: false, latency: -1 })
-      })
-
-      // 8 秒超时
-      setTimeout(() => {
-        request.destroy()
-        resolve({ success: false, latency: -1 })
-      }, 8000)
-
-      request.end()
-    })
-  }, 'ping-api-profile'))
+    }, 'ping-api-profile'),
+  )
 }
 
 module.exports = {
