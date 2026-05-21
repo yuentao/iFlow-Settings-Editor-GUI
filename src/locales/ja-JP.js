@@ -157,7 +157,7 @@ export default {
   },
   api: {
     title: 'API 設定',
-    description: 'AI サービスと検索 API を構成',
+    description: 'AI サービスを構成',
     currentConfig: '現在設定',
     createTitle: 'API 設定を作成',
     editTitle: 'API 設定を編集',

@@ -1,24 +1,15 @@
 <template>
   <div class="projects-view">
-    <div class="view-header">
-      <div class="header-info">
-        <h2>{{ $t('projects.title') }}</h2>
-        <p class="header-desc">{{ $t('projects.description') }}</p>
-      </div>
+    <div class="content-header">
+      <h1 class="content-title">{{ $t('projects.title') }}</h1>
+      <p class="content-desc">{{ $t('projects.description') }}</p>
     </div>
 
     <!-- 项目列表 -->
     <div class="projects-content">
-      <GenericList
-        :items="store.projects"
-        item-key="id"
-        :loading="isLoadingProjects"
-        :empty-icon="Folder"
-        :empty-title="$t('projects.noProjects')"
-        :highlight-fn="projectHighlightFn"
-      >
-        <template #item-icon="{ item: project }">
-          <Folder size="20" />
+      <GenericList :items="store.projects" item-key="id" :loading="isLoadingProjects" :empty-icon="TopicDiscussion" :empty-title="$t('projects.noProjects')" :highlight-fn="projectHighlightFn">
+        <template #item-icon>
+          <TopicDiscussion size="20" />
         </template>
 
         <template #item-info="{ item: project }">
@@ -27,33 +18,26 @@
               {{ project.name }}
             </div>
             <div class="project-meta">
-            <span class="meta-item">
-              <Message size="12" />
-              {{ $t('projects.sessionCount', { count: project.sessionCount }) }}
-            </span>
-            <span class="meta-item">
-              <AlarmClock size="12" />
-              {{ formatRelativeTime(project.lastActive) }}
-            </span>
-          </div>
+              <span class="meta-item">
+                <Communication size="12" />
+                {{ $t('projects.sessionCount', { count: project.sessionCount }) }}
+              </span>
+              <span class="meta-item">
+                <AlarmClock size="12" />
+                {{ formatRelativeTime(project.lastActive) }}
+              </span>
+            </div>
           </div>
         </template>
 
         <template #item-actions="{ item: project }">
-          <button
-            class="action-btn danger"
-            :title="$t('projects.deleteProject')"
-            @click.stop="handleDeleteProject(project)"
-          >
+          <button class="action-btn danger" :title="$t('projects.deleteProject')" @click.stop="handleDeleteProject(project)">
             <Delete size="14" />
           </button>
         </template>
 
         <template #item-extra="{ item: project }">
-          <div
-            class="project-arrow"
-            :class="{ rotated: expandedProjectId === project.id }"
-          >
+          <div class="project-arrow" :class="{ rotated: expandedProjectId === project.id }">
             <Right size="14" />
           </div>
         </template>
@@ -68,22 +52,13 @@
             @open-session="openSession"
             @export-session="handleExport"
             @delete-session="handleDeleteSession"
-            @load-more="loadMoreSessions"
-          />
+            @load-more="loadMoreSessions" />
         </template>
       </GenericList>
     </div>
 
     <!-- 确认对话框 -->
-    <ConfirmDialog
-      v-if="confirmState.show"
-      :title-key="confirmState.titleKey"
-      :message-key="confirmState.messageKey"
-      :message-params="confirmState.messageParams"
-      :danger="confirmState.danger"
-      @confirm="handleConfirm"
-      @cancel="closeConfirm"
-    />
+    <ConfirmDialog v-if="confirmState.show" :title-key="confirmState.titleKey" :message-key="confirmState.messageKey" :message-params="confirmState.messageParams" :danger="confirmState.danger" @confirm="handleConfirm" @cancel="closeConfirm" />
   </div>
 </template>
 
@@ -96,9 +71,7 @@ import { useToast } from '@/composables/useToast'
 import GenericList from '@/components/GenericList.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ProjectSessionList from '@/components/ProjectSessionList.vue'
-import {
-  Folder, Message, AlarmClock, Right, Delete,
-} from '@icon-park/vue-next'
+import { TopicDiscussion,Communication, AlarmClock, Right, Delete } from '@icon-park/vue-next'
 
 const { t } = useI18n()
 const store = useProjectsStore()
@@ -271,28 +244,9 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
-.view-header {
-  padding: 20px 24px 16px;
-  flex-shrink: 0;
-
-  h2 {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 4px;
-  }
-
-  .header-desc {
-    font-size: 13px;
-    color: var(--text-tertiary);
-    margin: 0;
-  }
-}
-
 .projects-content {
   flex: 1;
-  overflow-y: auto;
-  padding: 0 24px 16px;
+  padding: 0 0 16px;
 }
 
 // 项目列表项内容
@@ -335,7 +289,9 @@ onUnmounted(() => {
 
 .project-arrow {
   color: var(--text-tertiary);
-  transition: transform 0.2s ease, color 0.15s ease;
+  transition:
+    transform 0.2s ease,
+    color 0.15s ease;
   display: flex;
   align-items: center;
   padding: 4px;
@@ -366,7 +322,7 @@ onUnmounted(() => {
 
   &.danger:hover {
     background: rgba(196, 49, 49, 0.1);
-    color: var(--danger, #C43131);
+    color: var(--danger, #c43131);
   }
 }
 </style>

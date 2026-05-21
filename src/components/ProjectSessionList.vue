@@ -3,15 +3,9 @@
     <div class="sessions-header">
       <span class="sessions-label">{{ $t('projects.sessionCount', { count: sessions.length }) }}</span>
     </div>
-    <GenericList
-      :items="sessions"
-      item-key="id"
-      :loading="loading"
-      skeleton-type="list"
-      :skeleton-count="3"
-    >
-      <template #item-icon="{ item: session }">
-        <Message size="20" />
+    <GenericList :items="sessions" item-key="id" :loading="loading" skeleton-type="list" :skeleton-count="3">
+      <template #item-icon>
+        <Communication size="20" />
       </template>
 
       <template #item-info="{ item: session }">
@@ -29,25 +23,15 @@
           <span class="meta-item">
             {{ formatDateTime(session.lastMessageAt) }}
           </span>
-          <span v-if="session.totalInputTokens || session.totalOutputTokens" class="meta-item token-info">
-            Token: {{ formatTokenCount(session.totalInputTokens + session.totalOutputTokens) }}
-          </span>
+          <span v-if="session.totalInputTokens || session.totalOutputTokens" class="meta-item token-info"> Token: {{ formatTokenCount(session.totalInputTokens + session.totalOutputTokens) }} </span>
         </div>
       </template>
 
       <template #item-actions="{ item: session }">
-        <button
-          class="action-btn"
-          :title="$t('projects.export')"
-          @click.stop="$emit('exportSession', session)"
-        >
+        <button class="action-btn" :title="$t('projects.export')" @click.stop="$emit('exportSession', session)">
           <Export size="14" />
         </button>
-        <button
-          class="action-btn danger"
-          :title="$t('projects.delete')"
-          @click.stop="$emit('deleteSession', session)"
-        >
+        <button class="action-btn danger" :title="$t('projects.delete')" @click.stop="$emit('deleteSession', session)">
           <Delete size="14" />
         </button>
       </template>
@@ -63,11 +47,8 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
 import GenericList from '@/components/GenericList.vue'
-import {
-  Message, GeneralBranch, Export, Delete,
-} from '@icon-park/vue-next'
+import { Communication, GeneralBranch, Export, Delete } from '@icon-park/vue-next'
 import type { SessionSummary } from '@/stores/projects'
 
 defineProps<{
@@ -83,8 +64,6 @@ defineEmits<{
   deleteSession: [session: SessionSummary]
   loadMore: []
 }>()
-
-const { t } = useI18n()
 
 function formatDateTime(dateStr: string): string {
   if (!dateStr) return ''
@@ -106,9 +85,7 @@ function formatTokenCount(count: number): string {
 
 <style lang="less" scoped>
 .sessions-section {
-  margin: 0 20px 8px;
   padding: 0 16px;
-  border-left: 2px solid var(--border-light);
 }
 
 .sessions-header {
@@ -183,7 +160,7 @@ function formatTokenCount(count: number): string {
 
   &.danger:hover {
     background: rgba(196, 49, 49, 0.1);
-    color: var(--danger, #C43131);
+    color: var(--danger, #c43131);
   }
 }
 
