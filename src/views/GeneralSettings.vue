@@ -39,26 +39,6 @@
               <option value="System">{{ $t('theme.system') }}</option>
             </select>
           </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">{{ $t('general.showMemoryUsage') }}</label>
-              <p class="setting-desc">{{ $t('general.showMemoryUsageDesc') }}</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.showMemoryUsage" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">{{ $t('general.hideBanner') }}</label>
-              <p class="setting-desc">{{ $t('general.hideBannerDesc') }}</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.hideBanner" />
-              <span class="slider"></span>
-            </label>
-          </div>
         </div>
         <div class="setting-divider"></div>
         <div class="setting-item" v-if="supportsAcrylic">
@@ -104,71 +84,10 @@
 
       <div class="card card-appear" style="animation-delay: 0.08s">
         <div class="card-title">
-          <Setting size="16" />
-          {{ $t('general.otherSettings') }}
+          <DataDisplay size="16" />
+          {{ $t('general.monitoring') }}
         </div>
         <div class="settings-grid">
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">{{ $t('general.maxSessionTurns') }}</label>
-              <p class="setting-desc">{{ $t('general.maxSessionTurnsDesc') }}</p>
-            </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.maxSessionTurns" />
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">{{ $t('general.disableAutoUpdate') }}</label>
-              <p class="setting-desc">{{ $t('general.disableAutoUpdateDesc') }}</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.disableAutoUpdate" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">{{ $t('general.autoConfigureMaxOldSpaceSize') }}</label>
-              <p class="setting-desc">{{ $t('general.autoConfigureMaxOldSpaceSizeDesc') }}</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.autoConfigureMaxOldSpaceSize" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">{{ $t('general.disableTelemetry') }}</label>
-              <p class="setting-desc">{{ $t('general.disableTelemetryDesc') }}</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.disableTelemetry" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">{{ $t('general.compressionTokenThreshold') }}</label>
-              <p class="setting-desc">{{ $t('general.compressionTokenThresholdDesc') }}</p>
-            </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.compressionTokenThreshold" step="0.01" min="0" max="1" />
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">{{ $t('general.skipNextSpeakerCheck') }}</label>
-              <p class="setting-desc">{{ $t('general.skipNextSpeakerCheckDesc') }}</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.skipNextSpeakerCheck" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">{{ $t('general.shellTimeout') }}</label>
-              <p class="setting-desc">{{ $t('general.shellTimeoutDesc') }}</p>
-            </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.shellTimeout" />
-          </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.connectivityPollInterval') }}</label>
@@ -183,6 +102,43 @@
             </div>
             <input type="number" class="form-input setting-input-number" v-model.number="localSettings.modelUsageRefreshInterval" min="1" max="60" />
           </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== CLI 设置 ===== -->
+    <div class="section-group">
+      <div class="section-header">
+        <h2 class="section-title">{{ $t('general.sectionCli') }}</h2>
+      </div>
+
+      <div class="card card-appear" style="animation-delay: 0.02s">
+        <div class="card-title">
+          <Communication size="16" />
+          {{ $t('general.conversationMode') }}
+        </div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.skipNextSpeakerCheck') }}</label>
+              <p class="setting-desc">{{ $t('general.skipNextSpeakerCheckDesc') }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.skipNextSpeakerCheck" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.thinkingModeEnabled') }}</label>
+              <p class="setting-desc">{{ $t('general.thinkingModeEnabledDesc') }}</p>
+            </div>
+            <select class="form-select setting-select" v-model="localSettings.thinkingModeEnabled">
+              <option value="true">{{ $t('general.enabled') }}</option>
+              <option value="false">{{ $t('general.disabled') }}</option>
+            </select>
+          </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.approvalMode') }}</label>
@@ -195,26 +151,112 @@
               <option value="default">{{ $t('general.approvalModeDefault') }}</option>
             </select>
           </div>
+        </div>
+      </div>
+
+      <div class="card card-appear" style="animation-delay: 0.05s">
+        <div class="card-title">
+          <DataScreen size="16" />
+          {{ $t('general.displayUpdates') }}
+        </div>
+        <div class="settings-grid">
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">{{ $t('general.thinkingModeEnabled') }}</label>
-              <p class="setting-desc">{{ $t('general.thinkingModeEnabledDesc') }}</p>
+              <label class="setting-label">{{ $t('general.showMemoryUsage') }}</label>
+              <p class="setting-desc">{{ $t('general.showMemoryUsageDesc') }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.thinkingModeEnabled">
-              <option value="true">{{ $t('general.enabled') }}</option>
-              <option value="false">{{ $t('general.disabled') }}</option>
-            </select>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.showMemoryUsage" />
+              <span class="slider"></span>
+            </label>
           </div>
-          <div class="setting-item setting-item-full">
+          <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">{{ $t('general.excludeTools') }}</label>
-              <p class="setting-desc">{{ $t('general.excludeToolsDesc') }}</p>
-              <p class="setting-desc security-note"
-                ><span class="security-label">{{ $t('general.excludeToolsSecurityNoteLabel') }}</span> {{ $t('general.excludeToolsSecurityNote') }}</p
-              >
+              <label class="setting-label">{{ $t('general.hideBanner') }}</label>
+              <p class="setting-desc">{{ $t('general.hideBannerDesc') }}</p>
             </div>
-            <textarea class="form-textarea core-tools-textarea" :value="excludeToolsText" @input="onExcludeToolsInput" :placeholder="$t('general.excludeToolsPlaceholder')" rows="3"></textarea>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.hideBanner" />
+              <span class="slider"></span>
+            </label>
           </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.disableAutoUpdate') }}</label>
+              <p class="setting-desc">{{ $t('general.disableAutoUpdateDesc') }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.disableAutoUpdate" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.disableTelemetry') }}</label>
+              <p class="setting-desc">{{ $t('general.disableTelemetryDesc') }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.disableTelemetry" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-appear" style="animation-delay: 0.08s">
+        <div class="card-title">
+          <Time size="16" />
+          {{ $t('general.sessionTimeout') }}
+        </div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.maxSessionTurns') }}</label>
+              <p class="setting-desc">{{ $t('general.maxSessionTurnsDesc') }}</p>
+            </div>
+            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.maxSessionTurns" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.shellTimeout') }}</label>
+              <p class="setting-desc">{{ $t('general.shellTimeoutDesc') }}</p>
+            </div>
+            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.shellTimeout" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.compressionTokenThreshold') }}</label>
+              <p class="setting-desc">{{ $t('general.compressionTokenThresholdDesc') }}</p>
+            </div>
+            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.compressionTokenThreshold" step="0.01" min="0" max="1" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.autoConfigureMaxOldSpaceSize') }}</label>
+              <p class="setting-desc">{{ $t('general.autoConfigureMaxOldSpaceSizeDesc') }}</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="localSettings.autoConfigureMaxOldSpaceSize" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-appear" style="animation-delay: 0.08s">
+        <div class="card-title">
+          <FilterOne size="16" />
+          {{ $t('general.toolFiltering') }}
+        </div>
+        <div class="setting-item setting-item-full">
+          <div class="setting-info">
+            <label class="setting-label">{{ $t('general.excludeTools') }}</label>
+            <p class="setting-desc">{{ $t('general.excludeToolsDesc') }}</p>
+            <p class="setting-desc security-note"
+              ><span class="security-label">{{ $t('general.excludeToolsSecurityNoteLabel') }}</span> {{ $t('general.excludeToolsSecurityNote') }}</p
+            >
+          </div>
+          <textarea class="form-textarea core-tools-textarea" :value="excludeToolsText" @input="onExcludeToolsInput" :placeholder="$t('general.excludeToolsPlaceholder')" rows="3"></textarea>
         </div>
       </div>
     </div>
@@ -579,7 +621,7 @@
 </template>
 
 <script setup>
-import { Globe, Setting, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit } from '@icon-park/vue-next'
+import { Globe, Setting, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, CheckCorrect, Time, DataDisplay, FilterOne } from '@icon-park/vue-next'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import { useToast } from '@/composables/useToast'

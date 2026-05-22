@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'

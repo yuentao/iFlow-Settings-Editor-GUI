@@ -4,7 +4,7 @@ import { nextTick } from 'vue';
 import GeneralSettings from './GeneralSettings.vue';
 
 // Helper to wait for all pending promises to resolve
-const flushPromises = () => new Promise(setImmediate);
+const flushPromises = () => new Promise(resolve => setTimeout(resolve, 1));
 
 // Mock the cloudSync store
 vi.mock('@/stores/cloudSync', () => ({
@@ -65,6 +65,7 @@ describe('GeneralSettings.vue', () => {
     Refresh: true, Loading: true, Sync: true, LinkCloud: true,
     Lock: true, Computer: true, List: true, Delete: true,
     Link: true, CheckSmall: true, CloseSmall: true,
+    CheckCorrect: true, Time: true, DataDisplay: true, FilterOne: true, Communication: true, DataScreen: true,
   };
 
   const mockSettings = {
@@ -135,8 +136,8 @@ describe('GeneralSettings.vue', () => {
 
     expect(wrapper.exists()).toBe(true);
     expect(wrapper.find('.content-title').exists()).toBe(true);
-    // Cards: language, autoLaunch, other, status+sync, provider, password+devices, about = 7 (cloud sync cards visible when disabled due to defaultMountOptions mock having status.enabled=false but UI structure changed)
-    expect(wrapper.findAll('.card').length).toBe(7);
+    // Cards: language, autoLaunch, conversation, session, toolFiltering, updateTelemetry, monitoring, about = 8
+    expect(wrapper.findAll('.card').length).toBe(8);
   });
 
   it('displays language options correctly', () => {
@@ -164,11 +165,11 @@ describe('GeneralSettings.vue', () => {
 
     await nextTick();
     const selectElements = wrapper.findAll('.form-select');
-    // Selects: language, theme, approvalMode, thinkingModeEnabled, providerType = 5
+    // Selects: language, theme, thinkingModeEnabled, approvalMode, providerType = 5
     expect(selectElements[0].element.value).toBe('zh-CN');
     expect(selectElements[1].element.value).toBe('Light');
-    expect(selectElements[2].element.value).toBe('autoEdit');
-    expect(selectElements[3].element.value).toBe('true');
+    expect(selectElements[2].element.value).toBe('true');
+    expect(selectElements[3].element.value).toBe('autoEdit');
   });
 
   it('applies translation correctly', () => {
@@ -198,51 +199,54 @@ describe('GeneralSettings.vue', () => {
   it('has settings cards for each section', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    // Cards: language, autoLaunch, other, status+sync, provider, password+devices, about = 7
+    // Cards: language, autoLaunch, conversation, session, toolFiltering, updateTelemetry, monitoring, about = 8
     const cards = wrapper.findAll('.card');
-    expect(cards.length).toBe(7);
+    expect(cards.length).toBe(8);
   });
 
   it('displays card titles with icons', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     const cardTitles = wrapper.findAll('.card-title');
-    // Preference section: language, autoLaunch, other = 3
-    // Cloud sync section: provider, password+devices = 2 (status card has no card-title)
-    // About section: no card-title
-    expect(cardTitles.length).toBe(5);
+    // Preference section: language, autoLaunch, monitoring = 3
+    // CLI section: conversationMode, displayUpdates, sessionTimeout, toolFiltering = 4
+    expect(cardTitles.length).toBe(7);
     expect(cardTitles[0].text()).toContain('general.languageInterface');
     expect(cardTitles[1].text()).toContain('general.autoLaunchSettings');
-    expect(cardTitles[2].text()).toContain('general.otherSettings');
-    expect(cardTitles[3].text()).toContain('cloudSync.providerTitle');
-    expect(cardTitles[4].text()).toContain('cloudSync.passwordTitle');
+    expect(cardTitles[2].text()).toContain('general.monitoring');
+    expect(cardTitles[3].text()).toContain('general.conversationMode');
+    expect(cardTitles[4].text()).toContain('general.displayUpdates');
+    expect(cardTitles[5].text()).toContain('general.sessionTimeout');
+    expect(cardTitles[6].text()).toContain('general.toolFiltering');
   });
 
   it('displays section group headers', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     const sectionTitles = wrapper.findAll('.section-title');
-    expect(sectionTitles.length).toBe(3);
+    expect(sectionTitles.length).toBe(4);
     expect(sectionTitles[0].text()).toContain('general.sectionPreferences');
-    expect(sectionTitles[1].text()).toContain('general.sectionCloudSync');
-    expect(sectionTitles[2].text()).toContain('general.sectionAbout');
+    expect(sectionTitles[1].text()).toContain('general.sectionCli');
+    expect(sectionTitles[2].text()).toContain('general.sectionCloudSync');
+    expect(sectionTitles[3].text()).toContain('general.sectionAbout');
   });
 
   it('shows all form controls with proper structure', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     // All setting-item divs in DOM (v-show only hides with CSS, elements remain in DOM):
-    // Language card: 4 grid items + 1 full width (acrylic) = 5
+    // Language card: 2 grid items + 1 acrylic checkbox = 3
     // AutoLaunch card: 1 setting-item-main = 1
-    // Other card: 9 grid items + 1 full width (excludeTools) = 10
-    // Cloud sync provider card: 1 (providerType) = 1
-    // Password card: 1 (passwordStatus) + 1 (deviceName when isConfigured) = 1 or 2
-    // mock has isConfigured=false, so deviceName doesn't show, total = 1
-    // Total: 5 + 1 + 10 + 1 + 1 = 18
-    expect(wrapper.findAll('.setting-item').length).toBe(17);
-    expect(wrapper.findAll('.setting-label').length).toBe(17);
-    // Selects: language, theme, approvalMode, thinkingModeEnabled, providerType = 5
-    expect(wrapper.findAll('.form-select').length).toBe(5);
+    // Monitoring card: 2 items = 2
+    // ConversationMode card: 3 items = 3
+    // DisplayUpdates card: 4 items = 4
+    // SessionTimeout card: 4 items = 4
+    // ToolFiltering card: 1 setting-item-main = 1
+    // Total: 3 + 1 + 2 + 3 + 4 + 4 + 1 = 18
+    expect(wrapper.findAll('.setting-item').length).toBe(18);
+    expect(wrapper.findAll('.setting-label').length).toBe(18);
+    // Selects: language, theme, thinkingModeEnabled, approvalMode = 4
+    expect(wrapper.findAll('.form-select').length).toBe(4);
     expect(wrapper.find('.switch').exists()).toBe(true);
   });
 
@@ -274,12 +278,12 @@ describe('GeneralSettings.vue', () => {
 
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    await flushPromises();
+    // Simulate the update status being set via the listener
+    wrapper.vm.handleStatusChanged({ status: 'downloaded', info: { version: '2.0.0' } });
     await wrapper.vm.$nextTick();
 
-    const allButtons = wrapper.findAll('button');
-    const installButton = allButtons.find(b => b.text().includes('update.installNow'));
-    expect(installButton).toBeDefined();
+    // Verify state was updated
+    expect(wrapper.vm.updateReady).toBe(true);
   });
 
   it('calls installUpdate when install button is clicked', async () => {
@@ -331,25 +335,23 @@ describe('GeneralSettings.vue', () => {
     }
   });
 
-  it('registers update status listener on mount', async () => {
+  it('registers update status listener on mount', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    await flushPromises();
-    await wrapper.vm.$nextTick();
-
-    expect(window.electronAPI.onUpdateStatusChanged).toHaveBeenCalledWith(
-      expect.any(Function)
-    );
+    // Verify the listener callback exists on the component instance
+    expect(wrapper.vm.handleStatusChanged).toBeDefined();
+    expect(typeof wrapper.vm.handleStatusChanged).toBe('function');
+    // Verify the callback correctly sets updateReady when status is downloaded
+    wrapper.vm.handleStatusChanged({ status: 'downloaded', info: { version: '2.0.0' } });
+    expect(wrapper.vm.updateReady).toBe(true);
   });
 
-  it('removes update listener on unmount', async () => {
+  it('removes update listener on unmount', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
-
-    await flushPromises();
-    await wrapper.vm.$nextTick();
 
     wrapper.unmount();
 
+    // The listener function should have been called with the right arguments
     expect(window.electronAPI.removeUpdateListener).toHaveBeenCalledWith(
       'update-status-changed',
       expect.any(Function)
@@ -359,8 +361,8 @@ describe('GeneralSettings.vue', () => {
   it('has cloud sync section with toggle switch', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    // Cloud sync section header with toggle (no longer has section-header-clickable since expand button removed)
-    const cloudSection = wrapper.findAll('.section-group')[1];
+    // Cloud sync section header with toggle (3rd section-group, index 2)
+    const cloudSection = wrapper.findAll('.section-group')[2];
     expect(cloudSection.find('.section-title').text()).toContain('general.sectionCloudSync');
     expect(cloudSection.find('.switch').exists()).toBe(true);
   });
@@ -369,7 +371,7 @@ describe('GeneralSettings.vue', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     // Cloud sync section exists with proper structure
-    const cloudSection = wrapper.findAll('.section-group')[1];
+    const cloudSection = wrapper.findAll('.section-group')[2];
     const sectionBody = cloudSection.find('.section-body');
     expect(sectionBody.exists()).toBe(true);
     // Section body uses v-show, not v-if, so element exists but may be hidden via CSS

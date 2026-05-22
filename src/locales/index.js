@@ -146,6 +146,12 @@ export default {
     autoLaunch: '开机自启动',
     autoLaunchHint: '启用后，应用程序将在系统启动时自动运行，并以后台模式静默启动，不显示主窗口。',
     sectionPreferences: '偏好设置',
+    sectionCli: 'CLI 设置',
+    conversationMode: '对话与模式',
+    sessionTimeout: '会话与超时',
+    toolFiltering: '工具过滤',
+    displayUpdates: '界面与更新',
+    monitoring: '检测与监控',
     sectionCloudSync: '云同步',
     experimental: '实验性',
     sectionAbout: '关于'
