@@ -835,9 +835,6 @@ const checkForUpdates = async () => {
           // 已是最新版本
           toast.info(t('update.noUpdate'))
         }
-      } else {
-        // 检查失败
-        toast.error(t('update.checkFailed'))
       }
     }
   } catch (error) {

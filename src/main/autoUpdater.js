@@ -182,6 +182,9 @@ function initAutoUpdater() {
   })
 
   autoUpdater.on('update-downloaded', info => {
+    // 用户已取消下载，忽略残留的完成事件
+    if (downloadCancelled) return
+
     logInfo('[AutoUpdater] Update downloaded:', info.version)
     logInfo('[AutoUpdater] Download path:', info.filePath)
 
