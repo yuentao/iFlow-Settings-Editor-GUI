@@ -1,6 +1,6 @@
 {
   "name": "iflow-settings-editor",
-  "version": "1.18.6",
+  "version": "1.18.7",
   "description": "一个用于编辑 iFlow CLI 配置文件的桌面应用程序。",
   "main": "src/main/index.js",
   "author": "上海潘哆呐科技有限公司",
@@ -158,6 +158,7 @@
     "marked": "^18.0.2",
     "moment": "^2.30.1",
     "pinia": "^3.0.4",
+    "vue-draggable-plus": "^0.6.1",
     "vue-i18n": "^9.14.5",
     "vue3-apexcharts": "^1.11.1"
   }

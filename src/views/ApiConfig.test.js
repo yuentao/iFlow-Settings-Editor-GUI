@@ -165,10 +165,11 @@ describe('ApiConfig.vue', () => {
     });
 
     const editButtons = wrapper.findAll('.action-btn');
-    await editButtons[0].trigger('click');
+    // index 0 is duplicate for "default" (edit hidden for current profile)
+    await editButtons[1].trigger('click');
 
     expect(wrapper.emitted('edit-profile')).toBeTruthy();
-    expect(wrapper.emitted('edit-profile')[0][0]).toBe('default');
+    expect(wrapper.emitted('edit-profile')[0][0]).toBe('dev');
   });
 
   it('emits duplicate-profile event when duplicate button is clicked', async () => {
@@ -186,7 +187,8 @@ describe('ApiConfig.vue', () => {
     });
 
     const duplicateButtons = wrapper.findAll('.action-btn');
-    await duplicateButtons[1].trigger('click');
+    // index 0 is duplicate for "default"
+    await duplicateButtons[0].trigger('click');
 
     expect(wrapper.emitted('duplicate-profile')).toBeTruthy();
     expect(wrapper.emitted('duplicate-profile')[0][0]).toBe('default');
@@ -256,26 +258,6 @@ describe('ApiConfig.vue', () => {
     expect(profileNames[2].text()).toBe('prod');
   });
 
-  it('displays correct profile URLs', () => {
-    const wrapper = mount(ApiConfig, {
-      props: {
-        profiles: mockProfiles,
-        currentProfile: 'default',
-        settings: mockSettings,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    const profileUrls = wrapper.findAll('.profile-url');
-    expect(profileUrls[0].text()).toBe('https://api.default.com');
-    expect(profileUrls[1].text()).toBe('https://api.dev.com');
-    expect(profileUrls[2].text()).toBe('https://api.prod.com');
-  });
-
   it('displays correct profile initials', () => {
     const wrapper = mount(ApiConfig, {
       props: {
@@ -312,27 +294,5 @@ describe('ApiConfig.vue', () => {
 
     const profileItems = wrapper.findAll('.profile-item');
     expect(profileItems.length).toBe(0);
-  });
-
-  it('handles missing apiProfiles in settings', () => {
-    const settingsWithoutProfiles = { currentApiProfile: 'default' };
-
-    const wrapper = mount(ApiConfig, {
-      props: {
-        profiles: mockProfiles,
-        currentProfile: 'default',
-        settings: settingsWithoutProfiles,
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    const profileUrls = wrapper.findAll('.profile-url');
-    expect(profileUrls[0].text()).toBe('');
-    expect(profileUrls[1].text()).toBe('');
-    expect(profileUrls[2].text()).toBe('');
   });
 });

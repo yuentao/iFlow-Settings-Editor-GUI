@@ -61,6 +61,7 @@
         :selected-category="selectedCategory"
         :highlight-fn="modHighlightFn"
         @update:selected-category="selectedCategory = $event"
+        @item-click="openModDetail"
         @action="openImportDialog">
         <template #item-prefix="{ item: mod }">
           <span v-if="mod.enabled" class="mod-enable-index">{{ enableIndexMap[mod.id] }}</span>
@@ -75,37 +76,140 @@
         <template #item-info="{ item: mod }">
           <div class="mod-name-row">
             <span class="mod-name">{{ mod.name }}</span>
-            <span class="mod-version">v{{ mod.version }}</span>
             <span class="mod-type-badge" :class="`type-${mod.type}`">
               {{ $t(`iflow.mods.types.${mod.type}`) }}
             </span>
           </div>
-          <div class="mod-desc" v-if="mod.description">{{ mod.description }}</div>
-          <div class="mod-meta">
-            <span class="mod-author" v-if="mod.author">{{ mod.author }}</span>
-            <span class="mod-category" v-if="mod.category">{{ mod.category }}</span>
-            <span class="mod-compat" v-if="mod.iflowVersion" :title="`iflow ${mod.iflowVersionConstraint || '0.5.19+'}`"> iflow {{ mod.iflowVersionConstraint || '0.5.19+' }} </span>
-          </div>
         </template>
 
         <template #item-actions="{ item: mod }">
-          <template v-if="!mod.enabled && !isApplying">
-            <button class="action-btn" @click.stop="exportMod(mod.id)" :title="$t('iflow.mods.export')">
-              <Download size="14" />
-            </button>
-            <button class="action-btn action-btn-danger" @click.stop="deleteMod(mod.id)" :title="$t('iflow.mods.delete')">
-              <Delete size="14" />
-            </button>
-          </template>
+          <button v-if="!mod.enabled && !isApplying" class="action-btn action-btn-danger" @click.stop="deleteMod(mod.id)" :title="$t('iflow.mods.delete')">
+            <Delete size="14" />
+          </button>
         </template>
 
         <template #item-extra="{ item: mod }">
-          <label class="toggle-switch" :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')">
+          <label class="toggle-switch" @click.stop :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')">
             <input type="checkbox" :checked="mod.enabled" @click.prevent="toggleMod(mod.id, !mod.enabled)" :disabled="isApplying" />
             <span class="toggle-slider"></span>
           </label>
         </template>
       </GenericList>
+    </div>
+
+    <!-- Mod Detail Modal -->
+    <div v-if="detailMod" class="dialog-overlay" @click.self="detailMod = null" @keyup.esc="detailMod = null" tabindex="-1">
+      <div class="dialog mod-detail-dialog" @click.stop>
+        <div class="dialog-header">
+          <div class="dialog-title">
+            <img v-if="detailMod.icon && isImageIcon(detailMod.icon)" :src="detailMod.icon" class="mod-icon-img" />
+            <span v-else-if="detailMod.icon" class="mod-icon-emoji">{{ detailMod.icon }}</span>
+            <Puzzle v-else size="18" />
+            {{ detailMod.name }}
+          </div>
+          <button class="side-panel-close" @click="detailMod = null">
+            <svg viewBox="0 0 10 10">
+              <line x1="0" y1="0" x2="10" y2="10" />
+              <line x1="10" y1="0" x2="0" y2="10" />
+            </svg>
+          </button>
+        </div>
+        <div class="dialog-body">
+          <!-- ID -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.id') }}</div>
+            <div class="detail-field-value detail-field-value--mono">{{ detailMod.id || '-' }}</div>
+          </div>
+
+          <!-- Type -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.type') }}</div>
+            <span v-if="detailMod.type" class="mod-type-badge" :class="`type-${detailMod.type}`">
+              {{ $t(`iflow.mods.types.${detailMod.type}`) }}
+            </span>
+            <span v-else class="detail-empty">-</span>
+          </div>
+
+          <!-- Version -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.version') }}</div>
+            <div class="detail-field-value">{{ detailMod.version ? `v${detailMod.version}` : '-' }}</div>
+          </div>
+
+          <!-- Author -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.author') }}</div>
+            <div class="detail-field-value">{{ detailMod.author || '-' }}</div>
+          </div>
+
+          <!-- Category -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.category') }}</div>
+            <div class="detail-field-value">{{ detailMod.category || '-' }}</div>
+          </div>
+
+          <!-- Compatibility -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.compatibility') }}</div>
+            <div class="detail-field-value detail-field-value--mono">{{ detailMod.iflowVersion ? `iflow ${detailMod.iflowVersionConstraint || '0.5.19+'}` : '-' }}</div>
+          </div>
+
+          <!-- License -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.license') }}</div>
+            <div class="detail-field-value">{{ detailMod.license || '-' }}</div>
+          </div>
+
+          <!-- Homepage -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.homepage') }}</div>
+            <div class="detail-field-value">
+              <a v-if="detailMod.homepage" class="detail-link" :href="detailMod.homepage" @click.prevent="openExternal(detailMod.homepage)">{{ detailMod.homepage }}</a>
+              <span v-else class="detail-empty">-</span>
+            </div>
+          </div>
+
+          <!-- Repository -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.repository') }}</div>
+            <div class="detail-field-value">
+              <a v-if="detailMod.repository" class="detail-link" :href="detailMod.repository" @click.prevent="openExternal(detailMod.repository)">{{ detailMod.repository }}</a>
+              <span v-else class="detail-empty">-</span>
+            </div>
+          </div>
+
+          <!-- Tags -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.tags') }}</div>
+            <div class="detail-field-value">
+              <template v-if="detailMod.tags && detailMod.tags.length">
+                <span class="detail-tag" v-for="tag in detailMod.tags" :key="tag">{{ tag }}</span>
+              </template>
+              <span v-else class="detail-empty">-</span>
+            </div>
+          </div>
+
+          <!-- Include -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.include') }}</div>
+            <div class="detail-field-value detail-field-value--mono">
+              <template v-if="detailMod.include && detailMod.include.length">
+                <div v-for="inc in detailMod.include" :key="inc" class="detail-include-item">
+                  {{ inc }}
+                  <span v-if="detailMod.includeMap && detailMod.includeMap[inc]" class="detail-include-map">→ {{ detailMod.includeMap[inc] }}</span>
+                </div>
+              </template>
+              <span v-else class="detail-empty">-</span>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.description') }}</div>
+            <div class="detail-field-value">{{ detailMod.description || '-' }}</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Applying overlay -->
@@ -133,6 +237,7 @@ const isLoading = ref(true)
 const isApplying = ref(false)
 const applyingText = ref('')
 const selectedCategory = ref('all')
+const detailMod = ref(null)
 
 // Computed
 const enabledCount = computed(() => mods.value.filter(m => m.enabled).length)
@@ -166,6 +271,10 @@ const isImageIcon = icon => {
   return /^(https?:\/\/|data:|\/[^/]|[a-zA-Z]:\\)/.test(icon) && /\.(png|jpg|jpeg|gif|svg|webp|ico)(\?|#|$)/i.test(icon)
 }
 
+const openModDetail = mod => {
+  detailMod.value = mod
+}
+
 // 目录路径
 const coreDir = computed(() => {
   if (iflowStatus.value?.path) {
@@ -184,6 +293,14 @@ const openDirectory = async dirPath => {
   if (!dirPath) return
   try {
     await window.electronAPI.openPath(dirPath)
+  } catch (error) {
+    toast.error(String(error?.message || error))
+  }
+}
+
+const openExternal = async url => {
+  try {
+    await window.electronAPI.openExternal(url)
   } catch (error) {
     toast.error(String(error?.message || error))
   }
@@ -209,6 +326,11 @@ const loadMods = async () => {
     }
     if (statusResult.success) {
       iflowStatus.value = statusResult
+    }
+    // Keep detail modal in sync
+    if (detailMod.value) {
+      const updated = mods.value.find(m => m.id === detailMod.value.id)
+      detailMod.value = updated || null
     }
   } catch (error) {
     console.error('Failed to load mods:', error)
@@ -455,7 +577,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 2px;
   flex-wrap: wrap;
 }
 
@@ -463,12 +584,6 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
-}
-
-.mod-version {
-  font-size: 11px;
-  font-family: var(--font-mono);
-  color: var(--text-tertiary);
 }
 
 .mod-type-badge {
@@ -526,38 +641,6 @@ onMounted(() => {
   font-weight: 700;
   font-family: var(--font-mono);
   line-height: 1;
-}
-
-.mod-desc {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin-bottom: 4px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-word;
-}
-
-.mod-meta {
-  display: flex;
-  gap: 12px;
-  font-size: 11px;
-  color: var(--text-tertiary);
-  flex-wrap: wrap;
-}
-
-.mod-author {
-  color: var(--text-tertiary);
-}
-
-.mod-category {
-  color: var(--accent);
-}
-
-.mod-compat {
-  font-family: var(--font-mono);
-  font-size: 10px;
 }
 
 .mod-icon-emoji {
@@ -625,5 +708,107 @@ onMounted(() => {
     border-radius: 50%;
     transition: 0.2s;
   }
+}
+
+// Mod Detail Modal
+.mod-detail-dialog {
+  width: 420px;
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.mod-detail-dialog .dialog-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.detail-empty {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.mod-detail-dialog .dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--control-fill);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.mod-detail-dialog .dialog-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.detail-field {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.detail-field-label {
+  flex-shrink: 0;
+  width: 56px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.detail-field-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+
+  &--mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+}
+
+.detail-link {
+  color: var(--accent);
+  text-decoration: none;
+  word-break: break-all;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.detail-tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--control-fill);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+
+.detail-include-item {
+  line-height: 1.8;
+}
+
+.detail-include-map {
+  color: var(--text-tertiary);
+  font-size: 11px;
 }
 </style>

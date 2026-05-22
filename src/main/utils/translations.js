@@ -35,6 +35,7 @@ const defaultTranslations = {
       switchApiConfig: '切换 API 配置',
       exit: '退出',
       tooltip: 'iFlow 设置编辑器',
+      expired: '已过期',
     },
     errors: {
       configNotFound: '配置文件不存在',

@@ -15,7 +15,6 @@
     "jsx": "preserve",
 
     /* Linting */
-    "ignoreDeprecations": "6.0",
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,

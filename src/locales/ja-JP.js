@@ -221,11 +221,12 @@ export default {
     expiryDaysUnit: '日',
     expiryDaysHint: '0に設定すると無期限',
     expiry: {
-      expired: '{days}日前に期限切れ',
+      expired: '期限切れ',
       hoursLeft: 'あと{hours}時間',
       daysLeft: 'あと{days}日',
       monthsLeft: 'あと{months}ヶ月',
       yearsLeft: 'あと{years}年',
+      cannotSwitch: 'この設定は期限切れのため切り替えられません',
     },
     connectivity: {
       excellent: '接続性極めて良好',
@@ -564,6 +565,7 @@ export default {
       switchApiConfig: 'API 設定切替',
       exit: '終了',
       tooltip: 'iFlow 設定エディタ',
+      expired: '期限切れ',
     },
     errors: {
       configNotFound: '設定ファイルが存在しません',
@@ -667,7 +669,21 @@ deleteSuccess: '「{name}」を削除しました',
         diff: '差分'
       },
       replaceConflict: '置換タイプの Mod「{conflict}」が既に有効です。「{name}」を有効にすると「{conflict}」は自動的に無効になります。続行しますか？',
-      replaceSwapSuccess: '{name} に置き換えました（{conflict} を無効化）'
+      replaceSwapSuccess: '{name} に置き換えました（{conflict} を無効化）',
+      detail: {
+        id: 'ID',
+        type: 'タイプ',
+        version: 'バージョン',
+        author: '作者',
+        category: 'カテゴリ',
+        compatibility: '互換性',
+        license: 'ライセンス',
+        homepage: 'ホームページ',
+        repository: 'リポジトリ',
+        tags: 'タグ',
+        include: '含むファイル',
+        description: '説明'
+      }
     },
     applying: {
       enabling: 'Mod を有効化中…',

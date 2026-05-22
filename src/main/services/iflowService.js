@@ -651,11 +651,14 @@ async function deployIncludeFiles(modId, includeMap, iflowPath) {
 
     const destPath = path.join(targetDir, fileName)
 
-    // 备份已存在的目标文件（如果存在且尚未备份）
+    // 如果目标文件已存在且有用户修改，先同步回 mod 目录保存
     if (fs.existsSync(destPath)) {
-      const bakPath = destPath + '.iflow-mod-bak'
-      if (!fs.existsSync(bakPath)) {
-        fs.copyFileSync(destPath, bakPath)
+      const destContent = fs.readFileSync(destPath)
+      const srcContent = fs.readFileSync(srcPath)
+      if (!destContent.equals(srcContent)) {
+        // 用户修改了目标文件 → 同步回 mod 目录持久化
+        fs.copyFileSync(destPath, srcPath)
+        logger.info(`includeMap user modifications synced to mod before deploy: ${destPath} -> ${srcPath}`)
       }
     }
 
@@ -677,70 +680,37 @@ async function deployIncludeFiles(modId, includeMap, iflowPath) {
  */
 async function removeIncludeFiles(modId, includeMap, iflowPath) {
   if (!includeMap || typeof includeMap !== 'object') {
-    logger.warn(`[DEBUG] removeIncludeFiles(${modId}): includeMap is empty or not an object`, includeMap)
     return
   }
 
   const modDir = path.join(MODS_DIR, modId)
-  logger.info(`[DEBUG] removeIncludeFiles(${modId}): includeMap keys=${Object.keys(includeMap).join(',')}, modDir=${modDir}, iflowPath=${iflowPath}`)
 
   for (const [fileName, targetToken] of Object.entries(includeMap)) {
     const targetDir = await resolveIncludeMapPath(targetToken, iflowPath)
     const destPath = path.join(targetDir, fileName)
+
+    if (!fs.existsSync(destPath)) continue
+
+    // 检查用户是否修改了目标文件，如果有则同步回 mod 目录保存
+    const srcPath = path.join(modDir, fileName)
+    if (fs.existsSync(srcPath)) {
+      const destContent = fs.readFileSync(destPath)
+      const srcContent = fs.readFileSync(srcPath)
+      if (!destContent.equals(srcContent)) {
+        fs.copyFileSync(destPath, srcPath)
+        logger.info(`includeMap user modifications synced to mod: ${destPath} -> ${srcPath}`)
+      }
+    }
+
+    // 删除目标文件（下次启用时从 mod 目录重新部署）
+    fs.unlinkSync(destPath)
+    logger.info(`includeMap removed: ${destPath}`)
+
+    // 清理可能残留的旧版 .iflow-mod-bak 文件
     const bakPath = destPath + '.iflow-mod-bak'
-
-    logger.info(`[DEBUG] removeIncludeFiles: processing fileName=${fileName}, destPath=${destPath}, bakExists=${fs.existsSync(bakPath)}, destExists=${fs.existsSync(destPath)}`)
-
-    // 恢复备份文件
     if (fs.existsSync(bakPath)) {
-      let shouldRestoreBackup = true
-
-      // 检查用户是否修改了目标文件
-      if (fs.existsSync(destPath)) {
-        const destContent = fs.readFileSync(destPath)
-        const bakContent = fs.readFileSync(bakPath)
-        const filesMatch = destContent.equals(bakContent)
-
-        logger.info(`[DEBUG] removeIncludeFiles: comparing dest(${destContent.length}b) vs bak(${bakContent.length}b), match=${filesMatch}`)
-
-        if (!filesMatch) {
-          // 用户修改了文件 → 同步回 mod 目录持久化，保留用户文件
-          const srcPath = path.join(modDir, fileName)
-          fs.copyFileSync(destPath, srcPath)
-          logger.info(`includeMap user modifications synced to mod: ${destPath} -> ${srcPath}`)
-          shouldRestoreBackup = false
-        }
-      }
-
-      if (shouldRestoreBackup) {
-        fs.copyFileSync(bakPath, destPath)
-        logger.info(`includeMap restored backup: ${bakPath} -> ${destPath}`)
-      } else {
-        logger.info(`[DEBUG] removeIncludeFiles: SKIPPED backup restore for ${destPath}, user file preserved`)
-      }
-
       fs.unlinkSync(bakPath)
-    } else if (fs.existsSync(destPath)) {
-      // 没有备份（文件可能是 mod 初次启用时创建的，或备份已被清理）
-      // 比较目标文件与 mod 目录源文件，检查用户是否修改过
-      const srcPath = path.join(modDir, fileName)
-      if (fs.existsSync(srcPath)) {
-        const destContent = fs.readFileSync(destPath)
-        const srcContent = fs.readFileSync(srcPath)
-        const filesMatch = destContent.equals(srcContent)
-
-        logger.info(`[DEBUG] removeIncludeFiles(no-bak): comparing dest vs src, match=${filesMatch}, srcPath=${srcPath}`)
-
-        if (!filesMatch) {
-          // 用户修改了文件 → 同步回 mod 目录持久化，保留用户文件
-          fs.copyFileSync(destPath, srcPath)
-          logger.info(`includeMap user modifications synced to mod (no bak): ${destPath} -> ${srcPath}`)
-          continue
-        }
-      }
-      // 用户没有修改，或无法读取源文件 → 删除（此文件是由 mod 添加的，且无用户改动）
-      fs.unlinkSync(destPath)
-      logger.info(`includeMap removed: ${destPath}`)
+      logger.info(`includeMap cleaned up legacy backup: ${bakPath}`)
     }
   }
 }

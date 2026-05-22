@@ -221,11 +221,12 @@ export default {
     expiryDaysUnit: '天',
     expiryDaysHint: '设置为 0 表示无限期',
     expiry: {
-      expired: '已过期 {days} 天',
+      expired: '已过期',
       hoursLeft: '{hours}小时后',
       daysLeft: '{days}天后',
       monthsLeft: '{months}个月后',
       yearsLeft: '{years}年后',
+      cannotSwitch: '该配置已过期，无法切换',
     },
     connectivity: {
       excellent: '连通性极好',
@@ -572,6 +573,7 @@ export default {
       switchApiConfig: '切换 API 配置',
       exit: '退出',
       tooltip: 'iFlow 设置编辑器',
+      expired: '已过期',
     },
     errors: {
       configNotFound: '配置文件不存在',
@@ -677,7 +679,21 @@ export default {
         diff: '差异'
       },
       replaceConflict: '替换类型 Mod "{conflict}" 已启用。启用 "{name}" 将自动禁用 "{conflict}"，是否继续？',
-      replaceSwapSuccess: '已替换为 {name}（已禁用 {conflict}）'
+      replaceSwapSuccess: '已替换为 {name}（已禁用 {conflict}）',
+      detail: {
+        id: '标识',
+        type: '类型',
+        version: '版本',
+        author: '作者',
+        category: '分类',
+        compatibility: '兼容性',
+        license: '许可证',
+        homepage: '主页',
+        repository: '仓库',
+        tags: '标签',
+        include: '包含文件',
+        description: '描述'
+      }
     },
     applying: {
       enabling: '正在启用 Mod…',

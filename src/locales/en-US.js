@@ -222,11 +222,12 @@ export default {
     expiryDaysUnit: 'days',
     expiryDaysHint: 'Set to 0 for unlimited',
     expiry: {
-      expired: 'Expired {days}d ago',
+      expired: 'Expired',
       hoursLeft: '{hours}h left',
       daysLeft: '{days}d left',
       monthsLeft: '{months}mo left',
       yearsLeft: '{years}y left',
+      cannotSwitch: 'This profile has expired and cannot be switched',
     },
     connectivity: {
       excellent: 'Excellent connectivity',
@@ -566,6 +567,7 @@ export default {
       switchApiConfig: 'Switch API Config',
       exit: 'Exit',
       tooltip: 'iFlow Settings Editor',
+      expired: 'Expired',
     },
     errors: {
       configNotFound: 'Configuration file not found',
@@ -670,6 +672,20 @@ export default {
       },
       replaceConflict: 'Replace mod "{conflict}" is already enabled. Enabling "{name}" will disable "{conflict}". Continue?',
       replaceSwapSuccess: 'Replaced with {name} (disabled {conflict})',
+      detail: {
+        id: 'ID',
+        type: 'Type',
+        version: 'Version',
+        author: 'Author',
+        category: 'Category',
+        compatibility: 'Compatibility',
+        license: 'License',
+        homepage: 'Homepage',
+        repository: 'Repository',
+        tags: 'Tags',
+        include: 'Includes',
+        description: 'Description'
+      }
     },
     applying: {
       enabling: 'Enabling mod…',

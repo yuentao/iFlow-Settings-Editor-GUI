@@ -26,6 +26,7 @@
         <div
           class="generic-item"
           :class="itemClass(item)"
+          @click="$emit('item-click', item)"
         >
           <!-- Prefix (e.g. enable index) -->
           <div class="item-prefix" v-if="$slots['item-prefix']">
@@ -143,7 +144,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['action', 'update:selectedCategory'])
+defineEmits(['action', 'update:selectedCategory', 'item-click'])
 
 const itemClass = (item) => {
   const cls = {}
@@ -208,6 +209,7 @@ const itemClass = (item) => {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border-light);
   transition: all 0.15s ease;
+  cursor: pointer;
   animation: genericFadeIn 0.3s ease backwards;
 
   &:nth-child(1) { animation-delay: 0.02s; }

@@ -13,18 +13,17 @@
       </div>
     </div>
     <div class="card" v-if="profiles.length > 0">
-      <div class="profile-list">
+      <VueDraggable v-model="localProfiles" class="profile-list" handle=".drag-handle" :animation="250" ghostClass="sortable-ghost" @start="onDragStart" @end="onDragEnd">
         <div
-          v-for="(profile, index) in profiles"
+          v-for="(profile, index) in localProfiles"
           :key="profile.name"
           class="profile-item"
-          :class="{ active: currentProfile === profile.name, dragging: dragIndex === index }"
-          draggable="true"
-          @dragstart="onDragStart(index)"
-          @dragover.prevent="onDragOver(index)"
-          @drop="onDrop(index)"
-          @dragend="onDragEnd"
-          @click="$emit('select-profile', profile.name)">
+          :class="{
+            active: currentProfile === profile.name,
+            expired: isProfileExpired(profile.name),
+          }"
+          :title="isProfileExpired(profile.name) ? t('api.expiry.cannotSwitch') : ''"
+          @click="isProfileExpired(profile.name) ? null : $emit('select-profile', profile.name)">
           <div class="drag-handle" :title="$t('api.dragToSort')"> ⋮⋮ </div>
           <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
             <span class="profile-icon-text">{{ getProfileInitial(profile.name) }}</span>
@@ -72,17 +71,18 @@
             </button>
           </div>
         </div>
-      </div>
+      </VueDraggable>
     </div>
     <EmptyState v-else :icon="Exchange" :title="$t('api.noProfiles')" :description="$t('api.addFirstProfile')" :actionText="$t('api.newProfile')" embedded @action="$emit('create-profile')" />
   </section>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
+import { VueDraggable } from 'vue-draggable-plus'
 import moment from 'moment'
 
 const { t } = useI18n()
@@ -103,8 +103,21 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['create-profile', 'select-profile', 'edit-profile', 'duplicate-profile', 'delete-profile', 'reorder-profiles'])
-const dragIndex = ref(-1)
-const dragOverIndex = ref(-1)
+
+// Local copy of profiles for VueDraggable v-model sync
+const localProfiles = ref([...props.profiles])
+watch(() => props.profiles, (val) => { localProfiles.value = [...val] }, { deep: true })
+watch(localProfiles, (val) => {
+  // Emit reorder only when order actually differs from prop
+  const sameOrder = val.length === props.profiles.length && val.every((p, i) => p.name === props.profiles[i].name)
+  if (!sameOrder) {
+    emit('reorder-profiles', [...val])
+  }
+}, { deep: true })
+
+let isDragging = false
+const onDragStart = () => { isDragging = true; document.body.style.userSelect = 'none' }
+const onDragEnd = () => { isDragging = false; document.body.style.userSelect = '' }
 
 // --- 连通性监控 ---
 const connectivityMap = reactive({}) // { profileName: { level: 'excellent'|'good'|'slow'|'unreachable'|'checking', latency: number } }
@@ -164,7 +177,7 @@ async function pingProfile(name) {
 
 async function pingAll() {
   if (pollingCancelled) return
-  await Promise.all(props.profiles.map(p => pingProfile(p.name)))
+  await Promise.all(props.profiles.filter(p => !isProfileExpired(p.name)).map(p => pingProfile(p.name)))
 }
 
 function startPolling() {
@@ -239,31 +252,6 @@ onUnmounted(() => {
   }
 })
 
-const onDragStart = index => {
-  dragIndex.value = index
-}
-
-const onDragOver = index => {
-  dragOverIndex.value = index
-}
-
-const onDrop = index => {
-  if (dragIndex.value !== -1 && dragIndex.value !== index) {
-    const newProfiles = [...props.profiles]
-    const [removed] = newProfiles.splice(dragIndex.value, 1)
-    newProfiles.splice(index, 0, removed)
-    // 通过emit通知父组件排序变化
-    emit('reorder-profiles', newProfiles)
-  }
-  dragIndex.value = -1
-  dragOverIndex.value = -1
-}
-
-const onDragEnd = () => {
-  dragIndex.value = -1
-  dragOverIndex.value = -1
-}
-
 const profileColors = [
   'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
   'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
@@ -324,10 +312,15 @@ function getExpiryText(name) {
   const expiryDate = getExpiryDate(name)
   if (!expiryDate) return ''
   const now = moment()
-  const diffDays = expiryDate.diff(now, 'days')
-  if (diffDays < 0) {
-    return t('api.expiry.expired', { days: Math.abs(diffDays) })
+
+  // Check expired first — moment.diff truncates toward zero, so a profile that
+  // expired just hours ago would show diffDays === 0 and incorrectly fall into
+  // the "hours left" branch.
+  if (now.isAfter(expiryDate)) {
+    return t('api.expiry.expired')
   }
+
+  const diffDays = expiryDate.diff(now, 'days')
   if (diffDays === 0) {
     const diffHours = expiryDate.diff(now, 'hours')
     return t('api.expiry.hoursLeft', { hours: Math.max(diffHours, 1) })
@@ -343,12 +336,21 @@ function getExpiryText(name) {
   return t('api.expiry.yearsLeft', { years: diffYears })
 }
 
+function isProfileExpired(name) {
+  const expiryDate = getExpiryDate(name)
+  if (!expiryDate) return false
+  return moment().isAfter(expiryDate)
+}
+
 function getExpiryClass(name) {
   const expiryDate = getExpiryDate(name)
   if (!expiryDate) return ''
   const now = moment()
+
+  // Must check expired first — same truncation issue as getExpiryText
+  if (now.isAfter(expiryDate)) return 'expiry-expired'
+
   const daysLeft = expiryDate.diff(now, 'days')
-  if (daysLeft < 0) return 'expiry-expired'
   if (daysLeft <= 3) return 'expiry-urgent'
   if (daysLeft <= 7) return 'expiry-warning'
   return 'expiry-normal'
@@ -408,11 +410,15 @@ function getExpiryClass(name) {
     border-color: var(--accent);
     box-shadow: var(--shadow-sm);
   }
+}
 
-  &.dragging {
-    opacity: 0.5;
-    transform: scale(1.02);
-  }
+// SortableJS ghost placeholder — the animated "gap" during drag
+.sortable-ghost {
+  opacity: 0.4;
+  background: var(--accent-light) !important;
+  border: 2px dashed var(--accent) !important;
+  box-shadow: var(--shadow-sm);
+  transform: scale(1.02);
 }
 
 .drag-handle {
@@ -577,6 +583,29 @@ function getExpiryClass(name) {
   }
 }
 
+// Disabled / expired state — only block profile selection, keep actions/sort active
+.profile-item.expired {
+  cursor: not-allowed;
+
+  // Hide connectivity dot for expired profiles
+  .connectivity-indicator {
+    display: none;
+  }
+
+  // Apply disabled visual only to non-action parts
+  > :not(.drag-handle):not(.profile-actions) {
+    opacity: 0.55;
+    filter: grayscale(0.6);
+    pointer-events: none;
+  }
+
+  &:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+    transform: none;
+  }
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -659,11 +688,11 @@ function getExpiryClass(name) {
 }
 
 .expiry-expired {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  font-weight: 600;
+  background: rgba(128, 128, 128, 0.12);
+  color: var(--text-tertiary);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  font-weight: 500;
 
-  &::before { background: #ef4444; }
+  &::before { background: var(--text-tertiary); }
 }
 </style>
