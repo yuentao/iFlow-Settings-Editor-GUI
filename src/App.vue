@@ -783,6 +783,7 @@ const updateProgressStatus = ref('downloading')
 const updateDownloadProgress = ref(0)
 const updateDownloadSpeed = ref('')
 const isBackgroundDownloading = ref(false)
+const isAutoChecking = ref(false)
 
 const getEffectiveTheme = () => {
   const theme = settings.value.uiTheme
@@ -960,6 +961,8 @@ const initUpdateListeners = () => {
   // 监听发现新版本
   cleanupFns.push(
     window.electronAPI.onUpdateAvailable(info => {
+      // 自动检查流程中（checkForUpdatesAuto）会静默后台下载，不弹通知对话框
+      if (isAutoChecking.value) return
       latestUpdateVersion.value = info.version || ''
       updateReleaseNotes.value = info.releaseNotes || ''
       showUpdateNotification.value = true
@@ -1021,6 +1024,7 @@ const initUpdateListeners = () => {
 // 自动检查更新（不显示"已是最新"提示，发现新版本后自动后台下载）
 const checkForUpdatesAuto = async () => {
   console.log('[AutoUpdate][Renderer] checkForUpdatesAuto called')
+  isAutoChecking.value = true
   try {
     const result = await window.electronAPI.checkForUpdates()
     console.log('[AutoUpdate][Renderer] checkForUpdates result:', JSON.stringify(result))
@@ -1040,6 +1044,8 @@ const checkForUpdatesAuto = async () => {
   } catch (error) {
     console.error('[AutoUpdate][Renderer] Auto check for updates failed:', error)
     isBackgroundDownloading.value = false
+  } finally {
+    isAutoChecking.value = false
   }
 }
 
@@ -1056,7 +1062,7 @@ const handleUpdateNow = async () => {
   }
 }
 
-const handleUpdateLater = () => {
+const handleUpdateLater = async () => {
   showUpdateNotification.value = false
   showUpdateProgress.value = false
 }
