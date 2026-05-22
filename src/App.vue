@@ -784,6 +784,7 @@ const updateDownloadProgress = ref(0)
 const updateDownloadSpeed = ref('')
 const isBackgroundDownloading = ref(false)
 const isAutoChecking = ref(false)
+const downloadCancelled = ref(false)
 
 const getEffectiveTheme = () => {
   const theme = settings.value.uiTheme
@@ -971,6 +972,8 @@ const initUpdateListeners = () => {
   )
   cleanupFns.push(
     window.electronAPI.onUpdateDownloadProgress(progress => {
+      // 用户已取消下载，忽略后续残留的进度事件
+      if (downloadCancelled.value) return
       const percent = typeof progress === 'object' ? progress.percent : progress
       const speed = typeof progress === 'object' && progress.bytesPerSecond ? `${Math.round(progress.bytesPerSecond / 1024)} KB/s` : ''
       updateDownloadProgress.value = percent
@@ -1065,6 +1068,12 @@ const handleUpdateNow = async () => {
 const handleUpdateLater = async () => {
   showUpdateNotification.value = false
   showUpdateProgress.value = false
+  // 取消正在进行的后台下载
+  if (isBackgroundDownloading.value) {
+    downloadCancelled.value = true
+    await window.electronAPI.cancelDownload()
+    isBackgroundDownloading.value = false
+  }
 }
 
 // 点击全局进度条跳转到关于页面查看详情
@@ -1074,6 +1083,7 @@ const showDownloadDetail = () => {
 
 // 后台下载更新（不显示进度窗）
 const handleDownloadBackground = async () => {
+  downloadCancelled.value = false
   showUpdateNotification.value = false
   isBackgroundDownloading.value = true
   // 不显示进度窗，直接后台下载
@@ -1088,6 +1098,7 @@ const handleDownloadBackground = async () => {
 }
 
 const handleUpdateCancel = async () => {
+  downloadCancelled.value = true
   await window.electronAPI.cancelDownload()
   showUpdateProgress.value = false
   toast.info(t('update.updateCancelled'))

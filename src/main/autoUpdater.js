@@ -312,7 +312,10 @@ async function checkForUpdates() {
     }
   } catch (error) {
     logError('[AutoUpdater] Check failed:', error.message)
-    setUpdateState({ status: 'error', error: error.message })
+    // event 处理器已通过 on('error') 设置了 error 状态，避免重复发送
+    if (updateState.status !== 'error') {
+      setUpdateState({ status: 'error', error: error.message })
+    }
     return {
       success: false,
       error: error.message,
