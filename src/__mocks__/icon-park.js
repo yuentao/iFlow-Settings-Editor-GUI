@@ -27,6 +27,14 @@ function createIconStub(name) {
   })
 }
 
+export const Communication = createIconStub('Communication')
+export const DataScreen = createIconStub('DataScreen')
+export const Globe = createIconStub('Globe')
+export const Rocket = createIconStub('Rocket')
+export const CheckCorrect = createIconStub('CheckCorrect')
+export const Time = createIconStub('Time')
+export const DataDisplay = createIconStub('DataDisplay')
+export const FilterOne = createIconStub('FilterOne')
 export const Key = createIconStub('Key')
 export const Server = createIconStub('Server')
 export const Star = createIconStub('Star')
@@ -76,6 +84,7 @@ const defaultExport = {
   ArrowDown, ArrowUp, Search, Setting, Home, Menu,
   More, Copy, Share, Export, Import, Download,
   Application, Add, Reduce, Help, Question,
+  Globe, Rocket, CheckCorrect, Time, DataDisplay, FilterOne, Communication, DataScreen,
 }
 
 export default defaultExport

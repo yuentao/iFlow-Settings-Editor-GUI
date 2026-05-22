@@ -1,15 +1,9 @@
 <template>
   <div class="app" :class="themeClass">
-    <TitleBar @minimize="minimize" @maximize="maximize" @close="close" />
+    <TitleBar />
 
     <main class="main">
-      <SideBar
-        :current-section="currentSection"
-        :is-background-downloading="isBackgroundDownloading"
-        :update-download-progress="updateDownloadProgress"
-        @navigate="showSection"
-        @show-download-detail="showDownloadDetail"
-      />
+      <SideBar :current-section="currentSection" :is-background-downloading="isBackgroundDownloading" :update-download-progress="updateDownloadProgress" @navigate="showSection" @show-download-detail="handleShowDownloadDetail" />
 
       <div class="content">
         <template v-if="isLoading">
@@ -101,7 +95,6 @@
       :latest-version="latestUpdateVersion"
       :release-notes="updateReleaseNotes"
       @update="handleUpdateNow"
-      @background="handleDownloadBackground"
       @later="handleUpdateLater"
       @close="handleUpdateLater" />
 
@@ -113,6 +106,7 @@
       :speed="updateDownloadSpeed"
       :release-notes="updateReleaseNotes"
       @cancel="handleUpdateCancel"
+      @background="handleDownloadBackground"
       @install="handleInstallNow"
       @later="handleUpdateLater" />
 
@@ -143,13 +137,13 @@ async function loadLocale(lang) {
 }
 
 // 安全深拷贝：先解包 Vue reactive proxy，再用 structuredClone
-const deepClone = (obj) => structuredClone(toRaw(obj))
+const deepClone = obj => structuredClone(toRaw(obj))
 
 // 防抖：settings 深度 watcher 合并连续修改为一次 IPC 保存
 let _settingsSaveTimer = null
 const SETTINGS_SAVE_DELAY = 500
 
-const debouncedSaveSettings = (getSettings) => {
+const debouncedSaveSettings = getSettings => {
   if (_settingsSaveTimer) clearTimeout(_settingsSaveTimer)
   _settingsSaveTimer = setTimeout(async () => {
     _settingsSaveTimer = null
@@ -189,10 +183,7 @@ import { defineAsyncComponent, h } from 'vue'
 
 const loadingComponent = {
   render() {
-    return h('div', { class: 'async-loading' }, [
-      h('div', { class: 'skeleton-header-title' }),
-      h('div', { class: 'skeleton-header-desc' }),
-    ])
+    return h('div', { class: 'async-loading' }, [h('div', { class: 'skeleton-header-title' }), h('div', { class: 'skeleton-header-desc' })])
   },
 }
 
@@ -200,10 +191,7 @@ const errorComponent = {
   props: ['error'],
   emits: ['retry'],
   render() {
-    return h('div', { class: 'async-error' }, [
-      h('p', this.error),
-      h('button', { onClick: () => this.$emit('retry') }, this.$t('app.retry')),
-    ])
+    return h('div', { class: 'async-error' }, [h('p', this.error), h('button', { onClick: () => this.$emit('retry') }, this.$t('app.retry'))])
   },
 }
 
@@ -347,7 +335,7 @@ const settings = ref({
   approvalMode: 'autoEdit',
   thinkingModeEnabled: 'true',
   connectivityPollInterval: 30,
-      modelUsageRefreshInterval: 5,
+  modelUsageRefreshInterval: 5,
 })
 
 const originalSettings = ref({})
@@ -646,7 +634,7 @@ const loadSettings = async () => {
     if (!data.currentApiProfile) data.currentApiProfile = 'default'
     if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
     if (data.acrylicEnabled === undefined) data.acrylicEnabled = true
-    
+
     // CLI 行为控制 - 新字段默认值
     if (data.autoAccept === undefined) data.autoAccept = false
     if (data.hideBanner === undefined) data.hideBanner = false
@@ -783,6 +771,8 @@ const updateProgressStatus = ref('downloading')
 const updateDownloadProgress = ref(0)
 const updateDownloadSpeed = ref('')
 const isBackgroundDownloading = ref(false)
+const isAutoChecking = ref(false)
+const downloadCancelled = ref(false)
 
 const getEffectiveTheme = () => {
   const theme = settings.value.uiTheme
@@ -795,11 +785,6 @@ const themeClass = computed(() => {
   if (theme === 'Dark') return 'dark'
   return ''
 })
-
-const selectServer = name => {
-  currentServerName.value = name
-  openEditServerPanel(name)
-}
 
 const openAddServerPanel = () => {
   isEditingServer.value = false
@@ -912,10 +897,6 @@ const deleteServerByName = async serverName => {
   }
 }
 
-const minimize = () => window.electronAPI.minimize()
-const maximize = () => window.electronAPI.maximize()
-const close = () => window.electronAPI.close()
-
 // P0-05 + P0-06：收集所有事件监听器的清理函数，组件卸载时统一移除
 const cleanupFns = []
 
@@ -939,9 +920,11 @@ const initUpdateListeners = () => {
         }
         showUpdateProgress.value = false
       } else if (state.status === 'downloading' && state.isBackground) {
-        // 后台下载开始，不显示进度窗
-        isBackgroundDownloading.value = true
-        showUpdateProgress.value = false
+        // 后台下载模式：仅在用户未主动打开进度弹框时才隐藏
+        if (!showUpdateProgress.value) {
+          isBackgroundDownloading.value = true
+          showUpdateProgress.value = false
+        }
       } else if (state.status === 'downloaded') {
         isBackgroundDownloading.value = false
         updateProgressStatus.value = 'downloaded'
@@ -960,6 +943,8 @@ const initUpdateListeners = () => {
   // 监听发现新版本
   cleanupFns.push(
     window.electronAPI.onUpdateAvailable(info => {
+      // 自动检查流程中（checkForUpdatesAuto）会静默后台下载，不弹通知对话框
+      if (isAutoChecking.value) return
       latestUpdateVersion.value = info.version || ''
       updateReleaseNotes.value = info.releaseNotes || ''
       showUpdateNotification.value = true
@@ -968,6 +953,8 @@ const initUpdateListeners = () => {
   )
   cleanupFns.push(
     window.electronAPI.onUpdateDownloadProgress(progress => {
+      // 用户已取消下载，忽略后续残留的进度事件
+      if (downloadCancelled.value) return
       const percent = typeof progress === 'object' ? progress.percent : progress
       const speed = typeof progress === 'object' && progress.bytesPerSecond ? `${Math.round(progress.bytesPerSecond / 1024)} KB/s` : ''
       updateDownloadProgress.value = percent
@@ -1021,6 +1008,7 @@ const initUpdateListeners = () => {
 // 自动检查更新（不显示"已是最新"提示，发现新版本后自动后台下载）
 const checkForUpdatesAuto = async () => {
   console.log('[AutoUpdate][Renderer] checkForUpdatesAuto called')
+  isAutoChecking.value = true
   try {
     const result = await window.electronAPI.checkForUpdates()
     console.log('[AutoUpdate][Renderer] checkForUpdates result:', JSON.stringify(result))
@@ -1040,14 +1028,18 @@ const checkForUpdatesAuto = async () => {
   } catch (error) {
     console.error('[AutoUpdate][Renderer] Auto check for updates failed:', error)
     isBackgroundDownloading.value = false
+  } finally {
+    isAutoChecking.value = false
   }
 }
 
 const handleUpdateNow = async () => {
   showUpdateNotification.value = false
+  downloadCancelled.value = false
   showUpdateProgress.value = true
   updateProgressStatus.value = 'downloading'
   updateDownloadProgress.value = 0
+  updateDownloadSpeed.value = ''
   try {
     await window.electronAPI.downloadUpdate()
   } catch (error) {
@@ -1056,32 +1048,33 @@ const handleUpdateNow = async () => {
   }
 }
 
-const handleUpdateLater = () => {
+const handleUpdateLater = async () => {
   showUpdateNotification.value = false
   showUpdateProgress.value = false
-}
-
-// 点击全局进度条跳转到关于页面查看详情
-const showDownloadDetail = () => {
-  currentSection.value = 'general'
-}
-
-// 后台下载更新（不显示进度窗）
-const handleDownloadBackground = async () => {
-  showUpdateNotification.value = false
-  isBackgroundDownloading.value = true
-  // 不显示进度窗，直接后台下载
-  try {
-    await window.electronAPI.downloadUpdateBackground()
-    // 下载完成后的提示会在 updateChecker 中通过事件通知
-  } catch (error) {
-    console.error('Background download failed:', error)
-    // 后台下载失败也可以提示用户
-    toast.error(t('update.error.downloadFailed', { code: '??' }))
+  // 取消正在进行的后台下载
+  if (isBackgroundDownloading.value) {
+    downloadCancelled.value = true
+    await window.electronAPI.cancelDownload()
+    isBackgroundDownloading.value = false
   }
 }
 
+// 后台下载更新：保持当前下载进程，关闭进度弹框，在侧边栏显示进度
+const handleDownloadBackground = () => {
+  isBackgroundDownloading.value = true
+  showUpdateProgress.value = false
+  showUpdateNotification.value = false
+}
+
+// 点击侧边栏后台下载条，重新打开进度弹框
+const handleShowDownloadDetail = () => {
+  isBackgroundDownloading.value = false
+  showUpdateProgress.value = true
+  updateProgressStatus.value = 'downloading'
+}
+
 const handleUpdateCancel = async () => {
+  downloadCancelled.value = true
   await window.electronAPI.cancelDownload()
   showUpdateProgress.value = false
   toast.info(t('update.updateCancelled'))
@@ -1178,10 +1171,7 @@ onMounted(async () => {
   initUpdateListeners()
 
   // 关键数据并行加载（减少串行 IPC 等待）
-  await Promise.all([
-    loadApiProfiles(),
-    loadSettings(),
-  ])
+  await Promise.all([loadApiProfiles(), loadSettings()])
 
   // 非关键计数数据延迟加载，不阻塞首次渲染
   loadSkillCount()
