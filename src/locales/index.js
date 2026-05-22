@@ -419,7 +419,7 @@ export default {
     currentVersion: '当前版本',
     newVersion: '最新版本',
     releaseNotes: '更新说明',
-    later: '稍后提醒',
+    later: '暂不更新',
     updateNow: '立即更新',
     updateHint: '下载完成后将提醒您安装',
     downloading: '正在下载更新...',
