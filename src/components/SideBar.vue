@@ -48,7 +48,7 @@
     </div>
     <!-- 全局后台下载进度条 -->
     <Transition name="download-bar">
-      <div v-if="isBackgroundDownloading" class="global-download-bar">
+      <div v-if="isBackgroundDownloading" class="global-download-bar" @click="$emit('show-download-detail')">
         <div class="global-download-fill" :style="{ width: updateDownloadProgress + '%' }"></div>
         <div class="global-download-inner">
           <svg class="global-download-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -130,7 +130,16 @@ const toggleCollapse = (): void => {
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  cursor: pointer;
   transition: background 0.2s ease;
+
+  &:hover {
+    background: var(--control-fill);
+
+    .global-download-text {
+      color: var(--text-primary);
+    }
+  }
 
   .sidebar.collapsed & {
     height: 24px;

@@ -3,7 +3,7 @@
     <TitleBar />
 
     <main class="main">
-      <SideBar :current-section="currentSection" :is-background-downloading="isBackgroundDownloading" :update-download-progress="updateDownloadProgress" @navigate="showSection" />
+      <SideBar :current-section="currentSection" :is-background-downloading="isBackgroundDownloading" :update-download-progress="updateDownloadProgress" @navigate="showSection" @show-download-detail="handleShowDownloadDetail" />
 
       <div class="content">
         <template v-if="isLoading">
@@ -1057,28 +1057,18 @@ const handleUpdateLater = async () => {
   }
 }
 
-// 后台下载更新（不显示进度窗）
-const handleDownloadBackground = async () => {
-  downloadCancelled.value = false
-  showUpdateNotification.value = false
-  showUpdateProgress.value = false
+// 后台下载更新：保持当前下载进程，关闭进度弹框，在侧边栏显示进度
+const handleDownloadBackground = () => {
   isBackgroundDownloading.value = true
-  // 如果当前有前台下载正在进行，先取消再以后台模式重启
-  if (updateProgressStatus.value === 'downloading') {
-    await window.electronAPI.cancelDownload()
-    downloadCancelled.value = false
-  }
-  try {
-    const result = await window.electronAPI.downloadUpdateBackground()
-    if (!result.success && !result.cancelled) {
-      isBackgroundDownloading.value = false
-      toast.error(t('update.error.downloadFailed') + ': ' + (result.error || 'Unknown'))
-    }
-  } catch (error) {
-    isBackgroundDownloading.value = false
-    console.error('Background download failed:', error)
-    toast.error(t('update.error.downloadFailed'))
-  }
+  showUpdateProgress.value = false
+  showUpdateNotification.value = false
+}
+
+// 点击侧边栏后台下载条，重新打开进度弹框
+const handleShowDownloadDetail = () => {
+  isBackgroundDownloading.value = false
+  showUpdateProgress.value = true
+  updateProgressStatus.value = 'downloading'
 }
 
 const handleUpdateCancel = async () => {
