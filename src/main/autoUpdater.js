@@ -162,6 +162,9 @@ function initAutoUpdater() {
   })
 
   autoUpdater.on('download-progress', progress => {
+    // 用户已取消下载，忽略后续残留的进度事件
+    if (downloadCancelled) return
+
     const percent = Math.round(progress.percent)
     logInfo(`[AutoUpdater] Download progress: ${percent}% (${progress.transferred}/${progress.total})`)
     logInfo(`[AutoUpdater] Speed: ${Math.round(progress.bytesPerSecond / 1024)} KB/s`)
@@ -345,6 +348,12 @@ async function downloadUpdate(options = {}) {
     // update-downloaded 事件已正确设置了 downloaded 状态和 downloadPath
     const downloadPaths = await autoUpdater.downloadUpdate()
 
+    // 用户已取消下载，即使实际下载完成也返回取消状态
+    if (currentDownloadOptions?.cancelled) {
+      setUpdateState({ status: 'idle', error: null, isBackground: false })
+      return { success: false, cancelled: true }
+    }
+
     // 下载完成：update-downloaded 事件已触发，状态已被更新
     if (updateState.status === 'downloaded' && updateState.downloadPath) {
       return { success: true, downloadPath: updateState.downloadPath }
@@ -395,8 +404,8 @@ async function cancelDownload() {
       currentDownloadOptions.cancelled = true
     }
 
-    // 取消 electron-updater 的下载
-    if (autoUpdater) {
+    // 取消 electron-updater 的下载（部分版本可能没有此方法）
+    if (autoUpdater && typeof autoUpdater.cancelDownload === 'function') {
       autoUpdater.cancelDownload()
     }
 
