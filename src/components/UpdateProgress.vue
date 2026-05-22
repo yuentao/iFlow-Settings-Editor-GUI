@@ -28,14 +28,13 @@
         </div>
       </div>
 
-      <div v-if="status === 'downloading'" class="progress-bar-container">
-        <div class="progress-bar">
-          <div class="progress-fill" :style="{ width: progress + '%' }"></div>
+      <div v-if="status === 'downloading'" class="progress-section">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" :style="{ width: progress + '%' }"></div>
         </div>
-      </div>
-
-      <div v-if="speed && status === 'downloading'" class="progress-speed">
-        {{ speed }}
+        <div class="progress-meta">
+          <span v-if="speed" class="progress-speed">{{ speed }}</span>
+        </div>
       </div>
 
       <div v-if="status === 'downloaded'" class="download-complete-message">
@@ -48,6 +47,9 @@
       </div>
 
       <div class="progress-actions">
+        <button v-if="status === 'downloading'" class="btn btn-secondary" @click="handleBackground">
+          {{ $t('update.background') }}
+        </button>
         <button v-if="status === 'downloading'" class="btn btn-secondary" @click="handleCancel">
           {{ $t('update.cancel') }}
         </button>
@@ -92,7 +94,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['cancel', 'install', 'later'])
+const emit = defineEmits(['cancel', 'install', 'later', 'background'])
 
 import { marked } from 'marked'
 
@@ -115,6 +117,10 @@ const handleInstall = () => {
 
 const handleLater = () => {
   emit('later')
+}
+
+const handleBackground = () => {
+  emit('background')
 }
 </script>
 
@@ -168,7 +174,7 @@ const handleLater = () => {
 }
 
 .progress-title {
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -177,10 +183,10 @@ const handleLater = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-md);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-lg);
 }
 
 .version-info {
@@ -201,34 +207,65 @@ const handleLater = () => {
 }
 
 .progress-percentage {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
+  font-size: var(--font-size-base);
+  font-weight: 600;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
-.progress-bar-container {
-  margin-bottom: var(--space-sm);
+.progress-section {
+  margin-bottom: var(--space-lg);
 }
 
-.progress-bar {
-  height: 8px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-full);
+.progress-bar-track {
+  height: 3px;
+  background: var(--control-fill-hover);
+  border-radius: 2px;
   overflow: hidden;
 }
 
-.progress-fill {
+.progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-light));
-  border-radius: var(--radius-full);
-  transition: width 0.3s ease;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  min-width: 2px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+    animation: progress-shimmer 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes progress-shimmer {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-xs);
 }
 
 .progress-speed {
-  text-align: center;
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);
-  margin-bottom: var(--space-md);
+  letter-spacing: 0.01em;
 }
 
 .download-complete-message {
@@ -237,15 +274,15 @@ const handleLater = () => {
   color: var(--success);
   padding: var(--space-md);
   background: var(--success-bg);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-md);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-lg);
 }
 
 .update-notes {
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
   padding: var(--space-md);
   background: var(--bg-secondary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   max-height: 240px;
   overflow-y: auto;
 }

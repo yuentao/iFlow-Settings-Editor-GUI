@@ -20,7 +20,7 @@
         <div class="stat-badge">{{ apiProfileCount }} {{ $t('dashboard.profiles') }}</div>
       </div>
 
-       <!-- 云同步 -->
+      <!-- 云同步 -->
       <div class="stat-card card-appear" style="animation-delay: 0.1s" @click="$emit('navigate', 'general', { section: 'cloudSync' })">
         <div class="stat-icon" :class="cloudSyncStatusClass">
           <Refresh size="28" />
@@ -108,8 +108,6 @@
           </div>
         </div>
       </div>
-
-     
 
       <!-- 同步密码输入对话框 -->
       <div v-if="syncPasswordDialog.show" class="dialog-overlay sync-password-overlay" @click.self="closeSyncPasswordDialog">

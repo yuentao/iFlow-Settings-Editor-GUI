@@ -95,7 +95,6 @@
       :latest-version="latestUpdateVersion"
       :release-notes="updateReleaseNotes"
       @update="handleUpdateNow"
-      @background="handleDownloadBackground"
       @later="handleUpdateLater"
       @close="handleUpdateLater" />
 
@@ -107,6 +106,7 @@
       :speed="updateDownloadSpeed"
       :release-notes="updateReleaseNotes"
       @cancel="handleUpdateCancel"
+      @background="handleDownloadBackground"
       @install="handleInstallNow"
       @later="handleUpdateLater" />
 
@@ -1061,15 +1061,23 @@ const handleUpdateLater = async () => {
 const handleDownloadBackground = async () => {
   downloadCancelled.value = false
   showUpdateNotification.value = false
+  showUpdateProgress.value = false
   isBackgroundDownloading.value = true
-  // 不显示进度窗，直接后台下载
+  // 如果当前有前台下载正在进行，先取消再以后台模式重启
+  if (updateProgressStatus.value === 'downloading') {
+    await window.electronAPI.cancelDownload()
+    downloadCancelled.value = false
+  }
   try {
-    await window.electronAPI.downloadUpdateBackground()
-    // 下载完成后的提示会在 updateChecker 中通过事件通知
+    const result = await window.electronAPI.downloadUpdateBackground()
+    if (!result.success && !result.cancelled) {
+      isBackgroundDownloading.value = false
+      toast.error(t('update.error.downloadFailed') + ': ' + (result.error || 'Unknown'))
+    }
   } catch (error) {
+    isBackgroundDownloading.value = false
     console.error('Background download failed:', error)
-    // 后台下载失败也可以提示用户
-    toast.error(t('update.error.downloadFailed', { code: '??' }))
+    toast.error(t('update.error.downloadFailed'))
   }
 }
 

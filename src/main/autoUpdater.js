@@ -54,6 +54,9 @@ let currentDownloadOptions = null
 // 是否正在下载中（防止取消后残留事件干扰新下载）
 let isDownloading = false
 
+// 下载会话代数（用于 cancelDownload 后使旧下载的 finally 块不干扰新下载）
+let downloadGeneration = 0
+
 // 主窗口引用
 let mainWindowRef = null
 
@@ -339,6 +342,8 @@ async function checkForUpdates() {
  * @returns {Promise<Object>} 下载结果
  */
 async function downloadUpdate(options = {}) {
+  const myGeneration = ++downloadGeneration
+
   try {
     // 已有下载正在进行，阻止并发（包括取消后仍在运行的残留下载）
     if (isDownloading) {
@@ -392,7 +397,10 @@ async function downloadUpdate(options = {}) {
     setUpdateState({ status: 'error', error: error.message, isBackground: false })
     return { success: false, error: error.message }
   } finally {
-    isDownloading = false
+    // 仅当前下载的 generation 仍是最新的才重置，防止取消后旧 Promise 结算时干扰新下载
+    if (downloadGeneration === myGeneration) {
+      isDownloading = false
+    }
   }
 }
 
@@ -420,6 +428,11 @@ async function cancelDownload() {
     if (autoUpdater && typeof autoUpdater.cancelDownload === 'function') {
       autoUpdater.cancelDownload()
     }
+
+    // 重置下载锁，允许新下载启动
+    isDownloading = false
+    // 递增 generation，使旧下载的 finally 块不再重置 isDownloading
+    downloadGeneration++
 
     setUpdateState({ status: 'idle', isBackground: false })
     return { success: true }

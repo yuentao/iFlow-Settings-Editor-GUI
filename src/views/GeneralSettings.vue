@@ -104,7 +104,6 @@
           </div>
         </div>
       </div>
-
     </div>
 
     <!-- ===== CLI 设置 ===== -->
@@ -621,7 +620,7 @@
 </template>
 
 <script setup>
-import { Globe, Setting, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, CheckCorrect, Time, DataDisplay, FilterOne } from '@icon-park/vue-next'
+import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne } from '@icon-park/vue-next'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import { useToast } from '@/composables/useToast'
