@@ -118,6 +118,7 @@ const defaultTranslations = {
       requestTimeout: '请求超时',
       downloadFailed: '下载失败: HTTP {code}',
       downloadTimeout: '下载超时',
+      downloadInProgress: '上次下载仍在进行中，请稍后重试',
       noDownloadUrl: '无可用下载链接',
       noDownloadedUpdate: '没有已下载的更新',
       noReleaseUrl: '没有 Release 页面链接',

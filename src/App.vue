@@ -1,15 +1,9 @@
 <template>
   <div class="app" :class="themeClass">
-    <TitleBar @minimize="minimize" @maximize="maximize" @close="close" />
+    <TitleBar />
 
     <main class="main">
-      <SideBar
-        :current-section="currentSection"
-        :is-background-downloading="isBackgroundDownloading"
-        :update-download-progress="updateDownloadProgress"
-        @navigate="showSection"
-        @show-download-detail="showDownloadDetail"
-      />
+      <SideBar :current-section="currentSection" :is-background-downloading="isBackgroundDownloading" :update-download-progress="updateDownloadProgress" @navigate="showSection" />
 
       <div class="content">
         <template v-if="isLoading">
@@ -143,13 +137,13 @@ async function loadLocale(lang) {
 }
 
 // 安全深拷贝：先解包 Vue reactive proxy，再用 structuredClone
-const deepClone = (obj) => structuredClone(toRaw(obj))
+const deepClone = obj => structuredClone(toRaw(obj))
 
 // 防抖：settings 深度 watcher 合并连续修改为一次 IPC 保存
 let _settingsSaveTimer = null
 const SETTINGS_SAVE_DELAY = 500
 
-const debouncedSaveSettings = (getSettings) => {
+const debouncedSaveSettings = getSettings => {
   if (_settingsSaveTimer) clearTimeout(_settingsSaveTimer)
   _settingsSaveTimer = setTimeout(async () => {
     _settingsSaveTimer = null
@@ -189,10 +183,7 @@ import { defineAsyncComponent, h } from 'vue'
 
 const loadingComponent = {
   render() {
-    return h('div', { class: 'async-loading' }, [
-      h('div', { class: 'skeleton-header-title' }),
-      h('div', { class: 'skeleton-header-desc' }),
-    ])
+    return h('div', { class: 'async-loading' }, [h('div', { class: 'skeleton-header-title' }), h('div', { class: 'skeleton-header-desc' })])
   },
 }
 
@@ -200,10 +191,7 @@ const errorComponent = {
   props: ['error'],
   emits: ['retry'],
   render() {
-    return h('div', { class: 'async-error' }, [
-      h('p', this.error),
-      h('button', { onClick: () => this.$emit('retry') }, this.$t('app.retry')),
-    ])
+    return h('div', { class: 'async-error' }, [h('p', this.error), h('button', { onClick: () => this.$emit('retry') }, this.$t('app.retry'))])
   },
 }
 
@@ -347,7 +335,7 @@ const settings = ref({
   approvalMode: 'autoEdit',
   thinkingModeEnabled: 'true',
   connectivityPollInterval: 30,
-      modelUsageRefreshInterval: 5,
+  modelUsageRefreshInterval: 5,
 })
 
 const originalSettings = ref({})
@@ -646,7 +634,7 @@ const loadSettings = async () => {
     if (!data.currentApiProfile) data.currentApiProfile = 'default'
     if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
     if (data.acrylicEnabled === undefined) data.acrylicEnabled = true
-    
+
     // CLI 行为控制 - 新字段默认值
     if (data.autoAccept === undefined) data.autoAccept = false
     if (data.hideBanner === undefined) data.hideBanner = false
@@ -798,11 +786,6 @@ const themeClass = computed(() => {
   return ''
 })
 
-const selectServer = name => {
-  currentServerName.value = name
-  openEditServerPanel(name)
-}
-
 const openAddServerPanel = () => {
   isEditingServer.value = false
   editingServerData.value = { name: '', description: '', command: 'npx', args: ['-y', 'package-name'] }
@@ -913,10 +896,6 @@ const deleteServerByName = async serverName => {
     modified.value = false
   }
 }
-
-const minimize = () => window.electronAPI.minimize()
-const maximize = () => window.electronAPI.maximize()
-const close = () => window.electronAPI.close()
 
 // P0-05 + P0-06：收集所有事件监听器的清理函数，组件卸载时统一移除
 const cleanupFns = []
@@ -1054,9 +1033,11 @@ const checkForUpdatesAuto = async () => {
 
 const handleUpdateNow = async () => {
   showUpdateNotification.value = false
+  downloadCancelled.value = false
   showUpdateProgress.value = true
   updateProgressStatus.value = 'downloading'
   updateDownloadProgress.value = 0
+  updateDownloadSpeed.value = ''
   try {
     await window.electronAPI.downloadUpdate()
   } catch (error) {
@@ -1074,11 +1055,6 @@ const handleUpdateLater = async () => {
     await window.electronAPI.cancelDownload()
     isBackgroundDownloading.value = false
   }
-}
-
-// 点击全局进度条跳转到关于页面查看详情
-const showDownloadDetail = () => {
-  currentSection.value = 'general'
 }
 
 // 后台下载更新（不显示进度窗）
@@ -1195,10 +1171,7 @@ onMounted(async () => {
   initUpdateListeners()
 
   // 关键数据并行加载（减少串行 IPC 等待）
-  await Promise.all([
-    loadApiProfiles(),
-    loadSettings(),
-  ])
+  await Promise.all([loadApiProfiles(), loadSettings()])
 
   // 非关键计数数据延迟加载，不阻塞首次渲染
   loadSkillCount()

@@ -51,6 +51,9 @@ let downloadCancelled = false
 // 当前下载选项
 let currentDownloadOptions = null
 
+// 是否正在下载中（防止取消后残留事件干扰新下载）
+let isDownloading = false
+
 // 主窗口引用
 let mainWindowRef = null
 
@@ -168,7 +171,8 @@ function initAutoUpdater() {
     const percent = Math.round(progress.percent)
     logInfo(`[AutoUpdater] Download progress: ${percent}% (${progress.transferred}/${progress.total})`)
     logInfo(`[AutoUpdater] Speed: ${Math.round(progress.bytesPerSecond / 1024)} KB/s`)
-    logInfo(`[AutoUpdater] Remaining: ~${Math.round(progress.remainingTime)}s`)
+    const remaining = progress.remainingTime
+    logInfo(`[AutoUpdater] Remaining: ~${remaining != null && isFinite(remaining) ? Math.round(remaining) + 's' : 'calculating...'}`)
 
     setUpdateState({ progress: percent })
 
@@ -336,10 +340,16 @@ async function checkForUpdates() {
  */
 async function downloadUpdate(options = {}) {
   try {
+    // 已有下载正在进行，阻止并发（包括取消后仍在运行的残留下载）
+    if (isDownloading) {
+      return { success: false, error: t('update.error.downloadInProgress') }
+    }
+
     if (updateState.status === 'downloaded') {
       return { success: true, downloadPath: updateState.downloadPath }
     }
 
+    isDownloading = true
     setUpdateState({ status: 'downloading', progress: 0, isBackground: !!options.background })
     downloadCancelled = false
     currentDownloadOptions = { cancelled: false }
@@ -381,6 +391,8 @@ async function downloadUpdate(options = {}) {
     logError('[AutoUpdater] Download failed:', error.message)
     setUpdateState({ status: 'error', error: error.message, isBackground: false })
     return { success: false, error: error.message }
+  } finally {
+    isDownloading = false
   }
 }
 
