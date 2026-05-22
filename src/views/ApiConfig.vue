@@ -123,8 +123,10 @@ const onDragEnd = () => { isDragging = false; document.body.style.userSelect = '
 const connectivityMap = reactive({}) // { profileName: { level: 'excellent'|'good'|'slow'|'unreachable'|'checking', latency: number } }
 let connectivityTimer = null
 let pollingCancelled = false
-const POLL_INTERVAL = 30000 // 30 秒轮询
 const PING_TIMEOUT_THRESHOLD = 2000 // >2s 视为不可达
+
+// 从设置中读取连通性检测间隔（秒），默认 30 秒
+const pollIntervalMs = computed(() => (props.settings?.connectivityPollInterval ?? 30) * 1000)
 
 function getConnectivityLevel(name) {
   return connectivityMap[name]?.level || 'checking'
@@ -184,7 +186,7 @@ function startPolling() {
   stopPolling()
   pollingCancelled = false
   pingAll()
-  connectivityTimer = setInterval(pingAll, POLL_INTERVAL)
+  connectivityTimer = setInterval(pingAll, pollIntervalMs.value)
 }
 
 function stopPolling() {
@@ -223,6 +225,13 @@ watch(
   },
   { deep: true },
 )
+
+// 连通性检测间隔变化时重启轮询
+watch(pollIntervalMs, () => {
+  if (connectivityTimer) {
+    startPolling()
+  }
+})
 
 // 窗口可见性监听清理函数
 let visibilityHandler = null
