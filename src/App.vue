@@ -920,9 +920,11 @@ const initUpdateListeners = () => {
         }
         showUpdateProgress.value = false
       } else if (state.status === 'downloading' && state.isBackground) {
-        // 后台下载开始，不显示进度窗
-        isBackgroundDownloading.value = true
-        showUpdateProgress.value = false
+        // 后台下载模式：仅在用户未主动打开进度弹框时才隐藏
+        if (!showUpdateProgress.value) {
+          isBackgroundDownloading.value = true
+          showUpdateProgress.value = false
+        }
       } else if (state.status === 'downloaded') {
         isBackgroundDownloading.value = false
         updateProgressStatus.value = 'downloaded'
