@@ -472,10 +472,101 @@ async function generateDiffFromCode(modId) {
 }
 
 /**
+ * 合并同一行内来自不同 Mod 的字符级改动
+ * 对 original→contentA 和 original→contentB 的改动做字符级 diff，
+ * 如果两者的改动区域不重叠，自动合并；否则报告冲突。
+ * @param {string} origLine - 原始行
+ * @param {string} contentLine - content 中的行（可能已被其他 Mod 修改）
+ * @param {string} modLine - 当前 Mod 修改后的行
+ * @returns {{ merged: string, conflict: boolean }}
+ */
+function mergeLineChanges(origLine, contentLine, modLine) {
+  // 如果 content 行与原始行相同，说明没有其他 Mod 改过，直接用 Mod 的版本
+  if (contentLine === origLine) {
+    return { merged: modLine, conflict: false }
+  }
+  // 如果 Mod 行与原始行相同，说明当前 Mod 没改这行，保留 content 版本
+  if (modLine === origLine) {
+    return { merged: contentLine, conflict: false }
+  }
+  // 如果 Mod 行与 content 行相同，两者改法一致，无冲突
+  if (modLine === contentLine) {
+    return { merged: modLine, conflict: false }
+  }
+
+  // 两者都修改了原始行且改法不同 → 尝试字符级合并
+  const changesA = diff.diffChars(origLine, contentLine)
+  const changesB = diff.diffChars(origLine, modLine)
+
+  // 收集两边的改动区域（相对于原始行的字符偏移）
+  const regionsA = [] // { start, end, value }
+  const regionsB = []
+  let pos = 0
+  for (const c of changesA) {
+    if (c.added) {
+      regionsA.push({ start: pos, end: pos, value: c.value })
+    } else if (c.removed) {
+      regionsA.push({ start: pos, end: pos + c.count, value: '' })
+      pos += c.count
+    } else {
+      pos += c.count
+    }
+  }
+  pos = 0
+  for (const c of changesB) {
+    if (c.added) {
+      regionsB.push({ start: pos, end: pos, value: c.value })
+    } else if (c.removed) {
+      regionsB.push({ start: pos, end: pos + c.count, value: '' })
+      pos += c.count
+    } else {
+      pos += c.count
+    }
+  }
+
+  // 检查改动区域是否重叠
+  for (const ra of regionsA) {
+    for (const rb of regionsB) {
+      // 重叠条件：ra 的删除区域与 rb 的删除区域有交集
+      if (ra.end > rb.start && rb.end > ra.start) {
+        // 有重叠，无法自动合并
+        logger.warn(`[applyCodeJsChanges] Line-level merge conflict detected, using current mod's version`)
+        return { merged: modLine, conflict: true }
+      }
+    }
+  }
+
+  // 无重叠，可以合并：先应用 A 的改动，再在结果上应用 B 的改动
+  // 简化策略：按偏移量从大到小排序，先应用靠后的改动（避免偏移量漂移）
+  const allRegions = [
+    ...regionsA.map(r => ({ ...r, source: 'A' })),
+    ...regionsB.map(r => ({ ...r, source: 'B' })),
+  ]
+  // 按起始位置降序排列，先处理靠后的改动
+  allRegions.sort((a, b) => b.start - a.start)
+
+  let merged = origLine
+  for (const region of allRegions) {
+    if (region.value === '') {
+      // 删除操作
+      merged = merged.slice(0, region.start) + merged.slice(region.end)
+    } else {
+      // 插入操作（start === end）
+      merged = merged.slice(0, region.start) + region.value + merged.slice(region.start)
+    }
+  }
+
+  return { merged, conflict: false }
+}
+
+/**
  * 上下文无关的行级 code.js 补丁应用
  * 使用 diff.diffArrays 计算用户对原始文件的改动（新增/删除/不变的行），
  * 然后逐块应用到目标 content 上，不进行上下文校验。
  * 这样非重叠区域的改动（来自其他已启用 Mod）会被保留。
+ *
+ * 改进：当遇到 removed+added 的行替换时，如果 content 中对应行已被其他 Mod 修改，
+ * 会尝试行内字符级合并，将两个 Mod 的不重叠改动合并到同一行。
  */
 function applyCodeJsChanges(original, codeJs, content) {
   // 统一去掉 \r，避免 \r\n vs \n 导致 diffArray 认为每行都不同
@@ -488,15 +579,44 @@ function applyCodeJsChanges(original, codeJs, content) {
   const result = []
   let contentPos = 0
 
-  for (const change of changes) {
+  for (let ci = 0; ci < changes.length; ci++) {
+    const change = changes[ci]
     if (change.removed) {
-      // 用户删除了这些行 → content 中跳过对应的行
-      contentPos += change.count
+      // 检查下一个 change 是否为 added（行替换模式）
+      const nextChange = changes[ci + 1]
+      if (nextChange && nextChange.added) {
+        // 行替换：removed N 行 → added M 行
+        // 尝试逐行合并：将 removed 行与 added 行配对，做行内字符级合并
+        const removedCount = change.count
+        const addedCount = nextChange.count
+        const maxPair = Math.max(removedCount, addedCount)
+
+        for (let i = 0; i < maxPair; i++) {
+          const origLine = i < removedCount ? change.value[i] : ''
+          const modLine = i < addedCount ? nextChange.value[i] : ''
+          const contentLine = contentPos < contentLines.length ? contentLines[contentPos] : ''
+
+          if (i < removedCount) {
+            // 有对应的原始行 → 尝试合并
+            const { merged } = mergeLineChanges(origLine, contentLine, modLine)
+            result.push(merged)
+            contentPos++
+          } else {
+            // 纯新增行（added 多于 removed）→ 直接插入
+            result.push(modLine)
+          }
+        }
+
+        ci++ // 跳过下一个 added change（已处理）
+      } else {
+        // 纯删除：用户删除了这些行 → content 中跳过对应的行
+        contentPos += change.count
+      }
     } else if (change.added) {
-      // 用户添加了这些行 → 直接插入
+      // 纯新增：用户添加了这些行 → 直接插入
       result.push(...change.value)
     } else {
-      // 未变行 → 保留 content 的版本
+      // 未变行 → 保留 content 的版本（可能包含其他 Mod 的改动）
       for (let i = 0; i < change.count; i++) {
         if (contentPos < contentLines.length) {
           result.push(contentLines[contentPos])
@@ -532,8 +652,58 @@ function applyUnifiedDiff(content, diffText) {
 }
 
 /**
+ * 检测同一行内两个 Mod 的改动区域是否真正重叠
+ * 通过字符级 diff 判断：如果两个 Mod 修改了同一行的不同位置，则不冲突；
+ * 只有修改了同一位置（删除区域有交集）才算真正冲突。
+ * @param {string} origLine - 原始行内容
+ * @param {string} modALine - Mod A 修改后的行
+ * @param {string} modBLine - Mod B 修改后的行
+ * @returns {boolean} true 表示存在真正的行内冲突
+ */
+function hasOverlappingChanges(origLine, modALine, modBLine) {
+  // 如果任一 Mod 没改这行，无冲突
+  if (modALine === origLine || modBLine === origLine) return false
+  // 如果两者改法相同，无冲突
+  if (modALine === modBLine) return false
+
+  // 收集两边的删除区域
+  const regionsA = []
+  const regionsB = []
+  let pos = 0
+  for (const c of diff.diffChars(origLine, modALine)) {
+    if (c.removed) {
+      regionsA.push({ start: pos, end: pos + c.count })
+      pos += c.count
+    } else if (!c.added) {
+      pos += c.count
+    }
+  }
+  pos = 0
+  for (const c of diff.diffChars(origLine, modBLine)) {
+    if (c.removed) {
+      regionsB.push({ start: pos, end: pos + c.count })
+      pos += c.count
+    } else if (!c.added) {
+      pos += c.count
+    }
+  }
+
+  // 检查删除区域是否有交集
+  for (const ra of regionsA) {
+    for (const rb of regionsB) {
+      if (ra.end > rb.start && rb.end > ra.start) {
+        return true // 有重叠 → 真正冲突
+      }
+    }
+  }
+  return false // 删除区域不重叠 → 可以自动合并
+}
+
+/**
  * 检测已启用 Mod 之间的冲突
- * 比较每个 Mod 的 code.js 与原始备份的差异，找出多个 Mod 修改了同一行的冲突
+ * 比较每个 Mod 的 code.js 与原始备份的差异，找出多个 Mod 修改了同一行的冲突。
+ * 改进：对于同行修改，使用字符级 diff 判断改动区域是否重叠，
+ * 只有真正重叠的行内改动才报告为冲突，不重叠的改动可以自动合并。
  * @param {Object[]} enabledMods - 已启用的 Mod 列表（含即将启用的）
  * @returns {Array<{modA: Object, modB: Object, lines: Array<number>}>}
  */
@@ -544,7 +714,7 @@ function detectConflicts(enabledMods) {
   const normalize = s => s.replace(/\r\n/g, '\n').replace(/\r/g, '')
   const original = normalize(fs.readFileSync(backupPath, 'utf-8')).split('\n')
 
-  // 收集每个 Mod 改动过的行号
+  // 收集每个 Mod 改动过的行号及修改后的行内容
   const modChanges = []
   for (const mod of enabledMods) {
     const codeJsPath = path.join(MODS_DIR, mod.id, 'code.js')
@@ -556,7 +726,10 @@ function detectConflicts(enabledMods) {
       const maxLen = Math.max(original.length, code.length)
       for (let i = 0; i < maxLen; i++) {
         if ((original[i] || '') !== (code[i] || '')) {
-          changedLines.push(i + 1) // 1-based 行号
+          changedLines.push({
+            lineNum: i + 1, // 1-based 行号
+            content: code[i] || '', // 修改后的行内容
+          })
         }
       }
       modChanges.push({ mod, changedLines })
@@ -565,14 +738,27 @@ function detectConflicts(enabledMods) {
     }
   }
 
-  // 查找冲突：多个 Mod 改动了同一行
+  // 查找冲突：多个 Mod 改动了同一行，且行内改动区域重叠
   const conflicts = []
   for (let i = 0; i < modChanges.length; i++) {
     for (let j = i + 1; j < modChanges.length; j++) {
       const a = modChanges[i]
       const b = modChanges[j]
-      const lineSetA = new Set(a.changedLines)
-      const conflictingLines = b.changedLines.filter(ln => lineSetA.has(ln))
+      const lineMapA = new Map(a.changedLines.map(cl => [cl.lineNum, cl.content]))
+      const conflictingLines = []
+
+      for (const clB of b.changedLines) {
+        const clAContent = lineMapA.get(clB.lineNum)
+        if (clAContent !== undefined) {
+          // 两个 Mod 都改动了同一行 → 检查行内改动是否重叠
+          const origLine = original[clB.lineNum - 1] || ''
+          if (hasOverlappingChanges(origLine, clAContent, clB.content)) {
+            conflictingLines.push(clB.lineNum)
+          }
+          // 不重叠的同行改动不报告为冲突（applyCodeJsChanges 可自动合并）
+        }
+      }
+
       if (conflictingLines.length > 0) {
         conflicts.push({
           modA: a.mod,
