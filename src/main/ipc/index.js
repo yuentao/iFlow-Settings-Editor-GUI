@@ -127,6 +127,68 @@ function registerIpcHandlers(getMainWindow, t) {
     }
   })
 
+  // 日志管理
+  ipcMain.handle('get-log-dir', async () => {
+    try {
+      const path = require('path')
+      const fs = require('fs')
+      const { log } = require('../utils/logger')
+      const logDir = path.dirname(log.transports.file.getFile().path)
+      let totalSize = 0
+      let fileCount = 0
+      try {
+        const files = fs.readdirSync(logDir)
+        for (const file of files) {
+          try {
+            const stat = fs.statSync(path.join(logDir, file))
+            if (stat.isFile()) {
+              totalSize += stat.size
+              fileCount++
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+      return { success: true, path: logDir, totalSize, fileCount }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('clear-logs', async () => {
+    try {
+      const path = require('path')
+      const fs = require('fs')
+      const { log } = require('../utils/logger')
+      const logDir = path.dirname(log.transports.file.getFile().path)
+      const currentLogFile = log.transports.file.getFile().path
+      let clearedSize = 0
+      let clearedCount = 0
+      try {
+        const files = fs.readdirSync(logDir)
+        for (const file of files) {
+          const filePath = path.join(logDir, file)
+          try {
+            const stat = fs.statSync(filePath)
+            if (stat.isFile() && filePath !== currentLogFile) {
+              clearedSize += stat.size
+              clearedCount++
+              fs.unlinkSync(filePath)
+            }
+          } catch (_) {}
+        }
+        // 裁剪当前日志文件（清空内容但保留文件）
+        try {
+          fs.writeFileSync(currentLogFile, '')
+          clearedSize += fs.statSync(currentLogFile).size
+        } catch (_) {}
+      } catch (_) {}
+      logger.info(`Logs cleared: ${clearedCount} files, ${clearedSize} bytes freed`)
+      return { success: true, clearedSize, clearedCount }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
   logger.info('All IPC handlers registered')
 }
 

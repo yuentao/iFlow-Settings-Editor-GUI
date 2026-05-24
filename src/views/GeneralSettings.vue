@@ -567,6 +567,36 @@
           </a>
         </div>
       </div>
+
+      <div class="card card-appear" style="animation-delay: 0.08s">
+        <div class="card-title">
+          <FileSearch size="16" />
+          {{ $t('general.logManagement') }}
+        </div>
+        <div class="log-management">
+          <div class="log-info-row">
+            <div class="log-info-item">
+              <span class="log-info-label">{{ $t('general.logDir') }}</span>
+              <span class="log-info-value" :title="logDir">{{ logDir || '—' }}</span>
+            </div>
+            <div class="log-info-item">
+              <span class="log-info-label">{{ $t('general.logSize') }}</span>
+              <span class="log-info-value">{{ logSizeText }}</span>
+            </div>
+          </div>
+          <div class="log-actions">
+            <button class="btn btn-secondary btn-sm" @click="openLogDir" :disabled="!logDir">
+              <FolderOpen size="14" />
+              {{ $t('general.logOpenDir') }}
+            </button>
+            <button class="btn btn-secondary btn-sm" @click="handleClearLogs" :disabled="isClearingLogs || !logDir">
+              <Loading v-if="isClearingLogs" size="14" class="spin" />
+              <Delete v-else size="14" />
+              {{ $t('general.logClear') }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 重命名设备对话框 -->
@@ -649,7 +679,7 @@
 </template>
 
 <script setup>
-import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right } from '@icon-park/vue-next'
+import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right, FileSearch, FolderOpen } from '@icon-park/vue-next'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import { useToast } from '@/composables/useToast'
@@ -745,6 +775,9 @@ const handleStatusChanged = state => {
 onMounted(async () => {
   // 加载云同步设置（确保默认值正确显示）
   await cloudStore.loadSettings()
+
+  // 加载日志信息
+  loadLogInfo()
 
   // 加载系统主题
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -845,6 +878,58 @@ const handleInstallUpdate = async () => {
 const openExternal = async (url) => {
   if (window.electronAPI?.openExternal) {
     await window.electronAPI.openExternal(url)
+  }
+}
+
+// 日志管理
+const logDir = ref('')
+const logTotalSize = ref(0)
+const logFileCount = ref(0)
+const isClearingLogs = ref(false)
+
+const formatLogSize = (bytes) => {
+  if (bytes === 0) return '0 B'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
+const logSizeText = computed(() => {
+  if (!logDir.value) return '—'
+  return `${formatLogSize(logTotalSize.value)} (${logFileCount.value} ${t('general.logFiles')})`
+})
+
+const loadLogInfo = async () => {
+  if (window.electronAPI?.getLogDir) {
+    const result = await window.electronAPI.getLogDir()
+    if (result.success) {
+      logDir.value = result.path
+      logTotalSize.value = result.totalSize
+      logFileCount.value = result.fileCount
+    }
+  }
+}
+
+const openLogDir = async () => {
+  if (logDir.value && window.electronAPI?.openPath) {
+    await window.electronAPI.openPath(logDir.value)
+  }
+}
+
+const handleClearLogs = async () => {
+  isClearingLogs.value = true
+  try {
+    const result = await window.electronAPI.clearLogs()
+    if (result.success) {
+      toast.success(t('general.logClearSuccess'))
+      await loadLogInfo()
+    } else {
+      toast.error(t('general.logClearFailed'))
+    }
+  } catch (e) {
+    toast.error(t('general.logClearFailed'))
+  } finally {
+    isClearingLogs.value = false
   }
 }
 
@@ -2259,6 +2344,46 @@ input:checked + .slider:before {
   color: var(--text-tertiary);
   transition: all 0.15s ease;
   flex-shrink: 0;
+}
+
+.log-management {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.log-info-row {
+  display: flex;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.log-info-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.log-info-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.log-info-value {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-family: 'Cascadia Code', Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 320px;
+}
+
+.log-actions {
+  display: flex;
+  gap: var(--space-sm);
 }
 
 .dialog-confirm-text {
