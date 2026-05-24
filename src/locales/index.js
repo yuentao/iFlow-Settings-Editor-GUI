@@ -637,6 +637,7 @@ export default {
     deleteProjectSuccess: '项目已删除',
     scrollForMore: '继续向下滚动查看更多',
     backToTop: '返回顶部',
+    refresh: '刷新',
     copy: '复制',
     deleteProjectFailed: '项目删除失败',
     exportSuccess: '会话已导出',
