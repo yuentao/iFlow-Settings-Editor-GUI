@@ -9,6 +9,8 @@ const fs = require('fs')
 const { t } = require('../utils/translations')
 const { readSettings } = require('../services/configService')
 const { wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
+const { createLogger } = require('../utils/logger')
+const logger = createLogger('Skills')
 
 // 技能文件夹路径
 const SKILLS_FOLDER = path.join(app.getPath('home'), '.iflow', 'skills')
@@ -73,7 +75,7 @@ function parseSkillInfo(skillPath, folderName) {
         if (descMatch) description = descMatch[1].trim()
       }
     } catch (e) {
-      console.error('Failed to parse SKILL.md:', e)
+      logger.error('Failed to parse SKILL.md:', e)
     }
   }
 

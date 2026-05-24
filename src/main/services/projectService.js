@@ -5,6 +5,8 @@
 
 const path = require('path')
 const fs = require('fs')
+const { createLogger } = require('../utils/logger')
+const logger = createLogger('Project')
 
 // 延迟计算路径
 let _PROJECTS_DIR = null
@@ -36,7 +38,7 @@ function parseJsonlFile(filePath) {
       }
     }
   } catch (error) {
-    console.error(`Failed to read JSONL file: ${filePath}`, error.message)
+    logger.error(`Failed to read JSONL file: ${filePath}`, error.message)
   }
   return messages
 }
@@ -120,7 +122,7 @@ async function listProjects() {
         firstActive: firstActive ? firstActive.toISOString() : null,
       })
     } catch (error) {
-      console.error(`Failed to read project: ${entry}`, error.message)
+      logger.error(`Failed to read project: ${entry}`, error.message)
     }
   }
 
@@ -695,7 +697,7 @@ async function getAllSessionMessagesForStats(days = 7) {
         }
       }
     } catch (error) {
-      console.error(`Failed to read project for stats: ${dir}`, error.message)
+      logger.error(`Failed to read project for stats: ${dir}`, error.message)
     }
   }
 

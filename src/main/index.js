@@ -5,7 +5,7 @@
 
 const { app, BrowserWindow } = require('electron')
 
-console.log('[iFlow] src/main/index.js module loaded')
+logger.info('src/main/index.js module loaded')
 
 // 导入各模块
 const { createWindow, getMainWindow, setIsQuitting } = require('./window')
@@ -60,7 +60,7 @@ function createMainWindow() {
  * 初始化应用
  */
 async function initializeApp() {
-  console.log('[iFlow][AutoUpdate] initializeApp() called')
+  logger.info('[AutoUpdate] initializeApp() called')
   logger.info('Initializing iFlow Settings Editor...')
 
   // 设置应用路径
@@ -108,22 +108,18 @@ async function initializeApp() {
   try {
     const settings = readSettings()
     const autoUpdateSetting = settings?.autoUpdate
-    console.log(`[iFlow][AutoUpdate] autoUpdate setting: ${autoUpdateSetting} (undefined means true)`)
     logger.info(`[AutoUpdate] autoUpdate setting: ${autoUpdateSetting} (undefined means true)`)
     if (settings?.autoUpdate !== false) {
-      console.log('[iFlow][AutoUpdate] Scheduling auto-check in 5 seconds...')
       logger.info('[AutoUpdate] Scheduling auto-check in 5 seconds...')
       // 延迟检查更新，等待窗口加载完成
       setTimeout(() => {
-        console.log('[iFlow][AutoUpdate] 5s elapsed, triggering auto-check-update')
+        logger.info('[AutoUpdate] 5s elapsed, triggering auto-check-update')
         checkForUpdates()
       }, 5000)
     } else {
-      console.log('[iFlow][AutoUpdate] Auto-update is disabled by user, skipping check')
       logger.info('[AutoUpdate] Auto-update is disabled by user, skipping check')
     }
   } catch (e) {
-    console.error('[iFlow][AutoUpdate] Failed to read settings for auto-update check:', e)
     logger.error('[AutoUpdate] Failed to read settings for auto-update check:', e)
   }
 
@@ -139,13 +135,13 @@ function checkForUpdates() {
     // 通知渲染进程自动检查更新
     const mainWindow = getMainWindow()
     if (mainWindow && mainWindow.webContents) {
-      console.log('[iFlow][AutoUpdate] Sending "auto-check-update" event to renderer')
+      logger.info('[AutoUpdate] Sending "auto-check-update" event to renderer')
       mainWindow.webContents.send('auto-check-update')
     } else {
-      console.warn('[iFlow][AutoUpdate] Cannot send auto-check-update: mainWindow or webContents is null')
+      logger.warn('[AutoUpdate] Cannot send auto-check-update: mainWindow or webContents is null')
     }
   } catch (e) {
-    console.error('[iFlow][AutoUpdate] Failed to send auto-check-update event:', e)
+    logger.error('[AutoUpdate] Failed to send auto-check-update event:', e)
   }
 }
 
@@ -153,7 +149,10 @@ function checkForUpdates() {
  * 应用准备就绪
  */
 app.whenReady().then(() => {
-  console.log('[iFlow] App ready event fired')
+  // 初始化 electron-log 渲染进程日志捕获
+  const { log } = require('./utils/logger')
+  log.initialize({ spyRendererConsole: true })
+
   logger.info('App ready event fired')
 
   // 检查是否是静默启动参数

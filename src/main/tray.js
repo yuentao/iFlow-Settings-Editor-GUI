@@ -7,6 +7,8 @@ const { Tray, Menu, nativeImage, app } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const moment = require('moment')
+const { createLogger } = require('./utils/logger')
+const logger = createLogger('Tray')
 
 // 全局托盘引用
 let tray = null
@@ -212,7 +214,7 @@ async function switchApiProfileFromTray(profileName) {
       mainWindow.webContents.send('api-profile-switched', profileName)
     }
   } catch (error) {
-    console.error('切换API配置失败:', error)
+    logger.error('切换API配置失败:', error)
   }
 }
 

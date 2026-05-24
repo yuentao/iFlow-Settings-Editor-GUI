@@ -13,6 +13,8 @@ const { registerDialogsIpcHandlers } = require('./dialogs')
 const { registerCloudSyncIpcHandlers } = require('./cloud')
 const { registerIflowIpcHandlers } = require('./iflow')
 const { registerProjectsIpcHandlers } = require('./projects')
+const { createLogger } = require('../utils/logger')
+const logger = createLogger('IPC')
 
 /**
  * 注册所有 IPC 处理器
@@ -125,7 +127,7 @@ function registerIpcHandlers(getMainWindow, t) {
     }
   })
 
-  console.log('All IPC handlers registered')
+  logger.info('All IPC handlers registered')
 }
 
 module.exports = {

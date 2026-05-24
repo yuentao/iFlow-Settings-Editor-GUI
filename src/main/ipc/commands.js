@@ -8,6 +8,8 @@ const path = require('path')
 const fs = require('fs')
 const { t } = require('../utils/translations')
 const { wrapIpcHandler, successResult, errorResult, ErrorCodes } = require('../utils/errors')
+const { createLogger } = require('../utils/logger')
+const logger = createLogger('Commands')
 
 // 命令文件夹路径
 const COMMANDS_FOLDER = path.join(app.getPath('home'), '.iflow', 'commands')
@@ -62,7 +64,7 @@ function parseCommandFile(filePath) {
     const toml = require('@iarna/toml')
     tomlData = toml.parse(content)
   } catch (e) {
-    console.error('Failed to parse TOML:', e)
+    logger.error('Failed to parse TOML:', e)
   }
 
   return {
@@ -111,7 +113,7 @@ function registerCommandsIpcHandlers() {
         const cmd = parseCommandFile(filePath)
         commands.push(cmd)
       } catch (e) {
-        console.error(`Failed to parse command file ${file}:`, e)
+        logger.error(`Failed to parse command file ${file}:`, e)
       }
     }
 
@@ -240,7 +242,7 @@ function registerCommandsIpcHandlers() {
         fs.copyFileSync(sourcePath, destPath)
         imported.push(cmd.name)
       } catch (e) {
-        console.error(`Failed to import command from ${sourcePath}:`, e)
+        logger.error(`Failed to import command from ${sourcePath}:`, e)
       }
     }
 

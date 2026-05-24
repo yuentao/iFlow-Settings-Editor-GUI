@@ -6,6 +6,8 @@
 const { ipcMain, app, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const { createLogger } = require('../utils/logger')
+const logger = createLogger('UpdateIPC')
 
 // 导入 autoUpdater 模块
 const autoUpdater = require('../autoUpdater')
@@ -35,7 +37,7 @@ async function savePendingUpdate(pendingInfo) {
     settings.pendingUpdate = pendingInfo
     await writeSettings(settings)
   } catch (e) {
-    console.error('Failed to save pending update:', e)
+    logger.error('Failed to save pending update:', e)
   }
 }
 
@@ -49,7 +51,7 @@ async function clearPendingUpdate() {
     delete settings.pendingUpdate
     await writeSettings(settings)
   } catch (e) {
-    console.error('Failed to clear pending update:', e)
+    logger.error('Failed to clear pending update:', e)
   }
 }
 
@@ -81,12 +83,12 @@ function getMainWindowRef() {
 function registerUpdatesIpcHandlers() {
   // 检查更新
   ipcMain.handle('check-for-updates', async () => {
-    console.log('[AutoUpdate][IPC] check-for-updates invoked')
+    logger.info('check-for-updates invoked')
     try {
       const result = await autoUpdater.checkForUpdates()
       return result
     } catch (error) {
-      console.error('[AutoUpdate][IPC] check-for-updates error:', error.message)
+      logger.error('check-for-updates error:', error)
       return {
         success: false,
         error: error.message,
@@ -96,7 +98,7 @@ function registerUpdatesIpcHandlers() {
 
   // 下载更新（前台）
   ipcMain.handle('download-update', async () => {
-    console.log('[AutoUpdate][IPC] download-update invoked')
+    logger.info('download-update invoked')
     try {
       const result = await autoUpdater.downloadUpdate()
       
@@ -112,7 +114,7 @@ function registerUpdatesIpcHandlers() {
       
       return result
     } catch (error) {
-      console.error('[AutoUpdate][IPC] download-update error:', error.message)
+      logger.error('download-update error:', error)
       return {
         success: false,
         error: error.message,
@@ -122,7 +124,7 @@ function registerUpdatesIpcHandlers() {
 
   // 后台下载更新（静默模式）
   ipcMain.handle('download-update-background', async () => {
-    console.log('[AutoUpdate][IPC] download-update-background invoked')
+    logger.info('download-update-background invoked')
     try {
       const result = await autoUpdater.downloadUpdateBackground()
       
@@ -147,7 +149,7 @@ function registerUpdatesIpcHandlers() {
       
       return result
     } catch (error) {
-      console.error('[AutoUpdate][IPC] download-update-background error:', error.message)
+      logger.error('download-update-background error:', error)
       return {
         success: false,
         error: error.message,
@@ -157,11 +159,11 @@ function registerUpdatesIpcHandlers() {
 
   // 取消下载
   ipcMain.handle('cancel-download', async () => {
-    console.log('[AutoUpdate][IPC] cancel-download invoked')
+    logger.info('cancel-download invoked')
     try {
       return await autoUpdater.cancelDownload()
     } catch (error) {
-      console.error('[AutoUpdate][IPC] cancel-download error:', error.message)
+      logger.error('cancel-download error:', error)
       return {
         success: false,
         error: error.message,
@@ -171,14 +173,14 @@ function registerUpdatesIpcHandlers() {
 
   // 安装更新
   ipcMain.handle('install-update', async () => {
-    console.log('[AutoUpdate][IPC] install-update invoked')
+    logger.info('install-update invoked')
     try {
       // 清除持久化的待安装更新
       await clearPendingUpdate()
       
       return await autoUpdater.installUpdate()
     } catch (error) {
-      console.error('[AutoUpdate][IPC] install-update error:', error.message)
+      logger.error('install-update error:', error)
       return {
         success: false,
         error: error.message,

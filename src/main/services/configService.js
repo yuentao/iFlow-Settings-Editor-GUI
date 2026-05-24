@@ -11,6 +11,8 @@
 
 const path = require('path')
 const fs = require('fs')
+const { createLogger } = require('../utils/logger')
+const logger = createLogger('Config')
 
 // 导入统一常量
 const { API_FIELDS } = require('../constants')
@@ -43,7 +45,7 @@ function readSettings() {
     const data = fs.readFileSync(SETTINGS_FILE, 'utf-8')
     return JSON.parse(data)
   } catch (error) {
-    console.error('Failed to read settings:', error)
+    logger.error('Failed to read settings:', error)
     return null
   }
 }
@@ -82,7 +84,7 @@ function _doWrite(data) {
       try {
         fs.copyFileSync(SETTINGS_FILE, backupPath)
       } catch (backupError) {
-        console.warn('Failed to create settings backup:', backupError.message)
+        logger.warn('Failed to create settings backup:', backupError.message)
       }
     }
 
@@ -98,7 +100,7 @@ function _doWrite(data) {
   } catch (error) {
     // 清理可能残留的临时文件
     try { fs.unlinkSync(tmpFile) } catch (_) { /* ignore */ }
-    console.error('Failed to write settings:', error)
+    logger.error('Failed to write settings:', error)
     throw error
   }
 }
@@ -201,7 +203,7 @@ function startWatching(onChange) {
       stopWatching()
     })
   } catch (err) {
-    console.warn('Failed to watch settings file:', err.message)
+    logger.warn('Failed to watch settings file:', err.message)
   }
 }
 
