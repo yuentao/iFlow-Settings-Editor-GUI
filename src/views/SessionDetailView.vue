@@ -234,7 +234,7 @@ function goBack() {
 }
 
 async function loadMoreMessages() {
-  if (currentTopOffset.value <= 0) return
+  if (currentTopOffset.value <= 0 || !props.project || !props.session) return
   const newOffset = Math.max(0, currentTopOffset.value - 50)
   const result = await window.electronAPI.getSessionMessages(
     props.project.id,
@@ -295,7 +295,7 @@ async function handleManualRefresh() {
       props.session.id,
       { limit: 1 },
     )
-    const total = countResult?.success ? (countResult.total || 0) : 0
+    const total = countResult?.success ? ((countResult as any)?.total || 0) : 0
     const startOffset = Math.max(0, total - 50)
     currentTopOffset.value = startOffset
 
@@ -350,7 +350,7 @@ async function handleDeleteMessages() {
     messageParams: { count: uuids.length },
     danger: true,
     onConfirm: async () => {
-      const result = await store.deleteMessagesAction(props.project.id, props.session.id, uuids)
+      const result = await store.deleteMessagesAction(props.project!.id, props.session!.id, uuids)
       if (result.success) {
         toast.success(t('projects.deleteMessageSuccess'))
       } else {
@@ -361,7 +361,7 @@ async function handleDeleteMessages() {
 }
 
 async function handleExport() {
-  const result = await store.exportSessionAction(props.project.id, props.session.id, 'markdown')
+  const result = await store.exportSessionAction(props.project!.id, props.session!.id, 'markdown')
   if (result.success) {
     toast.success(t('projects.exportSuccess'))
   } else if (!result.cancelled) {
@@ -377,7 +377,7 @@ async function handleDeleteSession() {
     messageParams: {},
     danger: true,
     onConfirm: async () => {
-      const result = await store.deleteSessionAction(props.project.id, props.session.id)
+      const result = await store.deleteSessionAction(props.project!.id, props.session!.id)
       if (result.success) {
         toast.success(t('projects.deleteSuccess'))
         goBack()
@@ -405,20 +405,20 @@ onMounted(async () => {
 
   // 先获取总消息数，计算从末尾加载的偏移量
   const countResult = await window.electronAPI.getSessionMessages(
-    props.project.id,
-    props.session.id,
+    props.project!.id,
+    props.session!.id,
     { limit: 1 },
   )
-  const total = countResult?.success ? (countResult.total || 0) : 0
+  const total = countResult?.success ? ((countResult as any)?.total || 0) : 0
   const startOffset = Math.max(0, total - 50)
   currentTopOffset.value = startOffset
 
   await Promise.all([
-    store.loadMessages(props.project.id, props.session.id, {
+    store.loadMessages(props.project!.id, props.session!.id, {
       offset: startOffset,
       limit: 50,
     }),
-    store.loadSessionStats(props.project.id, props.session.id),
+    store.loadSessionStats(props.project!.id, props.session!.id),
   ])
 
   // 如果还有更早的消息，手动设置 hasMore

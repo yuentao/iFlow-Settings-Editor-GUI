@@ -97,7 +97,7 @@ export const useProjectsStore = defineStore('projects', () => {
     try {
       const result = await window.electronAPI.listProjects()
       if (result.success) {
-        projects.value = result.projects || []
+        projects.value = (result as any).projects || (result.data as any)?.projects || []
       }
       return result
     } catch (error) {
@@ -118,8 +118,8 @@ export const useProjectsStore = defineStore('projects', () => {
         } else {
           sessions.value = result.data || []
         }
-        sessionsTotal.value = result.total || 0
-        sessionsHasMore.value = result.hasMore || false
+        sessionsTotal.value = (result as any).total || 0
+        sessionsHasMore.value = (result as any).hasMore || false
       }
       return result
     } catch (error) {
@@ -140,8 +140,8 @@ export const useProjectsStore = defineStore('projects', () => {
         } else {
           messages.value = result.data || []
         }
-        messagesTotal.value = result.total || 0
-        messagesHasMore.value = result.hasMore || false
+        messagesTotal.value = (result as any).total || 0
+        messagesHasMore.value = (result as any).hasMore || false
       }
       return result
     } catch (error) {
@@ -191,7 +191,7 @@ export const useProjectsStore = defineStore('projects', () => {
     try {
       const result = await window.electronAPI.getSessionStats(projectId, sessionId)
       if (result.success) {
-        currentStats.value = result.stats || null
+        currentStats.value = (result as any).stats || result.data || null
       }
       return result
     } catch (error) {

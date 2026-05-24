@@ -21,7 +21,7 @@
     <div v-else-if="items.length > 0" class="generic-list">
       <div
         v-for="(item, index) in items"
-        :key="item[itemKey]"
+        :key="item[itemKey || 'id']"
       >
         <div
           class="generic-item"
@@ -74,80 +74,57 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import EmptyState from '@/components/EmptyState.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
-const props = defineProps({
+const props = defineProps<{
   /** 列表数据 */
-  items: {
-    type: Array,
-    required: true,
-  },
+  items: any[]
   /** 列表项的唯一标识字段名 */
-  itemKey: {
-    type: String,
-    default: 'name',
-  },
+  itemKey?: string
   /** 是否加载中 */
-  loading: {
-    type: Boolean,
-    default: false,
-  },
+  loading?: boolean
   /** 骨架屏数量 */
-  skeletonCount: {
-    type: Number,
-    default: 3,
-  },
+  skeletonCount?: number
   /** 骨架屏类型 */
-  skeletonType: {
-    type: String,
-    default: 'list',
-  },
+  skeletonType?: string
   /** 空状态图标组件 */
-  emptyIcon: {
-    type: [Object, Function],
-    default: null,
-  },
+  emptyIcon?: any
   /** 空状态标题 */
-  emptyTitle: {
-    type: String,
-    default: '',
-  },
+  emptyTitle?: string
   /** 空状态描述 */
-  emptyDescription: {
-    type: String,
-    default: '',
-  },
+  emptyDescription?: string
   /** 空状态操作按钮文本 */
-  emptyActionText: {
-    type: String,
-    default: '',
-  },
+  emptyActionText?: string
   /**
    * 判断列表项高亮样式的函数，返回 CSS class 对象
    * 接收 item，返回 { className: boolean }
    */
-  highlightFn: {
-    type: Function,
-    default: null,
-  },
+  highlightFn?: (item: any) => Record<string, boolean>
   /** 分类过滤选项 [{ value, label, count }] */
-  categories: {
-    type: Array,
-    default: null,
-  },
+  categories?: any[] | null
   /** 当前选中的分类 */
-  selectedCategory: {
-    type: String,
-    default: 'all',
-  },
-})
+  selectedCategory?: string
+}>()
 
-defineEmits(['action', 'update:selectedCategory', 'item-click'])
+defineEmits<{
+  'action': []
+  'update:selectedCategory': [value: string]
+  'item-click': [item: any]
+}>()
 
-const itemClass = (item) => {
-  const cls = {}
+defineSlots<{
+  'item-prefix'(props: { item: any; index: number }): any
+  'item-icon'(props: { item: any; index: number }): any
+  'item-info'(props: { item: any; index: number }): any
+  'item-actions'(props: { item: any; index: number }): any
+  'item-extra'(props: { item: any; index: number }): any
+  'item-children'(props: { item: any; index: number }): any
+}>()
+
+const itemClass = (item: any): Record<string, boolean> => {
+  const cls: Record<string, boolean> = {}
   if (props.highlightFn) {
     Object.assign(cls, props.highlightFn(item))
   }

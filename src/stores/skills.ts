@@ -38,7 +38,7 @@ export const useSkillsStore = defineStore('skills', () => {
     return result
   }
 
-  async function importOnline(url: string, name?: string): Promise<{ success: boolean; error?: string }> {
+  async function importOnline(url: string, name: string): Promise<{ success: boolean; error?: string }> {
     const result = await window.electronAPI.importSkillOnline(url, name)
     if (result.success) {
       await loadSkills()
@@ -46,7 +46,7 @@ export const useSkillsStore = defineStore('skills', () => {
     return result
   }
 
-  async function exportSkill(skill: string, folderName?: string): Promise<{ success: boolean; error?: string }> {
+  async function exportSkill(skill: string, folderName: string): Promise<{ success: boolean; error?: string }> {
     const result = await window.electronAPI.exportSkill(skill, folderName)
     return result
   }

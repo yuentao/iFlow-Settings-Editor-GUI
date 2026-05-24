@@ -31,23 +31,20 @@ export const useCommandsStore = defineStore('commands', () => {
   }
 
   async function importLocal(): Promise<{ success: boolean; error?: string }> {
-    const result = await window.electronAPI.importCommandLocal()
+    const result = await window.electronAPI.importCommand()
     if (result.success) {
       await loadCommands()
     }
     return result
   }
 
-  async function importOnline(url: string, name?: string): Promise<{ success: boolean; error?: string }> {
-    const result = await window.electronAPI.importCommandOnline(url, name)
-    if (result.success) {
-      await loadCommands()
-    }
-    return result
+  async function importOnline(_url: string, _name?: string): Promise<{ success: boolean; error?: string }> {
+    // Online import for commands is not currently supported via IPC
+    return { success: false, error: 'Not supported' }
   }
 
-  async function exportCommand(command: string, folderName?: string): Promise<{ success: boolean; error?: string }> {
-    const result = await window.electronAPI.exportCommand(command, folderName)
+  async function exportCommand(command: string, _folderName?: string): Promise<{ success: boolean; error?: string }> {
+    const result = await window.electronAPI.exportCommand(command)
     return result
   }
 

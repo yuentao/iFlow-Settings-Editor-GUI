@@ -12,7 +12,7 @@ describe('useSettingsStore', () => {
     global.window.electronAPI = {
       loadSettings: vi.fn(),
       saveSettings: vi.fn()
-    }
+    } as any
   })
 
   afterEach(() => {
@@ -23,7 +23,7 @@ describe('useSettingsStore', () => {
     const store = useSettingsStore()
     
     expect(store.settings.language).toBe('zh-CN')
-    expect(store.settings.uiTheme).toBe('system')
+    expect(store.settings.uiTheme).toBe('System')
     expect(store.settings.acrylicEnabled).toBe(true)
     expect(store.settings.acrylicIntensity).toBe(50)
     expect(store.settings.autoLaunch).toBe(false)
@@ -32,7 +32,7 @@ describe('useSettingsStore', () => {
   it('should load settings successfully', async () => {
     const mockSettings = {
       language: 'en-US',
-      uiTheme: 'dark',
+      uiTheme: 'Dark' as const,
       acrylicEnabled: false
     }
     
@@ -45,7 +45,7 @@ describe('useSettingsStore', () => {
     await store.loadSettings()
     
     expect(store.settings.language).toBe('en-US')
-    expect(store.settings.uiTheme).toBe('dark')
+    expect(store.settings.uiTheme).toBe('Dark')
     expect(store.settings.acrylicEnabled).toBe(false)
     expect(store.isLoading).toBe(false)
   })
@@ -97,9 +97,9 @@ describe('useSettingsStore', () => {
 
   it('should compute theme correctly', () => {
     const store = useSettingsStore()
-    store.settings.uiTheme = 'dark'
+    store.settings.uiTheme = 'Dark'
     
-    expect(store.theme).toBe('dark')
+    expect(store.theme).toBe('Dark')
   })
 
   it('should compute language correctly', () => {

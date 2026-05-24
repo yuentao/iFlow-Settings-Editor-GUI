@@ -75,6 +75,7 @@ interface TocItem {
 
 const tocItems = ref<TocItem[]>([])
 const activeHeadingId = ref('')
+const tocVisible = ref(true)
 let observer: IntersectionObserver | null = null
 
 // ── 导航栏配置 ──────────────────────────────────────────
@@ -112,7 +113,7 @@ marked.use({
 // ── Vite 构建时静态导入所有 markdown 文件 ──────────────────
 // import.meta.glob + ?raw 将 markdown 内容在构建时打包进 JS，
 // 彻底避免 Electron file:// 协议下 fetch 失败的问题
-const docModules = import.meta.glob<{ default: string }>('../assets/docs/**/*.md', { eager: true, query: '?raw', import: 'default' })
+const docModules = import.meta.glob('../assets/docs/**/*.md', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>
 
 // 导航配置（数据驱动，path 匹配 glob 键）
 const navSections = computed(() => [

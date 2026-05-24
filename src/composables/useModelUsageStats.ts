@@ -109,7 +109,7 @@ export function useModelUsageStats() {
         throw new Error(result.error || 'Failed to fetch stats data')
       }
 
-      const rawMessages: RawMessage[] = result.messages || []
+      const rawMessages: RawMessage[] = (result as any).messages || result.data || []
       stats.value = await processWithWorker(rawMessages, days)
     } catch (e) {
       if (!options.silent) error.value = e instanceof Error ? e : new Error(String(e))

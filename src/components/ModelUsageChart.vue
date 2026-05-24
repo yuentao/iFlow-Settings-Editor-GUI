@@ -63,17 +63,17 @@
       <div class="stats-summary">
         <div class="summary-item">
           <span class="summary-label">{{ $t('dashboard.totalCalls') }}</span>
-          <span class="summary-value">{{ formatNumber(stats.summary.totalCalls) }}</span>
+          <span class="summary-value">{{ formatNumber(stats!.summary?.totalCalls ?? 0) }}</span>
         </div>
         <div class="summary-divider"></div>
         <div class="summary-item">
           <span class="summary-label">{{ $t('dashboard.mostUsedModel') }}</span>
-          <span class="summary-value summary-model">{{ stats.summary.mostUsedModel }}</span>
+          <span class="summary-value summary-model">{{ stats!.summary?.mostUsedModel ?? '-' }}</span>
         </div>
         <div class="summary-divider"></div>
         <div class="summary-item">
           <span class="summary-label">{{ $t('dashboard.peakDate') }}</span>
-          <span class="summary-value">{{ formatDateLabel(stats.summary.peakDate) }}</span>
+          <span class="summary-value">{{ formatDateLabel(stats!.summary?.peakDate ?? '') }}</span>
         </div>
       </div>
     </div>

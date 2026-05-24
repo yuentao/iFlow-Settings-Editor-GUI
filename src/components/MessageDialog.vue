@@ -22,7 +22,7 @@
         </svg>
       </div>
       <div class="message-dialog-title">{{ $t(dialog.title) }}</div>
-      <div class="message-dialog-message">{{ $t(dialog.message, dialog.messageParams) }}</div>
+      <div class="message-dialog-message">{{ $t(dialog.message, dialog.messageParams || {}) }}</div>
       <div class="dialog-actions">
         <button class="btn btn-primary" @click="handleConfirm">{{ $t('dialog.confirm') }}</button>
       </div>
@@ -39,7 +39,7 @@ interface DialogState {
   type: 'info' | 'success' | 'warning' | 'error'
   title: string
   message: string
-  messageParams?: Record<string, string>
+  messageParams?: Record<string, unknown>
 }
 
 interface Props {

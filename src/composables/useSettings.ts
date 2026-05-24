@@ -23,7 +23,7 @@ export function useSettings() {
   /**
    * 获取开机自启动状态
    */
-  async function getAutoLaunch(): Promise<IpcResult<{ enabled: boolean }>> {
+  async function getAutoLaunch(): Promise<IpcResult<boolean>> {
     return await window.electronAPI.getAutoLaunch()
   }
 
@@ -37,7 +37,7 @@ export function useSettings() {
   /**
    * 获取自动更新状态
    */
-  async function getAutoUpdate(): Promise<IpcResult<{ enabled: boolean }>> {
+  async function getAutoUpdate(): Promise<IpcResult<boolean>> {
     return await window.electronAPI.getAutoUpdate()
   }
 
