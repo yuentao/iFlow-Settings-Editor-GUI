@@ -136,8 +136,9 @@ async function loadLocale(lang) {
   return loadedLocales[lang]
 }
 
-// 安全深拷贝：先解包 Vue reactive proxy，再用 structuredClone
-const deepClone = obj => structuredClone(toRaw(obj))
+// 安全深拷贝：先解包 Vue reactive proxy，再用 JSON 序列化
+// structuredClone 无法处理 undefined 等值，改用 JSON 方式
+const deepClone = obj => JSON.parse(JSON.stringify(toRaw(obj)))
 
 // 防抖：settings 深度 watcher 合并连续修改为一次 IPC 保存
 let _settingsSaveTimer = null

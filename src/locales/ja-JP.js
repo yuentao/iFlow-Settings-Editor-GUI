@@ -154,7 +154,12 @@ export default {
     sectionPreferences: '基本設定',
     sectionCloudSync: 'クラウド同期',
     experimental: '実験的',
-    sectionAbout: 'バージョン情報'
+    sectionAbout: 'バージョン情報',
+    feedback: 'フィードバック',
+    feedbackForum: 'コミュニティフォーラム',
+    feedbackForumDesc: 'フォーラムで他のユーザーと交流する',
+    feedbackGithub: 'GitHub Issues',
+    feedbackGithubDesc: 'バグ報告や機能提案を提出する',
   },
   theme: {
     dark: 'ダーク',

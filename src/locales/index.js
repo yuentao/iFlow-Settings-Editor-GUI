@@ -154,7 +154,12 @@ export default {
     monitoring: '检测与监控',
     sectionCloudSync: '云同步',
     experimental: '实验性',
-    sectionAbout: '关于'
+    sectionAbout: '关于',
+    feedback: '问题反馈',
+    feedbackForum: '社区论坛',
+    feedbackForumDesc: '在论坛中与其他用户交流讨论',
+    feedbackGithub: 'GitHub Issues',
+    feedbackGithubDesc: '提交 Bug 报告或功能建议',
   },
   theme: {
     dark: '深色',

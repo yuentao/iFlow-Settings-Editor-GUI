@@ -538,6 +538,35 @@
           </div>
         </div>
       </div>
+
+      <div class="card card-appear" style="animation-delay: 0.05s">
+        <div class="card-title">
+          <TopicDiscussion size="16" />
+          {{ $t('general.feedback') }}
+        </div>
+        <div class="feedback-channels">
+          <a class="feedback-channel-item" @click.prevent="openExternal('https://vibex.iflow.cn/t/topic/5776')">
+            <div class="feedback-channel-icon">
+              <TopicDiscussion size="20" />
+            </div>
+            <div class="feedback-channel-info">
+              <div class="feedback-channel-name">{{ $t('general.feedbackForum') }}</div>
+              <div class="feedback-channel-desc">{{ $t('general.feedbackForumDesc') }}</div>
+            </div>
+            <Right size="14" class="feedback-channel-arrow" />
+          </a>
+          <a class="feedback-channel-item" @click.prevent="openExternal('https://github.com/yuentao/iFlow-Settings-Editor-GUI/issues')">
+            <div class="feedback-channel-icon github-icon">
+              <GithubOne size="20" />
+            </div>
+            <div class="feedback-channel-info">
+              <div class="feedback-channel-name">{{ $t('general.feedbackGithub') }}</div>
+              <div class="feedback-channel-desc">{{ $t('general.feedbackGithubDesc') }}</div>
+            </div>
+            <Right size="14" class="feedback-channel-arrow" />
+          </a>
+        </div>
+      </div>
     </div>
 
     <!-- 重命名设备对话框 -->
@@ -620,7 +649,7 @@
 </template>
 
 <script setup>
-import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne } from '@icon-park/vue-next'
+import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right } from '@icon-park/vue-next'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import { useToast } from '@/composables/useToast'
@@ -810,6 +839,12 @@ const handleInstallUpdate = async () => {
   } catch (error) {
     console.error('Failed to install update:', error)
     toast.error(t('update.installFailed'))
+  }
+}
+
+const openExternal = async (url) => {
+  if (window.electronAPI?.openExternal) {
+    await window.electronAPI.openExternal(url)
   }
 }
 
@@ -2159,6 +2194,73 @@ input:checked + .slider:before {
   gap: var(--space-sm);
 }
 
+.feedback-channels {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.feedback-channel-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--bg-elevated);
+
+    .feedback-channel-arrow {
+      color: var(--text-secondary);
+      transform: translateX(2px);
+    }
+  }
+}
+
+.feedback-channel-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--accent-light, rgba(0, 103, 192, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+
+  &.github-icon {
+    background: rgba(36, 41, 47, 0.1);
+    color: var(--text-primary);
+  }
+}
+
+.feedback-channel-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.feedback-channel-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1px;
+}
+
+.feedback-channel-desc {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.feedback-channel-arrow {
+  color: var(--text-tertiary);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
 .dialog-confirm-text {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
@@ -2205,6 +2307,10 @@ input:checked + .slider:before {
   .about-actions-col {
     align-items: flex-start;
     width: 100%;
+  }
+
+  .feedback-channels {
+    flex-direction: column;
   }
 
   .sync-content-grid {

@@ -156,6 +156,11 @@ export default {
     sectionCloudSync: 'Cloud Sync',
     experimental: 'Experimental',
     sectionAbout: 'About',
+    feedback: 'Feedback',
+    feedbackForum: 'Community Forum',
+    feedbackForumDesc: 'Discuss with other users in the forum',
+    feedbackGithub: 'GitHub Issues',
+    feedbackGithubDesc: 'Submit bug reports or feature requests',
   },
   theme: {
     dark: 'Dark',
