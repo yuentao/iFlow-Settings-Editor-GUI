@@ -136,8 +136,8 @@ describe('GeneralSettings.vue', () => {
 
     expect(wrapper.exists()).toBe(true);
     expect(wrapper.find('.content-title').exists()).toBe(true);
-    // Cards: language, autoLaunch, conversation, session, toolFiltering, updateTelemetry, monitoring, about = 8
-    expect(wrapper.findAll('.card').length).toBe(8);
+    // Cards: language, autoLaunch, conversation, session, toolFiltering, updateTelemetry, monitoring, about, feedback, logManagement = 10
+    expect(wrapper.findAll('.card').length).toBe(10);
   });
 
   it('displays language options correctly', () => {
@@ -199,9 +199,9 @@ describe('GeneralSettings.vue', () => {
   it('has settings cards for each section', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    // Cards: language, autoLaunch, conversation, session, toolFiltering, updateTelemetry, monitoring, about = 8
+    // Cards: language, autoLaunch, conversation, session, toolFiltering, updateTelemetry, monitoring, about, feedback, logManagement = 10
     const cards = wrapper.findAll('.card');
-    expect(cards.length).toBe(8);
+    expect(cards.length).toBe(10);
   });
 
   it('displays card titles with icons', () => {
@@ -210,7 +210,8 @@ describe('GeneralSettings.vue', () => {
     const cardTitles = wrapper.findAll('.card-title');
     // Preference section: language, autoLaunch, monitoring = 3
     // CLI section: conversationMode, displayUpdates, sessionTimeout, toolFiltering = 4
-    expect(cardTitles.length).toBe(7);
+    // About section: feedback, logManagement = 2
+    expect(cardTitles.length).toBe(9);
     expect(cardTitles[0].text()).toContain('general.languageInterface');
     expect(cardTitles[1].text()).toContain('general.autoLaunchSettings');
     expect(cardTitles[2].text()).toContain('general.monitoring');
