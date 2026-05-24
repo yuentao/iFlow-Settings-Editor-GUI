@@ -4,6 +4,7 @@
  */
 
 const { app, BrowserWindow } = require('electron')
+const { logger } = require('./utils/logger')
 
 logger.info('src/main/index.js module loaded')
 
@@ -14,7 +15,6 @@ const { registerIpcHandlers } = require('./ipc')
 const { initAutoLaunch } = require('./services/autoLaunchService')
 const { readSettings } = require('./services/configService')
 const { t } = require('./utils/translations')
-const { logger } = require('./utils/logger')
 const { initAutoUpdater, setMainWindowRef, cleanupTempFiles } = require('./autoUpdater')
 
 // 是否是开发模式
