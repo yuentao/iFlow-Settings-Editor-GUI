@@ -142,6 +142,20 @@ function registerIflowIpcHandlers() {
           return errorResult(compat.reason, 'IFLOW_VERSION_INCOMPATIBLE')
         }
       }
+
+      // 检查依赖是否已安装
+      if (mod.dependsOn && mod.dependsOn.length > 0) {
+        const missingDeps = mod.dependsOn.filter(depId => {
+          return !metadata.mods.find(m => m.id === depId)
+        })
+
+        if (missingDeps.length > 0) {
+          return errorResult(
+            t('iflow.errors.missingDependencies', { deps: missingDeps.join(', ') }),
+            'IFLOW_MISSING_DEPENDENCIES'
+          )
+        }
+      }
     }
 
     // 获取 iflow.js 路径
@@ -257,6 +271,19 @@ function registerIflowIpcHandlers() {
     }
 
     const mod = metadata.mods[modIndex]
+
+    // 检查是否有其他 MOD 依赖此 MOD
+    const dependentMods = metadata.mods.filter(m =>
+      m.dependsOn && m.dependsOn.includes(modId) && m.id !== modId
+    )
+
+    if (dependentMods.length > 0) {
+      const depNames = dependentMods.map(m => m.name).join(', ')
+      return errorResult(
+        t('iflow.errors.cannotDeleteDependent', { mods: depNames }),
+        'IFLOW_DEPENDENT_MODS_EXIST'
+      )
+    }
 
     // 如果 Mod 已启用，先禁用
     if (mod.enabled) {
@@ -482,6 +509,7 @@ function registerIflowIpcHandlers() {
         license: metadata.license || undefined,
         include: metadata.include || undefined,
         includeMap: metadata.includeMap || undefined,
+        dependsOn: metadata.dependsOn || undefined,
         enabled: false,
         installedAt: Date.now(),
         lastModified: Date.now(),

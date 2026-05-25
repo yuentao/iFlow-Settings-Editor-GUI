@@ -703,6 +703,7 @@ export default {
         homepage: 'Homepage',
         repository: 'Repository',
         tags: 'Tags',
+        dependsOn: 'Depends On',
         include: 'Includes',
         description: 'Description'
       }
@@ -738,6 +739,10 @@ export default {
       includeMapFileNotFound: 'Mod extra file "{file}" not found in package',
       includeMapDeployFailed: 'Failed to deploy extra files: {error}',
       includeMapRemoveFailed: 'Failed to clean up extra files: {error}',
+      invalidDependsOn: 'dependsOn must be an array',
+      invalidDependsOnItems: 'dependsOn array must contain only strings',
+      missingDependencies: 'Missing dependencies: {deps}. Please install them first.',
+      cannotDeleteDependent: 'Cannot delete {mods} - other mods depend on it',
     },
     exportDialog: {
       title: 'Export Mod',

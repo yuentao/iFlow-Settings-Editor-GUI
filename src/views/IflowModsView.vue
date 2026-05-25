@@ -189,6 +189,17 @@
             </div>
           </div>
 
+          <!-- Depends On -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.dependsOn') }}</div>
+            <div class="detail-field-value">
+              <template v-if="detailMod.dependsOn && detailMod.dependsOn.length">
+                <span class="detail-tag" v-for="dep in detailMod.dependsOn" :key="dep">{{ dep }}</span>
+              </template>
+              <span v-else class="detail-empty">-</span>
+            </div>
+          </div>
+
           <!-- Include -->
           <div class="detail-field">
             <div class="detail-field-label">{{ $t('iflow.mods.detail.include') }}</div>

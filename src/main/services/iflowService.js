@@ -270,7 +270,17 @@ function validateModPackage(extractDir) {
     return { valid: false, error: t('iflow.errors.invalidModType', { type: metadata.type }) }
   }
 
-  // 5. 检查主体文件
+  // 5. dependsOn 是可选字段，但如果有值必须是字符串数组
+  if (metadata.dependsOn !== undefined) {
+    if (!Array.isArray(metadata.dependsOn)) {
+      return { valid: false, error: t('iflow.errors.invalidDependsOn') }
+    }
+    if (!metadata.dependsOn.every(item => typeof item === 'string')) {
+      return { valid: false, error: t('iflow.errors.invalidDependsOnItems') }
+    }
+  }
+
+  // 6. 检查主体文件
   const isPatchType = metadata.type === 'patch' || metadata.type === 'diff'
   const mainFile = isPatchType ? 'patch.diff' : 'code.js'
   const mainFilePath = path.join(extractDir, mainFile)
@@ -288,7 +298,7 @@ function validateModPackage(extractDir) {
     }
   }
 
-  // 6. 如果没有 id，生成一个
+  // 7. 如果没有 id，生成一个
   if (!metadata.id) {
     metadata.id = generateId()
   }

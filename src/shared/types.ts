@@ -332,6 +332,7 @@ export interface IflowMod {
   repository?: string
   license?: string
   lastModified?: number
+  dependsOn?: string[]  // 依赖的其他 MOD ID
 }
 
 export interface ModsMetadata {
