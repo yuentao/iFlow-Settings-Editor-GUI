@@ -12,6 +12,8 @@ export const useIflowModsStore = defineStore('iflowMods', () => {
   const mods = ref<IflowMod[]>([])
   const iflowVersion = ref<string | null>(null)
   const isLoading = ref(false)
+  const applyProgress = ref<{ current: number; total: number; modName: string } | null>(null)
+  const detectConflictsProgress = ref<{ current: number; total: number; modName: string } | null>(null)
 
   // Computed
   const enabledCount = computed(() => mods.value.filter(m => m.enabled).length)
@@ -89,10 +91,28 @@ export const useIflowModsStore = defineStore('iflowMods', () => {
     return result
   }
 
+  // 初始化进度事件监听
+  function initProgressListeners() {
+    window.electronAPI.onIflowApplyProgress((progress) => {
+      applyProgress.value = progress
+    })
+    window.electronAPI.onIflowDetectConflictsProgress((progress) => {
+      detectConflictsProgress.value = progress
+    })
+  }
+
+  // 清除进度状态
+  function clearProgress() {
+    applyProgress.value = null
+    detectConflictsProgress.value = null
+  }
+
   return {
     mods,
     iflowVersion,
     isLoading,
+    applyProgress,
+    detectConflictsProgress,
     enabledCount,
     totalCount,
     categories,
@@ -103,5 +123,7 @@ export const useIflowModsStore = defineStore('iflowMods', () => {
     exportMod,
     importMod,
     getModCompatibility,
+    initProgressListeners,
+    clearProgress,
   }
 })

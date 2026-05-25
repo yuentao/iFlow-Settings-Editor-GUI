@@ -718,7 +718,9 @@ export default {
     applying: {
       enabling: '正在启用 Mod…',
       disabling: '正在禁用 Mod…',
-      swapping: '正在替换 Mod…'
+      swapping: '正在替换 Mod…',
+      applyingMod: '正在应用 Mod ({current}/{total}): {name}',
+      detectingConflicts: '正在检测冲突 ({current}/{total})…'
     },
     category: {
       all: '全部'

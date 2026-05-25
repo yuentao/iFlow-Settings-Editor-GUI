@@ -185,9 +185,16 @@ function registerIflowIpcHandlers() {
       .filter(m => m.enabled)
       .sort((a, b) => a.installedAt - b.installedAt)
 
-    // 启用时检测冲突
+    // 启用时检测冲突（异步，支持大文件）
     if (enabled) {
-      const conflicts = detectConflicts(enabledMods)
+      const progressCallback = (current, total, modName) => {
+        const sender = event.sender
+        if (!sender.isDestroyed()) {
+          sender.send('iflow:detect-conflicts-progress', { current, total, modName })
+        }
+      }
+
+      const conflicts = await detectConflicts(enabledMods, progressCallback)
       if (conflicts.length > 0) {
         // 构建冲突描述
         const conflictLines = []
@@ -239,8 +246,17 @@ function registerIflowIpcHandlers() {
     }
 
     try {
+      // 进度回调：向渲染进程发送进度事件
+      const progressCallback = (current, total, modName) => {
+        console.log('[IPC] Apply progress:', current, total, modName)
+        const sender = event.sender
+        if (!sender.isDestroyed()) {
+          sender.send('iflow:apply-progress', { current, total, modName })
+        }
+      }
+
       // 重新应用所有启用的 Mod
-      await reapplyMods(enabledMods, iflowPath)
+      await reapplyMods(enabledMods, iflowPath, progressCallback)
     } catch (applyError) {
       // 应用失败，回滚 includeMap 部署的文件
       if (deployedFiles.length > 0 && mod.includeMap) {

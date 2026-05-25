@@ -224,12 +224,12 @@
     </div>
 
     <!-- Applying overlay -->
-    <ApplyingDialog :visible="isApplying" :text="applyingText" />
+    <ApplyingDialog :visible="isApplying" :text="applyingText" :progress="applyingProgress" />
   </section>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Puzzle, FolderOpen, Download, Delete, Success, Caution, SwitchButton, FolderSettingsOne, FolderCodeOne } from '@icon-park/vue-next'
 import GenericList from '@/components/GenericList.vue'
@@ -247,8 +247,13 @@ const iflowStatus = ref({ exists: false, path: '', version: null })
 const isLoading = ref(true)
 const isApplying = ref(false)
 const applyingText = ref('')
+const applyingProgress = ref({ current: 0, total: 0, modName: '' })
 const selectedCategory = ref('all')
 const detailMod = ref(null)
+
+// 进度事件清理函数
+let cleanupApplyProgress = null
+let cleanupDetectConflictsProgress = null
 
 // Computed
 const enabledCount = computed(() => mods.value.filter(m => m.enabled).length)
@@ -502,6 +507,30 @@ const openImportDialog = async () => {
 
 onMounted(() => {
   loadMods()
+
+  // 初始化进度事件监听
+  cleanupApplyProgress = window.electronAPI.onIflowApplyProgress((progress) => {
+    applyingProgress.value = progress
+    applyingText.value = t('iflow.applying.applyingMod', {
+      current: progress.current,
+      total: progress.total,
+      name: progress.modName,
+    })
+  })
+
+  cleanupDetectConflictsProgress = window.electronAPI.onIflowDetectConflictsProgress((progress) => {
+    applyingProgress.value = progress
+    applyingText.value = t('iflow.applying.detectingConflicts', {
+      current: progress.current,
+      total: progress.total,
+    })
+  })
+})
+
+onUnmounted(() => {
+  // 清理事件监听
+  cleanupApplyProgress?.()
+  cleanupDetectConflictsProgress?.()
 })
 </script>
 

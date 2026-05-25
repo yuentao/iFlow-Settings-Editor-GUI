@@ -708,7 +708,9 @@ deleteSuccess: '「{name}」を削除しました',
     applying: {
       enabling: 'Mod を有効化中…',
       disabling: 'Mod を無効化中…',
-      swapping: 'Mod を置き換え中…'
+      swapping: 'Mod を置き換え中…',
+      applyingMod: 'Mod を適用中 ({current}/{total}): {name}',
+      detectingConflicts: '競合を検出中 ({current}/{total})…'
     },
     category: {
       all: 'すべて'

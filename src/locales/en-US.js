@@ -712,6 +712,8 @@ export default {
       enabling: 'Enabling mod…',
       disabling: 'Disabling mod…',
       swapping: 'Swapping mod…',
+      applyingMod: 'Applying mod ({current}/{total}): {name}',
+      detectingConflicts: 'Detecting conflicts ({current}/{total})…',
     },
     category: {
       all: 'All',
