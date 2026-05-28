@@ -83,7 +83,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import VueApexCharts from 'vue3-apexcharts'
 import type { ModelUsageTrendResponse } from '@/composables/useModelUsageStats'
 
 const { t, locale } = useI18n()
@@ -97,6 +96,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'refresh', days: number): void
+  (e: 'rendered'): void
 }>()
 
 const activeDays = ref(7)
@@ -152,6 +152,9 @@ const chartOptions = computed(() => {
         speed: 500,
         animateGradually: { enabled: true, delay: 80 },
         dynamicAnimation: { enabled: true, speed: 150 },
+      },
+      events: {
+        mounted: () => { emit('rendered') },
       },
       zoom: { enabled: false },
       foreColor: 'var(--text-secondary)',
@@ -254,16 +257,14 @@ function handleTimeRangeChange(days: number) {
   activeDays.value = days
   emit('refresh', days)
 }
-
-function handleRefresh() {
-  emit('refresh', activeDays.value)
-}
 </script>
 
 <script lang="ts">
+import { defineAsyncComponent } from 'vue'
+
 export default {
   components: {
-    apexchart: VueApexCharts,
+    apexchart: defineAsyncComponent(() => import('vue3-apexcharts')),
   },
 }
 </script>

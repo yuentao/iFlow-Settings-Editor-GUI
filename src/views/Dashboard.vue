@@ -1,7 +1,7 @@
 <template>
   <section>
     <!-- 模型使用趋势图表（延迟挂载，避免 apexcharts 初始化阻塞首帧） -->
-    <ModelUsageChart v-if="chartMounted" :stats="modelStats" :loading="modelStatsLoading" :error="modelStatsError" :refreshing="modelStatsRefreshing" @refresh="handleModelStatsRefresh" />
+    <ModelUsageChart v-if="chartMounted" :stats="modelStats" :loading="modelStatsLoading" :error="modelStatsError" :refreshing="modelStatsRefreshing" @refresh="handleModelStatsRefresh" @rendered="handleChartRendered" />
 
     <!-- 状态卡片网格 -->
     <div class="stats-grid">
@@ -147,6 +147,7 @@ const { loading: modelStatsLoading, error: modelStatsError, stats: modelStats, r
 
 // 用户选中的模型统计时间维度（默认 7 天）
 const selectedModelStatsDays = ref(7)
+const chartMounted = ref(false)
 
 async function handleModelStatsRefresh(days) {
   selectedModelStatsDays.value = days
@@ -191,7 +192,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['navigate'])
+const emit = defineEmits(['navigate', 'ready'])
 
 const currentApiProfileData = computed(() => {
   if (props.settings.apiProfiles && props.settings.apiProfiles[props.currentApiProfile]) {
@@ -276,16 +277,28 @@ function handleVisibilityChange() {
   }
 }
 
+// 图表渲染完成后，通知 App.vue 移除启动画面
+let readyEmitted = false
+function handleChartRendered() {
+  if (!readyEmitted) {
+    readyEmitted = true
+    emit('ready')
+  }
+}
+
 onMounted(async () => {
   await cloudStore.loadStatus()
-  // 延迟加载模型统计：先让仪表盘卡片渲染完成，再发起统计请求
-  // 这样避免 IPC 数据传输阻塞首帧渲染
-  requestAnimationFrame(() => {
+  // 延迟挂载图表组件：先让仪表盘卡片渲染完成，再挂载 apexcharts
+  setTimeout(() => {
+    chartMounted.value = true
+  }, 0)
+  // 延迟加载模型统计：避免 IPC 数据传输阻塞首帧渲染
+  setTimeout(() => {
     const days = selectedModelStatsDays.value
     const interval = props.settings?.modelUsageRefreshInterval ?? 5
     fetchStats({ days, silent: true })
     startAutoRefresh(days, interval)
-  })
+  }, 50)
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 

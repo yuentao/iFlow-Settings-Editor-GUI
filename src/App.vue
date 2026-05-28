@@ -1,17 +1,5 @@
 <template>
   <div class="app" :class="themeClass">
-    <!-- 全窗口启动加载覆盖层 -->
-    <Transition name="splash-fade">
-      <div v-if="showSplash" class="splash-overlay" :class="{ 'splash-dark': themeClass === 'dark' }">
-        <div class="splash-content">
-          <div class="splash-title">iFlow</div>
-          <div class="splash-spinner">
-            <div class="spinner-ring"></div>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
     <TitleBar />
 
     <main class="main">
@@ -41,7 +29,8 @@
             :skill-count="skillCount"
             :command-count="commandCount"
             :mod-count="modCount"
-            @navigate="showSection" />
+            @navigate="showSection"
+            @ready="dismissSplash" />
 
           <GeneralSettings v-if="currentSection === 'general'" :settings="settings" @update:settings="updateSettings" />
 
@@ -349,7 +338,6 @@ const modified = ref(false)
 const currentSection = ref('dashboard')
 const currentServerName = ref(null)
 const isLoading = ref(true)
-const showSplash = ref(true)
 const apiProfiles = ref([])
 const currentApiProfile = ref('default')
 const systemTheme = ref('Light')
@@ -661,10 +649,6 @@ const loadSettings = async () => {
     modified.value = false
   }
   isLoading.value = false
-  // 延迟隐藏启动覆盖层，确保内容已渲染完成，同时触发淡出动画
-  setTimeout(() => {
-    showSplash.value = false
-  }, 100)
 }
 
 watch(
@@ -694,6 +678,21 @@ watch(
     })
   },
 )
+
+// 淡出并移除静态启动画面
+let splashDismissed = false
+const dismissSplash = () => {
+  if (splashDismissed) return
+  splashDismissed = true
+  requestAnimationFrame(() => {
+    const splash = document.getElementById('splash')
+    if (splash) {
+      splash.classList.add('fade-out')
+      splash.addEventListener('transitionend', () => splash.remove(), { once: true })
+      setTimeout(() => { if (splash.parentNode) splash.remove() }, 2000)
+    }
+  })
+}
 
 const showSection = (section, subSection) => {
   currentSection.value = section
@@ -1301,80 +1300,5 @@ onUnmounted(() => {
   100% {
     background-position: 200% 0;
   }
-}
-
-// ── 启动覆盖层 ──────────────────────────────────────────────
-.splash-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-primary, #f3f3f3);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-
-  &.splash-dark {
-    background: var(--bg-primary, #0d0d0d);
-  }
-}
-
-.splash-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.splash-title {
-  font-family: var(--font-family);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: 0.5px;
-  opacity: 0;
-  animation: splash-enter 0.4s ease forwards 0.2s;
-}
-
-.splash-spinner {
-  margin-top: 8px;
-  opacity: 0;
-  animation: splash-enter 0.4s ease forwards 0.3s;
-}
-
-.spinner-ring {
-  width: 24px;
-  height: 24px;
-  border: 2.5px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spinner-rotate 0.8s linear infinite;
-}
-
-@keyframes splash-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes spinner-rotate {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-// 淡出过渡
-.splash-fade-leave-active {
-  transition: opacity 0.35s ease;
-}
-
-.splash-fade-leave-to {
-  opacity: 0;
 }
 </style>
