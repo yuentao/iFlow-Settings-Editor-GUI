@@ -276,7 +276,8 @@ const categories = computed(() => {
 })
 
 const filteredMods = computed(() => {
-  const sorted = [...mods.value].sort((a, b) => (a.installedAt || 0) - (b.installedAt || 0))
+  // 列表排序与应用顺序一致：按 installedAt 升序（与后端 enabledMods 排序方式相同）
+  const sorted = [...mods.value].sort((a, b) => a.installedAt - b.installedAt)
   if (selectedCategory.value === 'all') return sorted
   return sorted.filter(m => m.category === selectedCategory.value)
 })
@@ -322,10 +323,11 @@ const openExternal = async url => {
   }
 }
 
-// 计算已启用 mod 的序号（按 installedAt 排序）
+// 计算 mod 的应用顺序序号（与后端 applyModsToIflowJs 的应用顺序一致：按 installedAt 升序）
 const enableIndexMap = computed(() => {
   const map = {}
-  const enabled = [...mods.value].filter(m => m.enabled).sort((a, b) => (a.installedAt || 0) - (b.installedAt || 0))
+  // 应用顺序：与后端 iflow:enable-mod 中 enabledMods 的排序一致
+  const enabled = [...mods.value].filter(m => m.enabled).sort((a, b) => a.installedAt - b.installedAt)
   enabled.forEach((m, i) => {
     map[m.id] = i + 1
   })
