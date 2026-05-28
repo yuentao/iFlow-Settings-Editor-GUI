@@ -511,13 +511,30 @@ onMounted(() => {
   loadMods()
 
   // 初始化进度事件监听
+  // Worker 进度中的 phase 标识符到翻译 key 的映射
+  const phaseI18nMap = {
+    detecting: 'iflow.applying.detectingConflicts',
+    comparing: 'iflow.applying.detectingConflicts',
+    applying: 'iflow.applying.applyingMod',
+  }
+
   cleanupApplyProgress = window.electronAPI.onIflowApplyProgress((progress) => {
     applyingProgress.value = progress
-    applyingText.value = t('iflow.applying.applyingMod', {
-      current: progress.current,
-      total: progress.total,
-      name: progress.modName,
-    })
+    // Worker 进度的 modName 可能是 phase 标识符（如 'applying'），需要翻译
+    const phase = phaseI18nMap[progress.modName]
+    if (phase) {
+      applyingText.value = t(phase, {
+        current: progress.current,
+        total: progress.total,
+      })
+    } else {
+      // 主进程进度的 modName 是真正的 mod 名称
+      applyingText.value = t('iflow.applying.applyingMod', {
+        current: progress.current,
+        total: progress.total,
+        name: progress.modName,
+      })
+    }
   })
 
   cleanupDetectConflictsProgress = window.electronAPI.onIflowDetectConflictsProgress((progress) => {

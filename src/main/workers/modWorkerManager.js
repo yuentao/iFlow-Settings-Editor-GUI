@@ -52,10 +52,11 @@ function runWorker(taskType, data, onProgress = null) {
         const wp = message.progress
         console.log('[WorkerManager] Progress:', wp)
         // 转换 Worker 进度格式
+        // modName 传递阶段标识符，由渲染进程通过 i18n 翻译
         const mainProgress = {
           current: wp.progress || 0,
           total: 100,
-          modName: wp.phase || '处理中',
+          modName: wp.phase || '',
         }
         console.log('[WorkerManager] Sending progress:', mainProgress)
         onProgress(mainProgress.current, mainProgress.total, mainProgress.modName)
