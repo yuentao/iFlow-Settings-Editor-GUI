@@ -380,6 +380,7 @@ const toggleMod = async (modId, enabled) => {
       if (!confirmed) return
 
       isApplying.value = true
+      applyingProgress.value = null
       applyingText.value = t('iflow.applying.swapping')
       try {
         // 先禁用旧的 replace mod
@@ -421,6 +422,7 @@ const toggleMod = async (modId, enabled) => {
   if (!confirmed) return
 
   isApplying.value = true
+  applyingProgress.value = null
   applyingText.value = enabled ? t('iflow.applying.enabling') : t('iflow.applying.disabling')
   try {
     const result = await window.electronAPI.iflowEnableMod(modId, enabled)
@@ -460,6 +462,7 @@ const deleteMod = async modId => {
   if (!confirmed) return
 
   isApplying.value = true
+  applyingProgress.value = null
   try {
     const result = await window.electronAPI.iflowDeleteMod(modId)
     if (result.success) {
@@ -511,24 +514,23 @@ onMounted(() => {
   loadMods()
 
   // 初始化进度事件监听
-  // Worker 进度中的 phase 标识符到翻译 key 的映射
+  // Worker 进度中的 phase 标识符到翻译 key 的映射（使用不带占位符的 key）
   const phaseI18nMap = {
-    detecting: 'iflow.applying.detectingConflicts',
-    comparing: 'iflow.applying.detectingConflicts',
-    applying: 'iflow.applying.applyingMod',
+    detecting: 'iflow.applying.detectingConflictsProgress',
+    comparing: 'iflow.applying.detectingConflictsProgress',
+    applying: 'iflow.applying.applyingChanges',
   }
 
   cleanupApplyProgress = window.electronAPI.onIflowApplyProgress((progress) => {
-    applyingProgress.value = progress
     // Worker 进度的 modName 可能是 phase 标识符（如 'applying'），需要翻译
     const phase = phaseI18nMap[progress.modName]
     if (phase) {
-      applyingText.value = t(phase, {
-        current: progress.current,
-        total: progress.total,
-      })
+      // Worker 进度是百分比型（0~100），不显示进度条，只更新状态文本
+      applyingProgress.value = null
+      applyingText.value = t(phase)
     } else {
-      // 主进程进度的 modName 是真正的 mod 名称
+      // 主进程进度是步骤型（1/3），显示进度条和步骤信息
+      applyingProgress.value = progress
       applyingText.value = t('iflow.applying.applyingMod', {
         current: progress.current,
         total: progress.total,
@@ -538,11 +540,9 @@ onMounted(() => {
   })
 
   cleanupDetectConflictsProgress = window.electronAPI.onIflowDetectConflictsProgress((progress) => {
-    applyingProgress.value = progress
-    applyingText.value = t('iflow.applying.detectingConflicts', {
-      current: progress.current,
-      total: progress.total,
-    })
+    // 冲突检测是百分比型进度，不显示进度条
+    applyingProgress.value = null
+    applyingText.value = t('iflow.applying.detectingConflictsProgress')
   })
 })
 

@@ -710,7 +710,9 @@ deleteSuccess: '「{name}」を削除しました',
       disabling: 'Mod を無効化中…',
       swapping: 'Mod を置き換え中…',
       applyingMod: 'Mod を適用中 ({current}/{total}): {name}',
-      detectingConflicts: '競合を検出中 ({current}/{total})…'
+      detectingConflicts: '競合を検出中 ({current}/{total})…',
+      applyingChanges: '変更を適用中…',
+      detectingConflictsProgress: '競合を検出中…',
     },
     category: {
       all: 'すべて'

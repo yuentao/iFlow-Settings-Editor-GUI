@@ -714,6 +714,8 @@ export default {
       swapping: 'Swapping mod…',
       applyingMod: 'Applying mod ({current}/{total}): {name}',
       detectingConflicts: 'Detecting conflicts ({current}/{total})…',
+      applyingChanges: 'Applying changes…',
+      detectingConflictsProgress: 'Detecting conflicts…',
     },
     category: {
       all: 'All',
