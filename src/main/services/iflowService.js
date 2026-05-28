@@ -366,6 +366,10 @@ async function applyModsToIflowJs(enabledMods, iflowPath, onProgress = null) {
   let content = await readFileStream(iflowPath)
   const total = enabledMods.length
 
+  // 预读取原始备份文件内容（diff/patch 类型需要，避免在循环中重复 I/O）
+  const backupPath = path.join(MODS_DIR, 'iflow.js.original')
+  const originalContent = fs.existsSync(backupPath) ? fs.readFileSync(backupPath, 'utf-8') : null
+
   for (let i = 0; i < enabledMods.length; i++) {
     const mod = enabledMods[i]
 
@@ -398,15 +402,10 @@ async function applyModsToIflowJs(enabledMods, iflowPath, onProgress = null) {
       case 'diff': {
         const codeJsPath = path.join(modDir, 'code.js')
         if (fs.existsSync(codeJsPath)) {
-          // code.js 存在：使用上下文无关的行级 patch 应用，
-          // 仅应用用户对原始文件的改动，不干扰其他 Mod 的变更
           const codeJsContent = fs.readFileSync(codeJsPath, 'utf-8')
-          const backupPath = path.join(MODS_DIR, 'iflow.js.original')
-          const originalContent = fs.existsSync(backupPath) ? fs.readFileSync(backupPath, 'utf-8') : content
-          console.log('[iflowService] applyCodeJsChanges called with onProgress:', !!onProgress)
-          content = await applyCodeJsChanges(originalContent, codeJsContent, content, onProgress)
+          const origForDiff = originalContent || content
+          content = await applyCodeJsChanges(origForDiff, codeJsContent, content, onProgress, mod.id)
         } else {
-          // 无 code.js（手写 patch.diff 或旧版本导入），使用预生成补丁
           content = applyUnifiedDiff(content, modContent)
         }
         break
@@ -456,6 +455,11 @@ async function applySingleMod(mod, iflowPath, onProgress = null) {
   }
 
   let content = await readFileStream(iflowPath)
+
+  // 预读取原始备份文件内容（diff/patch 类型需要）
+  const backupPath = path.join(MODS_DIR, 'iflow.js.original')
+  const originalContent = fs.existsSync(backupPath) ? fs.readFileSync(backupPath, 'utf-8') : null
+
   const modDir = path.join(MODS_DIR, mod.id)
   const mainFile = mod.type === 'patch' || mod.type === 'diff' ? 'patch.diff' : 'code.js'
   const mainFilePath = path.join(modDir, mainFile)
@@ -481,9 +485,8 @@ async function applySingleMod(mod, iflowPath, onProgress = null) {
       const codeJsPath = path.join(modDir, 'code.js')
       if (fs.existsSync(codeJsPath)) {
         const codeJsContent = fs.readFileSync(codeJsPath, 'utf-8')
-        const backupPath = path.join(MODS_DIR, 'iflow.js.original')
-        const originalContent = fs.existsSync(backupPath) ? fs.readFileSync(backupPath, 'utf-8') : content
-        content = await applyCodeJsChanges(originalContent, codeJsContent, content, onProgress)
+        const origForDiff = originalContent || content
+        content = await applyCodeJsChanges(origForDiff, codeJsContent, content, onProgress, mod.id)
       } else {
         content = applyUnifiedDiff(content, modContent)
       }
@@ -625,32 +628,75 @@ function mergeLineChanges(origLine, contentLine, modLine) {
 }
 
 /**
- * 内部函数：应用 code.js 补丁（不通过 Worker）
- * 供 Worker 管理器在小文件时调用
+ * 计算原始文件与 code.js 之间的行级变更指令
+ * 返回紧凑的可序列化格式，用于缓存
+ * @param {string[]} origLines - 原始文件行数组
+ * @param {string[]} codeLines - code.js 行数组
+ * @returns {Object[]} 变更指令列表
  */
-function applyCodeJsChangesInternal(original, codeJs, content) {
-  // 统一去掉 \r，避免 \r\n vs \n 导致 diffArray 认为每行都不同
-  const origLines = original.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
-  const codeLines = codeJs.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
-  const contentLines = content.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
-
+function computeLineChanges(origLines, codeLines) {
   const changes = diff.diffArrays(origLines, codeLines)
-
-  const result = []
-  let contentPos = 0
-
+  // 转换为紧凑的变更指令格式
+  const instructions = []
   for (let ci = 0; ci < changes.length; ci++) {
     const change = changes[ci]
     if (change.removed) {
       const nextChange = changes[ci + 1]
       if (nextChange && nextChange.added) {
-        const removedCount = change.count
-        const addedCount = nextChange.count
+        // 替换：removed + added 配对
+        instructions.push({
+          type: 'replace',
+          removedCount: change.count,
+          origLines: change.value,
+          addedCount: nextChange.count,
+          modLines: nextChange.value,
+        })
+        ci++ // 跳过下一个 added change
+      } else {
+        // 仅删除（保留 content 中对应行）
+        instructions.push({
+          type: 'keep',
+          count: change.count,
+        })
+      }
+    } else if (change.added) {
+      // 仅添加
+      instructions.push({
+        type: 'add',
+        lines: change.value,
+      })
+    } else {
+      // 未变化
+      instructions.push({
+        type: 'keep',
+        count: change.count,
+      })
+    }
+  }
+  return instructions
+}
+
+/**
+ * 将行级变更指令应用到当前 content
+ * @param {Object[]} instructions - computeLineChanges 返回的变更指令
+ * @param {string} content - 当前 iflow.js 内容
+ * @returns {string} 应用后的内容
+ */
+function applyLineChanges(instructions, content) {
+  const contentLines = content.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
+  const result = []
+  let contentPos = 0
+
+  for (const instr of instructions) {
+    switch (instr.type) {
+      case 'replace': {
+        const removedCount = instr.removedCount
+        const addedCount = instr.addedCount
         const maxPair = Math.max(removedCount, addedCount)
 
         for (let i = 0; i < maxPair; i++) {
-          const origLine = i < removedCount ? change.value[i] : ''
-          const modLine = i < addedCount ? nextChange.value[i] : ''
+          const origLine = i < removedCount ? instr.origLines[i] : ''
+          const modLine = i < addedCount ? instr.modLines[i] : ''
           const contentLine = contentPos < contentLines.length ? contentLines[contentPos] : ''
 
           if (i < removedCount) {
@@ -661,19 +707,19 @@ function applyCodeJsChangesInternal(original, codeJs, content) {
             result.push(modLine)
           }
         }
-        ci++
-      } else {
-        contentPos += change.count
+        break
       }
-    } else if (change.added) {
-      result.push(...change.value)
-    } else {
-      for (let i = 0; i < change.count; i++) {
-        if (contentPos < contentLines.length) {
-          result.push(contentLines[contentPos])
-          contentPos++
+      case 'add':
+        result.push(...instr.lines)
+        break
+      case 'keep':
+        for (let i = 0; i < instr.count; i++) {
+          if (contentPos < contentLines.length) {
+            result.push(contentLines[contentPos])
+            contentPos++
+          }
         }
-      }
+        break
     }
   }
 
@@ -686,29 +732,144 @@ function applyCodeJsChangesInternal(original, codeJs, content) {
 }
 
 /**
+ * 计算内容的 SHA256 哈希（用于缓存 key）
+ * @param {string} content - 文件内容
+ * @returns {string} 哈希值前 16 位
+ */
+function contentHash(content) {
+  return crypto.createHash('sha256').update(content).digest('hex').slice(0, 16)
+}
+
+/**
+ * 获取缓存的行级变更指令
+ * @param {string} modId - Mod ID
+ * @param {string} originalHash - 原始文件内容哈希
+ * @returns {Object[]|null} 缓存的变更指令，无缓存返回 null
+ */
+function getCachedChanges(modId, originalHash) {
+  const cachePath = path.join(MODS_DIR, modId, '.changes.json')
+  if (!fs.existsSync(cachePath)) return null
+  try {
+    const cached = JSON.parse(fs.readFileSync(cachePath, 'utf-8'))
+    if (cached.originalHash === originalHash && cached.version === 1 && Array.isArray(cached.instructions)) {
+      return cached.instructions
+    }
+  } catch {
+    // 缓存文件损坏，忽略
+  }
+  return null
+}
+
+/**
+ * 缓存行级变更指令
+ * @param {string} modId - Mod ID
+ * @param {string} originalHash - 原始文件内容哈希
+ * @param {Object[]} instructions - 变更指令
+ */
+function setCachedChanges(modId, originalHash, instructions) {
+  const cachePath = path.join(MODS_DIR, modId, '.changes.json')
+  try {
+    const data = JSON.stringify({
+      version: 1,
+      originalHash,
+      instructions,
+    })
+    console.log('[iflowService] Writing changes cache:', cachePath, 'instructions:', instructions.length, 'size:', data.length)
+    fs.writeFileSync(cachePath, data, 'utf-8')
+  } catch (err) {
+    logger.warn('Failed to write changes cache:', err.message)
+  }
+}
+
+/**
+ * 内部函数：应用 code.js 补丁（不通过 Worker）
+ * 供 Worker 管理器在小文件时调用
+ * 支持缓存 diffArrays 计算结果，避免重复计算
+ * @param {string} original - 原始内容
+ * @param {string} codeJs - Mod 的 code.js 内容
+ * @param {string} content - 当前 iflow.js 内容
+ * @param {string} [modId] - Mod ID（提供时启用缓存）
+ */
+function applyCodeJsChangesInternal(original, codeJs, content, modId = null) {
+  // 统一去掉 \r，避免 \r\n vs \n 导致 diffArray 认为每行都不同
+  const normalizedOriginal = original.replace(/\r\n/g, '\n').replace(/\r/g, '')
+
+  let instructions = null
+
+  // 尝试从缓存读取
+  if (modId) {
+    const hash = contentHash(normalizedOriginal)
+    console.log('[iflowService] Checking cache for mod:', modId, 'hash:', hash)
+    instructions = getCachedChanges(modId, hash)
+    if (instructions) {
+      console.log('[iflowService] Cache hit for mod:', modId)
+    }
+  }
+
+  // 缓存未命中，计算变更指令
+  if (!instructions) {
+    const origLines = normalizedOriginal.split('\n')
+    const codeLines = codeJs.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
+    console.log('[iflowService] Computing line changes for mod:', modId, 'origLines:', origLines.length, 'codeLines:', codeLines.length)
+    instructions = computeLineChanges(origLines, codeLines)
+
+    // 写入缓存
+    if (modId) {
+      const hash = contentHash(normalizedOriginal)
+      setCachedChanges(modId, hash, instructions)
+    }
+  }
+
+  // 应用变更指令
+  return applyLineChanges(instructions, content)
+}
+
+/**
  * 应用 code.js 补丁（使用 Worker 处理大文件）
  * @param {string} original - 原始内容
  * @param {string} codeJs - Mod 的 code.js 内容
  * @param {string} content - 当前 iflow.js 内容
  * @param {Function} onProgress - 进度回调
+ * @param {string} [modId] - Mod ID（提供时启用缓存）
  * @returns {Promise<string>} 应用后的内容
  */
-async function applyCodeJsChanges(original, codeJs, content, onProgress = null) {
-  console.log('[iflowService] applyCodeJsChanges called, sizes - original:', original.length, 'codeJs:', codeJs.length)
+async function applyCodeJsChanges(original, codeJs, content, onProgress = null, modId = null) {
+  console.log('[iflowService] applyCodeJsChanges called, sizes - original:', original.length, 'codeJs:', codeJs.length, 'modId:', modId)
+
+  // 有 modId 时使用缓存机制：缓存命中跳过 diffArrays 计算，缓存未命中则计算并缓存
+  if (modId) {
+    const normalizedOriginal = original.replace(/\r\n/g, '\n').replace(/\r/g, '')
+    const hash = contentHash(normalizedOriginal)
+    let instructions = getCachedChanges(modId, hash)
+
+    if (instructions) {
+      console.log('[iflowService] Cache hit for mod:', modId, '— applying cached instructions')
+      return applyLineChanges(instructions, content)
+    }
+
+    // 缓存未命中：在主线程计算 instructions 并缓存（一次性开销，后续全部走缓存）
+    console.log('[iflowService] Cache miss for mod:', modId, '— computing instructions')
+    const origLines = normalizedOriginal.split('\n')
+    const codeLines = codeJs.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
+    instructions = computeLineChanges(origLines, codeLines)
+    setCachedChanges(modId, hash, instructions)
+
+    return applyLineChanges(instructions, content)
+  }
+
+  // 无 modId 时（如 Worker 内部调用）：使用原有逻辑
   // 小文件直接使用主线程处理
   if (original.length < 1024 * 1024 && codeJs.length < 1024 * 1024) {
-    console.log('[iflowService] Small file, using internal (no progress)')
-    return applyCodeJsChangesInternal(original, codeJs, content)
+    return applyCodeJsChangesInternal(original, codeJs, content, null)
   }
 
   // 大文件使用 Worker 处理
-  console.log('[iflowService] Large file, using Worker')
   try {
     const { applyCodeJsChanges } = require('../workers/modWorkerManager')
     return await applyCodeJsChanges(original, codeJs, content, onProgress)
   } catch (workerError) {
     logger.warn(`Worker failed, falling back to main thread: ${workerError.message}`)
-    return applyCodeJsChangesInternal(original, codeJs, content)
+    return applyCodeJsChangesInternal(original, codeJs, content, null)
   }
 }
 
@@ -1040,6 +1201,11 @@ module.exports = {
   generateDiffFromCode,
   applyUnifiedDiff,
   applyCodeJsChangesInternal,
+  computeLineChanges,
+  applyLineChanges,
+  getCachedChanges,
+  setCachedChanges,
+  contentHash,
   detectConflicts,
   detectConflictsInternal,
   resolveIncludeMapPath,

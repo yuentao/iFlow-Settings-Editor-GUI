@@ -327,7 +327,7 @@ const openExternal = async url => {
 const enableIndexMap = computed(() => {
   const map = {}
   // 应用顺序：与后端 iflow:enable-mod 中 enabledMods 的排序一致（按启用时间升序）
-  const enabled = [...mods.value].filter(m => m.enabled).sort((a, b) => (a.enabledAt || 0) - (b.enabledAt || 0))
+  const enabled = [...mods.value].filter(m => m.enabled).sort((a, b) => (a.enabledAt || a.installedAt || 0) - (b.enabledAt || b.installedAt || 0))
   enabled.forEach((m, i) => {
     map[m.id] = i + 1
   })

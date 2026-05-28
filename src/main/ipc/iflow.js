@@ -50,6 +50,17 @@ function registerIflowIpcHandlers() {
   // ── 获取已安装 Mod 列表 ─────────────────────────────────
   ipcMain.handle('iflow:list-mods', wrapIpcHandler(async () => {
     const metadata = readModsMetadata()
+    // 迁移：已启用但缺少 enabledAt 的旧 mod，用 installedAt 作为回退值
+    let migrated = false
+    for (const mod of metadata.mods) {
+      if (mod.enabled && !mod.enabledAt) {
+        mod.enabledAt = mod.installedAt || Date.now()
+        migrated = true
+      }
+    }
+    if (migrated) {
+      writeModsMetadata(metadata)
+    }
     // 按 installedAt 升序排序
     const mods = metadata.mods.sort((a, b) => a.installedAt - b.installedAt)
     return { success: true, mods }
@@ -185,7 +196,7 @@ function registerIflowIpcHandlers() {
     // 获取仍然启用的 Mod 列表（按 enabledAt 升序，即启用先后顺序）
     const enabledMods = metadata.mods
       .filter(m => m.enabled)
-      .sort((a, b) => (a.enabledAt || 0) - (b.enabledAt || 0))
+      .sort((a, b) => (a.enabledAt || a.installedAt || 0) - (b.enabledAt || b.installedAt || 0))
 
     // 启用时检测冲突（异步，支持大文件）
     if (enabled) {
@@ -341,7 +352,7 @@ function registerIflowIpcHandlers() {
 
           const enabledMods = metadata.mods
             .filter(m => m.enabled)
-            .sort((a, b) => (a.enabledAt || 0) - (b.enabledAt || 0))
+            .sort((a, b) => (a.enabledAt || a.installedAt || 0) - (b.enabledAt || b.installedAt || 0))
 
           try {
             await reapplyMods(enabledMods, iflowPath)
