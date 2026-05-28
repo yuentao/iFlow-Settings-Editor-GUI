@@ -323,6 +323,7 @@ export interface IflowMod {
   author: string
   category: string
   enabled: boolean
+  enabledAt: number | null
   installedAt: number
   iflowVersion?: string
   iflowVersionConstraint?: string

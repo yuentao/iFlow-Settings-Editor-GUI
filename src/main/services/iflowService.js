@@ -357,8 +357,8 @@ async function writeFileAtomically(filePath, content) {
 
 /**
  * 应用 Mod 到 iflow.js
- * 读取 iflow.js，按 installedAt 升序应用所有启用的 Mod，然后写回
- * @param {Object[]} enabledMods - 启用的 Mod 列表（已按 installedAt 升序排序）
+ * 读取 iflow.js，按 enabledAt 升序应用所有启用的 Mod，然后写回
+ * @param {Object[]} enabledMods - 启用的 Mod 列表（已按 enabledAt 升序排序）
  * @param {string} iflowPath - iflow.js 文件路径
  * @param {Function} onProgress - 进度回调 (current, total, modName)
  */

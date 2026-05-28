@@ -179,11 +179,12 @@ function registerIflowIpcHandlers() {
     // 更新 Mod 启用状态
     metadata.mods[modIndex].enabled = enabled
     metadata.mods[modIndex].lastModified = Date.now()
+    metadata.mods[modIndex].enabledAt = enabled ? Date.now() : null
 
-    // 获取仍然启用的 Mod 列表（按 installedAt 升序）
+    // 获取仍然启用的 Mod 列表（按 enabledAt 升序，即启用先后顺序）
     const enabledMods = metadata.mods
       .filter(m => m.enabled)
-      .sort((a, b) => a.installedAt - b.installedAt)
+      .sort((a, b) => (a.enabledAt || 0) - (b.enabledAt || 0))
 
     // 启用时检测冲突（异步，支持大文件）
     if (enabled) {
@@ -218,6 +219,7 @@ function registerIflowIpcHandlers() {
         if (!confirmed) {
           // 用户取消，回滚状态
           metadata.mods[modIndex].enabled = false
+          metadata.mods[modIndex].enabledAt = null
           metadata.mods[modIndex].lastModified = Date.now()
           writeModsMetadata(metadata)
           return { success: false, cancelled: true, conflicts: true }
@@ -237,6 +239,7 @@ function registerIflowIpcHandlers() {
     } catch (includeError) {
       // includeMap 部署失败，回滚状态
       metadata.mods[modIndex].enabled = !enabled
+      metadata.mods[modIndex].enabledAt = enabled ? null : metadata.mods[modIndex].enabledAt
       metadata.mods[modIndex].lastModified = Date.now()
       writeModsMetadata(metadata)
       return errorResult(
@@ -318,7 +321,7 @@ function registerIflowIpcHandlers() {
 
           const enabledMods = metadata.mods
             .filter(m => m.enabled)
-            .sort((a, b) => a.installedAt - b.installedAt)
+            .sort((a, b) => (a.enabledAt || 0) - (b.enabledAt || 0))
 
           try {
             await reapplyMods(enabledMods, iflowPath)
@@ -527,6 +530,7 @@ function registerIflowIpcHandlers() {
         includeMap: metadata.includeMap || undefined,
         dependsOn: metadata.dependsOn || undefined,
         enabled: false,
+        enabledAt: null,
         installedAt: Date.now(),
         lastModified: Date.now(),
         _autoGenPatch: metadata._needsDiffGeneration || false,
