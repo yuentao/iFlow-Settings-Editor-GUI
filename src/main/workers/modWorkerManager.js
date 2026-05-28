@@ -58,7 +58,7 @@ function runWorker(taskType, data, onProgress = null) {
           modName: wp.phase || '处理中',
         }
         console.log('[WorkerManager] Sending progress:', mainProgress)
-        onProgress(mainProgress)
+        onProgress(mainProgress.current, mainProgress.total, mainProgress.modName)
         return
       }
 
