@@ -1,7 +1,7 @@
 <template>
   <section>
-    <!-- 模型使用趋势图表 -->
-    <ModelUsageChart :stats="modelStats" :loading="modelStatsLoading" :error="modelStatsError" :refreshing="modelStatsRefreshing" @refresh="handleModelStatsRefresh" />
+    <!-- 模型使用趋势图表（延迟挂载，避免 apexcharts 初始化阻塞首帧） -->
+    <ModelUsageChart v-if="chartMounted" :stats="modelStats" :loading="modelStatsLoading" :error="modelStatsError" :refreshing="modelStatsRefreshing" @refresh="handleModelStatsRefresh" />
 
     <!-- 状态卡片网格 -->
     <div class="stats-grid">
@@ -278,11 +278,14 @@ function handleVisibilityChange() {
 
 onMounted(async () => {
   await cloudStore.loadStatus()
-  // 加载模型使用统计并启动自动刷新
-  const days = selectedModelStatsDays.value
-  const interval = props.settings?.modelUsageRefreshInterval ?? 5
-  await fetchStats({ days })
-  startAutoRefresh(days, interval)
+  // 延迟加载模型统计：先让仪表盘卡片渲染完成，再发起统计请求
+  // 这样避免 IPC 数据传输阻塞首帧渲染
+  requestAnimationFrame(() => {
+    const days = selectedModelStatsDays.value
+    const interval = props.settings?.modelUsageRefreshInterval ?? 5
+    fetchStats({ days, silent: true })
+    startAutoRefresh(days, interval)
+  })
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
