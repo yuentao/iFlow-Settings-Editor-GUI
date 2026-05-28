@@ -14,6 +14,34 @@ log.transports.console.format = '[{h}:{i}:{s}] [{level}] {text}'
 // 设置日志文件大小（5MB）
 log.transports.file.maxSize = 5 * 1024 * 1024
 
+// 自定义日志轮转：保留最近 3 个归档文件（main.log → main.old.log → main.old2.log）
+log.transports.file.archiveLogFn = (file) => {
+  const path = require('path')
+  const fs = require('fs')
+  const oldPath = file.toString()
+  const info = path.parse(oldPath)
+
+  // 删除最老的归档文件 (.old2.log)
+  const old2Path = path.join(info.dir, `${info.name}.old2${info.ext}`)
+  try { fs.unlinkSync(old2Path) } catch (_) {}
+
+  // 将 .old.log 重命名为 .old2.log
+  const old1Path = path.join(info.dir, `${info.name}.old${info.ext}`)
+  try { fs.renameSync(old1Path, old2Path) } catch (_) {}
+
+  // 将当前日志重命名为 .old.log
+  try {
+    fs.renameSync(oldPath, old1Path)
+  } catch (e) {
+    // 如果重命名失败（如文件被占用），裁剪当前日志
+    const quarterOfMaxSize = Math.round(log.transports.file.maxSize / 4)
+    file.crop(Math.min(quarterOfMaxSize, 256 * 1024))
+  }
+}
+
+// 渲染进程 IPC 日志级别：仅转发 warn 及以上，避免大量 debug/info 噪音
+log.transports.ipc.level = 'warn'
+
 /**
  * 格式化错误对象
  * @param {Error} error - 错误对象

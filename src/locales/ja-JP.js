@@ -154,7 +154,20 @@ export default {
     sectionPreferences: '基本設定',
     sectionCloudSync: 'クラウド同期',
     experimental: '実験的',
-    sectionAbout: 'バージョン情報'
+    sectionAbout: 'バージョン情報',
+    feedback: 'フィードバック',
+    feedbackForum: 'コミュニティフォーラム',
+    feedbackForumDesc: 'フォーラムで他のユーザーと交流する',
+    feedbackGithub: 'GitHub Issues',
+    feedbackGithubDesc: 'バグ報告や機能提案を提出する',
+    logManagement: 'ログ管理',
+    logDir: 'ログディレクトリ',
+    logSize: 'ログサイズ',
+    logFiles: 'ファイル',
+    logOpenDir: 'ディレクトリを開く',
+    logClear: 'ログをクリア',
+    logClearSuccess: 'ログをクリアしました',
+    logClearFailed: 'ログのクリアに失敗しました',
   },
   theme: {
     dark: 'ダーク',
@@ -624,6 +637,7 @@ export default {
     deleteProjectSuccess: 'プロジェクトを削除しました',
     scrollForMore: '下にスクロールしてさらに表示',
     backToTop: 'トップへ戻る',
+    refresh: '更新',
     copy: 'コピー',
     deleteProjectFailed: 'プロジェクトの削除に失敗しました',
     exportSuccess: 'セッションをエクスポートしました',
@@ -694,7 +708,11 @@ deleteSuccess: '「{name}」を削除しました',
     applying: {
       enabling: 'Mod を有効化中…',
       disabling: 'Mod を無効化中…',
-      swapping: 'Mod を置き換え中…'
+      swapping: 'Mod を置き換え中…',
+      applyingMod: 'Mod を適用中: {name}',
+      detectingConflicts: '競合を検出中…',
+      applyingChanges: '変更を適用中…',
+      detectingConflictsProgress: '競合を検出中…',
     },
     category: {
       all: 'すべて'

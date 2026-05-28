@@ -270,7 +270,17 @@ function validateModPackage(extractDir) {
     return { valid: false, error: t('iflow.errors.invalidModType', { type: metadata.type }) }
   }
 
-  // 5. 检查主体文件
+  // 5. dependsOn 是可选字段，但如果有值必须是字符串数组
+  if (metadata.dependsOn !== undefined) {
+    if (!Array.isArray(metadata.dependsOn)) {
+      return { valid: false, error: t('iflow.errors.invalidDependsOn') }
+    }
+    if (!metadata.dependsOn.every(item => typeof item === 'string')) {
+      return { valid: false, error: t('iflow.errors.invalidDependsOnItems') }
+    }
+  }
+
+  // 6. 检查主体文件
   const isPatchType = metadata.type === 'patch' || metadata.type === 'diff'
   const mainFile = isPatchType ? 'patch.diff' : 'code.js'
   const mainFilePath = path.join(extractDir, mainFile)
@@ -288,7 +298,7 @@ function validateModPackage(extractDir) {
     }
   }
 
-  // 6. 如果没有 id，生成一个
+  // 7. 如果没有 id，生成一个
   if (!metadata.id) {
     metadata.id = generateId()
   }
@@ -347,14 +357,27 @@ async function writeFileAtomically(filePath, content) {
 
 /**
  * 应用 Mod 到 iflow.js
- * 读取 iflow.js，按 installedAt 升序应用所有启用的 Mod，然后写回
- * @param {Object[]} enabledMods - 启用的 Mod 列表（已按 installedAt 升序排序）
+ * 读取 iflow.js，按 enabledAt 升序应用所有启用的 Mod，然后写回
+ * @param {Object[]} enabledMods - 启用的 Mod 列表（已按 enabledAt 升序排序）
  * @param {string} iflowPath - iflow.js 文件路径
+ * @param {Function} onProgress - 进度回调 (current, total, modName)
  */
-async function applyModsToIflowJs(enabledMods, iflowPath) {
+async function applyModsToIflowJs(enabledMods, iflowPath, onProgress = null) {
   let content = await readFileStream(iflowPath)
+  const total = enabledMods.length
 
-  for (const mod of enabledMods) {
+  // 预读取原始备份文件内容（diff/patch 类型需要，避免在循环中重复 I/O）
+  const backupPath = path.join(MODS_DIR, 'iflow.js.original')
+  const originalContent = fs.existsSync(backupPath) ? fs.readFileSync(backupPath, 'utf-8') : null
+
+  for (let i = 0; i < enabledMods.length; i++) {
+    const mod = enabledMods[i]
+
+    // 报告进度
+    if (onProgress) {
+      onProgress(i + 1, total, mod.name)
+    }
+
     const modDir = path.join(MODS_DIR, mod.id)
     const mainFile = mod.type === 'patch' || mod.type === 'diff' ? 'patch.diff' : 'code.js'
     const mainFilePath = path.join(modDir, mainFile)
@@ -379,14 +402,10 @@ async function applyModsToIflowJs(enabledMods, iflowPath) {
       case 'diff': {
         const codeJsPath = path.join(modDir, 'code.js')
         if (fs.existsSync(codeJsPath)) {
-          // code.js 存在：使用上下文无关的行级 patch 应用，
-          // 仅应用用户对原始文件的改动，不干扰其他 Mod 的变更
           const codeJsContent = fs.readFileSync(codeJsPath, 'utf-8')
-          const backupPath = path.join(MODS_DIR, 'iflow.js.original')
-          const originalContent = fs.existsSync(backupPath) ? fs.readFileSync(backupPath, 'utf-8') : content
-          content = applyCodeJsChanges(originalContent, codeJsContent, content)
+          const origForDiff = originalContent || content
+          content = await applyCodeJsChanges(origForDiff, codeJsContent, content, onProgress, mod.id)
         } else {
-          // 无 code.js（手写 patch.diff 或旧版本导入），使用预生成补丁
           content = applyUnifiedDiff(content, modContent)
         }
         break
@@ -404,31 +423,80 @@ async function applyModsToIflowJs(enabledMods, iflowPath) {
  * 此操作通过重新应用所有仍启用的 Mod 来实现
  * @param {Object[]} stillEnabledMods - 仍然启用的 Mod 列表
  * @param {string} iflowPath - iflow.js 文件路径
+ * @param {Function} onProgress - 进度回调 (current, total, modName)
  */
-async function reapplyMods(stillEnabledMods, iflowPath) {
-  // 需要 iflow.js 的原始备份来重新计算
-  // 简化策略：禁用 Mod 时，先备份当前 iflow.js，再重新应用所有启用的 Mod
-  // 这里需要读取原始 iflow.js 内容
-  // 由于我们无法轻易"撤销"已应用的 Mod，采用完整重新应用策略
-  // 这要求我们保持 iflow.js 的原始备份
-
+async function reapplyMods(stillEnabledMods, iflowPath, onProgress = null) {
   const backupPath = path.join(MODS_DIR, 'iflow.js.original')
 
-  // 如果没有原始备份，创建一个
   if (!fs.existsSync(backupPath)) {
-    // 第一次启用 Mod 前，应该已经创建了备份
-    // 如果没有备份，说明 iflow.js 可能已被修改，无法恢复
     throw new Error(t('iflow.errors.noOriginalBackup'))
   }
 
-  // 从原始备份恢复
   const originalContent = await readFileStream(backupPath)
   await writeFileAtomically(iflowPath, originalContent)
 
-  // 重新应用仍启用的 Mod
   if (stillEnabledMods.length > 0) {
-    await applyModsToIflowJs(stillEnabledMods, iflowPath)
+    await applyModsToIflowJs(stillEnabledMods, iflowPath, onProgress)
   }
+}
+
+/**
+ * 增量应用单个 Mod 到当前 iflow.js
+ * 不恢复原始备份，直接在当前文件上应用，适用于新启用的 mod 排在应用列表末尾的场景。
+ * 仅支持 append、replace、diff/patch 类型；prepend 类型必须全量重新应用。
+ *
+ * @param {Object} mod - 要应用的 Mod 对象
+ * @param {string} iflowPath - iflow.js 文件路径
+ * @param {Function} onProgress - 进度回调 (current, total, modName)
+ */
+async function applySingleMod(mod, iflowPath, onProgress = null) {
+  if (onProgress) {
+    onProgress(1, 1, mod.name)
+  }
+
+  let content = await readFileStream(iflowPath)
+
+  // 预读取原始备份文件内容（diff/patch 类型需要）
+  const backupPath = path.join(MODS_DIR, 'iflow.js.original')
+  const originalContent = fs.existsSync(backupPath) ? fs.readFileSync(backupPath, 'utf-8') : null
+
+  const modDir = path.join(MODS_DIR, mod.id)
+  const mainFile = mod.type === 'patch' || mod.type === 'diff' ? 'patch.diff' : 'code.js'
+  const mainFilePath = path.join(modDir, mainFile)
+
+  if (!fs.existsSync(mainFilePath)) {
+    throw new Error(t('iflow.errors.missingMainFile', { file: mainFile, mod: mod.name }))
+  }
+
+  const modContent = fs.readFileSync(mainFilePath, 'utf-8')
+
+  switch (mod.type) {
+    case 'replace':
+      content = modContent
+      break
+    case 'append':
+      content += '\n' + modContent
+      break
+    case 'prepend':
+      // prepend 不支持增量应用，调用方应确保不走到此分支
+      throw new Error('prepend type does not support incremental apply')
+    case 'patch':
+    case 'diff': {
+      const codeJsPath = path.join(modDir, 'code.js')
+      if (fs.existsSync(codeJsPath)) {
+        const codeJsContent = fs.readFileSync(codeJsPath, 'utf-8')
+        const origForDiff = originalContent || content
+        content = await applyCodeJsChanges(origForDiff, codeJsContent, content, onProgress, mod.id)
+      } else {
+        content = applyUnifiedDiff(content, modContent)
+      }
+      break
+    }
+    default:
+      throw new Error(t('iflow.errors.invalidModType', { type: mod.type }))
+  }
+
+  await writeFileAtomically(iflowPath, content)
 }
 
 /**
@@ -560,79 +628,249 @@ function mergeLineChanges(origLine, contentLine, modLine) {
 }
 
 /**
- * 上下文无关的行级 code.js 补丁应用
- * 使用 diff.diffArrays 计算用户对原始文件的改动（新增/删除/不变的行），
- * 然后逐块应用到目标 content 上，不进行上下文校验。
- * 这样非重叠区域的改动（来自其他已启用 Mod）会被保留。
- *
- * 改进：当遇到 removed+added 的行替换时，如果 content 中对应行已被其他 Mod 修改，
- * 会尝试行内字符级合并，将两个 Mod 的不重叠改动合并到同一行。
+ * 计算原始文件与 code.js 之间的行级变更指令
+ * 返回紧凑的可序列化格式，用于缓存
+ * @param {string[]} origLines - 原始文件行数组
+ * @param {string[]} codeLines - code.js 行数组
+ * @returns {Object[]} 变更指令列表
  */
-function applyCodeJsChanges(original, codeJs, content) {
-  // 统一去掉 \r，避免 \r\n vs \n 导致 diffArray 认为每行都不同
-  const origLines = original.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
-  const codeLines = codeJs.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
-  const contentLines = content.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
-
+function computeLineChanges(origLines, codeLines) {
   const changes = diff.diffArrays(origLines, codeLines)
-
-  const result = []
-  let contentPos = 0
-
+  // 转换为紧凑的变更指令格式
+  const instructions = []
   for (let ci = 0; ci < changes.length; ci++) {
     const change = changes[ci]
     if (change.removed) {
-      // 检查下一个 change 是否为 added（行替换模式）
       const nextChange = changes[ci + 1]
       if (nextChange && nextChange.added) {
-        // 行替换：removed N 行 → added M 行
-        // 尝试逐行合并：将 removed 行与 added 行配对，做行内字符级合并
-        const removedCount = change.count
-        const addedCount = nextChange.count
+        // 替换：removed + added 配对
+        instructions.push({
+          type: 'replace',
+          removedCount: change.count,
+          origLines: change.value,
+          addedCount: nextChange.count,
+          modLines: nextChange.value,
+        })
+        ci++ // 跳过下一个 added change
+      } else {
+        // 仅删除（保留 content 中对应行）
+        instructions.push({
+          type: 'keep',
+          count: change.count,
+        })
+      }
+    } else if (change.added) {
+      // 仅添加
+      instructions.push({
+        type: 'add',
+        lines: change.value,
+      })
+    } else {
+      // 未变化
+      instructions.push({
+        type: 'keep',
+        count: change.count,
+      })
+    }
+  }
+  return instructions
+}
+
+/**
+ * 将行级变更指令应用到当前 content
+ * @param {Object[]} instructions - computeLineChanges 返回的变更指令
+ * @param {string} content - 当前 iflow.js 内容
+ * @returns {string} 应用后的内容
+ */
+function applyLineChanges(instructions, content) {
+  const contentLines = content.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
+  const result = []
+  let contentPos = 0
+
+  for (const instr of instructions) {
+    switch (instr.type) {
+      case 'replace': {
+        const removedCount = instr.removedCount
+        const addedCount = instr.addedCount
         const maxPair = Math.max(removedCount, addedCount)
 
         for (let i = 0; i < maxPair; i++) {
-          const origLine = i < removedCount ? change.value[i] : ''
-          const modLine = i < addedCount ? nextChange.value[i] : ''
+          const origLine = i < removedCount ? instr.origLines[i] : ''
+          const modLine = i < addedCount ? instr.modLines[i] : ''
           const contentLine = contentPos < contentLines.length ? contentLines[contentPos] : ''
 
           if (i < removedCount) {
-            // 有对应的原始行 → 尝试合并
             const { merged } = mergeLineChanges(origLine, contentLine, modLine)
             result.push(merged)
             contentPos++
           } else {
-            // 纯新增行（added 多于 removed）→ 直接插入
             result.push(modLine)
           }
         }
-
-        ci++ // 跳过下一个 added change（已处理）
-      } else {
-        // 纯删除：用户删除了这些行 → content 中跳过对应的行
-        contentPos += change.count
+        break
       }
-    } else if (change.added) {
-      // 纯新增：用户添加了这些行 → 直接插入
-      result.push(...change.value)
-    } else {
-      // 未变行 → 保留 content 的版本（可能包含其他 Mod 的改动）
-      for (let i = 0; i < change.count; i++) {
-        if (contentPos < contentLines.length) {
-          result.push(contentLines[contentPos])
-          contentPos++
+      case 'add':
+        result.push(...instr.lines)
+        break
+      case 'keep':
+        for (let i = 0; i < instr.count; i++) {
+          if (contentPos < contentLines.length) {
+            result.push(contentLines[contentPos])
+            contentPos++
+          }
         }
-      }
+        break
     }
   }
 
-  // 保留 content 中超出原始范围的行（被其他 Mod 新增的）
   while (contentPos < contentLines.length) {
     result.push(contentLines[contentPos])
     contentPos++
   }
 
   return result.join('\n')
+}
+
+/**
+ * 计算内容的 SHA256 哈希（用于缓存 key）
+ * @param {string} content - 文件内容
+ * @returns {string} 哈希值前 16 位
+ */
+function contentHash(content) {
+  return crypto.createHash('sha256').update(content).digest('hex').slice(0, 16)
+}
+
+/**
+ * 获取缓存的行级变更指令
+ * @param {string} modId - Mod ID
+ * @param {string} originalHash - 原始文件内容哈希
+ * @returns {Object[]|null} 缓存的变更指令，无缓存返回 null
+ */
+function getCachedChanges(modId, originalHash) {
+  const cachePath = path.join(MODS_DIR, modId, '.changes.json')
+  if (!fs.existsSync(cachePath)) return null
+  try {
+    const cached = JSON.parse(fs.readFileSync(cachePath, 'utf-8'))
+    if (cached.originalHash === originalHash && cached.version === 1 && Array.isArray(cached.instructions)) {
+      return cached.instructions
+    }
+  } catch {
+    // 缓存文件损坏，忽略
+  }
+  return null
+}
+
+/**
+ * 缓存行级变更指令
+ * @param {string} modId - Mod ID
+ * @param {string} originalHash - 原始文件内容哈希
+ * @param {Object[]} instructions - 变更指令
+ */
+function setCachedChanges(modId, originalHash, instructions) {
+  const cachePath = path.join(MODS_DIR, modId, '.changes.json')
+  try {
+    const data = JSON.stringify({
+      version: 1,
+      originalHash,
+      instructions,
+    })
+    console.log('[iflowService] Writing changes cache:', cachePath, 'instructions:', instructions.length, 'size:', data.length)
+    fs.writeFileSync(cachePath, data, 'utf-8')
+  } catch (err) {
+    logger.warn('Failed to write changes cache:', err.message)
+  }
+}
+
+/**
+ * 内部函数：应用 code.js 补丁（不通过 Worker）
+ * 供 Worker 管理器在小文件时调用
+ * 支持缓存 diffArrays 计算结果，避免重复计算
+ * @param {string} original - 原始内容
+ * @param {string} codeJs - Mod 的 code.js 内容
+ * @param {string} content - 当前 iflow.js 内容
+ * @param {string} [modId] - Mod ID（提供时启用缓存）
+ */
+function applyCodeJsChangesInternal(original, codeJs, content, modId = null) {
+  // 统一去掉 \r，避免 \r\n vs \n 导致 diffArray 认为每行都不同
+  const normalizedOriginal = original.replace(/\r\n/g, '\n').replace(/\r/g, '')
+
+  let instructions = null
+
+  // 尝试从缓存读取
+  if (modId) {
+    const hash = contentHash(normalizedOriginal)
+    console.log('[iflowService] Checking cache for mod:', modId, 'hash:', hash)
+    instructions = getCachedChanges(modId, hash)
+    if (instructions) {
+      console.log('[iflowService] Cache hit for mod:', modId)
+    }
+  }
+
+  // 缓存未命中，计算变更指令
+  if (!instructions) {
+    const origLines = normalizedOriginal.split('\n')
+    const codeLines = codeJs.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
+    console.log('[iflowService] Computing line changes for mod:', modId, 'origLines:', origLines.length, 'codeLines:', codeLines.length)
+    instructions = computeLineChanges(origLines, codeLines)
+
+    // 写入缓存
+    if (modId) {
+      const hash = contentHash(normalizedOriginal)
+      setCachedChanges(modId, hash, instructions)
+    }
+  }
+
+  // 应用变更指令
+  return applyLineChanges(instructions, content)
+}
+
+/**
+ * 应用 code.js 补丁（使用 Worker 处理大文件）
+ * @param {string} original - 原始内容
+ * @param {string} codeJs - Mod 的 code.js 内容
+ * @param {string} content - 当前 iflow.js 内容
+ * @param {Function} onProgress - 进度回调
+ * @param {string} [modId] - Mod ID（提供时启用缓存）
+ * @returns {Promise<string>} 应用后的内容
+ */
+async function applyCodeJsChanges(original, codeJs, content, onProgress = null, modId = null) {
+  console.log('[iflowService] applyCodeJsChanges called, sizes - original:', original.length, 'codeJs:', codeJs.length, 'modId:', modId)
+
+  // 有 modId 时使用缓存机制：缓存命中跳过 diffArrays 计算，缓存未命中则计算并缓存
+  if (modId) {
+    const normalizedOriginal = original.replace(/\r\n/g, '\n').replace(/\r/g, '')
+    const hash = contentHash(normalizedOriginal)
+    let instructions = getCachedChanges(modId, hash)
+
+    if (instructions) {
+      console.log('[iflowService] Cache hit for mod:', modId, '— applying cached instructions')
+      return applyLineChanges(instructions, content)
+    }
+
+    // 缓存未命中：在主线程计算 instructions 并缓存（一次性开销，后续全部走缓存）
+    console.log('[iflowService] Cache miss for mod:', modId, '— computing instructions')
+    const origLines = normalizedOriginal.split('\n')
+    const codeLines = codeJs.replace(/\r\n/g, '\n').replace(/\r/g, '').split('\n')
+    instructions = computeLineChanges(origLines, codeLines)
+    setCachedChanges(modId, hash, instructions)
+
+    return applyLineChanges(instructions, content)
+  }
+
+  // 无 modId 时（如 Worker 内部调用）：使用原有逻辑
+  // 小文件直接使用主线程处理
+  if (original.length < 1024 * 1024 && codeJs.length < 1024 * 1024) {
+    return applyCodeJsChangesInternal(original, codeJs, content, null)
+  }
+
+  // 大文件使用 Worker 处理
+  try {
+    const { applyCodeJsChanges } = require('../workers/modWorkerManager')
+    return await applyCodeJsChanges(original, codeJs, content, onProgress)
+  } catch (workerError) {
+    logger.warn(`Worker failed, falling back to main thread: ${workerError.message}`)
+    return applyCodeJsChangesInternal(original, codeJs, content, null)
+  }
 }
 
 /**
@@ -700,45 +938,33 @@ function hasOverlappingChanges(origLine, modALine, modBLine) {
 }
 
 /**
- * 检测已启用 Mod 之间的冲突
- * 比较每个 Mod 的 code.js 与原始备份的差异，找出多个 Mod 修改了同一行的冲突。
- * 改进：对于同行修改，使用字符级 diff 判断改动区域是否重叠，
- * 只有真正重叠的行内改动才报告为冲突，不重叠的改动可以自动合并。
- * @param {Object[]} enabledMods - 已启用的 Mod 列表（含即将启用的）
- * @returns {Array<{modA: Object, modB: Object, lines: Array<number>}>}
+ * 内部函数：检测 Mod 冲突（不通过 Worker）
+ * 供 Worker 管理器在小文件时调用
+ * @param {string} original - 原始 iflow.js 内容
+ * @param {Array<{modId: string, modName: string, content: string}>} modsCode - Mod 代码列表
+ * @returns {Array} 冲突列表
  */
-function detectConflicts(enabledMods) {
-  const backupPath = path.join(MODS_DIR, 'iflow.js.original')
-  if (!fs.existsSync(backupPath)) return []
-
+function detectConflictsInternal(original, modsCode) {
   const normalize = s => s.replace(/\r\n/g, '\n').replace(/\r/g, '')
-  const original = normalize(fs.readFileSync(backupPath, 'utf-8')).split('\n')
+  const originalLines = normalize(original).split('\n')
 
-  // 收集每个 Mod 改动过的行号及修改后的行内容
   const modChanges = []
-  for (const mod of enabledMods) {
-    const codeJsPath = path.join(MODS_DIR, mod.id, 'code.js')
-    if (!fs.existsSync(codeJsPath)) continue
+  for (const modCode of modsCode) {
+    const code = normalize(modCode.content).split('\n')
+    const changedLines = []
+    const maxLen = Math.max(originalLines.length, code.length)
 
-    try {
-      const code = normalize(fs.readFileSync(codeJsPath, 'utf-8')).split('\n')
-      const changedLines = []
-      const maxLen = Math.max(original.length, code.length)
-      for (let i = 0; i < maxLen; i++) {
-        if ((original[i] || '') !== (code[i] || '')) {
-          changedLines.push({
-            lineNum: i + 1, // 1-based 行号
-            content: code[i] || '', // 修改后的行内容
-          })
-        }
+    for (let i = 0; i < maxLen; i++) {
+      if ((originalLines[i] || '') !== (code[i] || '')) {
+        changedLines.push({
+          lineNum: i + 1,
+          content: code[i] || '',
+        })
       }
-      modChanges.push({ mod, changedLines })
-    } catch {
-      // 无法读取的 Mod 跳过
     }
+    modChanges.push({ modId: modCode.modId, modName: modCode.modName, changedLines })
   }
 
-  // 查找冲突：多个 Mod 改动了同一行，且行内改动区域重叠
   const conflicts = []
   for (let i = 0; i < modChanges.length; i++) {
     for (let j = i + 1; j < modChanges.length; j++) {
@@ -750,19 +976,17 @@ function detectConflicts(enabledMods) {
       for (const clB of b.changedLines) {
         const clAContent = lineMapA.get(clB.lineNum)
         if (clAContent !== undefined) {
-          // 两个 Mod 都改动了同一行 → 检查行内改动是否重叠
-          const origLine = original[clB.lineNum - 1] || ''
+          const origLine = originalLines[clB.lineNum - 1] || ''
           if (hasOverlappingChanges(origLine, clAContent, clB.content)) {
             conflictingLines.push(clB.lineNum)
           }
-          // 不重叠的同行改动不报告为冲突（applyCodeJsChanges 可自动合并）
         }
       }
 
       if (conflictingLines.length > 0) {
         conflicts.push({
-          modA: a.mod,
-          modB: b.mod,
+          modA: { id: a.modId, name: a.modName },
+          modB: { id: b.modId, name: b.modName },
           lines: conflictingLines,
         })
       }
@@ -770,6 +994,60 @@ function detectConflicts(enabledMods) {
   }
 
   return conflicts
+}
+
+/**
+ * 检测已启用 Mod 之间的冲突（使用 Worker 处理大文件）
+ * @param {Object[]} enabledMods - 已启用的 Mod 列表
+ * @param {Function} onProgress - 进度回调
+ * @returns {Promise<Array>} 冲突列表
+ */
+async function detectConflicts(enabledMods, onProgress = null) {
+  console.log('[iflowService] detectConflicts called, enabledMods:', enabledMods?.length, 'onProgress:', !!onProgress)
+  const backupPath = path.join(MODS_DIR, 'iflow.js.original')
+  if (!fs.existsSync(backupPath)) {
+    console.log('[iflowService] No backup file, returning empty')
+    return []
+  }
+
+  const original = fs.readFileSync(backupPath, 'utf-8')
+  console.log('[iflowService] Original size:', original.length, 'bytes')
+
+  // 收集 Mod 代码
+  const modsCode = []
+  for (const mod of enabledMods) {
+    const codeJsPath = path.join(MODS_DIR, mod.id, 'code.js')
+    if (!fs.existsSync(codeJsPath)) continue
+    try {
+      const content = fs.readFileSync(codeJsPath, 'utf-8')
+      console.log('[iflowService] Mod:', mod.id, 'code.js size:', content.length, 'bytes')
+      modsCode.push({
+        modId: mod.id,
+        modName: mod.name,
+        content,
+      })
+    } catch {
+      // 无法读取的 Mod 跳过
+    }
+  }
+
+  // 小文件直接使用主线程处理
+  const isSmallFile = original.length < 1024 * 1024 && modsCode.every(m => m.content.length < 1024 * 1024)
+  console.log('[iflowService] isSmallFile:', isSmallFile, 'original:', original.length, 'mod sizes:', modsCode.map(m => m.content.length))
+  if (isSmallFile) {
+    console.log('[iflowService] Using internal (no progress)')
+    return detectConflictsInternal(original, modsCode)
+  }
+
+  // 大文件使用 Worker 处理
+  console.log('[iflowService] Using Worker')
+  try {
+    const { detectConflicts } = require('../workers/modWorkerManager')
+    return await detectConflicts(original, modsCode, onProgress)
+  } catch (workerError) {
+    logger.warn(`Worker failed, falling back to main thread: ${workerError.message}`)
+    return detectConflictsInternal(original, modsCode)
+  }
 }
 
 /**
@@ -918,10 +1196,18 @@ module.exports = {
   readFileStream,
   writeFileAtomically,
   applyModsToIflowJs,
+  applySingleMod,
   reapplyMods,
   generateDiffFromCode,
   applyUnifiedDiff,
+  applyCodeJsChangesInternal,
+  computeLineChanges,
+  applyLineChanges,
+  getCachedChanges,
+  setCachedChanges,
+  contentHash,
   detectConflicts,
+  detectConflictsInternal,
   resolveIncludeMapPath,
   deployIncludeFiles,
   removeIncludeFiles,

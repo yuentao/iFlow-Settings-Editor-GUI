@@ -13,17 +13,9 @@ const fs = require('fs')
 // 翻译函数
 let t = key => key
 
-// 精简日志：生产模式下静默，仅开发模式输出
-const isDevMode = !app.isPackaged
-function logInfo(...args) {
-  if (isDevMode) console.log(...args)
-}
-function logWarn(...args) {
-  if (isDevMode) console.warn(...args)
-}
-function logError(...args) {
-  console.error(...args)
-}
+// 使用统一的日志记录器
+const { createLogger } = require('./utils/logger')
+const logger = createLogger('AutoUpdater')
 
 /**
  * 设置翻译函数
@@ -101,8 +93,16 @@ function getCurrentVersion() {
  * 初始化 autoUpdater 配置
  */
 function initAutoUpdater() {
-  // 配置日志输出：仅开发模式启用，生产模式关闭以减少开销
-  autoUpdater.logger = app.isPackaged ? null : console
+  // 配置 electron-updater 的日志输出，使用 electron-log 替代 console
+  const { log: electronLog } = require('./utils/logger')
+  autoUpdater.logger = {
+    info: (...args) => electronLog.info('[Updater]', ...args),
+    warn: (...args) => electronLog.warn('[Updater]', ...args),
+    error: (...args) => electronLog.error('[Updater]', ...args),
+    debug: (...args) => electronLog.debug('[Updater]', ...args),
+    silly: (...args) => electronLog.silly('[Updater]', ...args),
+    verbose: (...args) => electronLog.verbose('[Updater]', ...args),
+  }
 
   // 开发模式下也启用更新检测（读取项目根目录的 dev-app-update.yml）
   if (!app.isPackaged) {
@@ -131,14 +131,14 @@ function initAutoUpdater() {
 
   // 监听更新事件
   autoUpdater.on('checking-for-update', () => {
-    logInfo('[AutoUpdater] Checking for update...')
+    logger.info('Checking for update...')
     setUpdateState({ status: 'checking', error: null })
   })
 
   autoUpdater.on('update-available', info => {
-    logInfo('[AutoUpdater] Update available:', info.version)
-    logInfo('[AutoUpdater] Is delta update:', !!info.blockMap)
-    logInfo('[AutoUpdater] File size:', info.fileSize)
+    logger.info('Update available:', info.version)
+    logger.info('Is delta update:', !!info.blockMap)
+    logger.info('File size:', info.fileSize)
 
     const updateInfo = {
       version: info.version,
@@ -163,7 +163,7 @@ function initAutoUpdater() {
   })
 
   autoUpdater.on('update-not-available', info => {
-    logInfo('[AutoUpdater] Update not available:', info.version)
+    logger.info('Update not available:', info.version)
     setUpdateState({ status: 'idle', info: null, error: null })
   })
 
@@ -172,10 +172,10 @@ function initAutoUpdater() {
     if (downloadCancelled) return
 
     const percent = Math.round(progress.percent)
-    logInfo(`[AutoUpdater] Download progress: ${percent}% (${progress.transferred}/${progress.total})`)
-    logInfo(`[AutoUpdater] Speed: ${Math.round(progress.bytesPerSecond / 1024)} KB/s`)
+    logger.info(`Download progress: ${percent}% (${progress.transferred}/${progress.total})`)
+    logger.info(`Speed: ${Math.round(progress.bytesPerSecond / 1024)} KB/s`)
     const remaining = progress.remainingTime
-    logInfo(`[AutoUpdater] Remaining: ~${remaining != null && isFinite(remaining) ? Math.round(remaining) + 's' : 'calculating...'}`)
+    logger.info(`Remaining: ~${remaining != null && isFinite(remaining) ? Math.round(remaining) + 's' : 'calculating...'}`)
 
     setUpdateState({ progress: percent })
 
@@ -195,8 +195,8 @@ function initAutoUpdater() {
     // 用户已取消下载，忽略残留的完成事件
     if (downloadCancelled) return
 
-    logInfo('[AutoUpdater] Update downloaded:', info.version)
-    logInfo('[AutoUpdater] Download path:', info.filePath)
+    logger.info('Update downloaded:', info.version)
+    logger.info('Download path:', info.filePath)
 
     // 保留当前 isBackground 状态，以便渲染进程正确区分前台/后台下载完成
     setUpdateState({
@@ -216,7 +216,7 @@ function initAutoUpdater() {
   })
 
   autoUpdater.on('error', error => {
-    logError('[AutoUpdater] Error:', error.message)
+    logger.error('Error:', error)
 
     // 提取简化的错误消息，避免暴露 HTTP headers 等冗余信息
     let simplifiedError = error.message
@@ -243,8 +243,8 @@ function initAutoUpdater() {
     const isDeltaError = errorMsg.includes('delta') || errorMsg.includes('patch') || errorMsg.includes('blockmap') || errorMsg.includes('block map') || errorMsg.includes('校验') || errorMsg.includes('checksum')
 
     if (isDeltaError) {
-      logWarn('[AutoUpdater] Delta update failed, falling back to full update')
-      logWarn('[AutoUpdater] Error details:', error.message)
+      logger.warn('Delta update failed, falling back to full update')
+      logger.warn('Error details:', error.message)
 
       // 禁用差分下载，确保重试时走完整包
       autoUpdater.disableDifferentialDownload = true
@@ -258,7 +258,7 @@ function initAutoUpdater() {
 
       // 延迟 2 秒后重新检查更新并自动下载完整包
       setTimeout(async () => {
-        logInfo('[AutoUpdater] Retrying with full update...')
+        logger.info('Retrying with full update...')
         try {
           const result = await autoUpdater.checkForUpdates()
           if (result && result.updateInfo) {
@@ -266,7 +266,7 @@ function initAutoUpdater() {
             await autoUpdater.downloadUpdate()
           }
         } catch (retryError) {
-          logError('[AutoUpdater] Retry failed:', retryError.message)
+          logger.error('Retry failed:', retryError)
           setUpdateState({ status: 'error', error: retryError.message })
         } finally {
           // 重试完成后恢复差分下载（下次更新可继续使用差分）
@@ -324,7 +324,7 @@ async function checkForUpdates() {
       isDelta: !!info.blockMap,
     }
   } catch (error) {
-    logError('[AutoUpdater] Check failed:', error.message)
+    logger.error('Check failed:', error)
     // event 处理器已通过 on('error') 设置了 error 状态，避免重复发送
     if (updateState.status !== 'error') {
       setUpdateState({ status: 'error', error: error.message })
@@ -393,7 +393,7 @@ async function downloadUpdate(options = {}) {
       return { success: false, cancelled: true }
     }
 
-    logError('[AutoUpdater] Download failed:', error.message)
+    logger.error('Download failed:', error)
     setUpdateState({ status: 'error', error: error.message, isBackground: false })
     return { success: false, error: error.message }
   } finally {
@@ -437,7 +437,7 @@ async function cancelDownload() {
     setUpdateState({ status: 'idle', isBackground: false })
     return { success: true }
   } catch (error) {
-    logError('[AutoUpdater] Cancel failed:', error.message)
+    logger.error('Cancel failed:', error)
     return { success: false, error: error.message }
   }
 }
@@ -456,7 +456,7 @@ async function installUpdate() {
     autoUpdater.quitAndInstall(false, true)
     return { success: true }
   } catch (error) {
-    logError('[AutoUpdater] Install failed:', error.message)
+    logger.error('Install failed:', error)
     return { success: false, error: error.message }
   }
 }

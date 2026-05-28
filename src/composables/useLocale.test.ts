@@ -7,7 +7,7 @@ describe('useLocale', () => {
     window.electronAPI = {
       notifyLanguageChanged: vi.fn(),
       sendTranslation: vi.fn(),
-    }
+    } as any
   })
 
   it('should default to zh-CN', () => {

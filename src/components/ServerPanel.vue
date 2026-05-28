@@ -533,8 +533,8 @@ const browseCommand = async () => {
       properties: ['openFile'],
       title: t('mcp.command'),
     })
-    if (!result.canceled && result.filePaths.length > 0) {
-      localData.value.command = result.filePaths[0]
+    if (!result.data?.canceled && result.data?.filePaths && result.data.filePaths.length > 0) {
+      localData.value.command = result.data.filePaths[0]
     }
   } catch {
     // 对话框取消或不可用

@@ -22,6 +22,7 @@ const {
   validateModPackage,
   sanitizeFileName,
   applyModsToIflowJs,
+  applySingleMod,
   reapplyMods,
   generateDiffFromCode,
   detectConflicts,
@@ -49,6 +50,17 @@ function registerIflowIpcHandlers() {
   // ── 获取已安装 Mod 列表 ─────────────────────────────────
   ipcMain.handle('iflow:list-mods', wrapIpcHandler(async () => {
     const metadata = readModsMetadata()
+    // 迁移：已启用但缺少 enabledAt 的旧 mod，用 installedAt 作为回退值
+    let migrated = false
+    for (const mod of metadata.mods) {
+      if (mod.enabled && !mod.enabledAt) {
+        mod.enabledAt = mod.installedAt || Date.now()
+        migrated = true
+      }
+    }
+    if (migrated) {
+      writeModsMetadata(metadata)
+    }
     // 按 installedAt 升序排序
     const mods = metadata.mods.sort((a, b) => a.installedAt - b.installedAt)
     return { success: true, mods }
@@ -142,6 +154,20 @@ function registerIflowIpcHandlers() {
           return errorResult(compat.reason, 'IFLOW_VERSION_INCOMPATIBLE')
         }
       }
+
+      // 检查依赖是否已安装
+      if (mod.dependsOn && mod.dependsOn.length > 0) {
+        const missingDeps = mod.dependsOn.filter(depId => {
+          return !metadata.mods.find(m => m.id === depId)
+        })
+
+        if (missingDeps.length > 0) {
+          return errorResult(
+            t('iflow.errors.missingDependencies', { deps: missingDeps.join(', ') }),
+            'IFLOW_MISSING_DEPENDENCIES'
+          )
+        }
+      }
     }
 
     // 获取 iflow.js 路径
@@ -165,15 +191,23 @@ function registerIflowIpcHandlers() {
     // 更新 Mod 启用状态
     metadata.mods[modIndex].enabled = enabled
     metadata.mods[modIndex].lastModified = Date.now()
+    metadata.mods[modIndex].enabledAt = enabled ? Date.now() : null
 
-    // 获取仍然启用的 Mod 列表（按 installedAt 升序）
+    // 获取仍然启用的 Mod 列表（按 enabledAt 升序，即启用先后顺序）
     const enabledMods = metadata.mods
       .filter(m => m.enabled)
-      .sort((a, b) => a.installedAt - b.installedAt)
+      .sort((a, b) => (a.enabledAt || a.installedAt || 0) - (b.enabledAt || b.installedAt || 0))
 
-    // 启用时检测冲突
+    // 启用时检测冲突（异步，支持大文件）
     if (enabled) {
-      const conflicts = detectConflicts(enabledMods)
+      const progressCallback = (current, total, modName) => {
+        const sender = event.sender
+        if (!sender.isDestroyed()) {
+          sender.send('iflow:detect-conflicts-progress', { current, total, modName })
+        }
+      }
+
+      const conflicts = await detectConflicts(enabledMods, progressCallback)
       if (conflicts.length > 0) {
         // 构建冲突描述
         const conflictLines = []
@@ -197,6 +231,7 @@ function registerIflowIpcHandlers() {
         if (!confirmed) {
           // 用户取消，回滚状态
           metadata.mods[modIndex].enabled = false
+          metadata.mods[modIndex].enabledAt = null
           metadata.mods[modIndex].lastModified = Date.now()
           writeModsMetadata(metadata)
           return { success: false, cancelled: true, conflicts: true }
@@ -216,6 +251,7 @@ function registerIflowIpcHandlers() {
     } catch (includeError) {
       // includeMap 部署失败，回滚状态
       metadata.mods[modIndex].enabled = !enabled
+      metadata.mods[modIndex].enabledAt = enabled ? null : metadata.mods[modIndex].enabledAt
       metadata.mods[modIndex].lastModified = Date.now()
       writeModsMetadata(metadata)
       return errorResult(
@@ -225,8 +261,36 @@ function registerIflowIpcHandlers() {
     }
 
     try {
-      // 重新应用所有启用的 Mod
-      await reapplyMods(enabledMods, iflowPath)
+      // 进度回调：向渲染进程发送进度事件
+      const progressCallback = (current, total, modName) => {
+        console.log('[IPC] Apply progress:', current, total, modName)
+        const sender = event.sender
+        if (!sender.isDestroyed()) {
+          sender.send('iflow:apply-progress', { current, total, modName })
+        }
+      }
+
+      // 判断是否可以增量应用（仅启用时，且 mod 类型支持，且已有其他启用的 mod）
+      const incrementalTypes = ['append', 'replace', 'diff', 'patch']
+      const canIncremental = enabled
+        && incrementalTypes.includes(mod.type)
+        && enabledMods.length > 1  // 排除仅此一个 mod 的情况（无需增量）
+
+      if (canIncremental) {
+        // 增量应用：仅应用新启用的 mod，跳过已应用的 mod
+        console.log('[IPC] Incremental apply for mod:', mod.id, mod.type)
+        try {
+          await applySingleMod(mod, iflowPath, progressCallback)
+        } catch (incrementalError) {
+          // 增量应用失败，回退到全量重新应用
+          console.log('[IPC] Incremental apply failed, falling back to full reapply:', incrementalError.message)
+          await reapplyMods(enabledMods, iflowPath, progressCallback)
+        }
+      } else {
+        // 全量重新应用：恢复原始文件，依次应用所有启用的 mod
+        console.log('[IPC] Full reapply, canIncremental:', canIncremental)
+        await reapplyMods(enabledMods, iflowPath, progressCallback)
+      }
     } catch (applyError) {
       // 应用失败，回滚 includeMap 部署的文件
       if (deployedFiles.length > 0 && mod.includeMap) {
@@ -258,6 +322,19 @@ function registerIflowIpcHandlers() {
 
     const mod = metadata.mods[modIndex]
 
+    // 检查是否有其他 MOD 依赖此 MOD
+    const dependentMods = metadata.mods.filter(m =>
+      m.dependsOn && m.dependsOn.includes(modId) && m.id !== modId
+    )
+
+    if (dependentMods.length > 0) {
+      const depNames = dependentMods.map(m => m.name).join(', ')
+      return errorResult(
+        t('iflow.errors.cannotDeleteDependent', { mods: depNames }),
+        'IFLOW_DEPENDENT_MODS_EXIST'
+      )
+    }
+
     // 如果 Mod 已启用，先禁用
     if (mod.enabled) {
       let iflowPath
@@ -275,7 +352,7 @@ function registerIflowIpcHandlers() {
 
           const enabledMods = metadata.mods
             .filter(m => m.enabled)
-            .sort((a, b) => a.installedAt - b.installedAt)
+            .sort((a, b) => (a.enabledAt || a.installedAt || 0) - (b.enabledAt || b.installedAt || 0))
 
           try {
             await reapplyMods(enabledMods, iflowPath)
@@ -482,7 +559,9 @@ function registerIflowIpcHandlers() {
         license: metadata.license || undefined,
         include: metadata.include || undefined,
         includeMap: metadata.includeMap || undefined,
+        dependsOn: metadata.dependsOn || undefined,
         enabled: false,
+        enabledAt: null,
         installedAt: Date.now(),
         lastModified: Date.now(),
         _autoGenPatch: metadata._needsDiffGeneration || false,

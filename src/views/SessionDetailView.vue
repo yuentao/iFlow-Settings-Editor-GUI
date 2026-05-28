@@ -127,6 +127,15 @@
         :title="$t('projects.backToTop')">
         <ArrowUp size="16" />
       </button>
+
+      <!-- 手动刷新按钮 -->
+      <button
+        class="manual-refresh-btn"
+        :class="{ 'is-refreshing': isRefreshing }"
+        @click="handleManualRefresh"
+        :title="$t('projects.refresh')">
+        <Refresh size="16" />
+      </button>
     </div>
 
     <!-- 确认对话框 -->
@@ -144,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useProjectsStore } from '@/stores/projects'
 import type { Project, SessionSummary } from '@/stores/projects'
@@ -155,7 +164,7 @@ import MessageBubble from '@/components/MessageBubble.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import {
   Left, Folder, GeneralBranch, Export, Delete,
-  FullSelection, Close, Message, TopBar, ArrowUp,
+  FullSelection, Close, Message, ArrowUp, Refresh,
 } from '@icon-park/vue-next'
 
 const { t } = useI18n()
@@ -225,7 +234,7 @@ function goBack() {
 }
 
 async function loadMoreMessages() {
-  if (currentTopOffset.value <= 0) return
+  if (currentTopOffset.value <= 0 || !props.project || !props.session) return
   const newOffset = Math.max(0, currentTopOffset.value - 50)
   const result = await window.electronAPI.getSessionMessages(
     props.project.id,
@@ -273,6 +282,43 @@ function scrollToTop() {
   messagesContainer.value?.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+const isRefreshing = ref(false)
+
+async function handleManualRefresh() {
+  if (isRefreshing.value || !props.project || !props.session) return
+  isRefreshing.value = true
+  try {
+    store.resetMessages()
+    currentTopOffset.value = 0
+    const countResult = await window.electronAPI.getSessionMessages(
+      props.project.id,
+      props.session.id,
+      { limit: 1 },
+    )
+    const total = countResult?.success ? ((countResult as any)?.total || 0) : 0
+    const startOffset = Math.max(0, total - 50)
+    currentTopOffset.value = startOffset
+
+    await Promise.all([
+      store.loadMessages(props.project.id, props.session.id, { offset: startOffset, limit: 50 }),
+      store.loadSessionStats(props.project.id, props.session.id),
+    ])
+
+    if (startOffset > 0) {
+      store.messagesHasMore = true
+    }
+
+    await nextTick()
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  } catch (e) {
+    console.error('Failed to refresh session:', e)
+  } finally {
+    isRefreshing.value = false
+  }
+}
+
 function enterSelectionMode() {
   store.enterSelectionMode()
 }
@@ -304,7 +350,7 @@ async function handleDeleteMessages() {
     messageParams: { count: uuids.length },
     danger: true,
     onConfirm: async () => {
-      const result = await store.deleteMessagesAction(props.project.id, props.session.id, uuids)
+      const result = await store.deleteMessagesAction(props.project!.id, props.session!.id, uuids)
       if (result.success) {
         toast.success(t('projects.deleteMessageSuccess'))
       } else {
@@ -315,7 +361,7 @@ async function handleDeleteMessages() {
 }
 
 async function handleExport() {
-  const result = await store.exportSessionAction(props.project.id, props.session.id, 'markdown')
+  const result = await store.exportSessionAction(props.project!.id, props.session!.id, 'markdown')
   if (result.success) {
     toast.success(t('projects.exportSuccess'))
   } else if (!result.cancelled) {
@@ -331,7 +377,7 @@ async function handleDeleteSession() {
     messageParams: {},
     danger: true,
     onConfirm: async () => {
-      const result = await store.deleteSessionAction(props.project.id, props.session.id)
+      const result = await store.deleteSessionAction(props.project!.id, props.session!.id)
       if (result.success) {
         toast.success(t('projects.deleteSuccess'))
         goBack()
@@ -359,20 +405,20 @@ onMounted(async () => {
 
   // 先获取总消息数，计算从末尾加载的偏移量
   const countResult = await window.electronAPI.getSessionMessages(
-    props.project.id,
-    props.session.id,
+    props.project!.id,
+    props.session!.id,
     { limit: 1 },
   )
-  const total = countResult?.success ? (countResult.total || 0) : 0
+  const total = countResult?.success ? ((countResult as any)?.total || 0) : 0
   const startOffset = Math.max(0, total - 50)
   currentTopOffset.value = startOffset
 
   await Promise.all([
-    store.loadMessages(props.project.id, props.session.id, {
+    store.loadMessages(props.project!.id, props.session!.id, {
       offset: startOffset,
       limit: 50,
     }),
-    store.loadSessionStats(props.project.id, props.session.id),
+    store.loadSessionStats(props.project!.id, props.session!.id),
   ])
 
   // 如果还有更早的消息，手动设置 hasMore
@@ -639,5 +685,51 @@ onUnmounted(() => {
   &:active {
     transform: translateY(0);
   }
+}
+
+// ── 手动刷新悬浮按钮 ──────────────────────────────
+.manual-refresh-btn {
+  position: sticky;
+  bottom: 20px;
+  float: right;
+  margin-right: 16px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-light);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+  z-index: 10;
+
+  &:hover {
+    background: var(--control-fill-hover);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &.is-refreshing {
+    pointer-events: none;
+    opacity: 0.6;
+
+    :deep(svg) {
+      animation: spin 0.8s linear infinite;
+    }
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

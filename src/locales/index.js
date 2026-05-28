@@ -154,7 +154,20 @@ export default {
     monitoring: '检测与监控',
     sectionCloudSync: '云同步',
     experimental: '实验性',
-    sectionAbout: '关于'
+    sectionAbout: '关于',
+    feedback: '问题反馈',
+    feedbackForum: '社区论坛',
+    feedbackForumDesc: '在论坛中与其他用户交流讨论',
+    feedbackGithub: 'GitHub Issues',
+    feedbackGithubDesc: '提交 Bug 报告或功能建议',
+    logManagement: '日志管理',
+    logDir: '日志目录',
+    logSize: '日志大小',
+    logFiles: '个文件',
+    logOpenDir: '打开目录',
+    logClear: '清理日志',
+    logClearSuccess: '日志清理成功',
+    logClearFailed: '日志清理失败',
   },
   theme: {
     dark: '深色',
@@ -632,6 +645,7 @@ export default {
     deleteProjectSuccess: '项目已删除',
     scrollForMore: '继续向下滚动查看更多',
     backToTop: '返回顶部',
+    refresh: '刷新',
     copy: '复制',
     deleteProjectFailed: '项目删除失败',
     exportSuccess: '会话已导出',
@@ -704,7 +718,11 @@ export default {
     applying: {
       enabling: '正在启用 Mod…',
       disabling: '正在禁用 Mod…',
-      swapping: '正在替换 Mod…'
+      swapping: '正在替换 Mod…',
+      applyingMod: '正在应用 Mod: {name}',
+      detectingConflicts: '正在检测冲突…',
+      applyingChanges: '正在应用更改…',
+      detectingConflictsProgress: '正在检测冲突…',
     },
     category: {
       all: '全部'

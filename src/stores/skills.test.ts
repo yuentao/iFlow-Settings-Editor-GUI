@@ -14,7 +14,7 @@ describe('useSkillsStore', () => {
       importSkillOnline: vi.fn(),
       exportSkill: vi.fn(),
       deleteSkill: vi.fn()
-    }
+    } as any
   })
 
   afterEach(() => {

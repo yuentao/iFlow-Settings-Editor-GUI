@@ -29,7 +29,8 @@
             :skill-count="skillCount"
             :command-count="commandCount"
             :mod-count="modCount"
-            @navigate="showSection" />
+            @navigate="showSection"
+            @ready="dismissSplash" />
 
           <GeneralSettings v-if="currentSection === 'general'" :settings="settings" @update:settings="updateSettings" />
 
@@ -89,14 +90,7 @@
       @cancel="handleConfirmDialogCancel"
       style="z-index: 1600" />
 
-    <UpdateNotification
-      :show="showUpdateNotification"
-      :current-version="currentAppVersion"
-      :latest-version="latestUpdateVersion"
-      :release-notes="updateReleaseNotes"
-      @update="handleUpdateNow"
-      @later="handleUpdateLater"
-      @close="handleUpdateLater" />
+    <UpdateNotification :show="showUpdateNotification" :current-version="currentAppVersion" :latest-version="latestUpdateVersion" :release-notes="updateReleaseNotes" @update="handleUpdateNow" @later="handleUpdateLater" @close="handleUpdateLater" />
 
     <UpdateProgress
       :show="showUpdateProgress"
@@ -136,8 +130,9 @@ async function loadLocale(lang) {
   return loadedLocales[lang]
 }
 
-// 安全深拷贝：先解包 Vue reactive proxy，再用 structuredClone
-const deepClone = obj => structuredClone(toRaw(obj))
+// 安全深拷贝：先解包 Vue reactive proxy，再用 JSON 序列化
+// structuredClone 无法处理 undefined 等值，改用 JSON 方式
+const deepClone = obj => JSON.parse(JSON.stringify(toRaw(obj)))
 
 // 防抖：settings 深度 watcher 合并连续修改为一次 IPC 保存
 let _settingsSaveTimer = null
@@ -683,6 +678,21 @@ watch(
     })
   },
 )
+
+// 淡出并移除静态启动画面
+let splashDismissed = false
+const dismissSplash = () => {
+  if (splashDismissed) return
+  splashDismissed = true
+  requestAnimationFrame(() => {
+    const splash = document.getElementById('splash')
+    if (splash) {
+      splash.classList.add('fade-out')
+      splash.addEventListener('transitionend', () => splash.remove(), { once: true })
+      setTimeout(() => { if (splash.parentNode) splash.remove() }, 2000)
+    }
+  })
+}
 
 const showSection = (section, subSection) => {
   currentSection.value = section

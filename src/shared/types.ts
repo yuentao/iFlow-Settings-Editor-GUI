@@ -59,7 +59,17 @@ export interface Settings {
   approvalMode?: 'yolo' | 'plan' | 'autoEdit' | 'default'
   thinkingModeEnabled?: 'true' | 'false'
   connectivityPollInterval?: number  // API 连通性检测间隔（秒），默认 30
+  modelUsageRefreshInterval?: number  // 模型使用统计刷新间隔（分钟），默认 5
   customThemes?: Record<string, CustomThemeConfig>
+  cloudSync?: {
+    enabled?: boolean
+    provider?: string
+    autoSync?: boolean
+    syncInterval?: number
+    deviceName?: string
+    tombstoneRetentionDays?: number
+    [key: string]: unknown
+  }
 }
 
 /** 自定义 CLI 主题配置 */
@@ -165,6 +175,13 @@ export interface ConfirmDialogRequest {
   titleKey: string
   messageKey: string
   messageParams?: Record<string, string>
+}
+
+export interface OpenDialogOptions {
+  title?: string
+  defaultPath?: string
+  filters?: { name: string; extensions: string[] }[]
+  properties?: string[]
 }
 
 // ─── Update ──────────────────────────────────────────────
@@ -306,6 +323,7 @@ export interface IflowMod {
   author: string
   category: string
   enabled: boolean
+  enabledAt: number | null
   installedAt: number
   iflowVersion?: string
   iflowVersionConstraint?: string
@@ -315,6 +333,7 @@ export interface IflowMod {
   repository?: string
   license?: string
   lastModified?: number
+  dependsOn?: string[]  // 依赖的其他 MOD ID
 }
 
 export interface ModsMetadata {

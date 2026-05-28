@@ -189,6 +189,17 @@
             </div>
           </div>
 
+          <!-- Depends On -->
+          <div class="detail-field">
+            <div class="detail-field-label">{{ $t('iflow.mods.detail.dependsOn') }}</div>
+            <div class="detail-field-value">
+              <template v-if="detailMod.dependsOn && detailMod.dependsOn.length">
+                <span class="detail-tag" v-for="dep in detailMod.dependsOn" :key="dep">{{ dep }}</span>
+              </template>
+              <span v-else class="detail-empty">-</span>
+            </div>
+          </div>
+
           <!-- Include -->
           <div class="detail-field">
             <div class="detail-field-label">{{ $t('iflow.mods.detail.include') }}</div>
@@ -213,12 +224,12 @@
     </div>
 
     <!-- Applying overlay -->
-    <ApplyingDialog :visible="isApplying" :text="applyingText" />
+    <ApplyingDialog :visible="isApplying" :text="applyingText" :progress="applyingProgress" />
   </section>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Puzzle, FolderOpen, Download, Delete, Success, Caution, SwitchButton, FolderSettingsOne, FolderCodeOne } from '@icon-park/vue-next'
 import GenericList from '@/components/GenericList.vue'
@@ -236,8 +247,13 @@ const iflowStatus = ref({ exists: false, path: '', version: null })
 const isLoading = ref(true)
 const isApplying = ref(false)
 const applyingText = ref('')
+const applyingProgress = ref({ current: 0, total: 0, modName: '' })
 const selectedCategory = ref('all')
 const detailMod = ref(null)
+
+// 进度事件清理函数
+let cleanupApplyProgress = null
+let cleanupDetectConflictsProgress = null
 
 // Computed
 const enabledCount = computed(() => mods.value.filter(m => m.enabled).length)
@@ -260,7 +276,8 @@ const categories = computed(() => {
 })
 
 const filteredMods = computed(() => {
-  const sorted = [...mods.value].sort((a, b) => (a.installedAt || 0) - (b.installedAt || 0))
+  // 列表按安装时间升序排列（仅控制显示顺序，应用顺序见 enableIndexMap）
+  const sorted = [...mods.value].sort((a, b) => a.installedAt - b.installedAt)
   if (selectedCategory.value === 'all') return sorted
   return sorted.filter(m => m.category === selectedCategory.value)
 })
@@ -306,10 +323,11 @@ const openExternal = async url => {
   }
 }
 
-// 计算已启用 mod 的序号（按 installedAt 排序）
+// 计算 mod 的应用顺序序号（与后端 applyModsToIflowJs 的应用顺序一致：按 enabledAt 升序）
 const enableIndexMap = computed(() => {
   const map = {}
-  const enabled = [...mods.value].filter(m => m.enabled).sort((a, b) => (a.installedAt || 0) - (b.installedAt || 0))
+  // 应用顺序：与后端 iflow:enable-mod 中 enabledMods 的排序一致（按启用时间升序）
+  const enabled = [...mods.value].filter(m => m.enabled).sort((a, b) => (a.enabledAt || a.installedAt || 0) - (b.enabledAt || b.installedAt || 0))
   enabled.forEach((m, i) => {
     map[m.id] = i + 1
   })
@@ -362,6 +380,7 @@ const toggleMod = async (modId, enabled) => {
       if (!confirmed) return
 
       isApplying.value = true
+      applyingProgress.value = null
       applyingText.value = t('iflow.applying.swapping')
       try {
         // 先禁用旧的 replace mod
@@ -403,6 +422,7 @@ const toggleMod = async (modId, enabled) => {
   if (!confirmed) return
 
   isApplying.value = true
+  applyingProgress.value = null
   applyingText.value = enabled ? t('iflow.applying.enabling') : t('iflow.applying.disabling')
   try {
     const result = await window.electronAPI.iflowEnableMod(modId, enabled)
@@ -442,6 +462,7 @@ const deleteMod = async modId => {
   if (!confirmed) return
 
   isApplying.value = true
+  applyingProgress.value = null
   try {
     const result = await window.electronAPI.iflowDeleteMod(modId)
     if (result.success) {
@@ -491,6 +512,42 @@ const openImportDialog = async () => {
 
 onMounted(() => {
   loadMods()
+
+  // 初始化进度事件监听
+  // Worker 进度中的 phase 标识符到翻译 key 的映射（使用不带占位符的 key）
+  const phaseI18nMap = {
+    detecting: 'iflow.applying.detectingConflictsProgress',
+    comparing: 'iflow.applying.detectingConflictsProgress',
+    applying: 'iflow.applying.applyingChanges',
+  }
+
+  cleanupApplyProgress = window.electronAPI.onIflowApplyProgress(progress => {
+    // Worker 进度的 modName 可能是 phase 标识符（如 'applying'），需要翻译
+    const phase = phaseI18nMap[progress.modName]
+    if (phase) {
+      // Worker 进度是百分比型（0~100），不显示进度条，只更新状态文本
+      applyingProgress.value = null
+      applyingText.value = t(phase)
+    } else {
+      // 主进程进度是步骤型（1/3），显示进度条和步骤信息
+      applyingProgress.value = progress
+      applyingText.value = t('iflow.applying.applyingMod', {
+        name: progress.modName,
+      })
+    }
+  })
+
+  cleanupDetectConflictsProgress = window.electronAPI.onIflowDetectConflictsProgress(progress => {
+    // 冲突检测是百分比型进度，不显示进度条
+    applyingProgress.value = null
+    applyingText.value = t('iflow.applying.detectingConflictsProgress')
+  })
+})
+
+onUnmounted(() => {
+  // 清理事件监听
+  cleanupApplyProgress?.()
+  cleanupDetectConflictsProgress?.()
 })
 </script>
 

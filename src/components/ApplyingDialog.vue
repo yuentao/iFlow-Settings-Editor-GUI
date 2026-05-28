@@ -5,6 +5,14 @@
         <div class="applying-dialog">
           <div class="applying-spinner"></div>
           <div class="applying-text">{{ text }}</div>
+          <div v-if="progress && progress.total > 0" class="applying-progress">
+            <div class="applying-progress-bar">
+              <div class="applying-progress-fill" :style="{ width: progressPercent + '%' }"></div>
+            </div>
+            <div class="applying-progress-text">
+              {{ progress.current }} / {{ progress.total }}
+            </div>
+          </div>
         </div>
       </div>
     </Transition>
@@ -12,7 +20,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   visible: {
     type: Boolean,
     default: false,
@@ -21,6 +31,15 @@ defineProps({
     type: String,
     default: '',
   },
+  progress: {
+    type: Object,
+    default: null,
+  },
+})
+
+const progressPercent = computed(() => {
+  if (!props.progress || props.progress.total === 0) return 0
+  return Math.round((props.progress.current / props.progress.total) * 100)
 })
 </script>
 
@@ -62,6 +81,36 @@ defineProps({
 .applying-text {
   font-size: 14px;
   color: var(--text-primary);
+  text-align: center;
+  max-width: 280px;
+}
+
+.applying-progress {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.applying-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.applying-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.applying-progress-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 // Transition

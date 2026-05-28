@@ -538,6 +538,65 @@
           </div>
         </div>
       </div>
+
+      <div class="card card-appear" style="animation-delay: 0.05s">
+        <div class="card-title">
+          <TopicDiscussion size="16" />
+          {{ $t('general.feedback') }}
+        </div>
+        <div class="feedback-channels">
+          <a class="feedback-channel-item" @click.prevent="openExternal('https://vibex.iflow.cn/t/topic/5776')">
+            <div class="feedback-channel-icon">
+              <TopicDiscussion size="20" />
+            </div>
+            <div class="feedback-channel-info">
+              <div class="feedback-channel-name">{{ $t('general.feedbackForum') }}</div>
+              <div class="feedback-channel-desc">{{ $t('general.feedbackForumDesc') }}</div>
+            </div>
+            <Right size="14" class="feedback-channel-arrow" />
+          </a>
+          <a class="feedback-channel-item" @click.prevent="openExternal('https://github.com/yuentao/iFlow-Settings-Editor-GUI/issues')">
+            <div class="feedback-channel-icon github-icon">
+              <GithubOne size="20" />
+            </div>
+            <div class="feedback-channel-info">
+              <div class="feedback-channel-name">{{ $t('general.feedbackGithub') }}</div>
+              <div class="feedback-channel-desc">{{ $t('general.feedbackGithubDesc') }}</div>
+            </div>
+            <Right size="14" class="feedback-channel-arrow" />
+          </a>
+        </div>
+      </div>
+
+      <div class="card card-appear" style="animation-delay: 0.08s">
+        <div class="card-title">
+          <FileSearch size="16" />
+          {{ $t('general.logManagement') }}
+        </div>
+        <div class="log-management">
+          <div class="log-info-row">
+            <div class="log-info-item">
+              <span class="log-info-label">{{ $t('general.logDir') }}</span>
+              <span class="log-info-value" :title="logDir">{{ logDir || '—' }}</span>
+            </div>
+            <div class="log-info-item">
+              <span class="log-info-label">{{ $t('general.logSize') }}</span>
+              <span class="log-info-value">{{ logSizeText }}</span>
+            </div>
+          </div>
+          <div class="log-actions">
+            <button class="btn btn-secondary btn-sm" @click="openLogDir" :disabled="!logDir">
+              <FolderOpen size="14" />
+              {{ $t('general.logOpenDir') }}
+            </button>
+            <button class="btn btn-secondary btn-sm" @click="handleClearLogs" :disabled="isClearingLogs || !logDir">
+              <Loading v-if="isClearingLogs" size="14" class="spin" />
+              <Delete v-else size="14" />
+              {{ $t('general.logClear') }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 重命名设备对话框 -->
@@ -620,7 +679,7 @@
 </template>
 
 <script setup>
-import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne } from '@icon-park/vue-next'
+import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right, FileSearch, FolderOpen } from '@icon-park/vue-next'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import { useToast } from '@/composables/useToast'
@@ -717,6 +776,9 @@ onMounted(async () => {
   // 加载云同步设置（确保默认值正确显示）
   await cloudStore.loadSettings()
 
+  // 加载日志信息
+  loadLogInfo()
+
   // 加载系统主题
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   systemTheme.value = isDark ? 'Dark' : 'Light'
@@ -810,6 +872,64 @@ const handleInstallUpdate = async () => {
   } catch (error) {
     console.error('Failed to install update:', error)
     toast.error(t('update.installFailed'))
+  }
+}
+
+const openExternal = async (url) => {
+  if (window.electronAPI?.openExternal) {
+    await window.electronAPI.openExternal(url)
+  }
+}
+
+// 日志管理
+const logDir = ref('')
+const logTotalSize = ref(0)
+const logFileCount = ref(0)
+const isClearingLogs = ref(false)
+
+const formatLogSize = (bytes) => {
+  if (bytes === 0) return '0 B'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
+const logSizeText = computed(() => {
+  if (!logDir.value) return '—'
+  return `${formatLogSize(logTotalSize.value)} (${logFileCount.value} ${t('general.logFiles')})`
+})
+
+const loadLogInfo = async () => {
+  if (window.electronAPI?.getLogDir) {
+    const result = await window.electronAPI.getLogDir()
+    if (result.success) {
+      logDir.value = result.path
+      logTotalSize.value = result.totalSize
+      logFileCount.value = result.fileCount
+    }
+  }
+}
+
+const openLogDir = async () => {
+  if (logDir.value && window.electronAPI?.openPath) {
+    await window.electronAPI.openPath(logDir.value)
+  }
+}
+
+const handleClearLogs = async () => {
+  isClearingLogs.value = true
+  try {
+    const result = await window.electronAPI.clearLogs()
+    if (result.success) {
+      toast.success(t('general.logClearSuccess'))
+      await loadLogInfo()
+    } else {
+      toast.error(t('general.logClearFailed'))
+    }
+  } catch (e) {
+    toast.error(t('general.logClearFailed'))
+  } finally {
+    isClearingLogs.value = false
   }
 }
 
@@ -2159,6 +2279,113 @@ input:checked + .slider:before {
   gap: var(--space-sm);
 }
 
+.feedback-channels {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.feedback-channel-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--bg-elevated);
+
+    .feedback-channel-arrow {
+      color: var(--text-secondary);
+      transform: translateX(2px);
+    }
+  }
+}
+
+.feedback-channel-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--accent-light, rgba(0, 103, 192, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+
+  &.github-icon {
+    background: rgba(36, 41, 47, 0.1);
+    color: var(--text-primary);
+  }
+}
+
+.feedback-channel-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.feedback-channel-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1px;
+}
+
+.feedback-channel-desc {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.feedback-channel-arrow {
+  color: var(--text-tertiary);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.log-management {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.log-info-row {
+  display: flex;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.log-info-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.log-info-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.log-info-value {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-family: 'Cascadia Code', Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 320px;
+}
+
+.log-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
 .dialog-confirm-text {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
@@ -2205,6 +2432,10 @@ input:checked + .slider:before {
   .about-actions-col {
     align-items: flex-start;
     width: 100%;
+  }
+
+  .feedback-channels {
+    flex-direction: column;
   }
 
   .sync-content-grid {

@@ -15,7 +15,7 @@ describe('useApiProfilesStore', () => {
       deleteApiProfile: vi.fn(),
       renameApiProfile: vi.fn(),
       duplicateApiProfile: vi.fn()
-    }
+    } as any
   })
 
   afterEach(() => {
@@ -112,7 +112,7 @@ describe('useApiProfilesStore', () => {
     const result = await store.createProfile('new-profile')
     
     expect(result.success).toBe(true)
-    expect(global.window.electronAPI.createApiProfile).toHaveBeenCalledWith('new-profile', undefined)
+    expect(global.window.electronAPI.createApiProfile).toHaveBeenCalledWith('new-profile')
   })
 
   it('should not delete default profile', async () => {

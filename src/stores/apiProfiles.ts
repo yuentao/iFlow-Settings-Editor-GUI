@@ -49,8 +49,8 @@ export const useApiProfilesStore = defineStore('apiProfiles', () => {
     return result
   }
 
-  async function createProfile(name: string, profileData?: ApiProfileConfig): Promise<{ success: boolean; error?: string }> {
-    const result = await window.electronAPI.createApiProfile(name, profileData)
+  async function createProfile(name: string, _profileData?: ApiProfileConfig): Promise<{ success: boolean; error?: string }> {
+    const result = await window.electronAPI.createApiProfile(name)
     return result
   }
 

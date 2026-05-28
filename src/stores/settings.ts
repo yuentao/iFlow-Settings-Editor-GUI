@@ -12,7 +12,7 @@ export const useSettingsStore = defineStore('settings', () => {
   // State
   const settings = ref<Settings>({
     language: 'zh-CN',
-    uiTheme: 'system',
+    uiTheme: 'System',
     acrylicEnabled: true,
     acrylicIntensity: 50,
     autoLaunch: false,
@@ -21,7 +21,7 @@ export const useSettingsStore = defineStore('settings', () => {
     checkpointing: { enabled: true },
     currentApiProfile: 'default',
     apiProfiles: {},
-    mcpServers: [],
+    mcpServers: {} as Record<string, import('@/shared/types').McpServerConfig>,
     autoUpdate: true,
     // CLI 行为控制 - 新字段默认值
     autoAccept: false,
@@ -44,7 +44,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const lastSaved = ref<Date | null>(null)
 
   // Getters
-  const theme = computed<UiTheme>(() => (settings.value.uiTheme as UiTheme) || 'system')
+  const theme = computed<UiTheme>(() => (settings.value.uiTheme as UiTheme) || 'System')
   const language = computed<string>(() => settings.value.language || 'zh-CN')
   const acrylicEnabled = computed<boolean>(() => settings.value.acrylicEnabled ?? true)
   const acrylicIntensity = computed<number>(() => settings.value.acrylicIntensity ?? 50)

@@ -5,6 +5,7 @@
     "module": "ESNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -25,7 +26,7 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": []
+    "types": ["node"]
   },
   "include": [
     "src/**/*.ts",

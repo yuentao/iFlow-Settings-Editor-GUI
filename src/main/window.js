@@ -6,6 +6,8 @@
 const { BrowserWindow } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const { createLogger } = require('./utils/logger')
+const logger = createLogger('Window')
 
 // 全局窗口引用
 let mainWindow = null
@@ -76,7 +78,7 @@ function isAcrylicEnabled() {
  * @returns {BrowserWindow}
  */
 function createWindow() {
-  console.log('Creating window...')
+  logger.info('Creating window...')
 
   // 根据设置决定是否启用亚克力效果
   const useAcrylic = isAcrylicEnabled()
@@ -115,7 +117,7 @@ function createWindow() {
     })
   }
 
-  console.log('Loading index.html...')
+  logger.info('Loading index.html...')
   mainWindow.loadURL(getEntryHtmlPath())
 
   // 阻止渲染进程中的链接点击导致页面导航（防止跳转到仪表盘等问题）
@@ -137,7 +139,7 @@ function createWindow() {
   })
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('Failed to load:', errorCode, errorDescription)
+    logger.error('Failed to load:', new Error(`${errorCode} ${errorDescription}`))
   })
 
   // 仅开发模式转发渲染进程控制台日志，生产模式跳过以降低开销
@@ -148,9 +150,9 @@ function createWindow() {
   }
 
   mainWindow.once('ready-to-show', () => {
-    console.log('Window ready to show')
+    logger.info('Window ready to show')
     if (isSilentLaunch) {
-      console.log('Silent launch mode - hiding window')
+      logger.info('Silent launch mode - hiding window')
     } else {
       mainWindow.show()
     }
@@ -285,7 +287,7 @@ function setAcrylicEnabled(enabled) {
       mainWindow.setBackgroundMaterial(enabled ? 'acrylic' : 'none')
     }
   } catch (e) {
-    console.warn('Failed to set background material:', e.message)
+    logger.warn('Failed to set background material:', e.message)
   }
 }
 

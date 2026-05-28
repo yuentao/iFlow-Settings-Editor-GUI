@@ -101,9 +101,9 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
         // L-8：CloudSyncStatus 已不含 enabled/autoSyncEnabled，主进程也不再返回，
         // 直接合并 result 中匹配的字段即可（success 字段不会冲突，Object.assign
         // 即使写入也无副作用，但为避免污染 status 形状，此处显式排除）
-        const { success: _success, ...rest } = result
+        const { success: _success, ...rest } = result as any
         Object.assign(status.value, rest)
-        rememberSyncPassword.value = rest.rememberSyncPassword || false
+        rememberSyncPassword.value = (rest as any).rememberSyncPassword || false
       }
     } catch (error) {
       console.error('[CloudSync] Failed to load status:', error)
@@ -139,7 +139,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     try {
       const result = await window.electronAPI.cloudSyncTestConnection()
       connectionTestResult.value = {
-        success: result.success && result.authorized,
+        success: result.success && (result as any).authorized,
         message: result.success
           ? undefined
           : result.error,
@@ -184,7 +184,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   async function verifyPassword(password: string) {
     try {
       const result = await window.electronAPI.cloudSyncVerifyPassword(password)
-      if (result.success && result.valid) {
+      if (result.success && result.data) {
         cachedPassword.value = password
       }
       return result
@@ -210,7 +210,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   async function hasPassword() {
     try {
       const result = await window.electronAPI.cloudSyncHasPassword()
-      return result.success && result.hasPassword
+      return result.success && (result.data ?? false)
     } catch {
       return false
     }
@@ -299,7 +299,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     try {
       const result = await window.electronAPI.cloudSyncGetDevices()
       if (result.success) {
-        devices.value = result.devices || []
+        devices.value = (result as any).devices || []
       }
       return result
     } catch (error) {
@@ -354,7 +354,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     try {
       const result = await window.electronAPI.cloudSyncGetRememberPassword()
       if (result.success) {
-        rememberPassword.value = result.remember
+        rememberPassword.value = result.data ?? false
       }
     } catch (error) {
       console.error('[CloudSync] Failed to get remember password:', error)
@@ -365,7 +365,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     try {
       const result = await window.electronAPI.cloudSyncSetRememberPassword(enabled)
       if (result.success) {
-        rememberPassword.value = result.remember
+        rememberPassword.value = enabled
       }
       return result
     } catch (error) {
@@ -403,7 +403,6 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     push,
     clearCloud,
     loadDevices,
-    loadSettings,
     setDeviceName,
     removeDevice,
     clearCachedPassword,

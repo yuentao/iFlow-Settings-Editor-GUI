@@ -178,6 +178,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 外部链接
       openExternal: (url) => ipcRenderer.invoke('open-external', url),
       openPath: (filePath) => ipcRenderer.invoke('open-path', filePath),
+
+  // 日志管理
+  getLogDir: () => ipcRenderer.invoke('get-log-dir'),
+  clearLogs: () => ipcRenderer.invoke('clear-logs'),
   // 项目会话管理
   listProjects: () => ipcRenderer.invoke('projects:list'),
   getProjectSessions: (projectId, options) => ipcRenderer.invoke('projects:sessions:list', projectId, options),
@@ -200,6 +204,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   iflowImportMod: (filePath) => ipcRenderer.invoke('iflow:import-mod', filePath),
   iflowOpenImportDialog: () => ipcRenderer.invoke('iflow:open-import-dialog'),
   iflowCheckIflowStatus: () => ipcRenderer.invoke('iflow:check-iflow-status'),
+
+  // iFlow Mod 进度事件监听
+  onIflowApplyProgress: (callback) => {
+    const handler = (_event, progress) => callback(progress)
+    ipcRenderer.on('iflow:apply-progress', handler)
+    return () => ipcRenderer.removeListener('iflow:apply-progress', handler)
+  },
+  onIflowDetectConflictsProgress: (callback) => {
+    const handler = (_event, progress) => callback(progress)
+    ipcRenderer.on('iflow:detect-conflicts-progress', handler)
+    return () => ipcRenderer.removeListener('iflow:detect-conflicts-progress', handler)
+  },
 
   // 文件变化监听（外部修改 settings.json）
   onSettingsFileChanged: (callback) => {

@@ -216,16 +216,16 @@ interface ModelItem {
 interface Props {
   showCreate: boolean
   showEdit: boolean
-  createData: ApiProfileData | null
-  editData: ApiProfileData | null
+  createData: ApiProfileData
+  editData: ApiProfileData
   currentProfileName?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showCreate: false,
   showEdit: false,
-  createData: null,
-  editData: null,
+  createData: () => ({ name: '', selectedAuthType: 'openai-compatible' as AuthType, apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, createdAt: '' }),
+  editData: () => ({ name: '', selectedAuthType: 'openai-compatible' as AuthType, apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, createdAt: '' }),
   currentProfileName: '',
 })
 
@@ -301,8 +301,9 @@ async function handleFetchModels(mode: 'create' | 'edit'): Promise<void> {
   try {
     const result = await window.electronAPI.fetchModels(data.baseUrl, data.apiKey)
     if (result.success) {
-      modelsRef.value = result.models
-      if (result.models.length === 0) {
+      const models = result.models || []
+      modelsRef.value = models
+      if (models.length === 0) {
         errorRef.value = 'api.noModelsAvailable'
       } else {
         updateDropdownPosition(mode)
@@ -310,9 +311,6 @@ async function handleFetchModels(mode: 'create' | 'edit'): Promise<void> {
       }
     } else {
       errorRef.value = result.error || 'api.fetchModelsFailed'
-      if (result.httpStatus) {
-        errorParamsRef.value = { status: result.httpStatus }
-      }
     }
   } catch (e: any) {
     errorRef.value = 'api.fetchModelsFailed'

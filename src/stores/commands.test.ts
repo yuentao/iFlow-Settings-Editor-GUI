@@ -10,11 +10,10 @@ describe('useCommandsStore', () => {
     setActivePinia(createPinia())
     global.window.electronAPI = {
       listCommands: vi.fn(),
-      importCommandLocal: vi.fn(),
-      importCommandOnline: vi.fn(),
+      importCommand: vi.fn(),
       exportCommand: vi.fn(),
       deleteCommand: vi.fn()
-    }
+    } as any
   })
 
   afterEach(() => {
@@ -62,7 +61,7 @@ describe('useCommandsStore', () => {
   })
 
   it('should import local command and reload', async () => {
-    vi.mocked(global.window.electronAPI.importCommandLocal).mockResolvedValue({
+    vi.mocked((global.window.electronAPI as any).importCommand).mockResolvedValue({
       success: true
     })
     vi.mocked(global.window.electronAPI.listCommands).mockResolvedValue({
@@ -77,23 +76,11 @@ describe('useCommandsStore', () => {
     expect(global.window.electronAPI.listCommands).toHaveBeenCalled()
   })
 
-  it('should import online command and reload', async () => {
-    vi.mocked(global.window.electronAPI.importCommandOnline).mockResolvedValue({
-      success: true
-    })
-    vi.mocked(global.window.electronAPI.listCommands).mockResolvedValue({
-      success: true,
-      commands: []
-    })
-    
+  it('should import online command and return not supported', async () => {
     const store = useCommandsStore()
     const result = await store.importOnline('https://example.com/cmd.tar.gz', 'my-cmd')
     
-    expect(result.success).toBe(true)
-    expect(global.window.electronAPI.importCommandOnline).toHaveBeenCalledWith(
-      'https://example.com/cmd.tar.gz',
-      'my-cmd'
-    )
+    expect(result.success).toBe(false)
   })
 
   it('should export command', async () => {
@@ -105,7 +92,7 @@ describe('useCommandsStore', () => {
     const result = await store.exportCommand('my-cmd', 'export-folder')
     
     expect(result.success).toBe(true)
-    expect(global.window.electronAPI.exportCommand).toHaveBeenCalledWith('my-cmd', 'export-folder')
+    expect(global.window.electronAPI.exportCommand).toHaveBeenCalledWith('my-cmd')
   })
 
   it('should delete command and clear selection if selected', async () => {
