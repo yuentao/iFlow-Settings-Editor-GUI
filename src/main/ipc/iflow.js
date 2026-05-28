@@ -22,6 +22,7 @@ const {
   validateModPackage,
   sanitizeFileName,
   applyModsToIflowJs,
+  applySingleMod,
   reapplyMods,
   generateDiffFromCode,
   detectConflicts,
@@ -258,8 +259,27 @@ function registerIflowIpcHandlers() {
         }
       }
 
-      // 重新应用所有启用的 Mod
-      await reapplyMods(enabledMods, iflowPath, progressCallback)
+      // 判断是否可以增量应用（仅启用时，且 mod 类型支持，且已有其他启用的 mod）
+      const incrementalTypes = ['append', 'replace', 'diff', 'patch']
+      const canIncremental = enabled
+        && incrementalTypes.includes(mod.type)
+        && enabledMods.length > 1  // 排除仅此一个 mod 的情况（无需增量）
+
+      if (canIncremental) {
+        // 增量应用：仅应用新启用的 mod，跳过已应用的 mod
+        console.log('[IPC] Incremental apply for mod:', mod.id, mod.type)
+        try {
+          await applySingleMod(mod, iflowPath, progressCallback)
+        } catch (incrementalError) {
+          // 增量应用失败，回退到全量重新应用
+          console.log('[IPC] Incremental apply failed, falling back to full reapply:', incrementalError.message)
+          await reapplyMods(enabledMods, iflowPath, progressCallback)
+        }
+      } else {
+        // 全量重新应用：恢复原始文件，依次应用所有启用的 mod
+        console.log('[IPC] Full reapply, canIncremental:', canIncremental)
+        await reapplyMods(enabledMods, iflowPath, progressCallback)
+      }
     } catch (applyError) {
       // 应用失败，回滚 includeMap 部署的文件
       if (deployedFiles.length > 0 && mod.includeMap) {

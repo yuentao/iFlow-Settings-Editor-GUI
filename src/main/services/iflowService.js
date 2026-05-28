@@ -442,6 +442,61 @@ async function reapplyMods(stillEnabledMods, iflowPath, onProgress = null) {
 }
 
 /**
+ * 增量应用单个 Mod 到当前 iflow.js
+ * 不恢复原始备份，直接在当前文件上应用，适用于新启用的 mod 排在应用列表末尾的场景。
+ * 仅支持 append、replace、diff/patch 类型；prepend 类型必须全量重新应用。
+ *
+ * @param {Object} mod - 要应用的 Mod 对象
+ * @param {string} iflowPath - iflow.js 文件路径
+ * @param {Function} onProgress - 进度回调 (current, total, modName)
+ */
+async function applySingleMod(mod, iflowPath, onProgress = null) {
+  if (onProgress) {
+    onProgress(1, 1, mod.name)
+  }
+
+  let content = await readFileStream(iflowPath)
+  const modDir = path.join(MODS_DIR, mod.id)
+  const mainFile = mod.type === 'patch' || mod.type === 'diff' ? 'patch.diff' : 'code.js'
+  const mainFilePath = path.join(modDir, mainFile)
+
+  if (!fs.existsSync(mainFilePath)) {
+    throw new Error(t('iflow.errors.missingMainFile', { file: mainFile, mod: mod.name }))
+  }
+
+  const modContent = fs.readFileSync(mainFilePath, 'utf-8')
+
+  switch (mod.type) {
+    case 'replace':
+      content = modContent
+      break
+    case 'append':
+      content += '\n' + modContent
+      break
+    case 'prepend':
+      // prepend 不支持增量应用，调用方应确保不走到此分支
+      throw new Error('prepend type does not support incremental apply')
+    case 'patch':
+    case 'diff': {
+      const codeJsPath = path.join(modDir, 'code.js')
+      if (fs.existsSync(codeJsPath)) {
+        const codeJsContent = fs.readFileSync(codeJsPath, 'utf-8')
+        const backupPath = path.join(MODS_DIR, 'iflow.js.original')
+        const originalContent = fs.existsSync(backupPath) ? fs.readFileSync(backupPath, 'utf-8') : content
+        content = await applyCodeJsChanges(originalContent, codeJsContent, content, onProgress)
+      } else {
+        content = applyUnifiedDiff(content, modContent)
+      }
+      break
+    }
+    default:
+      throw new Error(t('iflow.errors.invalidModType', { type: mod.type }))
+  }
+
+  await writeFileAtomically(iflowPath, content)
+}
+
+/**
  * 从 code.js 自动生成 patch.diff
  * 使用当前的 iflow.js（已包含所有已启用 Mod）作为 base，
  * 生成 unified diff。code.js 会保留以供后续启用时重新生成。
@@ -980,6 +1035,7 @@ module.exports = {
   readFileStream,
   writeFileAtomically,
   applyModsToIflowJs,
+  applySingleMod,
   reapplyMods,
   generateDiffFromCode,
   applyUnifiedDiff,
