@@ -521,7 +521,7 @@ onMounted(() => {
     applying: 'iflow.applying.applyingChanges',
   }
 
-  cleanupApplyProgress = window.electronAPI.onIflowApplyProgress((progress) => {
+  cleanupApplyProgress = window.electronAPI.onIflowApplyProgress(progress => {
     // Worker 进度的 modName 可能是 phase 标识符（如 'applying'），需要翻译
     const phase = phaseI18nMap[progress.modName]
     if (phase) {
@@ -532,14 +532,12 @@ onMounted(() => {
       // 主进程进度是步骤型（1/3），显示进度条和步骤信息
       applyingProgress.value = progress
       applyingText.value = t('iflow.applying.applyingMod', {
-        current: progress.current,
-        total: progress.total,
         name: progress.modName,
       })
     }
   })
 
-  cleanupDetectConflictsProgress = window.electronAPI.onIflowDetectConflictsProgress((progress) => {
+  cleanupDetectConflictsProgress = window.electronAPI.onIflowDetectConflictsProgress(progress => {
     // 冲突检测是百分比型进度，不显示进度条
     applyingProgress.value = null
     applyingText.value = t('iflow.applying.detectingConflictsProgress')
