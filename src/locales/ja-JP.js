@@ -234,7 +234,8 @@ export default {
       modelNoSpecial: 'モデル名には英字、数字、ピリオド、ハイフン、アンダースコア、コロン、スラッシュのみ使用できます'
     },
     tokensLimit: 'コンテキストウィンドウサイズ',
-    tokensLimitPlaceholder: '128000',
+    tokensLimitPlaceholder: '128',
+    tokensLimitUnit: 'K tokens',
     expiryDays: '有効期限',
     expiryDaysPlaceholder: '0',
     expiryDaysUnit: '日',

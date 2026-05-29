@@ -79,7 +79,10 @@
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.tokensLimit') }}</label>
-            <input type="number" class="form-input" v-model.number="createData.tokensLimit" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+            <div class="input-with-suffix">
+              <input type="number" class="form-input has-suffix" v-model.number="createTokensLimitK" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+              <span class="input-suffix">{{ $t('api.tokensLimitUnit') }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -173,7 +176,10 @@
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.tokensLimit') }}</label>
-            <input type="number" class="form-input" v-model.number="editData.tokensLimit" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+            <div class="input-with-suffix">
+              <input type="number" class="form-input has-suffix" v-model.number="editTokensLimitK" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+              <span class="input-suffix">{{ $t('api.tokensLimitUnit') }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -475,6 +481,25 @@ const isEditValid = computed((): boolean => {
     && d.apiKey && d.apiKey.trim()
     && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
     && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName))
+})
+
+// Display tokensLimit in K tokens (e.g., 128000 → 128)
+const createTokensLimitK = computed({
+  get: () => Math.round((props.createData?.tokensLimit ?? 0) / 1000),
+  set: (val: number) => {
+    if (props.createData) {
+      props.createData.tokensLimit = Math.round(val * 1000)
+    }
+  }
+})
+
+const editTokensLimitK = computed({
+  get: () => Math.round((props.editData?.tokensLimit ?? 0) / 1000),
+  set: (val: number) => {
+    if (props.editData) {
+      props.editData.tokensLimit = Math.round(val * 1000)
+    }
+  }
 })
 
 const handleSaveCreate = (): void => {

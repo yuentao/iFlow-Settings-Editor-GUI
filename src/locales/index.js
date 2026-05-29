@@ -234,7 +234,8 @@ export default {
       modelNoSpecial: '模型名称只能包含字母、数字、点号、中划线、下划线、冒号和斜杠'
     },
     tokensLimit: '上下文窗口长度',
-    tokensLimitPlaceholder: '128000',
+    tokensLimitPlaceholder: '128',
+    tokensLimitUnit: 'K tokens',
     expiryDays: '过期时间',
     expiryDaysPlaceholder: '0',
     expiryDaysUnit: '天',
