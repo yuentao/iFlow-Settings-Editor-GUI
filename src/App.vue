@@ -273,6 +273,7 @@ watch(
         _syncEndTimer = null
         // 确认防抖期间无新同步启动、同步成功（有 lastSyncAt）且无错误
         if (!cloudSyncStore.isSyncing && cloudSyncStore.status.lastSyncAt && !cloudSyncStore.status.lastSyncError) {
+          await loadSettings()
           await loadApiProfiles()
           if (!document.hidden) {
             toast.success(t('cloudSync.syncCompleted'))
@@ -490,14 +491,14 @@ const openApiEditDialog = profileName => {
   const profile = settings.value.apiProfiles && settings.value.apiProfiles[profileName]
   editingApiData.value = {
     name: profileName,
-    selectedAuthType: (profile && profile.selectedAuthType) || settings.value.selectedAuthType || 'openai-compatible',
-    apiKey: (profile && profile.apiKey) || settings.value.apiKey || '',
-    baseUrl: (profile && profile.baseUrl) || settings.value.baseUrl || '',
-    modelName: (profile && profile.modelName) || settings.value.modelName || '',
-    tokensLimit: (profile && profile.tokensLimit) || settings.value.tokensLimit || 128000,
-    expiryDays: (profile && profile.expiryDays) || 0,
-    _originalExpiryDays: (profile && profile.expiryDays) || 0,
-    _originalExpiryStartDate: (profile && profile.expiryStartDate) || null,
+    selectedAuthType: profile?.selectedAuthType || 'openai-compatible',
+    apiKey: profile?.apiKey ?? '',
+    baseUrl: profile?.baseUrl ?? '',
+    modelName: profile?.modelName ?? '',
+    tokensLimit: profile?.tokensLimit ?? 128000,
+    expiryDays: profile?.expiryDays ?? 0,
+    _originalExpiryDays: profile?.expiryDays ?? 0,
+    _originalExpiryStartDate: profile?.expiryStartDate ?? null,
   }
   showApiEditDialog.value = true
 }
