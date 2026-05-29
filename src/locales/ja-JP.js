@@ -275,6 +275,8 @@ export default {
     noServers: 'MCP サーバーがありません',
     addFirstServer: '上のボタンをクリックして最初のサーバーを追加',
     noDescription: '説明なし',
+    share: '共有',
+    copied: 'クリップボードにコピーしました',
     delete: '削除',
     cancel: 'キャンセル',
     saveChanges: '変更を保存',

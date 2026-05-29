@@ -275,6 +275,8 @@ export default {
     noServers: '暂无 MCP 服务器',
     addFirstServer: '点击上方按钮添加第一个服务器',
     noDescription: '无描述',
+    share: '分享',
+    copied: '已复制到剪贴板',
     delete: '删除',
     cancel: '取消',
     saveChanges: '保存更改',

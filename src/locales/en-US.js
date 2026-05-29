@@ -276,6 +276,8 @@ export default {
     noServers: 'No MCP Servers',
     addFirstServer: 'Click the button above to add your first server',
     noDescription: 'No description',
+    share: 'Share',
+    copied: 'Copied to clipboard',
     delete: 'Delete',
     cancel: 'Cancel',
     saveChanges: 'Save Changes',
