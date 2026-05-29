@@ -100,7 +100,7 @@ export default {
     modelUsageRefreshIntervalDesc: 'モデル使用傾向グラフの自動更新間隔（分）',
     excludeTools: '除外ツール',
     excludeToolsDesc: 'CLIから除外するコアツール名のリストを指定できます。ShellToolなどのサポートされているツールに対してコマンド固有の制限を指定することもできます。例えば、"excludeTools": ["ShellTool(rm -rf)"] はrm -rfコマンドをブロックします。デフォルト：ツールは除外されません。',
-    excludeToolsSecurityNote: 'この機能は単純な文字列マッチングに基づいており、轻易にバイパスできます。信頼できないコードの安全な実行を指望するために依赖することはできません。',
+    excludeToolsSecurityNote: 'この機能は単純な文字列マッチングに基づいており、簡単にバイパスできます。信頼できないコードの安全な実行を期待するために依存することはできません。',
     excludeToolsSecurityNoteLabel: 'セキュリティ注意',
     excludeToolsPlaceholder: '例：ShellTool, glob',
     languageInterface: '言語とインターフェース',
@@ -703,6 +703,7 @@ deleteSuccess: '「{name}」を削除しました',
         homepage: 'ホームページ',
         repository: 'リポジトリ',
         tags: 'タグ',
+        dependsOn: '依存',
         include: '含むファイル',
         description: '説明'
       }
@@ -741,7 +742,11 @@ deleteSuccess: '「{name}」を削除しました',
       patchNotSupported: 'パッチタイプの Mod はまだサポートされていません',
       includeMapFileNotFound: 'Mod 追加ファイル「{file}」がパッケージに見つかりません',
       includeMapDeployFailed: '追加ファイルのデプロイに失敗しました: {error}',
-      includeMapRemoveFailed: '追加ファイルのクリーンアップに失敗しました: {error}'
+      includeMapRemoveFailed: '追加ファイルのクリーンアップに失敗しました: {error}',
+      invalidDependsOn: 'dependsOn は配列である必要があります',
+      invalidDependsOnItems: 'dependsOn 配列には文字列のみを含めることができます',
+      missingDependencies: '依存関係が不足しています: {deps}。最初にインストールしてください。',
+      cannotDeleteDependent: '{mods} を削除できません - 他の Mod が依存しています'
     },
     exportDialog: {
       title: 'Mod をエクスポート'

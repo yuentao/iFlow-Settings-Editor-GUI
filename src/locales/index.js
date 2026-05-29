@@ -713,6 +713,7 @@ export default {
         homepage: '主页',
         repository: '仓库',
         tags: '标签',
+        dependsOn: '依赖',
         include: '包含文件',
         description: '描述'
       }
@@ -751,7 +752,11 @@ export default {
       patchNotSupported: '补丁类型 Mod 暂不支持',
       includeMapFileNotFound: 'Mod 额外文件 "{file}" 在包中不存在',
       includeMapDeployFailed: '部署额外文件失败: {error}',
-      includeMapRemoveFailed: '清理额外文件失败: {error}'
+      includeMapRemoveFailed: '清理额外文件失败: {error}',
+      invalidDependsOn: 'dependsOn 必须是数组',
+      invalidDependsOnItems: 'dependsOn 数组只能包含字符串',
+      missingDependencies: '缺少依赖: {deps}，请先安装这些依赖。',
+      cannotDeleteDependent: '无法删除 {mods} - 有其他 Mod 依赖它'
     },
     exportDialog: {
       title: '导出 Mod'

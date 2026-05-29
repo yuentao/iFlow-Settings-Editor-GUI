@@ -172,6 +172,7 @@ import SkeletonLoader from './components/SkeletonLoader.vue'
 import ToastNotification from './components/ToastNotification.vue'
 import { useCloudSyncStore } from './stores/cloudSync'
 import { useToast } from './composables/useToast'
+import { applyDefaults } from './shared/defaults'
 
 // 视图组件懒加载
 import { defineAsyncComponent, h } from 'vue'
@@ -317,21 +318,10 @@ const settings = ref({
   apiProfiles: { default: {} },
   acrylicEnabled: true,
   acrylicIntensity: 50,
-  // CLI 行为控制 - 新字段默认值
-  autoAccept: false,
-  hideBanner: false,
-  disableAutoUpdate: false,
-  autoConfigureMaxOldSpaceSize: undefined,
-  disableTelemetry: false,
-  tokensLimit: 128000,
-  compressionTokenThreshold: 0.8,
-  skipNextSpeakerCheck: true,
-  shellTimeout: 120000,
-  approvalMode: 'autoEdit',
-  thinkingModeEnabled: 'true',
   connectivityPollInterval: 30,
   modelUsageRefreshInterval: 5,
 })
+// settings 初始值中的 CLI 默认值已在定义时填充，后续加载会由 loadSettings 统一覆盖
 
 const originalSettings = ref({})
 const modified = ref(false)
@@ -374,18 +364,7 @@ const loadApiProfiles = async () => {
 const switchApiProfile = async () => {
   const result = await window.electronAPI.switchApiProfile(currentApiProfile.value)
   if (result.success) {
-    const data = structuredClone(result.data)
-    if (data.autoAccept === undefined) data.autoAccept = false
-    if (data.hideBanner === undefined) data.hideBanner = false
-    if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
-    if (data.autoConfigureMaxOldSpaceSize === undefined) data.autoConfigureMaxOldSpaceSize = undefined
-    if (data.disableTelemetry === undefined) data.disableTelemetry = false
-    if (data.tokensLimit === undefined) data.tokensLimit = 128000
-    if (data.compressionTokenThreshold === undefined) data.compressionTokenThreshold = 0.8
-    if (data.skipNextSpeakerCheck === undefined) data.skipNextSpeakerCheck = true
-    if (data.shellTimeout === undefined) data.shellTimeout = 120000
-    if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
-    if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
+    const data = applyDefaults(structuredClone(result.data))
     settings.value = data
     originalSettings.value = structuredClone(data)
     modified.value = false
@@ -455,19 +434,7 @@ const deleteApiProfile = async name => {
   if (!confirmed) return
   const result = await window.electronAPI.deleteApiProfile(profileName)
   if (result.success) {
-    const data = structuredClone(result.data)
-    // CLI 行为控制 - 新字段默认值
-    if (data.autoAccept === undefined) data.autoAccept = false
-    if (data.hideBanner === undefined) data.hideBanner = false
-    if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
-    if (data.autoConfigureMaxOldSpaceSize === undefined) data.autoConfigureMaxOldSpaceSize = undefined
-    if (data.disableTelemetry === undefined) data.disableTelemetry = false
-    if (data.tokensLimit === undefined) data.tokensLimit = 128000
-    if (data.compressionTokenThreshold === undefined) data.compressionTokenThreshold = 0.8
-    if (data.skipNextSpeakerCheck === undefined) data.skipNextSpeakerCheck = true
-    if (data.shellTimeout === undefined) data.shellTimeout = 120000
-    if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
-    if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
+    const data = applyDefaults(structuredClone(result.data))
     settings.value = data
     originalSettings.value = structuredClone(data)
     modified.value = false
@@ -629,21 +596,9 @@ const loadSettings = async () => {
     if (!data.currentApiProfile) data.currentApiProfile = 'default'
     if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
     if (data.acrylicEnabled === undefined) data.acrylicEnabled = true
-
-    // CLI 行为控制 - 新字段默认值
-    if (data.autoAccept === undefined) data.autoAccept = false
-    if (data.hideBanner === undefined) data.hideBanner = false
-    if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
-    if (data.autoConfigureMaxOldSpaceSize === undefined) data.autoConfigureMaxOldSpaceSize = undefined
-    if (data.disableTelemetry === undefined) data.disableTelemetry = false
-    if (data.tokensLimit === undefined) data.tokensLimit = 128000
-    if (data.compressionTokenThreshold === undefined) data.compressionTokenThreshold = 0.8
-    if (data.skipNextSpeakerCheck === undefined) data.skipNextSpeakerCheck = true
-    if (data.shellTimeout === undefined) data.shellTimeout = 120000
-    if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
-    if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
     if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
     if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
+    applyDefaults(data)
     settings.value = data
     originalSettings.value = structuredClone(data)
     modified.value = false
