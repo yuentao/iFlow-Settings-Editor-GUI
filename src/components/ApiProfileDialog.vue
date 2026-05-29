@@ -595,6 +595,16 @@ const handleSaveEdit = (): void => {
 
   .has-suffix {
     padding-right: 32px;
+
+    // Hide native number input spinner buttons so they don't cover the suffix
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    // Firefox
+    -moz-appearance: textfield;
   }
 }
 
