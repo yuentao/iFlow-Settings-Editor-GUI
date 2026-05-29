@@ -884,6 +884,7 @@ const deleteServer = async () => {
   const serverName = isEditingServer.value ? editingServerData.value.name : currentServerName.value
   if (!serverName) return
   await deleteServerByName(serverName)
+  showServerPanel.value = false
 }
 
 const deleteServerByName = async serverName => {
