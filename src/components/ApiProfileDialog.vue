@@ -17,8 +17,16 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" :class="{ 'form-input--error': createNameError }" v-model="createData.name" :placeholder="$t('api.configNamePlaceholder')" />
-          <div class="form-error" :class="{ 'form-error--invisible': !createNameError }">{{ createNameError ? $t(createNameError) : '' }}</div>
+          <input
+            type="text"
+            class="form-input"
+            :class="{ 'form-input--error': createNameError }"
+            v-model="createData.name"
+            :placeholder="$t('api.configNamePlaceholder')"
+          />
+          <div class="form-error" :class="{ 'form-error--invisible': !createNameError }">
+            {{ createNameError ? $t(createNameError) : '' }}
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
@@ -30,27 +38,71 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" :class="{ 'form-input--error': createBaseUrlError }" v-model="createData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
-          <div class="form-error" :class="{ 'form-error--invisible': !createBaseUrlError }">{{ createBaseUrlError ? $t(createBaseUrlError) : '' }}</div>
+          <input
+            type="text"
+            class="form-input"
+            :class="{ 'form-input--error': createBaseUrlError }"
+            v-model="createData.baseUrl"
+            :placeholder="$t('api.baseUrlPlaceholder')"
+          />
+          <div class="form-error" :class="{ 'form-error--invisible': !createBaseUrlError }">
+            {{ createBaseUrlError ? $t(createBaseUrlError) : '' }}
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
-            <input type="password" class="form-input" v-model="createData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
+            <input
+              type="password"
+              class="form-input"
+              v-model="createData.apiKey"
+              :placeholder="$t('api.apiKeyPlaceholder')"
+            />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
             <div class="model-input-wrapper">
-              <input type="text" class="form-input model-input" :class="{ 'form-input--error': createModelError }" v-model="createData.modelName" :placeholder="$t('api.modelNamePlaceholder')" @focus="onModelInputFocus('create')" @input="onModelSearch('create')" />
-              <button type="button" class="model-fetch-btn" :class="{ 'is-loading': createModelsLoading }" :disabled="!canFetchCreate" @click="handleFetchModels('create')" :title="$t('api.fetchModelsBtn')">
+              <input
+                type="text"
+                class="form-input model-input"
+                :class="{ 'form-input--error': createModelError }"
+                v-model="createData.modelName"
+                :placeholder="$t('api.modelNamePlaceholder')"
+                @focus="onModelInputFocus('create')"
+                @input="onModelSearch('create')"
+              />
+              <button
+                type="button"
+                class="model-fetch-btn"
+                :class="{ 'is-loading': createModelsLoading }"
+                :disabled="!canFetchCreate"
+                @click="handleFetchModels('create')"
+                :title="$t('api.fetchModelsBtn')"
+              >
                 <Loading v-if="createModelsLoading" size="14" class="spin-icon" />
                 <Refresh v-else size="14" />
               </button>
             </div>
-            <div class="form-error" :class="{ 'form-error--invisible': !createModelsError && !createModelError }">{{ createModelsError ? $t(createModelsError, createModelsErrorParams) : (createModelError ? $t(createModelError) : '') }}</div>
+            <div class="form-error" :class="{ 'form-error--invisible': !createModelsError && !createModelError }">
+              {{
+                createModelsError
+                  ? $t(createModelsError, createModelsErrorParams)
+                  : createModelError
+                    ? $t(createModelError)
+                    : ''
+              }}
+            </div>
             <!-- Model dropdown (teleported to body to avoid scrollbar) -->
             <Teleport to="body">
-              <div v-if="showCreateDropdown" class="model-dropdown model-dropdown--fixed" :style="{ top: createDropdownPos.top + 'px', left: createDropdownPos.left + 'px', width: createDropdownPos.width + 'px' }">
+              <div
+                v-if="showCreateDropdown"
+                class="model-dropdown model-dropdown--fixed"
+                :style="{
+                  top: createDropdownPos.top + 'px',
+                  left: createDropdownPos.left + 'px',
+                  width: createDropdownPos.width + 'px',
+                }"
+              >
                 <div v-if="filteredCreateModels.length === 0" class="model-dropdown-empty">
                   {{ $t('api.noModelsFound') }}
                 </div>
@@ -72,7 +124,13 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.expiryDays') }}</label>
             <div class="input-with-suffix">
-              <input type="number" class="form-input has-suffix" v-model.number="createData.expiryDays" :placeholder="$t('api.expiryDaysPlaceholder')" min="0" />
+              <input
+                type="number"
+                class="form-input has-suffix"
+                v-model.number="createData.expiryDays"
+                :placeholder="$t('api.expiryDaysPlaceholder')"
+                min="0"
+              />
               <span class="input-suffix">{{ $t('api.expiryDaysUnit') }}</span>
             </div>
             <div class="form-hint">{{ $t('api.expiryDaysHint') }}</div>
@@ -80,7 +138,13 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.tokensLimit') }}</label>
             <div class="input-with-suffix">
-              <input type="number" class="form-input has-suffix" v-model.number="createTokensLimitK" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+              <input
+                type="number"
+                class="form-input has-suffix"
+                v-model.number="createTokensLimitK"
+                :placeholder="$t('api.tokensLimitPlaceholder')"
+                min="0"
+              />
               <span class="input-suffix">{{ $t('api.tokensLimitUnit') }}</span>
             </div>
           </div>
@@ -114,8 +178,16 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" :class="{ 'form-input--error': editNameError }" v-model="editData.name" :disabled="editData.name === currentProfileName" />
-          <div class="form-error" :class="{ 'form-error--invisible': !editNameError }">{{ editNameError ? $t(editNameError) : '' }}</div>
+          <input
+            type="text"
+            class="form-input"
+            :class="{ 'form-input--error': editNameError }"
+            v-model="editData.name"
+            :disabled="editData.name === currentProfileName"
+          />
+          <div class="form-error" :class="{ 'form-error--invisible': !editNameError }">
+            {{ editNameError ? $t(editNameError) : '' }}
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
@@ -127,27 +199,67 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" :class="{ 'form-input--error': editBaseUrlError }" v-model="editData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
-          <div class="form-error" :class="{ 'form-error--invisible': !editBaseUrlError }">{{ editBaseUrlError ? $t(editBaseUrlError) : '' }}</div>
+          <input
+            type="text"
+            class="form-input"
+            :class="{ 'form-input--error': editBaseUrlError }"
+            v-model="editData.baseUrl"
+            :placeholder="$t('api.baseUrlPlaceholder')"
+          />
+          <div class="form-error" :class="{ 'form-error--invisible': !editBaseUrlError }">
+            {{ editBaseUrlError ? $t(editBaseUrlError) : '' }}
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
-            <input type="password" class="form-input" v-model="editData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
+            <input
+              type="password"
+              class="form-input"
+              v-model="editData.apiKey"
+              :placeholder="$t('api.apiKeyPlaceholder')"
+            />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
             <div class="model-input-wrapper">
-              <input type="text" class="form-input model-input" :class="{ 'form-input--error': editModelError }" v-model="editData.modelName" :placeholder="$t('api.modelNamePlaceholder')" @focus="onModelInputFocus('edit')" @input="onModelSearch('edit')" />
-              <button type="button" class="model-fetch-btn" :class="{ 'is-loading': editModelsLoading }" :disabled="!canFetchEdit" @click="handleFetchModels('edit')" :title="$t('api.fetchModelsBtn')">
+              <input
+                type="text"
+                class="form-input model-input"
+                :class="{ 'form-input--error': editModelError }"
+                v-model="editData.modelName"
+                :placeholder="$t('api.modelNamePlaceholder')"
+                @focus="onModelInputFocus('edit')"
+                @input="onModelSearch('edit')"
+              />
+              <button
+                type="button"
+                class="model-fetch-btn"
+                :class="{ 'is-loading': editModelsLoading }"
+                :disabled="!canFetchEdit"
+                @click="handleFetchModels('edit')"
+                :title="$t('api.fetchModelsBtn')"
+              >
                 <Loading v-if="editModelsLoading" size="14" class="spin-icon" />
                 <Refresh v-else size="14" />
               </button>
             </div>
-            <div class="form-error" :class="{ 'form-error--invisible': !editModelsError && !editModelError }">{{ editModelsError ? $t(editModelsError, editModelsErrorParams) : (editModelError ? $t(editModelError) : '') }}</div>
+            <div class="form-error" :class="{ 'form-error--invisible': !editModelsError && !editModelError }">
+              {{
+                editModelsError ? $t(editModelsError, editModelsErrorParams) : editModelError ? $t(editModelError) : ''
+              }}
+            </div>
             <!-- Model dropdown (teleported to body to avoid scrollbar) -->
             <Teleport to="body">
-              <div v-if="showEditDropdown" class="model-dropdown model-dropdown--fixed" :style="{ top: editDropdownPos.top + 'px', left: editDropdownPos.left + 'px', width: editDropdownPos.width + 'px' }">
+              <div
+                v-if="showEditDropdown"
+                class="model-dropdown model-dropdown--fixed"
+                :style="{
+                  top: editDropdownPos.top + 'px',
+                  left: editDropdownPos.left + 'px',
+                  width: editDropdownPos.width + 'px',
+                }"
+              >
                 <div v-if="filteredEditModels.length === 0" class="model-dropdown-empty">
                   {{ $t('api.noModelsFound') }}
                 </div>
@@ -169,7 +281,13 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.expiryDays') }}</label>
             <div class="input-with-suffix">
-              <input type="number" class="form-input has-suffix" v-model.number="editData.expiryDays" :placeholder="$t('api.expiryDaysPlaceholder')" min="0" />
+              <input
+                type="number"
+                class="form-input has-suffix"
+                v-model.number="editData.expiryDays"
+                :placeholder="$t('api.expiryDaysPlaceholder')"
+                min="0"
+              />
               <span class="input-suffix">{{ $t('api.expiryDaysUnit') }}</span>
             </div>
             <div class="form-hint">{{ $t('api.expiryDaysHint') }}</div>
@@ -177,7 +295,13 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.tokensLimit') }}</label>
             <div class="input-with-suffix">
-              <input type="number" class="form-input has-suffix" v-model.number="editTokensLimitK" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+              <input
+                type="number"
+                class="form-input has-suffix"
+                v-model.number="editTokensLimitK"
+                :placeholder="$t('api.tokensLimitPlaceholder')"
+                min="0"
+              />
               <span class="input-suffix">{{ $t('api.tokensLimitUnit') }}</span>
             </div>
           </div>
@@ -230,8 +354,26 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   showCreate: false,
   showEdit: false,
-  createData: () => ({ name: '', selectedAuthType: 'openai-compatible' as AuthType, apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, createdAt: '' }),
-  editData: () => ({ name: '', selectedAuthType: 'openai-compatible' as AuthType, apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, createdAt: '' }),
+  createData: () => ({
+    name: '',
+    selectedAuthType: 'openai-compatible' as AuthType,
+    apiKey: '',
+    baseUrl: '',
+    modelName: '',
+    tokensLimit: 128000,
+    expiryDays: 0,
+    createdAt: '',
+  }),
+  editData: () => ({
+    name: '',
+    selectedAuthType: 'openai-compatible' as AuthType,
+    apiKey: '',
+    baseUrl: '',
+    modelName: '',
+    tokensLimit: 128000,
+    expiryDays: 0,
+    createdAt: '',
+  }),
   currentProfileName: '',
 })
 
@@ -263,14 +405,28 @@ const editDropdownPos = ref({ top: 0, left: 0, width: 0 })
 // ---- Can fetch computed ----
 const canFetchCreate = computed((): boolean => {
   const d = props.createData
-  return !!(d && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
-    && d.apiKey && d.apiKey.trim() && !createModelsLoading.value)
+  return !!(
+    d &&
+    d.baseUrl &&
+    d.baseUrl.trim() &&
+    isUrlValid(d.baseUrl) &&
+    d.apiKey &&
+    d.apiKey.trim() &&
+    !createModelsLoading.value
+  )
 })
 
 const canFetchEdit = computed((): boolean => {
   const d = props.editData
-  return !!(d && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
-    && d.apiKey && d.apiKey.trim() && !editModelsLoading.value)
+  return !!(
+    d &&
+    d.baseUrl &&
+    d.baseUrl.trim() &&
+    isUrlValid(d.baseUrl) &&
+    d.apiKey &&
+    d.apiKey.trim() &&
+    !editModelsLoading.value
+  )
 })
 
 // ---- Filtered models for dropdown ----
@@ -328,7 +484,9 @@ async function handleFetchModels(mode: 'create' | 'edit'): Promise<void> {
 // ---- Dropdown interactions ----
 function updateDropdownPosition(mode: 'create' | 'edit'): void {
   const wrapper = document.querySelector(
-    mode === 'create' ? '.dialog-overlay-top .model-input-wrapper' : '.dialog-overlay-top:last-child .model-input-wrapper'
+    mode === 'create'
+      ? '.dialog-overlay-top .model-input-wrapper'
+      : '.dialog-overlay-top:last-child .model-input-wrapper',
   ) as HTMLElement | null
   const posRef = mode === 'create' ? createDropdownPos : editDropdownPos
   if (wrapper) {
@@ -378,29 +536,35 @@ function handleGlobalClick(e: MouseEvent): void {
   showEditDropdown.value = false
 }
 
-watch(() => props.showCreate, (val) => {
-  if (val) {
-    document.addEventListener('mousedown', handleGlobalClick)
-  } else {
-    document.removeEventListener('mousedown', handleGlobalClick)
-    createModels.value = []
-    createModelsError.value = ''
-    createModelsErrorParams.value = {}
-    showCreateDropdown.value = false
-  }
-})
+watch(
+  () => props.showCreate,
+  val => {
+    if (val) {
+      document.addEventListener('mousedown', handleGlobalClick)
+    } else {
+      document.removeEventListener('mousedown', handleGlobalClick)
+      createModels.value = []
+      createModelsError.value = ''
+      createModelsErrorParams.value = {}
+      showCreateDropdown.value = false
+    }
+  },
+)
 
-watch(() => props.showEdit, (val) => {
-  if (val) {
-    document.addEventListener('mousedown', handleGlobalClick)
-  } else {
-    document.removeEventListener('mousedown', handleGlobalClick)
-    editModels.value = []
-    editModelsError.value = ''
-    editModelsErrorParams.value = {}
-    showEditDropdown.value = false
-  }
-})
+watch(
+  () => props.showEdit,
+  val => {
+    if (val) {
+      document.addEventListener('mousedown', handleGlobalClick)
+    } else {
+      document.removeEventListener('mousedown', handleGlobalClick)
+      editModels.value = []
+      editModelsError.value = ''
+      editModelsErrorParams.value = {}
+      showEditDropdown.value = false
+    }
+  },
+)
 
 // Validation helper functions
 const isNameValid = (name: string): boolean => {
@@ -410,7 +574,12 @@ const isNameValid = (name: string): boolean => {
 
 const isUrlValid = (url: string): boolean => {
   if (!url || !url.trim()) return false
-  try { new URL(url.trim()); return true } catch { return false }
+  try {
+    new URL(url.trim())
+    return true
+  } catch {
+    return false
+  }
 }
 
 const isModelNameValid = (name: string): boolean => {
@@ -467,20 +636,37 @@ const editModelError = computed((): string => {
 
 const isCreateValid = computed((): boolean => {
   const d = props.createData
-  return !!(d && d.name && d.name.trim() && isNameValid(d.name)
-    && d.apiKey && d.apiKey.trim()
-    && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
-    && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName))
+  return !!(
+    d &&
+    d.name &&
+    d.name.trim() &&
+    isNameValid(d.name) &&
+    d.apiKey &&
+    d.apiKey.trim() &&
+    d.baseUrl &&
+    d.baseUrl.trim() &&
+    isUrlValid(d.baseUrl) &&
+    d.modelName &&
+    d.modelName.trim() &&
+    isModelNameValid(d.modelName)
+  )
 })
 
 const isEditValid = computed((): boolean => {
   const d = props.editData
   if (!d) return false
   const nameOk = d.name === props.currentProfileName || (d.name && d.name.trim() && isNameValid(d.name))
-  return !!(nameOk
-    && d.apiKey && d.apiKey.trim()
-    && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
-    && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName))
+  return !!(
+    nameOk &&
+    d.apiKey &&
+    d.apiKey.trim() &&
+    d.baseUrl &&
+    d.baseUrl.trim() &&
+    isUrlValid(d.baseUrl) &&
+    d.modelName &&
+    d.modelName.trim() &&
+    isModelNameValid(d.modelName)
+  )
 })
 
 // Display tokensLimit in K tokens (e.g., 128000 → 128)
@@ -490,7 +676,7 @@ const createTokensLimitK = computed({
     if (props.createData) {
       props.createData.tokensLimit = Math.round(val * 1000)
     }
-  }
+  },
 })
 
 const editTokensLimitK = computed({
@@ -499,7 +685,7 @@ const editTokensLimitK = computed({
     if (props.editData) {
       props.editData.tokensLimit = Math.round(val * 1000)
     }
-  }
+  },
 })
 
 const handleSaveCreate = (): void => {
@@ -541,7 +727,7 @@ const handleSaveEdit = (): void => {
   gap: var(--space-sm);
   color: var(--text-primary);
   margin-bottom: 0;
-  
+
   .iconpark-icon {
     color: var(--accent);
   }
@@ -549,14 +735,14 @@ const handleSaveEdit = (): void => {
 
 .api-edit-dialog .dialog-body {
   padding: var(--space-xl);
-  max-height: 60vh;
+  max-height: 80vh;
   overflow-y: auto;
-  
+
   .form-group {
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-sm);
     min-width: 0;
     position: relative;
-    
+
     &:last-child {
       margin-bottom: 0;
     }
