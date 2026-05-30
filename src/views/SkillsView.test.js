@@ -44,7 +44,7 @@ describe('SkillsView.vue', () => {
     await flushPromises();
     expect(wrapper.exists()).toBe(true);
     expect(wrapper.find('.content-title').exists()).toBe(true);
-    expect(wrapper.find('.skill-list').exists()).toBe(true);
+    expect(wrapper.find('.generic-list').exists()).toBe(true);
   });
 
   it('displays all skills', async () => {
@@ -57,7 +57,7 @@ describe('SkillsView.vue', () => {
     });
 
     await flushPromises();
-    const skillItems = wrapper.findAll('.skill-item');
+    const skillItems = wrapper.findAll('.generic-item');
     expect(skillItems.length).toBe(2);
   });
 
@@ -137,22 +137,6 @@ describe('SkillsView.vue', () => {
     expect(sizeTexts[1].text()).toBe('2.5 MB');
   });
 
-  it('selects skill when clicked', async () => {
-    const wrapper = mount(SkillsView, {
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    await flushPromises();
-    const skillItems = wrapper.findAll('.skill-item');
-    await skillItems[0].trigger('click');
-
-    expect(skillItems[0].classes('selected')).toBe(true);
-  });
-
   it('calls importSkillLocal when import local button is clicked', async () => {
     const wrapper = mount(SkillsView, {
       global: {
@@ -213,8 +197,9 @@ describe('SkillsView.vue', () => {
     });
 
     await flushPromises();
-    const skillItem = wrapper.find('.skill-item');
-    const actionBtns = skillItem.findAll('.btn-icon');
+    // 每个 skill item 有 2 个 action-btn：export 和 delete
+    const skillItem = wrapper.find('.generic-item');
+    const actionBtns = skillItem.findAll('.action-btn');
     expect(actionBtns.length).toBe(2);
   });
 
@@ -254,24 +239,5 @@ describe('SkillsView.vue', () => {
     await flushPromises();
     const sizeText = wrapper.find('.skill-size');
     expect(sizeText.text()).toBe('');
-  });
-
-  it('shows export and delete buttons on hover', async () => {
-    const wrapper = mount(SkillsView, {
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    await flushPromises();
-    const skillItem = wrapper.find('.skill-item');
-    await skillItem.trigger('mouseenter');
-
-    const exportBtn = wrapper.find('.skill-export');
-    const deleteBtn = wrapper.find('.skill-delete');
-    expect(exportBtn.exists()).toBe(true);
-    expect(deleteBtn.exists()).toBe(true);
   });
 });

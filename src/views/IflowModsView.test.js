@@ -18,6 +18,8 @@ describe('IflowModsView.vue', () => {
       iflowGetIflowVersion: vi.fn().mockResolvedValue({ success: true, version: '0.5.19' }),
       iflowEnableMod: vi.fn().mockResolvedValue({ success: true }),
       iflowDeleteMod: vi.fn().mockResolvedValue({ success: true }),
+      onIflowApplyProgress: vi.fn(() => () => {}),
+      onIflowDetectConflictsProgress: vi.fn(() => () => {}),
     }
   })
 
@@ -78,12 +80,17 @@ describe('IflowModsView.vue', () => {
     expect(names[1].text()).toBe('Mod Two')
   })
 
-  it('displays mod versions', async () => {
+  it('displays mod versions in detail modal', async () => {
     const wrapper = createWrapper()
     await waitForLoad()
-    const versions = wrapper.findAll('.mod-version')
-    expect(versions[0].text()).toBe('v1.0')
-    expect(versions[1].text()).toBe('v2.0')
+    // 点击第一个 mod 打开详情弹窗
+    const items = wrapper.findAll('.generic-item')
+    await items[0].trigger('click')
+    await wrapper.vm.$nextTick()
+    // 版本信息在详情弹窗中
+    const detailValues = wrapper.findAll('.detail-field-value')
+    const versionValue = detailValues.filter(v => v.text().includes('v1.0'))
+    expect(versionValue.length).toBeGreaterThan(0)
   })
 
   it('shows type badges', async () => {

@@ -40,7 +40,10 @@ log.transports.file.archiveLogFn = (file) => {
 }
 
 // 渲染进程 IPC 日志级别：仅转发 warn 及以上，避免大量 debug/info 噪音
-log.transports.ipc.level = 'warn'
+// 注：在非 Electron 环境（如 vitest 单元测试）下 ipc transport 可能不存在
+if (log.transports.ipc) {
+  log.transports.ipc.level = 'warn'
+}
 
 /**
  * 格式化错误对象

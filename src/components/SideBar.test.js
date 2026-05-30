@@ -106,12 +106,16 @@ describe('SideBar.vue', () => {
     });
 
     const navItems = wrapper.findAll('.nav-item-text');
-    // Order: Dashboard(0), API Config(1), Basic Settings(2), MCP(3), Skills(4), Commands(5), CloudSync(6)
+    // Order: Dashboard(0), API Config(1), General Settings(2), Projects(3), MCP(4), iFlow Mod(5), Skills(6), Commands(7), Docs(8)
     expect(navItems[0].text()).toBe('translated-sidebar.dashboard');
     expect(navItems[1].text()).toBe('translated-sidebar.apiConfig');
     expect(navItems[2].text()).toBe('translated-sidebar.generalSettings');
-    expect(navItems[3].text()).toBe('translated-sidebar.mcpServers');
-    expect(navItems[4].text()).toBe('translated-sidebar.skills');
+    expect(navItems[3].text()).toBe('translated-sidebar.projects');
+    expect(navItems[4].text()).toBe('translated-sidebar.mcpServers');
+    expect(navItems[5].text()).toBe('translated-sidebar.iflowMod');
+    expect(navItems[6].text()).toBe('translated-sidebar.skills');
+    expect(navItems[7].text()).toBe('translated-sidebar.commands');
+    expect(navItems[8].text()).toBe('translated-sidebar.docs');
   });
 
   it('handles null currentSection', () => {
