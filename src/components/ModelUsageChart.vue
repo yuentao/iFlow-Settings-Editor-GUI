@@ -81,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ModelUsageTrendResponse } from '@/composables/useModelUsageStats'
 
@@ -100,6 +100,20 @@ const emit = defineEmits<{
 }>()
 
 const activeDays = ref(7)
+
+// 幂等的 rendered 触发器：保证组件挂载后无论数据状态如何（loading/error/empty/有数据）
+// 都向父组件发出 rendered 事件，避免 splash 因图表元素未创建而永久卡死
+let renderedEmitted = false
+function emitRendered() {
+  if (renderedEmitted) return
+  renderedEmitted = true
+  emit('rendered')
+}
+
+// 组件挂载后立即通知父组件：不再依赖 <apexchart> 是否被实际渲染
+onMounted(() => {
+  emitRendered()
+})
 
 const timeRangeOptions = computed(() => [
   { label: t('dashboard.timeRange.last7Days'), value: 7 },
@@ -154,7 +168,7 @@ const chartOptions = computed(() => {
         dynamicAnimation: { enabled: true, speed: 150 },
       },
       events: {
-        mounted: () => { emit('rendered') },
+        mounted: () => { emitRendered() },
       },
       zoom: { enabled: false },
       foreColor: 'var(--text-secondary)',

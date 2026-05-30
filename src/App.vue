@@ -181,13 +181,22 @@ const loadingComponent = {
   render() {
     return h('div', { class: 'async-loading' }, [h('div', { class: 'skeleton-header-title' }), h('div', { class: 'skeleton-header-desc' })])
   },
+  emits: ['ready'],
+  mounted() {
+    // 即使在 loading 状态也通知 App.vue 移除 splash，避免无限等待
+    this.$emit('ready')
+  },
 }
 
 const errorComponent = {
   props: ['error'],
-  emits: ['retry'],
+  emits: ['retry', 'ready'],
   render() {
     return h('div', { class: 'async-error' }, [h('p', this.error), h('button', { onClick: () => this.$emit('retry') }, this.$t('app.retry'))])
+  },
+  mounted() {
+    // 异步组件加载失败时，也通知父组件移除 splash，避免用户卡在启动画面
+    this.$emit('ready')
   },
 }
 
@@ -196,6 +205,7 @@ const Dashboard = defineAsyncComponent({
   loadingComponent,
   errorComponent,
   delay: 200,
+  timeout: 15000,
 })
 const GeneralSettings = defineAsyncComponent({
   loader: () => import('./views/GeneralSettings.vue'),
@@ -578,33 +588,40 @@ const saveApiEdit = async data => {
 }
 
 const loadSettings = async () => {
-  const result = await window.electronAPI.loadSettings()
-  if (result.success) {
-    const data = structuredClone(result.data)
-    if (!data.checkpointing) data.checkpointing = { enabled: true }
-    if (!data.mcpServers) data.mcpServers = {}
-    if (data.language === undefined) data.language = 'zh-CN'
-    if (data.uiTheme === undefined) data.uiTheme = 'Light'
-    if (data.bootAnimationShown === undefined) data.bootAnimationShown = true
-    if (data.showMemoryUsage === undefined) data.showMemoryUsage = false
-    if (data.maxSessionTurns === undefined) data.maxSessionTurns = -1
-    if (data.excludeTools === undefined) data.excludeTools = []
-    if (!data.selectedAuthType) data.selectedAuthType = 'openai-compatible'
-    if (data.apiKey === undefined) data.apiKey = ''
-    if (data.baseUrl === undefined) data.baseUrl = ''
-    if (data.modelName === undefined) data.modelName = ''
-    if (!data.apiProfiles) data.apiProfiles = { default: {} }
-    if (!data.currentApiProfile) data.currentApiProfile = 'default'
-    if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
-    if (data.acrylicEnabled === undefined) data.acrylicEnabled = true
-    if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
-    if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
-    applyDefaults(data)
-    settings.value = data
-    originalSettings.value = structuredClone(data)
-    modified.value = false
+  try {
+    const result = await window.electronAPI.loadSettings()
+    if (result && result.success) {
+      const data = structuredClone(result.data)
+      if (!data.checkpointing) data.checkpointing = { enabled: true }
+      if (!data.mcpServers) data.mcpServers = {}
+      if (data.language === undefined) data.language = 'zh-CN'
+      if (data.uiTheme === undefined) data.uiTheme = 'Light'
+      if (data.bootAnimationShown === undefined) data.bootAnimationShown = true
+      if (data.showMemoryUsage === undefined) data.showMemoryUsage = false
+      if (data.maxSessionTurns === undefined) data.maxSessionTurns = -1
+      if (data.excludeTools === undefined) data.excludeTools = []
+      if (!data.selectedAuthType) data.selectedAuthType = 'openai-compatible'
+      if (data.apiKey === undefined) data.apiKey = ''
+      if (data.baseUrl === undefined) data.baseUrl = ''
+      if (data.modelName === undefined) data.modelName = ''
+      if (!data.apiProfiles) data.apiProfiles = { default: {} }
+      if (!data.currentApiProfile) data.currentApiProfile = 'default'
+      if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
+      if (data.acrylicEnabled === undefined) data.acrylicEnabled = true
+      if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
+      if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
+      applyDefaults(data)
+      settings.value = data
+      originalSettings.value = structuredClone(data)
+      modified.value = false
+    }
+  } catch (err) {
+    // 兜底：IPC 异常、structuredClone 失败、applyDefaults 抛错等情况
+    // 必须保证 isLoading 被重置，否则 SkeletonLoader 永久占位导致 splash 卡死
+    console.error('[loadSettings] failed:', err)
+  } finally {
+    isLoading.value = false
   }
-  isLoading.value = false
 }
 
 watch(
@@ -649,6 +666,16 @@ const dismissSplash = () => {
     }
   })
 }
+
+// 全局兜底：无论初始化链路是否正常，10 秒后强制移除 splash
+// 防止 Dashboard/ModelUsageChart 因任何异常未触发 @ready 导致 splash 永久卡死
+const SPLASH_TIMEOUT_MS = 10000
+setTimeout(() => {
+  if (!splashDismissed) {
+    console.warn('[Splash] Force dismiss after timeout: chart rendered event was not triggered within ' + SPLASH_TIMEOUT_MS + 'ms')
+    dismissSplash()
+  }
+}, SPLASH_TIMEOUT_MS)
 
 const showSection = (section, subSection) => {
   currentSection.value = section
@@ -1138,7 +1165,13 @@ onMounted(async () => {
   initUpdateListeners()
 
   // 关键数据并行加载（减少串行 IPC 等待）
-  await Promise.all([loadApiProfiles(), loadSettings()])
+  // 使用 allSettled 防止任一 IPC 失败时阻断整个启动流程
+  const results = await Promise.allSettled([loadApiProfiles(), loadSettings()])
+  for (const r of results) {
+    if (r.status === 'rejected') {
+      console.error('[App.onMounted] initial load failed:', r.reason)
+    }
+  }
 
   // 非关键计数数据延迟加载，不阻塞首次渲染
   loadSkillCount()

@@ -287,7 +287,10 @@ function handleChartRendered() {
 }
 
 onMounted(async () => {
-  await cloudStore.loadStatus()
+  // 云同步状态加载不阻塞图表挂载关键路径（避免 WebDAV 网络请求阻塞导致 splash 卡死）
+  cloudStore.loadStatus().catch(err => {
+    console.error('[Dashboard] cloudStore.loadStatus failed:', err)
+  })
   // 延迟挂载图表组件：先让仪表盘卡片渲染完成，再挂载 apexcharts
   setTimeout(() => {
     chartMounted.value = true
