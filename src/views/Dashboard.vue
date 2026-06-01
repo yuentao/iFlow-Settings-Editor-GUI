@@ -314,7 +314,7 @@ onUnmounted(() => {
 <style lang="less" scoped>
 // Card animation
 .card-appear {
-  animation: fadeInUp 0.3s ease backwards;
+  animation: fadeInUp var(--duration-slow) var(--ease-out) backwards;
   animation-name: fadeInUp, subtleFloat;
 }
 
@@ -340,7 +340,7 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--space-lg);
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all var(--duration-slow) var(--ease-out);
   position: relative;
   overflow: hidden;
   min-height: 120px;
@@ -354,7 +354,7 @@ onUnmounted(() => {
     height: 4px;
     background: var(--accent);
     opacity: 0;
-    transition: opacity 0.25s ease;
+    transition: opacity var(--duration-slow) var(--ease-out);
   }
 
   &:hover {

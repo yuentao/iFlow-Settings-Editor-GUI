@@ -104,7 +104,7 @@ const toggleCollapse = (): void => {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: width 0.2s ease;
+  transition: width var(--duration-slow) var(--ease-out);
 
   &.collapsed {
     width: 52px;
@@ -131,7 +131,7 @@ const toggleCollapse = (): void => {
   align-items: center;
   flex-shrink: 0;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background var(--duration-slow) var(--ease-out);
 
   &:hover {
     background: var(--control-fill);
@@ -152,7 +152,7 @@ const toggleCollapse = (): void => {
   left: 0;
   height: 100%;
   background: linear-gradient(90deg, var(--accent), var(--accent-light));
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width var(--duration-slow) var(--ease-emphasized);
   opacity: 0.12;
 
   &::after {
@@ -180,7 +180,7 @@ const toggleCollapse = (): void => {
   gap: 6px;
   padding: 0 12px;
   width: 100%;
-  transition: transform 0.15s ease;
+  transition: transform var(--transition-fast) var(--ease-out);
 
   .sidebar.collapsed & {
     justify-content: center;
@@ -259,7 +259,7 @@ const toggleCollapse = (): void => {
   border-top: 1px solid var(--border-light);
   cursor: pointer;
   color: var(--text-tertiary);
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast) var(--ease-out);
   flex-shrink: 0;
 
   &:hover {
@@ -272,7 +272,7 @@ const toggleCollapse = (): void => {
   font-size: 18px;
   font-weight: 300;
   line-height: 1;
-  transition: transform 0.2s ease;
+  transition: transform var(--duration-slow) var(--ease-out);
 
   &.rotated {
     transform: rotate(180deg);
@@ -301,7 +301,7 @@ const toggleCollapse = (): void => {
   padding: 10px 12px;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast) var(--ease-out);
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 400;

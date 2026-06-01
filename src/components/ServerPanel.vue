@@ -595,28 +595,28 @@ const handleSave = (): void => {
   z-index: 1000;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--duration-slow) var(--ease-out);
 
   &.visible {
     pointer-events: auto;
     opacity: 1;
 
     .side-panel-overlay {
-      animation: fadeIn 0.15s ease;
+      animation: fadeIn var(--duration-fast) var(--ease-out);
     }
 
     .side-panel {
-      animation: slideInFromRight 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: slideInFromRight var(--duration-slow) var(--ease-emphasized);
     }
   }
 
   &:not(.visible) {
     .side-panel-overlay {
-      animation: fadeOut 0.2s ease forwards;
+      animation: fadeOut var(--duration-slow) var(--ease-out) forwards;
     }
 
     .side-panel {
-      animation: slideOutToRight 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      animation: slideOutToRight var(--duration-slow) var(--ease-emphasized) forwards;
     }
   }
 }
@@ -714,7 +714,7 @@ const handleSave = (): void => {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast) var(--ease-out);
   background: var(--bg-primary);
 
   input[type="radio"] {
@@ -846,7 +846,7 @@ const handleSave = (): void => {
   cursor: pointer;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
-  transition: all var(--transition);
+  transition: all var(--duration-normal) var(--ease-out);
 
   svg {
     width: 10px;
@@ -892,7 +892,7 @@ const handleSave = (): void => {
   padding: 10px 14px;
   cursor: pointer;
   background: var(--bg-secondary);
-  transition: background 0.15s ease;
+  transition: background var(--transition-fast) var(--ease-out);
   user-select: none;
 
   &:hover {
@@ -903,7 +903,7 @@ const handleSave = (): void => {
     width: 14px;
     height: 14px;
     color: var(--text-tertiary);
-    transition: transform 0.2s ease;
+    transition: transform var(--duration-slow) var(--ease-out);
 
     &.expanded {
       transform: rotate(90deg);

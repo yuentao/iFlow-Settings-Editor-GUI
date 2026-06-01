@@ -63,15 +63,15 @@ const { toasts, pauseTimer, resumeTimer } = useToast()
 
 // ── Vue TransitionGroup animations ────────────────────────
 .toast-enter-active {
-  animation: toast-in 0.3s cubic-bezier(0.15, 0.85, 0.35, 1);
+  animation: toast-in var(--duration-slow) var(--ease-emphasized);
 }
 
 .toast-leave-active {
-  animation: toast-out 0.2s cubic-bezier(0.4, 0, 1, 1);
+  animation: toast-out var(--duration-normal) var(--ease-in);
 }
 
 .toast-move {
-  transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1);
+  transition: transform var(--duration-slow) var(--ease-in-out);
 }
 
 @keyframes toast-in {
