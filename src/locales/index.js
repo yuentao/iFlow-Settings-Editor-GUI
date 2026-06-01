@@ -418,7 +418,8 @@ export default {
     skillOnlineImportSuccess: '技能 "{name}" 在线导入成功',
     skillArchiveInvalid: '压缩包中未找到有效的技能文件夹（缺少 SKILL.md）\n解压内容:\n{content}',
     downloadFailed: '下载失败: HTTP {code}',
-    overwriteConfirm: '技能 "{name}" 已存在，是否覆盖？'
+    overwriteConfirm: '技能 "{name}" 已存在，是否覆盖？',
+    commandExported: '命令已导出',
   },
   dialog: {
     confirm: '确定',
@@ -458,6 +459,7 @@ export default {
       requestTimeout: '请求超时',
       downloadFailed: '下载失败: HTTP {code}',
       downloadTimeout: '下载超时',
+      downloadInProgress: '上次下载仍在进行中，请稍后重试',
       noDownloadUrl: '无可用下载链接',
       noDownloadedUpdate: '没有已下载的更新',
       noReleaseUrl: '没有 Release 页面链接',
@@ -607,10 +609,14 @@ export default {
       commandNotFound: '命令不存在',
       commandAlreadyExists: '命令已存在',
       commandInvalidName: '命令名只能包含字母、数字、中划线和下划线',
+      fileNotFound: '文件不存在',
+      permissionDenied: '权限不足',
+      unknown: '操作失败，请重试',
     },
     dialogs: {
       importSkill: '导入技能',
       exportSkill: '导出技能到',
+      importCommand: '导入命令',
       exportCommand: '导出命令',
       selectExportLocation: '选择导出位置',
       skillArchive: '技能压缩包',
@@ -757,7 +763,8 @@ export default {
       invalidDependsOn: 'dependsOn 必须是数组',
       invalidDependsOnItems: 'dependsOn 数组只能包含字符串',
       missingDependencies: '缺少依赖: {deps}，请先安装这些依赖。',
-      cannotDeleteDependent: '无法删除 {mods} - 有其他 Mod 依赖它'
+      cannotDeleteDependent: '无法删除 {mods} - 有其他 Mod 依赖它',
+      fileNotFound: '文件不存在',
     },
     exportDialog: {
       title: '导出 Mod'

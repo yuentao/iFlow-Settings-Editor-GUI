@@ -418,7 +418,8 @@ export default {
     skillOnlineImportSuccess: 'スキル "{name}" のオンラインインポートが成功しました',
     skillArchiveInvalid: 'アーカイブに有効なスキルフォルダーが見つかりません（SKILL.md がありません）\nアーカイブ内容:\n{content}',
     downloadFailed: 'ダウンロードに失敗しました: HTTP {code}',
-    overwriteConfirm: 'スキル "{name}" は既に存在します。上書きしますか？'
+    overwriteConfirm: 'スキル "{name}" は既に存在します。上書きしますか？',
+    commandExported: 'コマンドをエクスポートしました',
   },
   dialog: {
     confirm: '確認',
@@ -458,6 +459,7 @@ export default {
       requestTimeout: 'リクエストタイムアウト',
       downloadFailed: 'ダウンロードに失敗しました: HTTP {code}',
       downloadTimeout: 'ダウンロードタイムアウト',
+      downloadInProgress: '前回のダウンロードがまだ進行中です。しばらくしてからもう一度お試しください',
       noDownloadUrl: 'ダウンロードURLがありません',
       noDownloadedUpdate: 'ダウンロードされたアップデートがありません',
       noReleaseUrl: 'リリースページのURLがありません',
@@ -599,10 +601,14 @@ export default {
       commandNotFound: 'コマンドが見つかりません',
       commandAlreadyExists: 'コマンドは既に存在します',
       commandInvalidName: 'コマンド名には英数字、ハイフン、アンダースコアのみ使用できます',
+      fileNotFound: 'ファイルが見つかりません',
+      permissionDenied: '権限がありません',
+      unknown: '操作に失敗しました。もう一度お試しください',
     },
     dialogs: {
       importSkill: 'スキルを取込む',
       exportSkill: 'スキルをエクスポート',
+      importCommand: 'コマンドをインポート',
       exportCommand: 'コマンドをエクスポート',
       selectExportLocation: 'エクスポート場所を選択',
       skillArchive: 'スキルアーカイブ',
@@ -747,7 +753,8 @@ deleteSuccess: '「{name}」を削除しました',
       invalidDependsOn: 'dependsOn は配列である必要があります',
       invalidDependsOnItems: 'dependsOn 配列には文字列のみを含めることができます',
       missingDependencies: '依存関係が不足しています: {deps}。最初にインストールしてください。',
-      cannotDeleteDependent: '{mods} を削除できません - 他の Mod が依存しています'
+      cannotDeleteDependent: '{mods} を削除できません - 他の Mod が依存しています',
+      fileNotFound: 'ファイルが見つかりません',
     },
     exportDialog: {
       title: 'Mod をエクスポート'

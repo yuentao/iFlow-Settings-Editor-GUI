@@ -420,6 +420,7 @@ export default {
     skillArchiveInvalid: 'No valid skill folder found in archive (missing SKILL.md)\nArchive contents:\n{content}',
     downloadFailed: 'Download failed: HTTP {code}',
     overwriteConfirm: 'Skill "{name}" already exists. Do you want to overwrite it?',
+    commandExported: 'Command exported',
   },
   dialog: {
     confirm: 'Confirm',
@@ -459,6 +460,7 @@ export default {
       requestTimeout: 'Request timeout',
       downloadFailed: 'Download failed: HTTP {code}',
       downloadTimeout: 'Download timeout',
+      downloadInProgress: 'A download is already in progress, please try again later',
       noDownloadUrl: 'No download URL available',
       noDownloadedUpdate: 'No update downloaded',
       noReleaseUrl: 'No release page URL',
@@ -601,10 +603,14 @@ export default {
       commandNotFound: 'Command not found',
       commandAlreadyExists: 'Command already exists',
       commandInvalidName: 'Command name can only contain letters, numbers, hyphens, and underscores',
+      fileNotFound: 'File not found',
+      permissionDenied: 'Permission denied',
+      unknown: 'Operation failed, please try again',
     },
     dialogs: {
       importSkill: 'Import Skill',
       exportSkill: 'Export Skill To',
+      importCommand: 'Import Command',
       exportCommand: 'Export Command',
       selectExportLocation: 'Select Export Location',
       skillArchive: 'Skill Archive',
@@ -750,6 +756,7 @@ export default {
       invalidDependsOnItems: 'dependsOn array must contain only strings',
       missingDependencies: 'Missing dependencies: {deps}. Please install them first.',
       cannotDeleteDependent: 'Cannot delete {mods} - other mods depend on it',
+      fileNotFound: 'File not found',
     },
     exportDialog: {
       title: 'Export Mod',
