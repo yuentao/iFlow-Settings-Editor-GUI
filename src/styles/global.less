@@ -13,6 +13,11 @@ span.i-icon {
 }
 
 :root {
+  // =============================================================================
+  // Windows 11 Fluent 2 Design System
+  // Based on Fluent 2 Design System (fluent2.microsoft.design)
+  // =============================================================================
+
   // Windows UI Kit - Light Mode Color System
   // Background layers ( Mica-inspired depth )
   --bg-primary: #f3f3f38e;
@@ -62,17 +67,53 @@ span.i-icon {
   --toggle-on-border: rgba(0, 120, 212, 0.3);
   --toggle-thumb: #fff;
 
-  // Shadow system ( layer-based depth )
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
-  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.16), 0 8px 16px rgba(0, 0, 0, 0.08);
+  // =============================================================================
+  // Fluent 2 Shadow System
+  // Based on elevation levels: shadow2, shadow4, shadow8, shadow16, shadow28, shadow64
+  // Uses key (directional) + ambient (diffused) shadows for depth
+  // =============================================================================
 
-  // Radius system ( Windows 11 uses 4-8px )
-  --radius-sm: 4px;
-  --radius: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  // Shadow 2 - Cards without edge, pressed FABs
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.06);
+
+  // Shadow 4 - Cards, grid items, list items (most common)
+  --shadow-4: 0 2px 4px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  // Shadow 8 - Floating action buttons, raised cards, raised app bars
+  --shadow-8: 0 4px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
+
+  // Shadow 16 - Callouts, hover cards
+  --shadow-16: 0 8px 16px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.06);
+
+  // Shadow 28 - Bottom sheet, side navigation, raised tab bars
+  --shadow-28: 0 14px 28px rgba(0, 0, 0, 0.12), 0 14px 28px rgba(0, 0, 0, 0.08);
+
+  // Shadow 64 - Pop-up dialogs, panels
+  --shadow-64: 0 32px 64px rgba(0, 0, 0, 0.16), 0 24px 48px rgba(0, 0, 0, 0.12);
+
+  // Legacy shadow aliases for backwards compatibility
+  --shadow-sm: var(--shadow-2);
+  --shadow: var(--shadow-4);
+  --shadow-lg: var(--shadow-8);
+  --shadow-xl: var(--shadow-16);
+
+  // =============================================================================
+  // Fluent 2 Corner Radius System
+  // Windows 11 uses 4px base with incremental sizes
+  // =============================================================================
+
+  // Base radius tokens
+  --radius-none: 0;
+  --radius-sm: 4px;    // Small controls, inputs
+  --radius: 6px;       // Default component radius
+  --radius-lg: 8px;    // Cards, buttons
+  --radius-xl: 12px;   // Dialogs, panels
+  --radius-2xl: 16px;  // Large surfaces
+  --radius-3xl: 20px;  // Modal containers
+  --radius-full: 9999px; // Pills, circular elements
+
+  // Legacy aliases
+  --radius-xs: var(--radius-sm);
 
   // Spacing system
   --space-xs: 4px;
@@ -83,20 +124,83 @@ span.i-icon {
   --space-2xl: 24px;
   --space-3xl: 32px;
 
-  // Typography
-  --font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-mono: 'Cascadia Code', 'Consolas', monospace;
-  --font-size-xs: 11px;
-  --font-size-sm: 12px;
-  --font-size-base: 14px;
-  --font-size-lg: 16px;
-  --font-size-xl: 20px;
-  --font-size-2xl: 24px;
+  // =============================================================================
+  // Fluent 2 Typography - Windows Type Ramp
+  // Uses Segoe UI Variable as primary typeface
+  // =============================================================================
 
-  // Animation
-  --transition-fast: 0.1s ease;
-  --transition: 0.15s ease;
-  --transition-smooth: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  // Font families
+  --font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Cascadia Code', 'Cascadia Mono', 'Consolas', monospace;
+
+  // Font weights
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  // Fluent 2 Type Ramp (Windows)
+  // Caption: 12px / 16px
+  --font-size-caption: 12px;
+  --font-line-height-caption: 16px;
+
+  // Body: 14px / 20px
+  --font-size-body: 14px;
+  --font-line-height-body: 20px;
+  --font-size-body-strong: 14px;
+  --font-line-height-body-strong: 20px;
+
+  // Body Large: 18px / 24px
+  --font-size-body-large: 18px;
+  --font-line-height-body-large: 24px;
+
+  // Subtitle: 20px / 28px
+  --font-size-subtitle: 20px;
+  --font-line-height-subtitle: 28px;
+
+  // Title: 28px / 36px
+  --font-size-title: 28px;
+  --font-line-height-title: 36px;
+
+  // Large Title: 40px / 52px
+  --font-size-large-title: 40px;
+  --font-line-height-large-title: 52px;
+
+  // Display: 68px / 92px
+  --font-size-display: 68px;
+  --font-line-height-display: 92px;
+
+  // Legacy font size aliases
+  --font-size-xs: 11px;
+  --font-size-sm: var(--font-size-caption);
+  --font-size-base: var(--font-size-body);
+  --font-size-lg: var(--font-size-subtitle);
+  --font-size-xl: var(--font-size-title);
+  --font-size-2xl: var(--font-size-large-title);
+
+  // =============================================================================
+  // Fluent 2 Motion & Animation
+  // Duration curves based on interaction type and distance
+  // =============================================================================
+
+  // Duration tokens
+  --duration-fastest: 50ms;
+  --duration-fast: 100ms;
+  --duration-normal: 150ms;
+  --duration-slow: 200ms;
+  --duration-slower: 300ms;
+  --duration-slowest: 400ms;
+
+  // Motion curves
+  --ease-default: cubic-bezier(0, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Legacy animation aliases
+  --transition-fast: var(--duration-fast);
+  --transition: var(--duration-normal);
+  --transition-smooth: var(--duration-slow);
 }
 
 // =============================================================================
@@ -167,12 +271,34 @@ span.i-icon {
   --toggle-on-border: rgba(0, 120, 212, 0.4);
   --toggle-thumb: #e0e0e0;
 
-  // Shadow system - enhanced for dark mode depth
-  --shadow-color: rgba(0, 0, 0, 0.48);
-  --shadow-sm: 0 1.5px 3px rgba(0, 0, 0, 0.28);
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.36), 0 1px 3px rgba(0, 0, 0, 0.24);
-  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.44), 0 4px 8px rgba(0, 0, 0, 0.32);
-  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.52), 0 8px 16px rgba(0, 0, 0, 0.4);
+  // =============================================================================
+  // Fluent 2 Shadow System - Dark Mode
+  // Dark mode uses lighter shadows with higher transparency
+  // =============================================================================
+
+  // Shadow 2 - Cards without edge, pressed FABs
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.24), 0 1px 4px rgba(0, 0, 0, 0.32);
+
+  // Shadow 4 - Cards, grid items, list items (most common)
+  --shadow-4: 0 2px 4px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.36);
+
+  // Shadow 8 - Floating action buttons, raised cards
+  --shadow-8: 0 4px 8px rgba(0, 0, 0, 0.32), 0 4px 16px rgba(0, 0, 0, 0.4);
+
+  // Shadow 16 - Callouts, hover cards
+  --shadow-16: 0 8px 16px rgba(0, 0, 0, 0.36), 0 8px 24px rgba(0, 0, 0, 0.44);
+
+  // Shadow 28 - Bottom sheet, side navigation
+  --shadow-28: 0 14px 28px rgba(0, 0, 0, 0.4), 0 14px 28px rgba(0, 0, 0, 0.48);
+
+  // Shadow 64 - Pop-up dialogs, panels
+  --shadow-64: 0 32px 64px rgba(0, 0, 0, 0.48), 0 24px 48px rgba(0, 0, 0, 0.56);
+
+  // Legacy shadow aliases for backwards compatibility
+  --shadow-sm: var(--shadow-2);
+  --shadow: var(--shadow-4);
+  --shadow-lg: var(--shadow-8);
+  --shadow-xl: var(--shadow-16);
   --shadow-inner: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 
   // Focus ring - accent glow
@@ -278,9 +404,11 @@ span.i-icon {
 }
 
 // =============================================================================
-// Animations
+// Fluent 2 Animations
+// Based on Fluent 2 motion design principles
 // =============================================================================
 
+// Fade animations
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -290,6 +418,16 @@ span.i-icon {
   }
 }
 
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+// Slide animations with Fluent 2 easing
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -312,6 +450,29 @@ span.i-icon {
   }
 }
 
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Scale animations (for dialogs, tooltips)
 @keyframes scaleIn {
   from {
     opacity: 0;
@@ -323,6 +484,18 @@ span.i-icon {
   }
 }
 
+@keyframes scaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+// Slide from right (for panels)
 @keyframes slideInFromRight {
   from {
     opacity: 0;
@@ -334,6 +507,30 @@ span.i-icon {
   }
 }
 
+// Reveal animations (Fluent 2 signature)
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Utility animations
 @keyframes pulse {
   0%,
   100% {
@@ -350,6 +547,19 @@ span.i-icon {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+// Focus ring animation
+@keyframes focusRingPulse {
+  0% {
+    box-shadow: 0 0 0 2px var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+  100% {
+    box-shadow: 0 0 0 2px var(--accent-glow);
   }
 }
 
