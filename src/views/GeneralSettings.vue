@@ -87,14 +87,20 @@
               <label class="setting-label">{{ $t('general.connectivityPollInterval') }}</label>
               <p class="setting-desc">{{ $t('general.connectivityPollIntervalDesc') }}</p>
             </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.connectivityPollInterval" min="5" max="600" />
+            <div class="input-with-suffix">
+              <input type="number" class="form-input setting-input-number has-suffix" v-model.number="localSettings.connectivityPollInterval" min="5" max="600" />
+              <span class="input-suffix">{{ $t('general.connectivityPollIntervalUnit') }}</span>
+            </div>
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.modelUsageRefreshInterval') }}</label>
               <p class="setting-desc">{{ $t('general.modelUsageRefreshIntervalDesc') }}</p>
             </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.modelUsageRefreshInterval" min="1" max="60" />
+            <div class="input-with-suffix">
+              <input type="number" class="form-input setting-input-number has-suffix" v-model.number="localSettings.modelUsageRefreshInterval" min="1" max="60" />
+              <span class="input-suffix">{{ $t('general.modelUsageRefreshIntervalUnit') }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -192,14 +198,20 @@
               <label class="setting-label">{{ $t('general.maxSessionTurns') }}</label>
               <p class="setting-desc">{{ $t('general.maxSessionTurnsDesc') }}</p>
             </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.maxSessionTurns" />
+            <div class="input-with-suffix">
+              <input type="number" class="form-input setting-input-number has-suffix" v-model.number="localSettings.maxSessionTurns" />
+              <span class="input-suffix">{{ $t('general.maxSessionTurnsUnit') }}</span>
+            </div>
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.shellTimeout') }}</label>
               <p class="setting-desc">{{ $t('general.shellTimeoutDesc') }}</p>
             </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.shellTimeout" />
+            <div class="input-with-suffix">
+              <input type="number" class="form-input setting-input-number has-suffix" v-model.number="localSettings.shellTimeout" />
+              <span class="input-suffix">{{ $t('general.shellTimeoutUnit') }}</span>
+            </div>
           </div>
           <div class="setting-item">
             <div class="setting-info">
@@ -421,7 +433,10 @@
                     <label class="setting-label">{{ $t('cloudSync.tombstoneRetentionDays') }}</label>
                     <p class="setting-desc">{{ $t('cloudSync.tombstoneRetentionDaysDesc') }}</p>
                   </div>
-                  <input type="number" class="form-input setting-input-number" v-model.number="tombstoneRetentionDays" min="1" max="365" @blur="handleSetTombstoneRetentionDays" @change="handleSetTombstoneRetentionDays" />
+                  <div class="input-with-suffix">
+                  <input type="number" class="form-input setting-input-number has-suffix" v-model.number="tombstoneRetentionDays" min="1" max="365" @blur="handleSetTombstoneRetentionDays" @change="handleSetTombstoneRetentionDays" />
+                  <span class="input-suffix">{{ $t('cloudSync.tombstoneRetentionDaysUnit') }}</span>
+                </div>
                 </div>
               </template>
 
@@ -1579,6 +1594,33 @@ function onWizardCancel() {
   width: 100px;
   flex-shrink: 0;
   text-align: center;
+
+  &.has-suffix {
+    padding-right: 32px;
+    // Hide number spinners for suffix inputs
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    -moz-appearance: textfield;
+  }
+}
+
+.input-with-suffix {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.input-suffix {
+  position: absolute;
+  right: 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  user-select: none;
 }
 
 .core-tools-textarea {
