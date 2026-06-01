@@ -103,7 +103,8 @@ const onChange = (e: Event) => {
     height: 12px;
     width: 12px;
     left: 3px;
-    bottom: 3px;
+    top: 50%;
+    transform: translateY(-50%);
     background-color: var(--border-strong);
     border: 1.5px solid var(--bg-elevated);
     border-radius: 50%;
@@ -128,7 +129,7 @@ input:checked + .toggle-slider {
   border-color: var(--accent);
 
   &:before {
-    transform: translateX(20px);
+    transform: translateX(20px) translateY(-50%);
     background-color: #ffffff;
     border-color: var(--accent);
   }
@@ -160,7 +161,7 @@ input:disabled + .toggle-slider {
   }
 
   input:checked + .toggle-slider:before {
-    transform: translateX(16px);
+    transform: translateX(16px) translateY(-50%);
   }
 }
 
