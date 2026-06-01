@@ -727,6 +727,9 @@ const supportsAcrylic = computed(() => {
   return effectiveTheme !== 'Dark'
 })
 
+// IPC 事件取消订阅函数（preload 返回的 wrapper handler 必须用返回函数移除）
+let unsubscribeUpdateStatus = null
+
 // 更新状态变化处理
 const handleStatusChanged = state => {
   if (state.status === 'downloaded') {
@@ -804,7 +807,7 @@ onMounted(async () => {
   await checkUpdateState()
 
   // 监听更新状态变化
-  window.electronAPI.onUpdateStatusChanged(handleStatusChanged)
+  unsubscribeUpdateStatus = window.electronAPI.onUpdateStatusChanged(handleStatusChanged)
 
   // 初始化云同步状态（开关状态由 localStorage 持久化，不从 settings.json 加载）
   await cloudStore.loadStatus()
@@ -815,17 +818,12 @@ onMounted(async () => {
   if (cloudStore.syncEnabled && cloudStore.isConfigured) {
     await cloudStore.loadDevices()
   }
-  if (window.electronAPI?.onCloudSyncStatusChanged) {
-    window.electronAPI.onCloudSyncStatusChanged(handleCloudSyncStatusChanged)
-  }
 })
 
 onUnmounted(() => {
-  if (window.electronAPI && window.electronAPI.removeUpdateListener) {
-    window.electronAPI.removeUpdateListener('update-status-changed', handleStatusChanged)
-  }
-  if (window.electronAPI?.removeListener) {
-    window.electronAPI.removeListener('cloud-sync:status-changed', handleCloudSyncStatusChanged)
+  if (unsubscribeUpdateStatus) {
+    unsubscribeUpdateStatus()
+    unsubscribeUpdateStatus = null
   }
 })
 
@@ -1435,11 +1433,6 @@ function onWizardCancel() {
   cloudStore.setSyncEnabled(false)
 }
 
-const handleCloudSyncStatusChanged = state => {
-  if (state) {
-    Object.assign(cloudStore.status, state)
-  }
-}
 </script>
 
 <style lang="less" scoped>

@@ -1,5 +1,5 @@
 <template>
-  <div class="projects-view">
+  <section class="projects-view">
     <div class="content-header">
       <h1 class="content-title">{{ $t('projects.title') }}</h1>
       <p class="content-desc">{{ $t('projects.description') }}</p>
@@ -59,7 +59,7 @@
 
     <!-- 确认对话框 -->
     <ConfirmDialog v-if="confirmState.show" :title-key="confirmState.titleKey" :message-key="confirmState.messageKey" :message-params="confirmState.messageParams" :danger="confirmState.danger" @confirm="handleConfirm" @cancel="closeConfirm" />
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
