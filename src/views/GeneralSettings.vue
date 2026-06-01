@@ -46,10 +46,7 @@
             <label class="setting-label">{{ $t('general.acrylicEffect') }}</label>
             <p class="setting-desc">{{ $t('general.acrylicEffectDesc') }}</p>
           </div>
-          <label class="switch">
-            <input type="checkbox" v-model="localSettings.acrylicEnabled" />
-            <span class="slider"></span>
-          </label>
+          <ToggleSwitch v-model="localSettings.acrylicEnabled" />
         </div>
         <div class="setting-item setting-item-full" v-if="supportsAcrylic && localSettings.acrylicEnabled">
           <div class="setting-info">
@@ -75,10 +72,7 @@
             <label class="setting-label">{{ $t('general.autoLaunch') }}</label>
             <p class="setting-desc">{{ $t('general.autoLaunchHint') }}</p>
           </div>
-          <label class="switch">
-            <input type="checkbox" v-model="autoLaunchEnabled" @change="onAutoLaunchChange" />
-            <span class="slider"></span>
-          </label>
+          <ToggleSwitch v-model="autoLaunchEnabled" @change="onAutoLaunchChange" />
         </div>
       </div>
 
@@ -123,10 +117,7 @@
               <label class="setting-label">{{ $t('general.skipNextSpeakerCheck') }}</label>
               <p class="setting-desc">{{ $t('general.skipNextSpeakerCheckDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.skipNextSpeakerCheck" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.skipNextSpeakerCheck" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
@@ -164,40 +155,28 @@
               <label class="setting-label">{{ $t('general.showMemoryUsage') }}</label>
               <p class="setting-desc">{{ $t('general.showMemoryUsageDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.showMemoryUsage" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.showMemoryUsage" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.hideBanner') }}</label>
               <p class="setting-desc">{{ $t('general.hideBannerDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.hideBanner" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.hideBanner" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.disableAutoUpdate') }}</label>
               <p class="setting-desc">{{ $t('general.disableAutoUpdateDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.disableAutoUpdate" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.disableAutoUpdate" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.disableTelemetry') }}</label>
               <p class="setting-desc">{{ $t('general.disableTelemetryDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.disableTelemetry" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.disableTelemetry" />
           </div>
         </div>
       </div>
@@ -234,10 +213,7 @@
               <label class="setting-label">{{ $t('general.autoConfigureMaxOldSpaceSize') }}</label>
               <p class="setting-desc">{{ $t('general.autoConfigureMaxOldSpaceSizeDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.autoConfigureMaxOldSpaceSize" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.autoConfigureMaxOldSpaceSize" />
           </div>
         </div>
       </div>
@@ -267,10 +243,7 @@
           <h2 class="section-title">{{ $t('general.sectionCloudSync') }}</h2>
         </div>
         <div class="section-header-right">
-          <label class="switch" @click.stop>
-            <input type="checkbox" :checked="syncEnabled" @click.stop="onToggleSyncEnabled" />
-            <span class="slider"></span>
-          </label>
+          <ToggleSwitch :model-value="syncEnabled" @update:model-value="onToggleSyncEnabled" />
         </div>
       </div>
 
@@ -293,10 +266,7 @@
                   <span class="status-time" v-else-if="cloudStore.isConfigured">{{ $t('cloudSync.neverSynced') }}</span>
                 </div>
                 <div class="cloud-status-right">
-                  <label class="switch switch-sm" @click.stop>
-                    <input type="checkbox" :checked="autoSyncEnabled" @click.prevent.stop="onToggleAutoSync" />
-                    <span class="slider"></span>
-                  </label>
+                  <ToggleSwitch small :model-value="autoSyncEnabled" @update:model-value="onToggleAutoSync" />
                   <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span>
                   <button class="btn btn-primary btn-sm" :disabled="!cloudStore.isConfigured || cloudStore.isSyncing" @click="handleSyncNow">
                     <Loading v-if="cloudStore.isSyncing" size="14" class="spin" />
@@ -435,10 +405,7 @@
                     <label class="setting-label">{{ $t('cloudSync.rememberPassword') }}</label>
                     <p class="setting-desc">{{ $t('cloudSync.rememberPasswordDesc') }}</p>
                   </div>
-                  <label class="switch">
-                    <input type="checkbox" :checked="cloudStore.rememberSyncPassword" @change="onToggleRememberPassword" />
-                    <span class="slider"></span>
-                  </label>
+                  <ToggleSwitch :model-value="cloudStore.rememberSyncPassword" @update:model-value="onToggleRememberPassword" />
                 </div>
               </template>
 
@@ -519,10 +486,7 @@
           </div>
           <div class="about-actions-col">
             <div class="auto-update-toggle">
-              <label class="switch switch-sm">
-                <input type="checkbox" v-model="autoUpdateEnabled" @change="onAutoUpdateChange" />
-                <span class="slider"></span>
-              </label>
+              <ToggleSwitch small v-model="autoUpdateEnabled" @change="onAutoUpdateChange" />
               <span class="auto-update-label">{{ $t('update.menu.autoUpdate') }}</span>
             </div>
             <div class="about-btn-group">
@@ -681,6 +645,7 @@
 <script setup>
 import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right, FileSearch, FolderOpen } from '@icon-park/vue-next'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
+import ToggleSwitch from '../components/ToggleSwitch.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import { useToast } from '@/composables/useToast'
 
@@ -1755,141 +1720,6 @@ const handleCloudSyncStatusChanged = state => {
     transform: scale(1.1);
     background: var(--accent);
     border-color: var(--accent);
-  }
-}
-
-// ============================================
-// Switch — Windows 11 Fluent 2 ToggleSwitch
-// Track: pill shape, Off=neutral border, On=accent fill
-// Thumb: 12px circle with 1.5px stroke, slides with cubic-bezier
-// ============================================
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 40px;
-  height: 20px;
-  flex-shrink: 0;
-
-  input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-    position: absolute;
-
-    &:focus-visible + .slider {
-      outline: 2px solid var(--text-primary);
-      outline-offset: 1px;
-    }
-  }
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background-color: var(--bg-elevated);
-  border: 1.5px solid var(--border-strong);
-  border-radius: 10px;
-  transition:
-    background-color var(--duration-slow) var(--ease-emphasized),
-    border-color var(--duration-slow) var(--ease-emphasized);
-
-  &:before {
-    position: absolute;
-    content: '';
-    height: 12px;
-    width: 12px;
-    left: 3px;
-    bottom: 3px;
-    background-color: var(--border-strong);
-    border: 1.5px solid var(--bg-elevated);
-    border-radius: 50%;
-    transition:
-      transform var(--duration-slow) var(--ease-emphasized),
-      background-color var(--duration-slow) var(--ease-emphasized),
-      border-color var(--duration-slow) var(--ease-emphasized);
-  }
-
-  &:hover {
-    background-color: var(--bg-elevated);
-    border-color: var(--text-tertiary);
-
-    &:before {
-      background-color: var(--text-tertiary);
-    }
-  }
-}
-
-input:checked + .slider {
-  background-color: var(--accent);
-  border-color: var(--accent);
-
-  &:before {
-    transform: translateX(20px);
-    background-color: #ffffff;
-    border-color: var(--accent);
-  }
-
-  &:hover {
-    background-color: var(--accent-hover);
-    border-color: var(--accent-hover);
-  }
-}
-
-input:disabled + .slider {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-.switch-sm {
-  width: 32px;
-  height: 16px;
-
-  .slider {
-    border-radius: 8px;
-
-    &:before {
-      height: 8px;
-      width: 8px;
-      border-width: 1.5px;
-    }
-  }
-
-  input:checked + .slider:before {
-    transform: translateX(16px);
-  }
-}
-
-// Dark mode switch adjustments
-.dark .slider {
-  background-color: var(--bg-tertiary);
-  border-color: var(--border);
-
-  &:before {
-    background-color: var(--text-tertiary);
-  }
-
-  &:hover {
-    border-color: var(--text-secondary);
-
-    &:before {
-      background-color: var(--text-secondary);
-    }
-  }
-}
-
-.dark input:checked + .slider {
-  background-color: var(--accent);
-  border-color: var(--accent);
-
-  &:before {
-    background-color: var(--bg-primary);
-    border-color: var(--accent);
-  }
-
-  &:hover {
-    background-color: var(--accent-hover);
-    border-color: var(--accent-hover);
   }
 }
 

@@ -89,10 +89,7 @@
         </template>
 
         <template #item-extra="{ item: mod }">
-          <label class="toggle-switch" @click.stop :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')">
-            <input type="checkbox" :checked="mod.enabled" @click.prevent="toggleMod(mod.id, !mod.enabled)" :disabled="isApplying" />
-            <span class="toggle-slider"></span>
-          </label>
+          <ToggleSwitch :model-value="mod.enabled" @update:model-value="toggleMod(mod.id, !mod.enabled)" :disabled="isApplying" :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')" />
         </template>
       </GenericList>
     </div>
@@ -234,6 +231,7 @@ import { useI18n } from 'vue-i18n'
 import { Puzzle, FolderOpen, Download, Delete, Success, Caution, SwitchButton, FolderSettingsOne, FolderCodeOne } from '@icon-park/vue-next'
 import GenericList from '@/components/GenericList.vue'
 import ApplyingDialog from '@/components/ApplyingDialog.vue'
+import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
@@ -710,61 +708,6 @@ onUnmounted(() => {
   border-radius: 4px;
   object-fit: contain;
   flex-shrink: 0;
-}
-
-// Toggle Switch
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-  cursor: pointer;
-  flex-shrink: 0;
-
-  input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-
-    &:checked + .toggle-slider {
-      background-color: var(--toggle-on, var(--accent));
-      box-shadow: 0 0 0 2px var(--toggle-on-border, rgba(0, 120, 212, 0.3));
-
-      &::before {
-        transform: translateX(16px);
-        background-color: white;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-      }
-    }
-
-    &:disabled + .toggle-slider {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  }
-}
-
-.toggle-slider {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--toggle-off, var(--border));
-  border-radius: 10px;
-  transition: 0.2s;
-
-  &::before {
-    content: '';
-    position: absolute;
-    height: 16px;
-    width: 16px;
-    left: 2px;
-    bottom: 2px;
-    background-color: var(--toggle-thumb, #fff);
-    border-radius: 50%;
-    transition: 0.2s;
-  }
 }
 
 // Mod Detail Modal
