@@ -4,6 +4,7 @@
       type="checkbox"
       :checked="modelValue"
       :disabled="disabled"
+      @click="onClick"
       @change="onChange"
       v-bind="$attrs" />
     <span class="toggle-slider"></span>
@@ -21,12 +22,17 @@ const props = withDefaults(
     checked?: boolean
     disabled?: boolean
     small?: boolean
+    /** Controlled mode: prevents native checkbox toggle so the parent fully
+     *  controls the state. Use when the parent needs async validation
+     *  (e.g. password dialog) before committing the change. */
+    controlled?: boolean
   }>(),
   {
     modelValue: undefined,
     checked: undefined,
     disabled: false,
     small: false,
+    controlled: false,
   },
 )
 
@@ -35,7 +41,19 @@ const emit = defineEmits<{
   change: [event: Event]
 }>()
 
+const onClick = (e: Event) => {
+  if (props.controlled) {
+    // Prevent native checkbox toggle — the parent decides the state
+    e.preventDefault()
+    emit('update:modelValue', !props.modelValue)
+    emit('change', e)
+  }
+  // In uncontrolled (v-model) mode, let the native checkbox toggle freely.
+  // The @change event will fire after the toggle completes.
+}
+
 const onChange = (e: Event) => {
+  if (props.controlled) return // Already handled in onClick
   const checked = (e.target as HTMLInputElement).checked
   emit('update:modelValue', checked)
   emit('change', e)

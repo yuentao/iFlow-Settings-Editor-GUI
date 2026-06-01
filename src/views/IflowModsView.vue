@@ -89,7 +89,7 @@
         </template>
 
         <template #item-extra="{ item: mod }">
-          <ToggleSwitch :model-value="mod.enabled" @update:model-value="toggleMod(mod.id, !mod.enabled)" :disabled="isApplying" :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')" />
+          <ToggleSwitch controlled :model-value="mod.enabled" @update:model-value="toggleMod(mod.id, !mod.enabled)" :disabled="isApplying" :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')" />
         </template>
       </GenericList>
     </div>

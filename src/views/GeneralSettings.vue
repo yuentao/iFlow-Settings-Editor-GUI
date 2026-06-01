@@ -266,7 +266,7 @@
                   <span class="status-time" v-else-if="cloudStore.isConfigured">{{ $t('cloudSync.neverSynced') }}</span>
                 </div>
                 <div class="cloud-status-right">
-                  <ToggleSwitch small :model-value="autoSyncEnabled" @update:model-value="onToggleAutoSync" />
+                  <ToggleSwitch small controlled :model-value="autoSyncEnabled" @update:model-value="onToggleAutoSync" />
                   <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span>
                   <button class="btn btn-primary btn-sm" :disabled="!cloudStore.isConfigured || cloudStore.isSyncing" @click="handleSyncNow">
                     <Loading v-if="cloudStore.isSyncing" size="14" class="spin" />
@@ -405,7 +405,7 @@
                     <label class="setting-label">{{ $t('cloudSync.rememberPassword') }}</label>
                     <p class="setting-desc">{{ $t('cloudSync.rememberPasswordDesc') }}</p>
                   </div>
-                  <ToggleSwitch :model-value="cloudStore.rememberSyncPassword" @update:model-value="onToggleRememberPassword" />
+                  <ToggleSwitch controlled :model-value="cloudStore.rememberSyncPassword" @update:model-value="onToggleRememberPassword" />
                 </div>
               </template>
 
@@ -1070,10 +1070,7 @@ function showCloudMessage({ type = 'info', title, message }) {
 // 待处理的云同步启用标记（密码设置完成后继续）
 const pendingSyncEnable = ref(false)
 
-async function onToggleSyncEnabled(event) {
-  // event.target.checked tells us the intended new state (what the user is clicking TO)
-  // We use @click.stop with :checked instead of v-model, so the ref isn't toggled before this handler runs
-  const targetChecked = event.target.checked
+async function onToggleSyncEnabled(targetChecked) {
   if (targetChecked) {
     // 开启云同步：检查是否已完成配置（WebDAV 连接 + 同步密码）
     if (!cloudStore.isConfigured) {
@@ -1095,10 +1092,7 @@ async function onToggleSyncEnabled(event) {
   }
 }
 
-async function onToggleAutoSync() {
-  // 使用 !cloudStore.autoSyncEnabled 判断目标状态，而不是 event.target.checked
-  // 因为 Vue 的 :checked 绑定在 @change 触发前就已经覆盖了 DOM 的 checked 属性
-  const enabled = !cloudStore.autoSyncEnabled
+async function onToggleAutoSync(enabled) {
   if (enabled) {
     // 开启自动同步：如果有缓存密码直接使用，跳过弹框
     if (cloudStore.cachedPassword) {
@@ -1355,8 +1349,7 @@ function closePasswordDialog() {
   if (cancel) cancel()
 }
 
-async function onToggleRememberPassword(event) {
-  const enabled = event.target.checked
+async function onToggleRememberPassword(enabled) {
   await cloudStore.setRememberPasswordValue(enabled)
 }
 
