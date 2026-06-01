@@ -553,6 +553,18 @@
           {{ $t('general.logManagement') }}
         </div>
         <div class="log-management">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.logLevel') }}</label>
+              <p class="setting-desc">{{ $t('general.logLevelDesc') }}</p>
+            </div>
+            <select class="form-select setting-select" v-model="currentLogLevel" @change="handleLogLevelChange">
+              <option value="info">{{ $t('general.logLevelInfo') }}</option>
+              <option value="debug">{{ $t('general.logLevelDebug') }}</option>
+              <option value="silent">{{ $t('general.logLevelSilent') }}</option>
+            </select>
+          </div>
+          <div class="setting-divider"></div>
           <div class="log-info-row">
             <div class="log-info-item">
               <span class="log-info-label">{{ $t('general.logDir') }}</span>
@@ -762,6 +774,16 @@ onMounted(async () => {
   // 加载日志信息
   loadLogInfo()
 
+  // 加载日志级别
+  try {
+    if (window.electronAPI?.getLogLevel) {
+      const result = await window.electronAPI.getLogLevel()
+      if (result.success) {
+        currentLogLevel.value = result.level
+      }
+    }
+  } catch (_) {}
+
   // 加载系统主题
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   systemTheme.value = isDark ? 'Dark' : 'Light'
@@ -864,6 +886,20 @@ const logDir = ref('')
 const logTotalSize = ref(0)
 const logFileCount = ref(0)
 const isClearingLogs = ref(false)
+const currentLogLevel = ref('info')
+
+const handleLogLevelChange = async () => {
+  try {
+    const result = await window.electronAPI.setLogLevel(currentLogLevel.value)
+    if (!result.success) {
+      toast.error(result.error || t('general.logClearFailed'))
+      currentLogLevel.value = 'info'
+    }
+  } catch (e) {
+    toast.error(t('general.logClearFailed'))
+    currentLogLevel.value = 'info'
+  }
+}
 
 const formatLogSize = (bytes) => {
   if (bytes === 0) return '0 B'

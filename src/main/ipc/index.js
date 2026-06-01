@@ -189,6 +189,43 @@ function registerIpcHandlers(getMainWindow, t) {
     }
   })
 
+  // 日志级别管理
+  ipcMain.handle('get-log-level', async () => {
+    try {
+      const settings = readSettings()
+      const level = settings?.logLevel || 'info'
+      return { success: true, level }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('set-log-level', async (event, level) => {
+    try {
+      const validLevels = ['info', 'debug', 'silent']
+      if (!validLevels.includes(level)) {
+        return { success: false, error: `Invalid log level: ${level}` }
+      }
+      // 保存到 settings.json
+      const settings = readSettings() || {}
+      settings.logLevel = level
+      await writeSettings(settings)
+      // 实时更新 electron-log 的 transport level
+      const { log } = require('../utils/logger')
+      if (level === 'silent') {
+        log.transports.file.level = false
+        log.transports.console.level = false
+      } else {
+        log.transports.file.level = level
+        log.transports.console.level = level
+      }
+      logger.info(`Log level changed to: ${level}`)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
   logger.info('All IPC handlers registered')
 }
 

@@ -172,6 +172,11 @@ export default {
     logClear: 'ログをクリア',
     logClearSuccess: 'ログをクリアしました',
     logClearFailed: 'ログのクリアに失敗しました',
+    logLevel: 'ログレベル',
+    logLevelDesc: 'ログ出力の詳細度を制御します',
+    logLevelInfo: '情報',
+    logLevelDebug: 'デバッグ',
+    logLevelSilent: 'サイレント',
   },
   theme: {
     dark: 'ダーク',

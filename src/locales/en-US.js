@@ -173,6 +173,11 @@ export default {
     logClear: 'Clear Logs',
     logClearSuccess: 'Logs cleared successfully',
     logClearFailed: 'Failed to clear logs',
+    logLevel: 'Log Level',
+    logLevelDesc: 'Control the verbosity of log output',
+    logLevelInfo: 'Info',
+    logLevelDebug: 'Debug',
+    logLevelSilent: 'Silent',
   },
   theme: {
     dark: 'Dark',

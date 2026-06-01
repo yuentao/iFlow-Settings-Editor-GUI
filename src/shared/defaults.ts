@@ -16,6 +16,7 @@ export const CLI_DEFAULTS = {
   shellTimeout: 120000,
   approvalMode: 'autoEdit',
   thinkingModeEnabled: 'true',
+  logLevel: 'info',
 } as const
 
 /** 将 CLI_DEFAULTS 中 undefined 的字段补充到目标对象（非覆盖） */

@@ -110,6 +110,20 @@ async function initializeApp() {
   // 注册 IPC 处理器
   registerIpcHandlers(getMainWindow, t)
 
+  // 根据设置初始化日志级别
+  try {
+    const initSettings = readSettings()
+    const initLogLevel = initSettings?.logLevel || 'info'
+    if (initLogLevel === 'silent') {
+      log.transports.file.level = false
+      log.transports.console.level = false
+    } else if (initLogLevel !== 'info') {
+      log.transports.file.level = initLogLevel
+      log.transports.console.level = initLogLevel
+    }
+    logger.info(`Log level initialized: ${initLogLevel}`)
+  } catch (_) {}
+
   // 初始化开机自启动
   initAutoLaunch()
 
