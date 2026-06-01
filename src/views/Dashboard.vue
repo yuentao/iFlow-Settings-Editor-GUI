@@ -299,7 +299,7 @@ onMounted(async () => {
   setTimeout(() => {
     const days = selectedModelStatsDays.value
     const interval = props.settings?.modelUsageRefreshInterval ?? 5
-    fetchStats({ days, silent: true })
+    fetchStats({ days })
     startAutoRefresh(days, interval)
   }, 50)
   document.addEventListener('visibilitychange', handleVisibilityChange)

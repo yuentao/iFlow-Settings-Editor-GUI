@@ -30,7 +30,16 @@
 
     <!-- 错误状态 -->
     <div v-else-if="error" class="chart-error">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="8" x2="12" y2="12" />
         <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -40,7 +49,17 @@
 
     <!-- 空数据状态 -->
     <div v-else-if="!hasData" class="chart-empty">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon">
+      <svg
+        width="40"
+        height="40"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="empty-icon"
+      >
         <path d="M18 20V10" />
         <path d="M12 20V4" />
         <path d="M6 20v-6" />
@@ -51,12 +70,7 @@
     <!-- 图表区域 -->
     <div v-else class="chart-body">
       <div class="apex-chart-wrapper">
-        <apexchart
-          type="line"
-          height="320"
-          :options="chartOptions"
-          :series="chartSeries"
-        />
+        <apexchart type="line" height="320" :options="chartOptions" :series="chartSeries" />
       </div>
 
       <!-- 统计摘要 -->
@@ -125,9 +139,18 @@ const hasData = computed(() => {
 })
 
 const chartColors = [
-  '#0067C0', '#00B894', '#FD7E14', '#6F42C1',
-  '#E17055', '#0984E3', '#00CEC9', '#FDCB6E',
-  '#A29BFE', '#636E72', '#D63031', '#55EFC4',
+  '#0067C0',
+  '#00B894',
+  '#FD7E14',
+  '#6F42C1',
+  '#E17055',
+  '#0984E3',
+  '#00CEC9',
+  '#FDCB6E',
+  '#A29BFE',
+  '#636E72',
+  '#D63031',
+  '#55EFC4',
 ]
 
 const chartSeries = computed(() => {
@@ -168,12 +191,18 @@ const chartOptions = computed(() => {
         dynamicAnimation: { enabled: true, speed: 150 },
       },
       events: {
-        mounted: () => { emitRendered() },
+        mounted: () => {
+          emitRendered()
+        },
       },
       zoom: { enabled: false },
       foreColor: 'var(--text-secondary)',
       fontFamily: 'Segoe UI Variable, Segoe UI, system-ui, sans-serif',
+      accessibility: {
+        enabled: false,
+      },
     },
+
     stroke: {
       width: 2,
       curve: 'smooth' as const,
@@ -188,12 +217,8 @@ const chartOptions = computed(() => {
       hover: { size: 5 },
     },
     tooltip: {
-      shared: true,
+      shared: false,
       intersect: false,
-      theme: 'dark' as const,
-      x: {
-        format: 'yyyy-MM-dd',
-      },
     },
     legend: {
       position: 'bottom' as const,
