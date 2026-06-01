@@ -43,6 +43,7 @@ span.i-icon {
   --border: #e0e0e0;
   --border-light: #f0f0f0;
   --border-strong: #c8c8c8;
+  --border-subtle: rgba(0, 0, 0, 0.04);
   --border-focus: var(--accent);
 
   // Status colors
@@ -104,12 +105,12 @@ span.i-icon {
 
   // Base radius tokens
   --radius-none: 0;
-  --radius-sm: 4px;    // Small controls, inputs
-  --radius: 6px;       // Default component radius
-  --radius-lg: 8px;    // Cards, buttons
-  --radius-xl: 12px;   // Dialogs, panels
-  --radius-2xl: 16px;  // Large surfaces
-  --radius-3xl: 20px;  // Modal containers
+  --radius-sm: 4px; // Small controls, inputs
+  --radius: 6px; // Default component radius
+  --radius-lg: 8px; // Cards, buttons
+  --radius-xl: 12px; // Dialogs, panels
+  --radius-2xl: 16px; // Large surfaces
+  --radius-3xl: 20px; // Modal containers
   --radius-full: 9999px; // Pills, circular elements
 
   // Legacy aliases
@@ -345,12 +346,14 @@ span.i-icon {
   // Dialog - enhanced dark mode
   .dialog {
     background: var(--bg-elevated);
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-64);
+    border-color: var(--border-subtle);
   }
 
   .dialog-overlay {
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.52);
+    backdrop-filter: blur(8px) saturate(90%);
+    -webkit-backdrop-filter: blur(8px) saturate(90%);
   }
 
   // Empty state - dark mode
@@ -391,8 +394,18 @@ span.i-icon {
 
   // Title bar - dark mode
   .titlebar {
-    background: var(--bg-secondary);
+    background: var(--bg-mica);
+    backdrop-filter: blur(20px) saturate(125%);
+    -webkit-backdrop-filter: blur(20px) saturate(125%);
     border-bottom-color: var(--border-subtle);
+  }
+
+  // Sidebar - dark mode Mica
+  .sidebar {
+    background: var(--bg-mica);
+    backdrop-filter: blur(20px) saturate(125%);
+    -webkit-backdrop-filter: blur(20px) saturate(125%);
+    border-right-color: var(--border-subtle);
   }
 
   // Disabled state - dark mode
@@ -579,6 +592,39 @@ body {
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
 }
+
+// =============================================================================
+// Fluent 2 Focus Visual — Win11 Keyboard Focus Indicator
+// 2px inner black rectangle, matching Windows accessibility specification
+// Applied via :focus-visible to show only on keyboard navigation
+// =============================================================================
+
+:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: -2px;
+}
+
+// Dark mode uses white focus ring for contrast
+.dark :focus-visible {
+  outline-color: #ffffff;
+}
+
+// Remove default outline on click (mouse interaction)
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// Specific focus overrides for inputs — use accent glow instead of rectangle
+.form-input:focus-visible,
+.form-select:focus-visible,
+.form-textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+// Buttons already define their own focus-visible in component styles
+// Switch uses focus-visible in its scoped styles
 
 // =============================================================================
 // Scrollbar ( Windows 11 Style )
@@ -888,6 +934,20 @@ body {
 // Button ( Windows 11 Style )
 // =============================================================================
 
+// =============================================================================
+// Fluent 2 Reveal Highlight (mouse-following glow on hover)
+// Windows 11 signature effect — subtle radial gradient from cursor position
+// =============================================================================
+
+@keyframes revealFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -900,15 +960,49 @@ body {
   cursor: pointer;
   border: none;
   border-radius: var(--radius);
-  transition: all var(--transition);
+  transition:
+    background var(--duration-normal) var(--ease-out),
+    border-color var(--duration-normal) var(--ease-out),
+    box-shadow var(--duration-normal) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
   letter-spacing: -0.01em;
   position: relative;
   overflow: hidden;
+
+  // Fluent Reveal highlight layer
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at var(--reveal-x, 50%) var(--reveal-y, 50%),
+      rgba(255, 255, 255, 0.12) 0%,
+      transparent 60%
+    );
+    opacity: 0;
+    transition: opacity var(--duration-normal) var(--ease-out);
+    pointer-events: none;
+  }
+
+  &:hover:not(:disabled)::after {
+    opacity: 1;
+    animation: revealFadeIn var(--duration-normal) var(--ease-out);
+  }
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none !important;
+
+    &::after {
+      display: none;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--text-primary);
+    outline-offset: 1px;
   }
 }
 
@@ -922,7 +1016,7 @@ body {
 
   &:active:not(:disabled) {
     background: var(--accent-pressed);
-    transform: scale(0.98);
+    transform: scale(0.97);
   }
 }
 
@@ -931,6 +1025,15 @@ body {
   color: var(--text-primary);
   border: 1px solid var(--border);
 
+  // Subtle reveal for secondary (lighter glow)
+  &::after {
+    background: radial-gradient(
+      circle at var(--reveal-x, 50%) var(--reveal-y, 50%),
+      rgba(255, 255, 255, 0.08) 0%,
+      transparent 50%
+    );
+  }
+
   &:hover:not(:disabled) {
     background: var(--control-fill-hover);
     border-color: var(--border-strong);
@@ -938,7 +1041,7 @@ body {
 
   &:active:not(:disabled) {
     background: var(--control-fill-pressed);
-    transform: scale(0.98);
+    transform: scale(0.97);
   }
 }
 
@@ -952,7 +1055,7 @@ body {
 
   &:active:not(:disabled) {
     background: #b71c1c;
-    transform: scale(0.98);
+    transform: scale(0.97);
   }
 }
 
@@ -1074,7 +1177,8 @@ body {
 }
 
 // =============================================================================
-// Dialog
+// Dialog — Windows 11 Fluent 2 ContentDialog
+// Overlay: stronger blur + gradient fade, Dialog: slide-up with accent top border
 // =============================================================================
 
 .dialog-overlay {
@@ -1083,13 +1187,25 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(8px) saturate(90%);
+  -webkit-backdrop-filter: blur(8px) saturate(90%);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1300;
-  animation: fadeIn 0.15s ease;
+  animation: dialogOverlayIn var(--duration-slow) var(--ease-out);
+}
+
+@keyframes dialogOverlayIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px) saturate(90%);
+  }
 }
 
 .dialog-overlay-top {
@@ -1102,8 +1218,21 @@ body {
   padding: var(--space-xl);
   min-width: 360px;
   max-width: 480px;
-  box-shadow: var(--shadow-xl);
-  animation: scaleIn 0.2s ease;
+  box-shadow: var(--shadow-64);
+  animation: dialogSlideIn var(--duration-slower) var(--ease-emphasized);
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes dialogSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .dialog-title {
@@ -1196,5 +1325,3 @@ body {
     min-width: 100px;
   }
 }
-
-

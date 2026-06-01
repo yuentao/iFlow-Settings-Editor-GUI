@@ -1644,19 +1644,21 @@ const handleCloudSyncStatusChanged = state => {
 }
 
 // ============================================
-// Slider
+// Slider — Windows 11 Fluent 2 Slider
+// Track: 4px pill, inactive=neutral, active=accent
+// Thumb: 20px circle, 1.5px stroke, hover grows to 24px
 // ============================================
 .slider-container {
   position: relative;
   width: 100%;
-  height: 20px;
+  height: 28px;
 }
 
 .slider-track {
   position: absolute;
   width: 100%;
   height: 4px;
-  background: var(--border);
+  background: var(--control-fill);
   border-radius: 2px;
   top: 50%;
   transform: translateY(-50%);
@@ -1674,7 +1676,7 @@ const handleCloudSyncStatusChanged = state => {
 .form-slider {
   position: absolute;
   width: 100%;
-  height: 20px;
+  height: 28px;
   background: transparent;
   outline: none;
   cursor: pointer;
@@ -1684,103 +1686,210 @@ const handleCloudSyncStatusChanged = state => {
   top: 0;
   left: 0;
 
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    background: transparent;
+    border-radius: 2px;
+  }
+
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-strong);
+    box-shadow: var(--shadow-2);
     cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-    transition: transform 0.1s ease;
+    margin-top: -8px;
+    transition:
+      transform var(--duration-normal) var(--ease-emphasized),
+      border-color var(--duration-normal) var(--ease-out),
+      box-shadow var(--duration-normal) var(--ease-out);
   }
 
   &::-webkit-slider-thumb:hover {
-    transform: scale(1.1);
+    transform: scale(1.2);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-4);
   }
 
   &::-webkit-slider-thumb:active {
-    transform: scale(0.95);
+    transform: scale(1.1);
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+
+  &:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--text-primary);
+    outline-offset: 1px;
+  }
+
+  &::-moz-range-track {
+    height: 4px;
+    background: transparent;
+    border-radius: 2px;
   }
 
   &::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-strong);
+    box-shadow: var(--shadow-2);
     cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    transition:
+      transform var(--duration-normal) var(--ease-emphasized),
+      border-color var(--duration-normal) var(--ease-out);
+  }
+
+  &::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    border-color: var(--accent);
+  }
+
+  &::-moz-range-thumb:active {
+    transform: scale(1.1);
+    background: var(--accent);
+    border-color: var(--accent);
   }
 }
 
 // ============================================
-// Switch
+// Switch — Windows 11 Fluent 2 ToggleSwitch
+// Track: pill shape, Off=neutral border, On=accent fill
+// Thumb: 12px circle with 1.5px stroke, slides with cubic-bezier
 // ============================================
 .switch {
   position: relative;
   display: inline-block;
   width: 40px;
-  height: 22px;
+  height: 20px;
   flex-shrink: 0;
 
   input {
     opacity: 0;
     width: 0;
     height: 0;
+    position: absolute;
+
+    &:focus-visible + .slider {
+      outline: 2px solid var(--text-primary);
+      outline-offset: 1px;
+    }
   }
 }
 
 .slider {
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--border);
-  transition: 0.2s;
-  border-radius: 22px;
+  inset: 0;
+  background-color: var(--bg-elevated);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 10px;
+  transition:
+    background-color var(--duration-slow) var(--ease-emphasized),
+    border-color var(--duration-slow) var(--ease-emphasized);
 
   &:before {
     position: absolute;
     content: '';
-    height: 16px;
-    width: 16px;
+    height: 12px;
+    width: 12px;
     left: 3px;
     bottom: 3px;
-    background-color: white;
-    transition: 0.2s;
+    background-color: var(--border-strong);
+    border: 1.5px solid var(--bg-elevated);
     border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition:
+      transform var(--duration-slow) var(--ease-emphasized),
+      background-color var(--duration-slow) var(--ease-emphasized),
+      border-color var(--duration-slow) var(--ease-emphasized);
+  }
+
+  &:hover {
+    background-color: var(--bg-elevated);
+    border-color: var(--text-tertiary);
+
+    &:before {
+      background-color: var(--text-tertiary);
+    }
   }
 }
 
 input:checked + .slider {
   background-color: var(--accent);
+  border-color: var(--accent);
+
+  &:before {
+    transform: translateX(20px);
+    background-color: #ffffff;
+    border-color: var(--accent);
+  }
+
+  &:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
 }
 
-input:checked + .slider:before {
-  transform: translateX(18px);
+input:disabled + .slider {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .switch-sm {
   width: 32px;
-  height: 18px;
+  height: 16px;
 
   .slider {
+    border-radius: 8px;
+
     &:before {
-      height: 12px;
-      width: 12px;
-      left: 3px;
-      bottom: 3px;
+      height: 8px;
+      width: 8px;
+      border-width: 1.5px;
     }
   }
 
   input:checked + .slider:before {
-    transform: translateX(14px);
+    transform: translateX(16px);
+  }
+}
+
+// Dark mode switch adjustments
+.dark .slider {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border);
+
+  &:before {
+    background-color: var(--text-tertiary);
+  }
+
+  &:hover {
+    border-color: var(--text-secondary);
+
+    &:before {
+      background-color: var(--text-secondary);
+    }
+  }
+}
+
+.dark input:checked + .slider {
+  background-color: var(--accent);
+  border-color: var(--accent);
+
+  &:before {
+    background-color: var(--bg-primary);
+    border-color: var(--accent);
+  }
+
+  &:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
   }
 }
 

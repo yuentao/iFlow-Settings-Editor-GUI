@@ -1161,6 +1161,19 @@ const updateSystemTheme = () => {
 }
 
 onMounted(async () => {
+  // Fluent Reveal Highlight — mouse-following glow on buttons (event delegation)
+  const revealHandler = e => {
+    const btn = e.target.closest('.btn, .nav-item, .action-btn, .titlebar-btn, .collapse-btn')
+    if (!btn) return
+    const rect = btn.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1)
+    const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1)
+    btn.style.setProperty('--reveal-x', x + '%')
+    btn.style.setProperty('--reveal-y', y + '%')
+  }
+  document.addEventListener('mousemove', revealHandler, { passive: true })
+  cleanupFns.push(() => document.removeEventListener('mousemove', revealHandler))
+
   // 优先初始化更新监听，确保在主进程发送 auto-check-update 事件前注册好
   initUpdateListeners()
 
