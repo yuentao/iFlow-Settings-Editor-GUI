@@ -4,11 +4,14 @@ import ServerPanel from './ServerPanel.vue';
 
 describe('ServerPanel.vue', () => {
   const mockServerData = {
-    name: 'Test Server',
+    name: 'TestServer',
     description: 'A test MCP server',
     command: 'npx',
     args: ['-y', 'package-name'],
     env: { DEBUG: 'true' },
+    customField1: 'val1',
+    customField2: 'val2',
+    customField3: 'val3',
   };
 
   describe('Basic Rendering', () => {
@@ -43,7 +46,8 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      expect(wrapper.find('.side-panel').exists()).toBe(false);
+      // 重构后 wrapper 始终渲染，通过 .visible 类控制显隐
+      expect(wrapper.find('.side-panel-wrapper').classes('visible')).toBe(false);
     });
 
     it('shows add server title when isEditing is false', () => {
@@ -120,7 +124,7 @@ describe('ServerPanel.vue', () => {
       expect(descTextarea).toBeTruthy()
     });
 
-    it('renders custom fields from server data', () => {
+    it('renders custom fields from server data', async () => {
       const wrapper = mount(ServerPanel, {
         props: {
           show: true,
@@ -134,12 +138,14 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      // mockServerData has command, args, env => 3 custom fields
+      // 展开高级配置区域（custom fields 在 v-if="advancedExpanded" 内）
+      await wrapper.find('.advanced-config-header').trigger('click')
+      // mockServerData has customField1, customField2, customField3 => 3 custom fields
       const fieldRows = wrapper.findAll('.custom-field-row')
       expect(fieldRows.length).toBe(3)
     });
 
-    it('has add field button', () => {
+    it('has add field button', async () => {
       const wrapper = mount(ServerPanel, {
         props: {
           show: true,
@@ -153,6 +159,8 @@ describe('ServerPanel.vue', () => {
         },
       });
 
+      // 展开高级配置区域
+      await wrapper.find('.advanced-config-header').trigger('click')
       expect(wrapper.find('.btn-add-field').exists()).toBe(true)
     })
 
@@ -170,6 +178,8 @@ describe('ServerPanel.vue', () => {
         },
       });
 
+      // 展开高级配置区域
+      await wrapper.find('.advanced-config-header').trigger('click')
       const initialCount = wrapper.findAll('.custom-field-row').length
       await wrapper.find('.btn-add-field').trigger('click')
       expect(wrapper.findAll('.custom-field-row').length).toBe(initialCount + 1)
@@ -189,8 +199,11 @@ describe('ServerPanel.vue', () => {
         },
       });
 
+      // 展开高级配置区域
+      await wrapper.find('.advanced-config-header').trigger('click')
       const initialCount = wrapper.findAll('.custom-field-row').length
-      await wrapper.findAll('.btn-remove')[0].trigger('click')
+      // 精确点击 custom field 区域内的 remove 按钮（避免误点 args/headers/env 的 remove）
+      await wrapper.find('.custom-field-row .btn-remove').trigger('click')
       expect(wrapper.findAll('.custom-field-row').length).toBe(initialCount - 1)
     })
 
@@ -209,8 +222,11 @@ describe('ServerPanel.vue', () => {
         },
       });
 
+      // 展开高级配置区域
+      await wrapper.find('.advanced-config-header').trigger('click')
       expect(wrapper.findAll('.custom-field-row').length).toBe(1)
-      await wrapper.find('.btn-remove').trigger('click')
+      // 精确点击 custom field 区域内的 remove 按钮
+      await wrapper.find('.custom-field-row .btn-remove').trigger('click')
       expect(wrapper.findAll('.custom-field-row').length).toBe(1)
     })
   });
@@ -248,7 +264,9 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      await wrapper.find('.btn-secondary:not(.btn-add-field)').trigger('click');
+      // Footer 的 cancel 按钮是最后一个 .btn-secondary（前面有 .btn-browse, .btn-add-item, .btn-add-field 等）
+      const secondaryBtns = wrapper.findAll('.btn-secondary');
+      await secondaryBtns[secondaryBtns.length - 1].trigger('click');
       expect(wrapper.emitted('close')).toBeTruthy();
     });
 
@@ -269,7 +287,7 @@ describe('ServerPanel.vue', () => {
       await wrapper.find('.btn-primary').trigger('click');
       expect(wrapper.emitted('save')).toBeTruthy();
       const savedData = wrapper.emitted('save')[0][0];
-      expect(savedData.name).toBe('Test Server');
+      expect(savedData.name).toBe('TestServer');
       expect(savedData.description).toBe('A test MCP server');
       expect(savedData.command).toBe('npx');
     });
@@ -491,12 +509,12 @@ describe('ServerPanel.vue', () => {
       });
 
       const nameInput = wrapper.findAll('.form-input').find(el => !el.classes('field-key'));
-      await nameInput.setValue('Modified Name');
+      await nameInput.setValue('ModifiedName');
 
       await wrapper.find('.btn-primary').trigger('click');
 
       const savedData = wrapper.emitted('save')[0][0];
-      expect(savedData.name).toBe('Modified Name');
+      expect(savedData.name).toBe('ModifiedName');
     });
 
     it('parses JSON array values on save', async () => {
@@ -571,11 +589,12 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      // Only "command" should appear as a custom field, NOT "_lastModified"
+      // ServerPanel 重构后 command/args/env 已是独立的结构化字段，不再出现在 custom-field-row 中
+      // 此测试核心目标：验证 _ 开头的内部字段不暴露到 UI
       const fieldRows = wrapper.findAll('.custom-field-row')
-      expect(fieldRows.length).toBe(1)
-      const keyInput = fieldRows[0].find('.field-key')
-      expect(keyInput.element.value).toBe('command')
+      // 无真正的自定义字段时会默认填充 1 个空字段，确保 _lastModified 没作为 key 出现
+      const keys = fieldRows.map(row => row.find('.field-key').element.value)
+      expect(keys).not.toContain('_lastModified')
     })
 
     it('preserves internal fields on save', async () => {
@@ -621,7 +640,8 @@ describe('ServerPanel.vue', () => {
         },
       });
 
-      await wrapper.trigger('keyup.esc');
+      // ServerPanel 的 esc 监听器绑定在 .side-panel-overlay 元素上（带 tabindex），需直接触发
+      await wrapper.find('.side-panel-overlay').trigger('keyup.esc');
       expect(wrapper.emitted('close')).toBeTruthy();
     });
 

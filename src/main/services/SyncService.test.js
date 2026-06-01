@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SyncService 单元测试
  *
  * 通过依赖注入 mock readSettings/writeSettings/logger，
@@ -421,13 +421,13 @@ describe('SyncService', () => {
       const local = createBaseSettings()
       local.apiProfiles = { default: local.apiProfiles.default }
       local._deletedProfiles = {
-        staging: { deletedAt: '2026-04-26T12:00:00Z' },
+        staging: { deletedAt: '2026-05-26T12:00:00Z' },
       }
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -459,7 +459,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -468,7 +468,7 @@ describe('SyncService', () => {
           apiProfilesOrder: ['default'],
           currentApiProfile: 'default',
           _deletedProfiles: {
-            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+            staging: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         },
@@ -476,7 +476,7 @@ describe('SyncService', () => {
 
       service._mergeConfigs(local, remoteConfigs)
       expect(local.apiProfiles.staging).toBeUndefined()
-      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-04-26T12:00:00Z')
+      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-05-26T12:00:00Z')
     })
 
     it('local edit newer than remote tombstone should win (resurrects profile)', () => {
@@ -484,13 +484,13 @@ describe('SyncService', () => {
       local.apiProfiles = {
         default: local.apiProfiles.default,
         // 本地修改时间晚于远端 tombstone
-        staging: { apiKey: 'sk-staging-new', _lastModified: '2026-04-26T15:00:00Z' },
+        staging: { apiKey: 'sk-staging-new', _lastModified: '2026-05-26T15:00:00Z' },
       }
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -499,7 +499,7 @@ describe('SyncService', () => {
           apiProfilesOrder: ['default'],
           currentApiProfile: 'default',
           _deletedProfiles: {
-            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+            staging: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         },
@@ -513,13 +513,13 @@ describe('SyncService', () => {
     it('should keep newer tombstone deletedAt across both sides', () => {
       const local = createBaseSettings()
       local._deletedProfiles = {
-        staging: { deletedAt: '2026-04-26T12:00:00Z' },
+        staging: { deletedAt: '2026-05-26T12:00:00Z' },
       }
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -528,14 +528,14 @@ describe('SyncService', () => {
           apiProfilesOrder: [],
           currentApiProfile: 'default',
           _deletedProfiles: {
-            staging: { deletedAt: '2026-04-26T15:00:00Z' }, // 更新
+            staging: { deletedAt: '2026-05-26T15:00:00Z' }, // 更新
           },
           _deletedServers: {},
         },
       }]
 
       service._mergeConfigs(local, remoteConfigs)
-      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-04-26T15:00:00Z')
+      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-05-26T15:00:00Z')
     })
 
     it('should apply tombstone to mcpServers as well', () => {
@@ -547,7 +547,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {},
           mcpServers: {},
@@ -555,7 +555,7 @@ describe('SyncService', () => {
           currentApiProfile: 'default',
           _deletedProfiles: {},
           _deletedServers: {
-            'my-server': { deletedAt: '2026-04-26T12:00:00Z' },
+            'my-server': { deletedAt: '2026-05-26T12:00:00Z' },
           },
         },
       }]
@@ -576,7 +576,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -585,7 +585,7 @@ describe('SyncService', () => {
           apiProfilesOrder: ['default'],
           currentApiProfile: 'production',
           _deletedProfiles: {
-            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+            staging: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         },
@@ -683,7 +683,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -692,7 +692,7 @@ describe('SyncService', () => {
           apiProfilesOrder: ['default'],
           currentApiProfile: 'default',
           _deletedProfiles: {
-            oldProfile: { deletedAt: '2026-04-26T12:00:00Z' },
+            oldProfile: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         },
@@ -715,7 +715,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -724,7 +724,7 @@ describe('SyncService', () => {
           apiProfilesOrder: ['default'],
           currentApiProfile: 'default',
           _deletedProfiles: {
-            oldProfile: { deletedAt: '2026-04-26T12:00:00Z' },
+            oldProfile: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         },
@@ -745,7 +745,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {},
           mcpServers: {},
@@ -753,7 +753,7 @@ describe('SyncService', () => {
           currentApiProfile: 'default',
           _deletedProfiles: {},
           _deletedServers: {
-            'my-server': { deletedAt: '2026-04-26T12:00:00Z' },
+            'my-server': { deletedAt: '2026-05-26T12:00:00Z' },
           },
         },
       }]
@@ -1812,7 +1812,7 @@ describe('SyncService', () => {
           mcpServers: {},
           apiProfilesOrder: ['default', 'production'],
           _deletedProfiles: {
-            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+            staging: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         }
@@ -1832,7 +1832,7 @@ describe('SyncService', () => {
 
         const remoteBuffer = createRemoteConfigBuffer(deviceAData, password, crypto)
         mockProvider.list.mockResolvedValue([
-          { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-26T12:00:00Z', size: 1024 },
+          { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-05-26T12:00:00Z', size: 1024 },
         ])
         mockProvider.download.mockResolvedValue(remoteBuffer)
 
@@ -1855,7 +1855,7 @@ describe('SyncService', () => {
         // Even if somehow stale data without tombstone arrives, the local tombstone blocks it
         mockReadSettings.mockReturnValue(mergedSettings)
         mockProvider.list.mockResolvedValue([
-          { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-26T12:30:00Z', size: 1024 },
+          { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-05-26T12:30:00Z', size: 1024 },
         ])
         // Remote still has the same tombstone data
         mockProvider.download.mockResolvedValue(remoteBuffer)
@@ -1912,7 +1912,7 @@ describe('SyncService', () => {
 
         // Pull with new password — decryption should fail
         mockProvider.list.mockResolvedValue([
-          { name: 'config-remote-001.json', path: '/devices/config-remote-001.json', lastModified: '2026-04-26T12:00:00Z', size: 1024 },
+          { name: 'config-remote-001.json', path: '/devices/config-remote-001.json', lastModified: '2026-05-26T12:00:00Z', size: 1024 },
         ])
         mockProvider.download.mockResolvedValue(remoteBuffer)
 

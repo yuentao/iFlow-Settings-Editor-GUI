@@ -185,9 +185,9 @@ const itemClass = (item: any): Record<string, boolean> => {
   align-items: center;
   padding: 14px 16px;
   border-bottom: 1px solid var(--border-light);
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast) var(--ease-out);
   cursor: pointer;
-  animation: genericFadeIn 0.3s ease backwards;
+  animation: genericFadeIn var(--duration-slow) var(--ease-out) backwards;
 
   &:nth-child(1) { animation-delay: 0.02s; }
   &:nth-child(2) { animation-delay: 0.04s; }
@@ -247,7 +247,7 @@ const itemClass = (item: any): Record<string, boolean> => {
   align-items: center;
   gap: 4px;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--transition-fast) var(--ease-out);
   flex-shrink: 0;
 }
 

@@ -1,6 +1,7 @@
 <template>
-  <div v-if="show" class="side-panel-overlay" @keyup.esc="$emit('close')" tabindex="-1" ref="overlay">
-    <div class="side-panel" @click.stop>
+  <div class="side-panel-wrapper" :class="{ visible: show }">
+    <div class="side-panel-overlay" @keyup.esc="$emit('close')" tabindex="-1" ref="overlay" @click="$emit('close')">
+      <div class="side-panel" @click.stop>
       <div class="side-panel-header">
         <div class="side-panel-title">
           <Server size="18" />
@@ -225,6 +226,7 @@
           </button>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -584,16 +586,49 @@ const handleSave = (): void => {
 </script>
 
 <style lang="less" scoped>
-.side-panel-overlay {
+.side-panel-wrapper {
   position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out);
+
+  &.visible {
+    pointer-events: auto;
+    opacity: 1;
+
+    .side-panel-overlay {
+      animation: fadeIn var(--duration-fast) var(--ease-out);
+    }
+
+    .side-panel {
+      animation: slideInFromRight var(--duration-slow) var(--ease-emphasized);
+    }
+  }
+
+  &:not(.visible) {
+    .side-panel-overlay {
+      animation: fadeOut var(--duration-slow) var(--ease-out) forwards;
+    }
+
+    .side-panel {
+      animation: slideOutToRight var(--duration-slow) var(--ease-emphasized) forwards;
+    }
+  }
+}
+
+.side-panel-overlay {
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.32);
   backdrop-filter: blur(4px);
-  z-index: 1000;
-  animation: fadeIn 0.15s ease;
 }
 
 .side-panel {
@@ -679,7 +714,7 @@ const handleSave = (): void => {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast) var(--ease-out);
   background: var(--bg-primary);
 
   input[type="radio"] {
@@ -811,7 +846,7 @@ const handleSave = (): void => {
   cursor: pointer;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
-  transition: all var(--transition);
+  transition: all var(--duration-normal) var(--ease-out);
 
   svg {
     width: 10px;
@@ -857,7 +892,7 @@ const handleSave = (): void => {
   padding: 10px 14px;
   cursor: pointer;
   background: var(--bg-secondary);
-  transition: background 0.15s ease;
+  transition: background var(--transition-fast) var(--ease-out);
   user-select: none;
 
   &:hover {
@@ -868,7 +903,7 @@ const handleSave = (): void => {
     width: 14px;
     height: 14px;
     color: var(--text-tertiary);
-    transition: transform 0.2s ease;
+    transition: transform var(--duration-slow) var(--ease-out);
 
     &.expanded {
       transform: rotate(90deg);

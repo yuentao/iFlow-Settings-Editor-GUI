@@ -181,8 +181,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 日志管理
   getLogDir: () => ipcRenderer.invoke('get-log-dir'),
-  clearLogs: () => ipcRenderer.invoke('clear-logs'),
-  // 项目会话管理
+      clearLogs: () => ipcRenderer.invoke('clear-logs'),
+      getLogLevel: () => ipcRenderer.invoke('get-log-level'),
+      setLogLevel: (level) => ipcRenderer.invoke('set-log-level', level),  // 项目会话管理
   listProjects: () => ipcRenderer.invoke('projects:list'),
   getProjectSessions: (projectId, options) => ipcRenderer.invoke('projects:sessions:list', projectId, options),
   getSessionMessages: (projectId, sessionId, options) => ipcRenderer.invoke('projects:sessions:messages', projectId, sessionId, options),

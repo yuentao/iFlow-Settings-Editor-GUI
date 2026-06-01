@@ -13,7 +13,15 @@
       </div>
     </div>
     <div class="card" v-if="profiles.length > 0">
-      <VueDraggable v-model="localProfiles" class="profile-list" handle=".drag-handle" :animation="250" ghostClass="sortable-ghost" @start="onDragStart" @end="onDragEnd">
+      <VueDraggable
+        v-model="localProfiles"
+        class="profile-list"
+        handle=".drag-handle"
+        :animation="250"
+        ghostClass="sortable-ghost"
+        @start="onDragStart"
+        @end="onDragEnd"
+      >
         <div
           v-for="(profile, index) in localProfiles"
           :key="profile.name"
@@ -23,34 +31,42 @@
             expired: isProfileExpired(profile.name),
           }"
           :title="isProfileExpired(profile.name) ? t('api.expiry.cannotSwitch') : ''"
-          @click="isProfileExpired(profile.name) ? null : $emit('select-profile', profile.name)">
-          <div class="drag-handle" :title="$t('api.dragToSort')"> ⋮⋮ </div>
+          @click="isProfileExpired(profile.name) ? null : $emit('select-profile', profile.name)"
+        >
+          <div class="drag-handle" :title="$t('api.dragToSort')">⋮⋮</div>
           <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
             <span class="profile-icon-text">{{ getProfileInitial(profile.name) }}</span>
           </div>
-                    <div class="profile-info">
-                      <div class="profile-name-row">
-                        <div class="profile-name">{{ profile.name }}</div>
-                        <div
-                          class="connectivity-indicator"
-                          :class="'connectivity-' + getConnectivityLevel(profile.name)"
-                          :title="getConnectivityTooltip(profile.name)"
-                        >
-                          <span class="connectivity-dot" :class="{ animated: getConnectivityLevel(profile.name) === 'checking' }"></span>
-                          <span class="connectivity-label" v-if="getConnectivityLevel(profile.name) !== 'checking'">
-                            {{ getConnectivityLabel(profile.name) }}
-                          </span>
-                        </div>
-                      </div>
-                      <div class="profile-model-row">
-                        <div class="profile-model" :class="{ active: currentProfile === profile.name }" v-if="getProfileModel(profile.name)">
-                          {{ getProfileModel(profile.name) }}
-                        </div>
-                        <div class="profile-expiry" v-if="getExpiryText(profile.name)" :class="getExpiryClass(profile.name)">
-                          {{ getExpiryText(profile.name) }}
-                        </div>
-                      </div>
-                    </div>
+          <div class="profile-info">
+            <div class="profile-name-row">
+              <div class="profile-name">{{ profile.name }}</div>
+              <div
+                class="connectivity-indicator"
+                :class="'connectivity-' + getConnectivityLevel(profile.name)"
+                :title="getConnectivityTooltip(profile.name)"
+              >
+                <span
+                  class="connectivity-dot"
+                  :class="{ animated: getConnectivityLevel(profile.name) === 'checking' }"
+                ></span>
+                <span class="connectivity-label" v-if="getConnectivityLevel(profile.name) !== 'checking'">
+                  {{ getConnectivityLabel(profile.name) }}
+                </span>
+              </div>
+            </div>
+            <div class="profile-model-row">
+              <div
+                class="profile-model"
+                :class="{ active: currentProfile === profile.name }"
+                v-if="getProfileModel(profile.name)"
+              >
+                {{ getProfileModel(profile.name) }}
+              </div>
+              <div class="profile-expiry" v-if="getExpiryText(profile.name)" :class="getExpiryClass(profile.name)">
+                {{ getExpiryText(profile.name) }}
+              </div>
+            </div>
+          </div>
           <div class="profile-status" v-if="currentProfile === profile.name">
             <span class="status-badge">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
@@ -60,20 +76,42 @@
             </span>
           </div>
           <div class="profile-actions">
-            <button class="action-btn" v-if="currentProfile !== profile.name" @click.stop="$emit('edit-profile', profile.name)" :title="$t('api.edit')">
+            <button
+              class="action-btn"
+              v-if="currentProfile !== profile.name"
+              @click.stop="$emit('edit-profile', profile.name)"
+              :title="$t('api.edit')"
+            >
               <Edit size="14" />
             </button>
-            <button class="action-btn" @click.stop="$emit('duplicate-profile', profile.name)" :title="$t('api.duplicate')">
+            <button
+              class="action-btn"
+              @click.stop="$emit('duplicate-profile', profile.name)"
+              :title="$t('api.duplicate')"
+            >
               <Copy size="14" />
             </button>
-            <button class="action-btn action-btn-danger" v-if="index !== 0 && currentProfile !== profile.name" @click.stop="$emit('delete-profile', profile.name)" :title="$t('api.delete')">
+            <button
+              class="action-btn action-btn-danger"
+              v-if="index !== 0 && currentProfile !== profile.name"
+              @click.stop="$emit('delete-profile', profile.name)"
+              :title="$t('api.delete')"
+            >
               <Delete size="14" />
             </button>
           </div>
         </div>
       </VueDraggable>
     </div>
-    <EmptyState v-else :icon="Exchange" :title="$t('api.noProfiles')" :description="$t('api.addFirstProfile')" :actionText="$t('api.newProfile')" embedded @action="$emit('create-profile')" />
+    <EmptyState
+      v-else
+      :icon="Exchange"
+      :title="$t('api.noProfiles')"
+      :description="$t('api.addFirstProfile')"
+      :actionText="$t('api.newProfile')"
+      embedded
+      @action="$emit('create-profile')"
+    />
   </section>
 </template>
 
@@ -102,22 +140,45 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['create-profile', 'select-profile', 'edit-profile', 'duplicate-profile', 'delete-profile', 'reorder-profiles'])
+const emit = defineEmits([
+  'create-profile',
+  'select-profile',
+  'edit-profile',
+  'duplicate-profile',
+  'delete-profile',
+  'reorder-profiles',
+])
 
 // Local copy of profiles for VueDraggable v-model sync
 const localProfiles = ref([...props.profiles])
-watch(() => props.profiles, (val) => { localProfiles.value = [...val] }, { deep: true })
-watch(localProfiles, (val) => {
-  // Emit reorder only when order actually differs from prop
-  const sameOrder = val.length === props.profiles.length && val.every((p, i) => p.name === props.profiles[i].name)
-  if (!sameOrder) {
-    emit('reorder-profiles', [...val])
-  }
-}, { deep: true })
+watch(
+  () => props.profiles,
+  val => {
+    localProfiles.value = [...val]
+  },
+  { deep: true },
+)
+watch(
+  localProfiles,
+  val => {
+    // Emit reorder only when order actually differs from prop
+    const sameOrder = val.length === props.profiles.length && val.every((p, i) => p.name === props.profiles[i].name)
+    if (!sameOrder) {
+      emit('reorder-profiles', [...val])
+    }
+  },
+  { deep: true },
+)
 
 let isDragging = false
-const onDragStart = () => { isDragging = true; document.body.style.userSelect = 'none' }
-const onDragEnd = () => { isDragging = false; document.body.style.userSelect = '' }
+const onDragStart = () => {
+  isDragging = true
+  document.body.style.userSelect = 'none'
+}
+const onDragEnd = () => {
+  isDragging = false
+  document.body.style.userSelect = ''
+}
 
 // --- 连通性监控 ---
 const connectivityMap = reactive({}) // { profileName: { level: 'excellent'|'good'|'slow'|'unreachable'|'checking', latency: number } }
@@ -203,21 +264,21 @@ let prevProfileNames = new Set()
 // profiles 变化时重新初始化连通性状态
 watch(
   () => props.profiles,
-  (newProfiles) => {
+  newProfiles => {
     const newNames = new Set(newProfiles.map(p => p.name))
-    
+
     // 判断是否只是顺序变化（集合相同但顺序不同）
-    const isOnlyReorder = prevProfileNames.size === newNames.size &&
-      [...prevProfileNames].every(name => newNames.has(name))
-    
+    const isOnlyReorder =
+      prevProfileNames.size === newNames.size && [...prevProfileNames].every(name => newNames.has(name))
+
     // 更新记录
     prevProfileNames = newNames
-    
+
     // 清理已不存在的 profile 的连通性数据
     for (const key of Object.keys(connectivityMap)) {
       if (!newNames.has(key)) delete connectivityMap[key]
     }
-    
+
     // 仅当有新增配置时才触发连通性检测（跳过纯顺序变化）
     if (!isOnlyReorder) {
       pingAll()
@@ -677,7 +738,9 @@ function getExpiryClass(name) {
   color: #10b981;
   border: 1px solid rgba(16, 185, 129, 0.2);
 
-  &::before { background: #10b981; }
+  &::before {
+    background: #10b981;
+  }
 }
 
 .expiry-warning {
@@ -685,7 +748,9 @@ function getExpiryClass(name) {
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.2);
 
-  &::before { background: #f59e0b; }
+  &::before {
+    background: #f59e0b;
+  }
 }
 
 .expiry-urgent {
@@ -693,7 +758,9 @@ function getExpiryClass(name) {
   color: #ef4444;
   border: 1px solid rgba(239, 68, 68, 0.2);
 
-  &::before { background: #ef4444; }
+  &::before {
+    background: #ef4444;
+  }
 }
 
 .expiry-expired {
@@ -702,6 +769,8 @@ function getExpiryClass(name) {
   border: 1px solid rgba(128, 128, 128, 0.2);
   font-weight: 500;
 
-  &::before { background: var(--text-tertiary); }
+  &::before {
+    background: var(--text-tertiary);
+  }
 }
 </style>

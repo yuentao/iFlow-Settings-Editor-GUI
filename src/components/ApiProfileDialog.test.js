@@ -241,7 +241,7 @@ describe('ApiProfileDialog.vue', () => {
       });
 
       const formGroups = wrapper.findAll('.form-group');
-      expect(formGroups.length).toBe(6); // name, authType, apiKey, baseUrl, modelName, tokensLimit
+      expect(formGroups.length).toBe(7); // name, authType, baseUrl, apiKey, modelName, expiryDays, tokensLimit
     });
 
     it('emits close-edit when cancel button is clicked', async () => {

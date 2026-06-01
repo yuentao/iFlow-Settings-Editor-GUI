@@ -96,24 +96,22 @@ const toggleCollapse = (): void => {
 </script>
 
 <style lang="less" scoped>
-// Windows 11 Style Sidebar - Fluent Design
+// Windows 11 Fluent 2 NavView Sidebar
 .sidebar {
   width: 220px;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-light);
+  background: var(--bg-mica);
+  backdrop-filter: blur(20px) saturate(125%);
+  -webkit-backdrop-filter: blur(20px) saturate(125%);
+  border-right: 1px solid var(--border-subtle, var(--border-light));
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: width 0.2s ease;
-
-  &.collapsed {
-    width: 52px;
-  }
+  transition: width var(--duration-slow) var(--ease-out);
 }
 
 .nav-content {
   flex: 1;
-  padding: 16px 12px;
+  padding: 16px 8px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -131,7 +129,7 @@ const toggleCollapse = (): void => {
   align-items: center;
   flex-shrink: 0;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background var(--duration-slow) var(--ease-out);
 
   &:hover {
     background: var(--control-fill);
@@ -152,7 +150,7 @@ const toggleCollapse = (): void => {
   left: 0;
   height: 100%;
   background: linear-gradient(90deg, var(--accent), var(--accent-light));
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width var(--duration-slow) var(--ease-emphasized);
   opacity: 0.12;
 
   &::after {
@@ -180,7 +178,7 @@ const toggleCollapse = (): void => {
   gap: 6px;
   padding: 0 12px;
   width: 100%;
-  transition: transform 0.15s ease;
+  transition: transform var(--transition-fast) var(--ease-out);
 
   .sidebar.collapsed & {
     justify-content: center;
@@ -256,10 +254,10 @@ const toggleCollapse = (): void => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid var(--border-subtle, var(--border-light));
   cursor: pointer;
   color: var(--text-tertiary);
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast) var(--ease-out);
   flex-shrink: 0;
 
   &:hover {
@@ -272,7 +270,7 @@ const toggleCollapse = (): void => {
   font-size: 18px;
   font-weight: 300;
   line-height: 1;
-  transition: transform 0.2s ease;
+  transition: transform var(--duration-slow) var(--ease-out);
 
   &.rotated {
     transform: rotate(180deg);
@@ -295,17 +293,52 @@ const toggleCollapse = (): void => {
   margin-bottom: 6px;
 }
 
+// Win11 Fluent NavView item — with left accent pill indicator
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    background var(--duration-normal) var(--ease-out),
+    color var(--duration-normal) var(--ease-out),
+    box-shadow var(--duration-normal) var(--ease-out);
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 400;
   gap: 10px;
+  position: relative;
+
+  // Fluent Reveal hover
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at var(--reveal-x, 50%) var(--reveal-y, 50%),
+      rgba(255, 255, 255, 0.06) 0%,
+      transparent 50%
+    );
+    opacity: 0;
+    transition: opacity var(--duration-normal) var(--ease-out);
+    pointer-events: none;
+  }
+
+  // Left accent pill indicator (Win11 NavView signature)
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0);
+    width: 3px;
+    height: 16px;
+    border-radius: 0 2px 2px 0;
+    background: var(--accent);
+    transition: transform var(--duration-normal) var(--ease-emphasized);
+  }
 
   .sidebar.collapsed & {
     padding: 10px;
@@ -314,11 +347,30 @@ const toggleCollapse = (): void => {
     :deep(.iconpark-icon) {
       font-size: 20px;
     }
+
+    // Collapse indicator to bottom dot
+    &::after {
+      top: auto;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%) scaleX(0);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+    }
   }
 
   &:hover {
     background: var(--control-fill);
     color: var(--text-primary);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    background: var(--control-fill-pressed);
   }
 
   &.active {
@@ -326,9 +378,24 @@ const toggleCollapse = (): void => {
     color: var(--accent);
     font-weight: 500;
 
+    // Show left accent pill
+    &::after {
+      transform: translateY(-50%) scaleY(1);
+    }
+
+    .sidebar.collapsed &::after {
+      transform: translateX(-50%) scaleX(1);
+    }
+
     .iconpark-icon {
       color: var(--accent);
     }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--text-primary);
+    outline-offset: -2px;
+    border-radius: var(--radius);
   }
 }
 

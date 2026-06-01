@@ -4,9 +4,18 @@
  */
 
 const { app, BrowserWindow } = require('electron')
+const path = require('path')
 const { logger } = require('./utils/logger')
 
 logger.info('src/main/index.js module loaded')
+
+/** 检测是否为便携模式（userData 位于 exe 同目录下） */
+function isPortableMode() {
+  try {
+    return app.isPackaged &&
+      path.dirname(app.getPath('userData')) === path.dirname(app.getPath('exe'))
+  } catch { return false }
+}
 
 // 导入各模块
 const { createWindow, getMainWindow, setIsQuitting } = require('./window')
@@ -101,6 +110,20 @@ async function initializeApp() {
   // 注册 IPC 处理器
   registerIpcHandlers(getMainWindow, t)
 
+  // 根据设置初始化日志级别
+  try {
+    const initSettings = readSettings()
+    const initLogLevel = initSettings?.logLevel || 'info'
+    if (initLogLevel === 'silent') {
+      log.transports.file.level = false
+      log.transports.console.level = false
+    } else if (initLogLevel !== 'info') {
+      log.transports.file.level = initLogLevel
+      log.transports.console.level = initLogLevel
+    }
+    logger.info(`Log level initialized: ${initLogLevel}`)
+  } catch (_) {}
+
   // 初始化开机自启动
   initAutoLaunch()
 
@@ -151,6 +174,14 @@ function checkForUpdates() {
 app.whenReady().then(() => {
   // 初始化 electron-log 渲染进程日志捕获
   const { log } = require('./utils/logger')
+
+  // 便携模式：将日志路径重定向到用户主目录（避免 exe 所在受保护目录不可写）
+  if (isPortableMode()) {
+    const homeLogDir = path.join(app.getPath('home'), '.iflow', 'logs')
+    log.transports.file.resolvePathFn = () => path.join(homeLogDir, 'main.log')
+    logger.info('[Portable] Log path redirected to', homeLogDir)
+  }
+
   log.initialize({ spyRendererConsole: true })
 
   logger.info('App ready event fired')

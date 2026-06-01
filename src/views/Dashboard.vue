@@ -287,7 +287,10 @@ function handleChartRendered() {
 }
 
 onMounted(async () => {
-  await cloudStore.loadStatus()
+  // 云同步状态加载不阻塞图表挂载关键路径（避免 WebDAV 网络请求阻塞导致 splash 卡死）
+  cloudStore.loadStatus().catch(err => {
+    console.error('[Dashboard] cloudStore.loadStatus failed:', err)
+  })
   // 延迟挂载图表组件：先让仪表盘卡片渲染完成，再挂载 apexcharts
   setTimeout(() => {
     chartMounted.value = true
@@ -296,7 +299,7 @@ onMounted(async () => {
   setTimeout(() => {
     const days = selectedModelStatsDays.value
     const interval = props.settings?.modelUsageRefreshInterval ?? 5
-    fetchStats({ days, silent: true })
+    fetchStats({ days })
     startAutoRefresh(days, interval)
   }, 50)
   document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -311,7 +314,7 @@ onUnmounted(() => {
 <style lang="less" scoped>
 // Card animation
 .card-appear {
-  animation: fadeInUp 0.3s ease backwards;
+  animation: fadeInUp var(--duration-slow) var(--ease-out) backwards;
   animation-name: fadeInUp, subtleFloat;
 }
 
@@ -337,7 +340,7 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--space-lg);
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all var(--duration-slow) var(--ease-out);
   position: relative;
   overflow: hidden;
   min-height: 120px;
@@ -351,7 +354,7 @@ onUnmounted(() => {
     height: 4px;
     background: var(--accent);
     opacity: 0;
-    transition: opacity 0.25s ease;
+    transition: opacity var(--duration-slow) var(--ease-out);
   }
 
   &:hover {

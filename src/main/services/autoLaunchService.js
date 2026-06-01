@@ -20,6 +20,9 @@ function getAutoLaunchSettings() {
  * @param {boolean} enabled - 是否启用
  */
 async function setAutoLaunchEnabled(enabled) {
+  // 便携模式下不允许设置开机自启
+  if (process.env.PORTABLE_EXECUTABLE_DIR) return
+
   const settings = readSettings() || {}
   settings.autoLaunch = enabled
   await writeSettings(settings)
@@ -42,6 +45,9 @@ async function setAutoLaunchEnabled(enabled) {
  * 初始化开机自启动设置（应用启动时调用）
  */
 function initAutoLaunch() {
+  // 便携模式下不设置开机自启（exe 路径不固定，且可能位于受保护目录）
+  if (process.env.PORTABLE_EXECUTABLE_DIR) return
+
   const autoLaunchEnabled = getAutoLaunchSettings()
   if (autoLaunchEnabled) {
     const loginSettings = {

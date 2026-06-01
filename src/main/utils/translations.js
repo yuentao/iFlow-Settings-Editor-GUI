@@ -54,6 +54,7 @@ const defaultTranslations = {
     dialogs: {
       importSkill: '导入技能',
       exportSkill: '导出技能到',
+      importCommand: '导入命令',
       exportCommand: '导出命令',
       selectExportLocation: '选择导出位置',
       skillArchive: '技能压缩包',
@@ -78,7 +79,8 @@ const defaultTranslations = {
     skillOnlineImportSuccess: '技能 "{name}" 在线导入成功',
     skillArchiveInvalid: '压缩包中未找到有效的技能文件夹（缺少 SKILL.md）\n解压内容:\n{content}',
     downloadFailed: '下载失败: HTTP {code}',
-    overwriteConfirm: '技能 "{name}" 已存在，是否覆盖？'
+    overwriteConfirm: '技能 "{name}" 已存在，是否覆盖？',
+    commandExported: '命令已导出',
   },
   dialog: {
     confirm: '确定',
@@ -190,7 +192,13 @@ const defaultTranslations = {
       modDirNotFound: 'Mod 目录不存在',
       noOriginalBackup: '未找到原始备份文件，无法恢复',
       patchNotSupported: '补丁类型 Mod 暂不支持',
-      fileNotFound: '文件不存在'
+      fileNotFound: '文件不存在',
+      cannotDeleteDependent: '无法删除，以下 Mod 依赖于此: {mods}',
+      includeMapDeployFailed: '部署 include-map 失败: {error}',
+      includeMapFileNotFound: '未找到 include-map 文件: {file}',
+      invalidDependsOn: 'dependsOn 字段格式无效',
+      invalidDependsOnItems: 'dependsOn 包含无效的依赖项',
+      missingDependencies: '缺少依赖 Mod: {deps}',
     },
     exportDialog: {
       title: '导出 Mod'
@@ -198,7 +206,8 @@ const defaultTranslations = {
     importExport: {
       importTitle: '导入 Mod',
       overwriteConfirm: '已存在同名 Mod "{name}"，是否覆盖？',
-      importError: '导入 Mod 失败: {error}'
+      importError: '导入 Mod 失败: {error}',
+      diffGenerationError: '生成差异补丁失败'
     }
   }
 }
@@ -246,18 +255,13 @@ function t(key, params = {}) {
     if (value === undefined) break
   }
 
-  // 如果没找到且键以 main. 开头，尝试在 main 下查找
-  if (value === undefined && keys[0] === 'main') {
-    value = translations
-    for (let i = 1; i < keys.length; i++) {
-      value = value?.[keys[i]]
+  // 如果没找到，尝试在 main 下查找（兼容 dialogs.xxx → main.dialogs.xxx 等）
+  if (value === undefined) {
+    value = translations?.main
+    for (const k of keys) {
+      value = value?.[k]
       if (value === undefined) break
     }
-  }
-
-  // 如果仍然没找到，尝试在 main.tray 下查找（兼容 tray.xxx 格式）
-  if (value === undefined && keys[0] === 'tray') {
-    value = translations?.main?.tray?.[keys[1]]
   }
 
   if (typeof value === 'string') {

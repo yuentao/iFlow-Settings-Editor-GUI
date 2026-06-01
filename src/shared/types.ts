@@ -60,6 +60,7 @@ export interface Settings {
   thinkingModeEnabled?: 'true' | 'false'
   connectivityPollInterval?: number  // API 连通性检测间隔（秒），默认 30
   modelUsageRefreshInterval?: number  // 模型使用统计刷新间隔（分钟），默认 5
+  logLevel?: 'info' | 'debug' | 'silent'  // 日志级别，默认 info
   customThemes?: Record<string, CustomThemeConfig>
   cloudSync?: {
     enabled?: boolean

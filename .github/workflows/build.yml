@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - release
+  pull_request:
+    branches:
+      - main
+      - release
   workflow_dispatch:
 
 concurrency:
@@ -11,6 +15,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── PR 检验：lint + type-check + test ──
+  pr-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Lint check
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Test with coverage
+        run: npm run test:coverage
+
+  # ── 自动打 Tag（仅 release 分支 push）──
   create-tag:
     if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
@@ -157,7 +188,6 @@ jobs:
           if [ -z "$CHANGELOG_CONTENT" ]; then
             echo "body=${TAG_VERSION} 更新内容" >> $GITHUB_OUTPUT
           else
-            # 使用 printf 保持原始换行，不做转义
             BODY=$(printf '%s' "$CHANGELOG_CONTENT")
             echo "body<<EOF" >> $GITHUB_OUTPUT
             echo "$BODY" >> $GITHUB_OUTPUT
