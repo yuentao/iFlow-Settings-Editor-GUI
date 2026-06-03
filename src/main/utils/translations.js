@@ -9,25 +9,25 @@ const defaultTranslations = {
     title: 'iFlow 设置编辑器',
     name: 'iFlow 设置编辑器',
     company: '上海潘哆呐科技有限公司',
-    retry: '重试'
+    retry: '重试',
   },
   window: {
     minimize: '最小化',
     maximize: '最大化',
-    close: '关闭'
+    close: '关闭',
   },
   sidebar: {
     general: '常规',
-    dashboard: '仪表盘',
+    dashboard: '概览',
     generalSettings: '通用设置',
     apiConfig: 'API 配置',
     advanced: '高级',
     mcpServers: 'MCP 服务器',
-    iflowMod: 'iFlow Mod',
+    iflowMod: '模组',
     skills: '技能',
     commands: '命令',
-    docs: '使用指南',
-    about: '关于'
+    docs: '指南',
+    about: '关于',
   },
   main: {
     tray: {
@@ -84,10 +84,10 @@ const defaultTranslations = {
   },
   dialog: {
     confirm: '确定',
-    cancel: '取消'
+    cancel: '取消',
   },
   footer: {
-    config: '配置'
+    config: '配置',
   },
   update: {
     title: '检查更新',
@@ -128,88 +128,88 @@ const defaultTranslations = {
     menu: {
       checkUpdate: '检查更新',
       about: '关于',
-      autoUpdate: '自动更新'
+      autoUpdate: '自动更新',
     },
-    checking: '检查中...'
+    checking: '检查中...',
   },
   languages: {
     'zh-CN': '简体中文',
     'en-US': 'English',
-    'ja-JP': '日本語'
+    'ja-JP': '日本語',
   },
   iflow: {
-    title: 'iFlow Mod 管理',
+    title: '模组管理',
     description: '管理 iFlow 核心文件的修改模块',
     fileStatus: '文件状态',
-    enabledMods: '已启用 Mod',
+    enabledMods: '已启用模组',
     statusFound: '已找到',
     statusNotFound: '未找到',
     mods: {
-      title: '已安装的 Mod',
-      import: '导入 Mod',
+      title: '已安装的模组',
+      import: '导入模组',
       export: '导出',
       delete: '删除',
       enable: '启用',
       disable: '禁用',
-      emptyTitle: '暂无 Mod',
-      emptyDesc: '导入 Mod 来修改 iFlow 核心文件的功能',
+      emptyTitle: '暂无模组',
+      emptyDesc: '导入模组来修改 iFlow 核心文件的功能',
       enableSuccess: '已启用 "{name}"',
       disableSuccess: '已禁用 "{name}"',
       deleteSuccess: '已删除 "{name}"',
       exportSuccess: '已导出 "{name}"',
-      importSuccess: '已导入 {count} 个 Mod',
-      confirmDelete: '确定要删除 Mod "{name}" 吗？此操作不可撤销。',
+      importSuccess: '已导入 {count} 个 模组',
+      confirmDelete: '确定要删除模组 "{name}" 吗？此操作不可撤销。',
       types: {
         replace: '替换',
         append: '追加',
         prepend: '前置',
-        patch: '补丁'
-      }
+        patch: '补丁',
+      },
     },
     applying: {
-      enabling: '正在启用 Mod…',
-      disabling: '正在禁用 Mod…'
+      enabling: '正在启用…',
+      disabling: '正在禁用…',
     },
     category: {
-      all: '全部'
+      all: '全部',
     },
     compatibility: {
       tooOld: '需要 iFlow v{required}，当前 v{current} 版本过低',
       tooNew: '需要 iFlow v{required}，当前 v{current} 版本过高',
       exactRequired: '需要 iFlow v{required}，当前 v{current} 不匹配',
-      versionUnavailable: '无法检测 iFlow 版本，跳过兼容性检查'
+      versionUnavailable: '无法检测 iFlow 版本，跳过兼容性检查',
     },
     errors: {
-      missingModJson: 'Mod 包缺少 mod.json 文件',
+      missingModJson: '模组包缺少 mod.json 文件',
       invalidModJson: 'mod.json 格式无效',
       missingRequiredField: 'mod.json 缺少必填字段: {field}',
-      invalidModType: '无效的 Mod 类型: {type}',
-      missingMainFile: 'Mod 包缺少主文件: {file}',
-      modNotFound: '未找到 Mod: {id}',
+      invalidModType: '无效的模组类型: {type}',
+      missingMainFile: '模组包缺少主文件: {file}',
+      modNotFound: '未找到模组: {id}',
       iflowPathNotFound: '未找到 iFlow 安装路径',
       iflowNotFound: '未找到 iFlow.js 文件，请确认 iFlow 已正确安装',
-      invalidModId: '无效的 Mod ID',
-      modDirNotFound: 'Mod 目录不存在',
+      invalidModId: '无效的模组ID',
+      modDirNotFound: '模组目录不存在',
       noOriginalBackup: '未找到原始备份文件，无法恢复',
-      patchNotSupported: '补丁类型 Mod 暂不支持',
+      patchNotSupported: '补丁类型模组暂不支持',
       fileNotFound: '文件不存在',
-      cannotDeleteDependent: '无法删除，以下 Mod 依赖于此: {mods}',
+      cannotDeleteDependent: '无法删除，以下模组依赖于此: {mods}',
       includeMapDeployFailed: '部署 include-map 失败: {error}',
       includeMapFileNotFound: '未找到 include-map 文件: {file}',
       invalidDependsOn: 'dependsOn 字段格式无效',
       invalidDependsOnItems: 'dependsOn 包含无效的依赖项',
-      missingDependencies: '缺少依赖 Mod: {deps}',
+      missingDependencies: '缺少依赖模组: {deps}',
     },
     exportDialog: {
-      title: '导出 Mod'
+      title: '导出模组',
     },
     importExport: {
-      importTitle: '导入 Mod',
-      overwriteConfirm: '已存在同名 Mod "{name}"，是否覆盖？',
-      importError: '导入 Mod 失败: {error}',
-      diffGenerationError: '生成差异补丁失败'
-    }
-  }
+      importTitle: '导入模组',
+      overwriteConfirm: '已存在同名模组 "{name}"，是否覆盖？',
+      importError: '导入模组失败: {error}',
+      diffGenerationError: '生成差异补丁失败',
+    },
+  },
 }
 
 // 当前翻译对象
