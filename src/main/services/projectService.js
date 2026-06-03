@@ -574,6 +574,9 @@ async function getSessionStats(projectId, sessionId) {
   let toolCallFailed = 0
   let totalInputTokens = 0
   let totalOutputTokens = 0
+  let estimatedInputTokens = 0
+  let estimatedOutputTokens = 0
+  let hasRealUsage = false
 
   for (const msg of messages) {
     if (msg.type === 'user') userMessages++
@@ -588,8 +591,23 @@ async function getSessionStats(projectId, sessionId) {
     if (msg.message?.usage) {
       totalInputTokens += msg.message.usage.input_tokens || 0
       totalOutputTokens += msg.message.usage.output_tokens || 0
+      hasRealUsage = true
+    } else if (msg.message?.content) {
+      // 基于 content 字符数估算 token
+      const text = typeof msg.message.content === 'string'
+        ? msg.message.content
+        : JSON.stringify(msg.message.content)
+      const chineseChars = (text.match(/[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g) || []).length
+      const nonChineseChars = text.length - chineseChars
+      const estimated = Math.ceil(chineseChars * 2 + nonChineseChars / 3.5)
+      if (msg.type === 'user') estimatedInputTokens += estimated
+      else estimatedOutputTokens += estimated
     }
   }
+
+  // 合并真实和估算 token
+  totalInputTokens += estimatedInputTokens
+  totalOutputTokens += estimatedOutputTokens
 
   return {
     totalMessages: messages.length,
@@ -601,6 +619,7 @@ async function getSessionStats(projectId, sessionId) {
     totalInputTokens,
     totalOutputTokens,
     totalTokens: totalInputTokens + totalOutputTokens,
+    isEstimated: estimatedInputTokens + estimatedOutputTokens > 0,
   }
 }
 

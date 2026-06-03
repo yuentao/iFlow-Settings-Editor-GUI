@@ -79,6 +79,20 @@
           <span v-if="stats.toolCalls > 0" class="stat-item success-rate">
             ({{ ((stats.toolCallSuccess / stats.toolCalls) * 100).toFixed(0) }}%)
           </span>
+          <template v-if="stats.totalTokens > 0">
+            <span class="stat-divider">|</span>
+            <span class="stat-item" :class="{ estimated: stats.isEstimated }">
+              {{ $t('projects.inputTokens') }}: {{ formatTokens(stats.totalInputTokens) }}
+            </span>
+            <span class="stat-divider">|</span>
+            <span class="stat-item" :class="{ estimated: stats.isEstimated }">
+              {{ $t('projects.outputTokens') }}: {{ formatTokens(stats.totalOutputTokens) }}
+            </span>
+            <span class="stat-divider">|</span>
+            <span class="stat-item" :class="{ estimated: stats.isEstimated }">
+              {{ $t('projects.totalTokens') }}: {{ formatTokens(stats.totalTokens) }}
+            </span>
+          </template>
         </span>
       </div>
 
@@ -226,6 +240,13 @@ const visibleMessages = computed(() =>
   }),
 )
 const stats = computed(() => store.currentStats)
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
+  if (n >= 10_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K'
+  return n.toLocaleString()
+}
+
 const isLoadingMessages = computed(() => store.isLoadingMessages)
 const isSelectionMode = computed(() => store.isSelectionMode)
 const selectedMessageUuids = computed(() => store.selectedMessageUuids)
@@ -452,7 +473,7 @@ onUnmounted(() => {
 .detail-header {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-light);
   gap: 12px;
   flex-shrink: 0;
@@ -595,6 +616,11 @@ onUnmounted(() => {
 
   .success-rate {
     color: #00b894;
+  }
+
+  .estimated {
+    font-style: italic;
+    opacity: 0.75;
   }
 }
 
