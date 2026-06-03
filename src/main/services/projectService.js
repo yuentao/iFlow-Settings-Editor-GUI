@@ -588,10 +588,9 @@ async function getSessionStats(projectId, sessionId) {
       else toolCallFailed++
     }
 
-    if (msg.message?.usage) {
+    if (msg.message?.usage && (msg.message.usage.input_tokens || msg.message.usage.output_tokens)) {
       totalInputTokens += msg.message.usage.input_tokens || 0
       totalOutputTokens += msg.message.usage.output_tokens || 0
-      hasRealUsage = true
     } else if (msg.message?.content) {
       // 基于 content 字符数估算 token
       const text = typeof msg.message.content === 'string'
