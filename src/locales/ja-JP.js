@@ -3,12 +3,12 @@ export default {
     title: 'iFlow 設定エディタ',
     name: 'iFlow 設定エディタ',
     company: 'Pandora Studio Co., Ltd.',
-    retry: '再試行'
+    retry: '再試行',
   },
   window: {
     minimize: '最小化',
     maximize: '最大化',
-    close: '閉じる'
+    close: '閉じる',
   },
   sidebar: {
     general: '一般',
@@ -22,7 +22,7 @@ export default {
     experimental: '実験中',
     skills: 'スキル',
     commands: 'コマンド',
-    docs: 'ドキュメント'
+    docs: 'ドキュメント',
   },
   dashboard: {
     title: 'ダッシュボード',
@@ -93,7 +93,8 @@ export default {
     showMemoryUsage: 'メモリ使用量を表示',
     showMemoryUsageDesc: 'ステータスバー下部にCLI現在のメモリ使用量を表示',
     maxSessionTurns: '最大セッションターン数',
-    maxSessionTurnsDesc: 'セッションの最大ターン数を設定。セッションがこの制限を超えると、CLI は処理を停止し、新しいチャットを開始します。',
+    maxSessionTurnsDesc:
+      'セッションの最大ターン数を設定。セッションがこの制限を超えると、CLI は処理を停止し、新しいチャットを開始します。',
     maxSessionTurnsUnit: '回',
     connectivityPollInterval: '接続確認間隔',
     connectivityPollIntervalDesc: 'API接続確認の定期実行間隔',
@@ -102,8 +103,10 @@ export default {
     modelUsageRefreshIntervalDesc: 'モデル使用傾向グラフの自動更新間隔',
     modelUsageRefreshIntervalUnit: '分',
     excludeTools: '除外ツール',
-    excludeToolsDesc: 'CLIから除外するコアツール名のリストを指定できます。ShellToolなどのサポートされているツールに対してコマンド固有の制限を指定することもできます。例えば、"excludeTools": ["ShellTool(rm -rf)"] はrm -rfコマンドをブロックします。デフォルト：ツールは除外されません。',
-    excludeToolsSecurityNote: 'この機能は単純な文字列マッチングに基づいており、簡単にバイパスできます。信頼できないコードの安全な実行を期待するために依存することはできません。',
+    excludeToolsDesc:
+      'CLIから除外するコアツール名のリストを指定できます。ShellToolなどのサポートされているツールに対してコマンド固有の制限を指定することもできます。例えば、"excludeTools": ["ShellTool(rm -rf)"] はrm -rfコマンドをブロックします。デフォルト：ツールは除外されません。',
+    excludeToolsSecurityNote:
+      'この機能は単純な文字列マッチングに基づいており、簡単にバイパスできます。信頼できないコードの安全な実行を期待するために依存することはできません。',
     excludeToolsSecurityNoteLabel: 'セキュリティ注意',
     excludeToolsPlaceholder: '例：ShellTool, glob',
     languageInterface: '言語とインターフェース',
@@ -122,7 +125,8 @@ export default {
     disabled: '無効',
 
     autoAccept: '安全なツールを自動承認',
-    autoAcceptDesc: 'CLI は安全なツール呼び出し（例：読み取り専用操作）を明示的なユーザー確認なしで自動承認・実行します',
+    autoAcceptDesc:
+      'CLI は安全なツール呼び出し（例：読み取り専用操作）を明示的なユーザー確認なしで自動承認・実行します',
     hideBanner: '起動バナーを非表示',
     hideBannerDesc: '有効にすると CLI 起動時のバナー（ASCII アートロゴ）を非表示にします',
     disableAutoUpdate: '自動更新を無効化',
@@ -154,7 +158,8 @@ export default {
     acrylicMax: '透明',
     autoLaunchSettings: '自動起動',
     autoLaunch: 'システム起動時に自動起動',
-    autoLaunchHint: '有効にすると、システム起動時にアプリケーションが自動的に起動し、バックグラウンドでサイレント実行されます。メインウィンドウは表示されません。',
+    autoLaunchHint:
+      '有効にすると、システム起動時にアプリケーションが自動的に起動し、バックグラウンドでサイレント実行されます。メインウィンドウは表示されません。',
     sectionPreferences: '基本設定',
     sectionCloudSync: 'クラウド同期',
     experimental: '実験的',
@@ -181,7 +186,7 @@ export default {
   theme: {
     dark: 'ダーク',
     light: 'ライト',
-    system: 'システム'
+    system: 'システム',
   },
   api: {
     title: 'API 設定',
@@ -222,7 +227,7 @@ export default {
     auth: {
       iflow: 'iFlow',
       api: 'API Key',
-      openaiCompatible: 'OpenAI 互換'
+      openaiCompatible: 'OpenAI 互換',
     },
     fetchModelsBtn: 'モデル一覧を取得',
     noModelsFound: '一致するモデルが見つかりません',
@@ -234,13 +239,13 @@ export default {
       httpError: 'リクエスト失敗 (HTTP {status})',
       invalidResponse: 'サーバーから無効なレスポンスが返されました',
       networkError: 'ネットワークエラー、接続を確認してください',
-      timeout: 'リクエストがタイムアウトしました、後でもう一度お試しください'
+      timeout: 'リクエストがタイムアウトしました、後でもう一度お試しください',
     },
     validation: {
       nameNoSpecial: '名前には英字、数字、漢字、ハイフン、アンダースコアのみ使用でき、数字で始めることはできません',
       nameNoDigitStart: '名前を数字で始めることはできません',
       urlFormat: '有効な URL 形式を入力してください（例: https://api.example.com）',
-      modelNoSpecial: 'モデル名には英字、数字、ピリオド、ハイフン、アンダースコア、コロン、スラッシュのみ使用できます'
+      modelNoSpecial: 'モデル名には英字、数字、ピリオド、ハイフン、アンダースコア、コロン、スラッシュのみ使用できます',
     },
     tokensLimit: 'コンテキストウィンドウサイズ',
     tokensLimitPlaceholder: '128',
@@ -263,8 +268,8 @@ export default {
       slow: '高遅延',
       unreachable: '接続不可',
       checking: '確認中...',
-      latency: '{ms}ms'
-    }
+      latency: '{ms}ms',
+    },
   },
   mcp: {
     title: 'MCP サーバー',
@@ -324,8 +329,8 @@ export default {
     quickAddTitle: 'MCPサーバーをクイック追加',
     quickAddPlaceholder: 'JSON設定、コマンドライン、またはURLを貼り付け...',
     quickAddHint: 'JSON設定、コマンドライン、URL形式に対応。Ctrl+Enterで解析',
-  quickAddHelp: 'フォーマット例を見る',
-  quickAddHelpCmd: 'コマンドライン',
+    quickAddHelp: 'フォーマット例を見る',
+    quickAddHelpCmd: 'コマンドライン',
     quickAddParse: '解析',
     quickAddResultTitle: '{count}個のサーバーを検出',
     quickAddUnnamed: '名前なし',
@@ -340,7 +345,7 @@ export default {
     quickAddErrorUnrecognized: '入力形式を認識できません',
     quickAddErrorNotMcpConfig: '有効なMCPサーバー設定ではありません',
     quickAddErrorCmdInvalid: 'コマンドライン形式が無効です',
-    quickAddErrorUrlInvalid: 'URL形式が正しくありません'
+    quickAddErrorUrlInvalid: 'URL形式が正しくありません',
   },
   skills: {
     title: 'スキル管理',
@@ -357,7 +362,7 @@ export default {
     skillName: 'スキル名',
     namePlaceholder: 'my-skill',
     cancel: 'キャンセル',
-    import: '取込'
+    import: '取込',
   },
   commands: {
     title: 'コマンド',
@@ -368,7 +373,7 @@ export default {
       all: 'すべて',
       utility: 'ユーティリティ',
       documentation: 'ドキュメント',
-      other: 'その他'
+      other: 'その他',
     },
     noCommands: 'コマンドがありません',
     addFirstCommand: '上のボタンをクリックして最初のコマンドを追加',
@@ -394,7 +399,7 @@ export default {
       promptPlaceholder: 'プロンプトを入力...',
       promptHint: 'AIに送信されるプロンプト内容',
       cancel: 'キャンセル',
-      save: '保存'
+      save: '保存',
     },
     commandSaved: 'コマンドを保存しました',
     commandCreated: 'コマンド "{name}" を作成しました',
@@ -406,8 +411,8 @@ export default {
     errors: {
       notFound: 'コマンドが見つかりません',
       alreadyExists: 'コマンドは既に存在します',
-      invalidName: 'コマンド名には英数字、ハイフン、アンダースコアのみ使用できます'
-    }
+      invalidName: 'コマンド名には英数字、ハイフン、アンダースコアのみ使用できます',
+    },
   },
   messages: {
     error: 'エラー',
@@ -425,17 +430,18 @@ export default {
     skillDeleteSuccess: 'スキル "{name}" が削除されました',
     skillImportSuccess: 'スキル "{name}" のインポートが成功しました',
     skillOnlineImportSuccess: 'スキル "{name}" のオンラインインポートが成功しました',
-    skillArchiveInvalid: 'アーカイブに有効なスキルフォルダーが見つかりません（SKILL.md がありません）\nアーカイブ内容:\n{content}',
+    skillArchiveInvalid:
+      'アーカイブに有効なスキルフォルダーが見つかりません（SKILL.md がありません）\nアーカイブ内容:\n{content}',
     downloadFailed: 'ダウンロードに失敗しました: HTTP {code}',
     overwriteConfirm: 'スキル "{name}" は既に存在します。上書きしますか？',
     commandExported: 'コマンドをエクスポートしました',
   },
   dialog: {
     confirm: '確認',
-    cancel: 'キャンセル'
+    cancel: 'キャンセル',
   },
   footer: {
-    config: '設定'
+    config: '設定',
   },
   update: {
     title: 'アップデートを確認',
@@ -453,9 +459,11 @@ export default {
     downloadComplete: 'ダウンロード完了、インストールできます',
     cancel: 'キャンセル',
     installNow: '今すぐインストール',
-    installFailed: 'アップデートのインストールに失敗しました。後でもう一度試すか、手動でダウンロードしてインストールしてください。',
+    installFailed:
+      'アップデートのインストールに失敗しました。後でもう一度試すか、手動でダウンロードしてインストールしてください。',
     background: 'バックグラウンドでダウンロード',
-    backgroundComplete: 'バックグラウンドで v{version} のダウンロードが完了しました。「バージョン情報」ページからインストールできます。',
+    backgroundComplete:
+      'バックグラウンドで v{version} のダウンロードが完了しました。「バージョン情報」ページからインストールできます。',
     backgroundDownloading: 'バックグラウンドでダウンロード中... {progress}%',
     checkFailed: 'アップデート確認に失敗しました',
     noUpdate: '最新バージョンです',
@@ -476,14 +484,14 @@ export default {
     menu: {
       checkUpdate: 'アップデートを確認',
       about: 'バージョン情報',
-      autoUpdate: '自動更新'
+      autoUpdate: '自動更新',
     },
-    checking: '確認中...'
+    checking: '確認中...',
   },
   languages: {
     'zh-CN': '简体中文',
     'en-US': 'English',
-    'ja-JP': '日本語'
+    'ja-JP': '日本語',
   },
   cloudSync: {
     title: 'クラウド同期',
@@ -530,7 +538,8 @@ export default {
     changePassword: 'パスワードを変更',
     passwordHint: '機密データの暗号化に使用します。安全に保管してください（復元不可）',
     rememberPassword: '同期パスワードを記憶',
-    rememberPasswordDesc: '有効にするとパスワードがシステムにより安全に保存され、アプリ再起動後の再入力が不要になります',
+    rememberPasswordDesc:
+      '有効にするとパスワードがシステムにより安全に保存され、アプリ再起動後の再入力が不要になります',
     passwordMinLength: 'パスワードは8文字以上必要です',
     passwordMismatch: 'パスワードが一致しません',
     oldPassword: '旧パスワード',
@@ -539,14 +548,17 @@ export default {
     passwordIncorrect: 'パスワードが正しくありません',
     enterPassword: '同期パスワードを入力',
     passwordChangedNeedRepush: 'パスワードが変更されました。クラウドにデータを再プッシュする必要があります。',
-    passwordChangedRepushFailed: 'パスワードはこのデバイスで更新されましたが、クラウドへの再プッシュに失敗しました：{error}。次回の手動同期で自動的に再試行されます。',
+    passwordChangedRepushFailed:
+      'パスワードはこのデバイスで更新されましたが、クラウドへの再プッシュに失敗しました：{error}。次回の手動同期で自動的に再試行されます。',
     errPasswordIncorrect: '同期パスワードが正しくありません。確認のうえ再度お試しください。',
-    errPasswordLikelyIncorrect: '同期パスワードが正しくない可能性があります。リモートファイルを復号できませんでした。パスワードを確認のうえ再度お試しください。',
+    errPasswordLikelyIncorrect:
+      '同期パスワードが正しくない可能性があります。リモートファイルを復号できませんでした。パスワードを確認のうえ再度お試しください。',
     deviceTitle: 'デバイス管理',
     deviceName: 'デバイス名',
-      renameDevice: 'デバイス名の変更',
-      unnamedDevice: '名前なしデバイス',
-      deviceNamePlaceholder: 'デバイス名を入力',    syncedDevices: '同期デバイス',
+    renameDevice: 'デバイス名の変更',
+    unnamedDevice: '名前なしデバイス',
+    deviceNamePlaceholder: 'デバイス名を入力',
+    syncedDevices: '同期デバイス',
     thisDevice: 'このデバイス',
     removeDevice: '削除',
     confirmRemoveDevice: 'デバイス "{name}" のクラウドデータを削除しますか？',
@@ -577,7 +589,8 @@ export default {
     syncPasswordHintTag: '（同期データを暗号化、WebDAVパスワードとは無関係）',
     configSectionAdvanced: '高度な同期設定',
     tombstoneRetentionDays: '削除記録保持日数',
-    tombstoneRetentionDaysDesc: '同期削除操作はこの日数内に他のデバイスに伝播されます。期限切れ後は自動クリーンアップされます。短すぎるとオフラインデバイスが削除を見逃す可能性があり、長すぎると設定ファイルのサイズが増加します',
+    tombstoneRetentionDaysDesc:
+      '同期削除操作はこの日数内に他のデバイスに伝播されます。期限切れ後は自動クリーンアップされます。短すぎるとオフラインデバイスが削除を見逃す可能性があり、長すぎると設定ファイルのサイズが増加します',
     tombstoneRetentionDaysUnit: '日',
     setAutoSyncFailed: '自動同期の設定に失敗しました',
     wizardTitle: 'クラウド同期設定ウィザード',
@@ -641,7 +654,7 @@ export default {
     loading: '読み込み中...',
     expand: '展開',
     collapse: '折りたたむ',
-    backToList: 'リストに戻る',
+    backToList: '戻る',
     user: 'ユーザー',
     assistant: 'アシスタント',
     noMessages: 'メッセージがありません',
@@ -655,7 +668,8 @@ export default {
     deleteSuccess: 'セッションを削除しました',
     deleteFailed: '削除に失敗しました',
     deleteProject: 'プロジェクトを削除',
-    deleteProjectConfirm: 'プロジェクト「{name}」とその全セッション（{count}件）を削除してよろしいですか？この操作は取り消せません。',
+    deleteProjectConfirm:
+      'プロジェクト「{name}」とその全セッション（{count}件）を削除してよろしいですか？この操作は取り消せません。',
     deleteProjectSuccess: 'プロジェクトを削除しました',
     scrollForMore: '下にスクロールしてさらに表示',
     backToTop: 'トップへ戻る',
@@ -684,7 +698,7 @@ export default {
     statusNotFound: '未検出',
     quickOpen: {
       core: 'iFlow コアディレクトリ',
-      config: 'iFlow 設定ディレクトリ'
+      config: 'iFlow 設定ディレクトリ',
     },
     mods: {
       title: 'インストール済み Mod',
@@ -697,7 +711,7 @@ export default {
       emptyDesc: 'Mod をインポートして iFlow コアファイルの機能を変更',
       enableSuccess: '"{name}" を有効化しました',
       disableSuccess: '"{name}" を無効化しました',
-deleteSuccess: '「{name}」を削除しました',
+      deleteSuccess: '「{name}」を削除しました',
       disableFailed: '「{name}」の無効化に失敗しました',
       exportSuccess: '「{name}」をエクスポートしました',
       importSuccess: '{count} 個の Mod をインポートしました',
@@ -708,9 +722,10 @@ deleteSuccess: '「{name}」を削除しました',
         append: '追加',
         prepend: '先頭追加',
         patch: 'パッチ',
-        diff: '差分'
+        diff: '差分',
       },
-      replaceConflict: '置換タイプの Mod「{conflict}」が既に有効です。「{name}」を有効にすると「{conflict}」は自動的に無効になります。続行しますか？',
+      replaceConflict:
+        '置換タイプの Mod「{conflict}」が既に有効です。「{name}」を有効にすると「{conflict}」は自動的に無効になります。続行しますか？',
       replaceSwapSuccess: '{name} に置き換えました（{conflict} を無効化）',
       detail: {
         id: 'ID',
@@ -725,8 +740,8 @@ deleteSuccess: '「{name}」を削除しました',
         tags: 'タグ',
         dependsOn: '依存',
         include: '含むファイル',
-        description: '説明'
-      }
+        description: '説明',
+      },
     },
     applying: {
       enabling: 'Mod を有効化中…',
@@ -738,13 +753,13 @@ deleteSuccess: '「{name}」を削除しました',
       detectingConflictsProgress: '競合を検出中…',
     },
     category: {
-      all: 'すべて'
+      all: 'すべて',
     },
     compatibility: {
       tooOld: 'iFlow v{required} が必要、現在の v{current} は古すぎます',
       tooNew: 'iFlow v{required} が必要、現在の v{current} は新しすぎます',
       exactRequired: 'iFlow v{required} が必要、現在の v{current} は一致しません',
-      versionUnavailable: 'iFlow バージョンを検出できません、互換性チェックをスキップ'
+      versionUnavailable: 'iFlow バージョンを検出できません、互換性チェックをスキップ',
     },
     errors: {
       missingModJson: 'Mod パッケージに mod.json がありません',
@@ -770,18 +785,19 @@ deleteSuccess: '「{name}」を削除しました',
       fileNotFound: 'ファイルが見つかりません',
     },
     exportDialog: {
-      title: 'Mod をエクスポート'
+      title: 'Mod をエクスポート',
     },
     importExport: {
       importTitle: 'Mod をインポート',
       overwriteConfirm: 'Mod「{name}」は既に存在します。上書きしますか？',
       importError: 'Mod のインポートに失敗しました: {error}',
-      diffGenerationError: 'パッチファイルの自動生成に失敗しました: {error}'
+      diffGenerationError: 'パッチファイルの自動生成に失敗しました: {error}',
     },
     conflictDetection: {
       title: 'Mod 競合検出',
-      message: '「{modA}」と「{modB}」の間に競合が見つかりました。両方の Mod が同じ {count} 行を変更しています：{lines}\n\n「{modB}」の変更が「{modA}」の変更を上書きします。続行しますか？'
-    }
+      message:
+        '「{modA}」と「{modB}」の間に競合が見つかりました。両方の Mod が同じ {count} 行を変更しています：{lines}\n\n「{modB}」の変更が「{modA}」の変更を上書きします。続行しますか？',
+    },
   },
   docs: {
     title: 'ドキュメント',
@@ -811,6 +827,6 @@ deleteSuccess: '「{name}」を削除しました',
     loadFailed: 'ドキュメントの読み込みに失敗しました',
     retry: '再試行',
     toc: '目次',
-    navHint: '左側のストライプにホバーするとドキュメントナビゲーションが開きます'
-  }
+    navHint: '左側のストライプにホバーするとドキュメントナビゲーションが開きます',
+  },
 }

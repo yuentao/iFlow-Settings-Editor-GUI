@@ -248,6 +248,7 @@ function formatTokens(count: number): string {
   align-items: flex-start;
   padding-top: 8px;
   flex-shrink: 0;
+  margin-right: 10px;
 
   input[type='checkbox'] {
     width: 16px;

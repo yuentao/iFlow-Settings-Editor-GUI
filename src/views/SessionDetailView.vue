@@ -62,12 +62,7 @@
       </div>
 
       <!-- 项目信息 + 消息统计 -->
-      <div v-if="project" class="project-info-bar">
-        <span class="project-name-row">
-          <Folder size="12" />
-          <span>{{ project.name }}</span>
-        </span>
-        <span class="stat-separator"></span>
+      <div v-if="project" class="project-info-bar">        
         <span v-if="stats" class="stats-row">
           <span class="stat-item">{{ $t('projects.totalMessages') }}: {{ stats.totalMessages }}</span>
           <span class="stat-divider">|</span>
@@ -76,9 +71,6 @@
           <span class="stat-item">{{ $t('projects.assistant') }}: {{ stats.assistantMessages }}</span>
           <span class="stat-divider">|</span>
           <span class="stat-item">{{ $t('projects.toolCalls') }}: {{ stats.toolCalls }}</span>
-          <span v-if="stats.toolCalls > 0" class="stat-item success-rate">
-            ({{ ((stats.toolCallSuccess / stats.toolCalls) * 100).toFixed(0) }}%)
-          </span>
           <template v-if="stats.totalTokens > 0">
             <span class="stat-divider">|</span>
             <span class="stat-item" :class="{ estimated: stats.isEstimated }">

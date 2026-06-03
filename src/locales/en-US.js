@@ -93,7 +93,8 @@ export default {
     showMemoryUsage: 'Show Memory Usage',
     showMemoryUsageDesc: 'Display CLI memory usage at the bottom status bar',
     maxSessionTurns: 'Max Session Turns',
-    maxSessionTurnsDesc: 'Set the maximum number of session turns. If the session exceeds this limit, the CLI will stop processing and start a new chat.',
+    maxSessionTurnsDesc:
+      'Set the maximum number of session turns. If the session exceeds this limit, the CLI will stop processing and start a new chat.',
     maxSessionTurnsUnit: 'turns',
     connectivityPollInterval: 'Connectivity Poll Interval',
     connectivityPollIntervalDesc: 'Time interval for periodic API connectivity checks',
@@ -104,7 +105,8 @@ export default {
     excludeTools: 'Exclude Tools',
     excludeToolsDesc:
       'Specify a list of core tool names to exclude from the CLI. You can also specify command-specific restrictions for supported tools like ShellTool. For example, "excludeTools": ["ShellTool(rm -rf)"] would block the rm -rf command. Default: no tools excluded.',
-    excludeToolsSecurityNote: 'Command-specific restrictions for ShellTool are based on simple string matching and can be easily bypassed. This is not a security mechanism and should not be relied upon for safe execution of untrusted code.',
+    excludeToolsSecurityNote:
+      'Command-specific restrictions for ShellTool are based on simple string matching and can be easily bypassed. This is not a security mechanism and should not be relied upon for safe execution of untrusted code.',
     excludeToolsSecurityNoteLabel: 'Security Note',
     excludeToolsPlaceholder: 'e.g. ShellTool, glob',
     languageInterface: 'Language & Interface',
@@ -123,7 +125,8 @@ export default {
     disabled: 'Disabled',
 
     autoAccept: 'Auto Accept Safe Tools',
-    autoAcceptDesc: 'CLI automatically accepts and executes tools deemed safe (e.g. read-only operations) without explicit user confirmation',
+    autoAcceptDesc:
+      'CLI automatically accepts and executes tools deemed safe (e.g. read-only operations) without explicit user confirmation',
     hideBanner: 'Hide Startup Banner',
     hideBannerDesc: 'Hide the CLI startup banner (ASCII art logo) when enabled',
     disableAutoUpdate: 'Disable Auto Update',
@@ -146,7 +149,8 @@ export default {
     approvalModeAutoEdit: 'AutoEdit',
     approvalModeDefault: 'Default',
     thinkingModeEnabled: 'Thinking Mode',
-    thinkingModeEnabledDesc: 'When enabled, AI performs internal reasoning before giving final answers, only effective on models that support thinking mode',
+    thinkingModeEnabledDesc:
+      'When enabled, AI performs internal reasoning before giving final answers, only effective on models that support thinking mode',
 
     acrylicEffect: 'Acrylic Effect',
     acrylicEffectDesc: 'Enable window acrylic transparency (disable to reduce memory usage)',
@@ -155,7 +159,8 @@ export default {
     acrylicMax: 'Transparent',
     autoLaunchSettings: 'Auto Start',
     autoLaunch: 'Auto Start on Boot',
-    autoLaunchHint: 'When enabled, the application will automatically start when the system boots and run silently in the background without showing the main window.',
+    autoLaunchHint:
+      'When enabled, the application will automatically start when the system boots and run silently in the background without showing the main window.',
     sectionPreferences: 'Preferences',
     sectionCloudSync: 'Cloud Sync',
     experimental: 'Experimental',
@@ -238,7 +243,8 @@ export default {
       timeout: 'Request timed out, please try again later',
     },
     validation: {
-      nameNoSpecial: 'Name can only contain letters, numbers, Chinese, hyphens, and underscores, and cannot start with a digit',
+      nameNoSpecial:
+        'Name can only contain letters, numbers, Chinese, hyphens, and underscores, and cannot start with a digit',
       nameNoDigitStart: 'Name cannot start with a digit',
       urlFormat: 'Please enter a valid URL format, e.g. https://api.example.com',
       modelNoSpecial: 'Model name can only contain letters, digits, dots, hyphens, underscores, colons, and slashes',
@@ -531,7 +537,8 @@ export default {
     changePassword: 'Change Password',
     passwordHint: 'Used to encrypt sensitive data. Keep it safe (cannot be recovered)',
     rememberPassword: 'Remember Sync Password',
-    rememberPasswordDesc: "When enabled, the password is securely stored by the system so you don't need to re-enter it after restarting",
+    rememberPasswordDesc:
+      "When enabled, the password is securely stored by the system so you don't need to re-enter it after restarting",
     passwordMinLength: 'Password must be at least 8 characters',
     passwordMismatch: 'Passwords do not match',
     oldPassword: 'Old Password',
@@ -540,9 +547,11 @@ export default {
     passwordIncorrect: 'Incorrect password',
     enterPassword: 'Enter sync password',
     passwordChangedNeedRepush: 'Password changed. You need to re-push data to cloud.',
-    passwordChangedRepushFailed: 'Password updated on this device, but re-pushing to cloud failed: {error}. It will be retried on the next manual sync.',
+    passwordChangedRepushFailed:
+      'Password updated on this device, but re-pushing to cloud failed: {error}. It will be retried on the next manual sync.',
     errPasswordIncorrect: 'Sync password is incorrect. Please verify and try again.',
-    errPasswordLikelyIncorrect: 'Sync password may be incorrect — remote files could not be decrypted. Please verify and try again.',
+    errPasswordLikelyIncorrect:
+      'Sync password may be incorrect — remote files could not be decrypted. Please verify and try again.',
     deviceTitle: 'Device Management',
     deviceName: 'Device Name',
     renameDevice: 'Rename Device',
@@ -579,7 +588,8 @@ export default {
     syncPasswordHintTag: '(Encrypts sync data, unrelated to WebDAV password)',
     configSectionAdvanced: 'Advanced Sync Settings',
     tombstoneRetentionDays: 'Deletion Record Retention Days',
-    tombstoneRetentionDaysDesc: 'Sync deletions will propagate to other devices within this period. Expired records are auto-cleaned. Too short may cause offline devices to miss deletions; too long increases config file size',
+    tombstoneRetentionDaysDesc:
+      'Sync deletions will propagate to other devices within this period. Expired records are auto-cleaned. Too short may cause offline devices to miss deletions; too long increases config file size',
     tombstoneRetentionDaysUnit: 'days',
     setAutoSyncFailed: 'Failed to set auto sync',
     wizardTitle: 'Cloud Sync Setup Wizard',
@@ -643,7 +653,7 @@ export default {
     loading: 'Loading...',
     expand: 'Expand',
     collapse: 'Collapse',
-    backToList: 'Back to list',
+    backToList: 'Back',
     user: 'User',
     assistant: 'Assistant',
     noMessages: 'No messages',
@@ -657,7 +667,8 @@ export default {
     deleteSuccess: 'Session deleted',
     deleteFailed: 'Delete failed',
     deleteProject: 'Delete Project',
-    deleteProjectConfirm: 'Are you sure you want to delete project "{name}" and all its sessions ({count} total)? This action cannot be undone.',
+    deleteProjectConfirm:
+      'Are you sure you want to delete project "{name}" and all its sessions ({count} total)? This action cannot be undone.',
     deleteProjectSuccess: 'Project deleted',
     scrollForMore: 'Scroll down to see more',
     backToTop: 'Back to top',
@@ -712,7 +723,8 @@ export default {
         patch: 'Patch',
         diff: 'Diff',
       },
-      replaceConflict: 'Replace mod "{conflict}" is already enabled. Enabling "{name}" will disable "{conflict}". Continue?',
+      replaceConflict:
+        'Replace mod "{conflict}" is already enabled. Enabling "{name}" will disable "{conflict}". Continue?',
       replaceSwapSuccess: 'Replaced with {name} (disabled {conflict})',
       detail: {
         id: 'ID',
@@ -727,8 +739,8 @@ export default {
         tags: 'Tags',
         dependsOn: 'Depends On',
         include: 'Includes',
-        description: 'Description'
-      }
+        description: 'Description',
+      },
     },
     applying: {
       enabling: 'Enabling mod…',
@@ -782,7 +794,8 @@ export default {
     },
     conflictDetection: {
       title: 'Mod Conflict Detected',
-      message: 'Conflict found between "{modA}" and "{modB}". Both mods modify the same {count} line(s): {lines}\n\n"{modB}" will overwrite "{modA}" changes. Continue?',
+      message:
+        'Conflict found between "{modA}" and "{modB}". Both mods modify the same {count} line(s): {lines}\n\n"{modB}" will overwrite "{modA}" changes. Continue?',
     },
   },
   docs: {
