@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="dialog-overlay">
+  <div v-if="show" class="dialog-overlay" @keyup.esc="$emit('close')" tabindex="-1" ref="overlayRef">
     <div class="dialog command-editor-dialog" @click.stop>
       <div class="dialog-title">
         {{ command ? $t('commands.editor.editTitle') : $t('commands.editor.createTitle') }}
@@ -90,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 
 const props = defineProps({
   show: {
@@ -104,6 +104,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'save'])
+
+const overlayRef = ref(null)
 
 const formData = ref({
   name: '',
@@ -122,27 +124,43 @@ const isValid = computed(() => {
   return base && formData.value.name && /^[a-zA-Z0-9_-]+$/.test(formData.value.name)
 })
 
+const initFormData = () => {
+  if (props.command) {
+    formData.value = {
+      name: props.command.name || '',
+      description: props.command.description || '',
+      category: props.command.category || 'utility',
+      version: props.command.version || '1',
+      author: props.command.author === '{{__anonymous__}}' ? '' : (props.command.author || ''),
+      prompt: props.command.prompt || ''
+    }
+  } else {
+    formData.value = {
+      name: '',
+      description: '',
+      category: 'utility',
+      version: '1',
+      author: '',
+      prompt: ''
+    }
+  }
+}
+
+onMounted(() => {
+  if (props.show) {
+    initFormData()
+    nextTick(() => {
+      overlayRef.value?.focus()
+    })
+  }
+})
+
 watch(() => props.show, (show) => {
   if (show) {
-    if (props.command) {
-      formData.value = {
-        name: props.command.name || '',
-        description: props.command.description || '',
-        category: props.command.category || 'utility',
-        version: props.command.version || '1',
-        author: props.command.author === '{{__anonymous__}}' ? '' : (props.command.author || ''),
-        prompt: props.command.prompt || ''
-      }
-    } else {
-      formData.value = {
-        name: '',
-        description: '',
-        category: 'utility',
-        version: '1',
-        author: '',
-        prompt: ''
-      }
-    }
+    initFormData()
+    nextTick(() => {
+      overlayRef.value?.focus()
+    })
   }
 })
 

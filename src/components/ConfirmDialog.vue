@@ -1,5 +1,5 @@
 <template>
-  <div class="dialog-overlay dialog-overlay-top" @click.self="$emit('cancel')">
+  <div class="dialog-overlay dialog-overlay-top" @click.self="$emit('cancel')" @keyup.esc="$emit('cancel')" tabindex="-1" ref="overlayRef">
     <div class="dialog message-dialog" @click.stop>
       <div class="message-dialog-icon message-dialog-icon-warning">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -19,6 +19,10 @@
 </template>
 
 <script setup>
+import { ref, onMounted, nextTick } from 'vue'
+
+const overlayRef = ref(null)
+
 defineProps({
   titleKey: {
     type: String,
@@ -39,6 +43,12 @@ defineProps({
 })
 
 defineEmits(['confirm', 'cancel'])
+
+onMounted(() => {
+  nextTick(() => {
+    overlayRef.value?.focus()
+  })
+})
 </script>
 
 <style lang="less" scoped>

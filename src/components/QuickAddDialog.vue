@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="dialog-overlay" @click.self="$emit('close')">
+  <div v-if="show" class="dialog-overlay" @click.self="$emit('close')" @keyup.esc="$emit('close')" tabindex="-1" ref="overlayRef">
     <div class="dialog" @click.stop>
       <!-- 阶段 1：粘贴输入 -->
       <template v-if="phase === 'input'">
@@ -93,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { parseMcpInput, ensureUniqueName } from '../shared/mcpParser'
 
@@ -112,7 +112,22 @@ const parseError = ref('')
 const phase = ref('input') // 'input' | 'select'
 const parsedServers = ref([])
 const inputRef = ref(null)
+const overlayRef = ref(null)
 const showHelp = ref(false)
+
+onMounted(() => {
+  if (props.show) {
+    inputText.value = ''
+    parseError.value = ''
+    phase.value = 'input'
+    parsedServers.value = []
+    showHelp.value = false
+    nextTick(() => {
+      overlayRef.value?.focus()
+      inputRef.value?.focus()
+    })
+  }
+})
 
 watch(() => props.show, (val) => {
   if (val) {
@@ -122,6 +137,7 @@ watch(() => props.show, (val) => {
     parsedServers.value = []
     showHelp.value = false
     nextTick(() => {
+      overlayRef.value?.focus()
       inputRef.value?.focus()
     })
   }

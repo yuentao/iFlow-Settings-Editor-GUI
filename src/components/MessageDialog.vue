@@ -1,5 +1,5 @@
 <template>
-  <div v-if="dialog.show" class="dialog-overlay dialog-overlay-top">
+  <div v-if="dialog.show" class="dialog-overlay dialog-overlay-top" @keyup.esc="handleConfirm" tabindex="-1" ref="overlayRef">
     <div class="dialog message-dialog" @click.stop>
       <div class="message-dialog-icon" :class="'message-dialog-icon-' + dialog.type">
         <svg v-if="dialog.type === 'info'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -34,6 +34,8 @@
 /**
  * MessageDialog - 消息对话框组件
  */
+import { ref, watch, nextTick } from 'vue'
+
 interface DialogState {
   show: boolean
   type: 'info' | 'success' | 'warning' | 'error'
@@ -46,7 +48,7 @@ interface Props {
   dialog: DialogState
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   dialog: () => ({
     show: false,
     type: 'info',
@@ -58,6 +60,16 @@ withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   close: []
 }>()
+
+const overlayRef = ref<HTMLElement | null>(null)
+
+watch(() => props.dialog.show, (show: boolean) => {
+  if (show) {
+    nextTick(() => {
+      overlayRef.value?.focus()
+    })
+  }
+})
 
 const handleConfirm = (): void => {
   emit('close')

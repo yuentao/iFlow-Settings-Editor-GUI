@@ -1,5 +1,5 @@
 <template>
-  <div v-if="dialog.show" class="dialog-overlay dialog-overlay-top">
+  <div v-if="dialog.show" class="dialog-overlay dialog-overlay-top" @keyup.esc="handleCancel" tabindex="-1" ref="overlayRef">
     <div class="dialog" @click.stop>
       <div class="dialog-title">{{ $t(dialog.title) }}</div>
       <div v-if="dialog.isConfirm" class="dialog-confirm-text">{{ $t(dialog.placeholder, { name: dialog.name, conflict: dialog.conflict }) }}</div>
@@ -24,7 +24,7 @@
 /**
  * InputDialog - 输入对话框组件
  */
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick, onMounted } from 'vue'
 
 interface DialogState {
   show: boolean
@@ -55,10 +55,23 @@ const emit = defineEmits<{
 }>()
 
 const inputValue = ref('')
+const overlayRef = ref<HTMLElement | null>(null)
+
+onMounted(() => {
+  if (props.dialog.show) {
+    inputValue.value = props.dialog.defaultValue || ''
+    nextTick(() => {
+      overlayRef.value?.focus()
+    })
+  }
+})
 
 watch(() => props.dialog.show, (show: boolean) => {
   if (show) {
     inputValue.value = props.dialog.defaultValue || ''
+    nextTick(() => {
+      overlayRef.value?.focus()
+    })
   }
 })
 

@@ -232,7 +232,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from 'vue'
+import { ref, watch, nextTick, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Server, Save, Delete, Add } from '@icon-park/vue-next'
 
@@ -444,6 +444,15 @@ function localToServerConfig(local: LocalServerData): Record<string, any> {
 }
 
 // --- watchers ---
+
+onMounted(() => {
+  if (props.show && props.data) {
+    localData.value = serverConfigToLocal(props.data)
+    errors.value = {}
+    advancedExpanded.value = false
+    nextTick(() => overlay.value?.focus())
+  }
+})
 
 watch(() => props.show, (val: boolean) => {
   if (val && props.data) {
