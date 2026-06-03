@@ -191,7 +191,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
-          <select class="form-select" v-model="editData.selectedAuthType">
+          <select class="form-select" v-model="editData.selectedAuthType" :disabled="isEditingActive">
             <option value="iflow">{{ $t('api.auth.iflow') }}</option>
             <option value="api">{{ $t('api.auth.api') }}</option>
             <option value="openai-compatible">{{ $t('api.auth.openaiCompatible') }}</option>
@@ -205,6 +205,7 @@
             :class="{ 'form-input--error': editBaseUrlError }"
             v-model="editData.baseUrl"
             :placeholder="$t('api.baseUrlPlaceholder')"
+            :disabled="isEditingActive"
           />
           <div class="form-error" :class="{ 'form-error--invisible': !editBaseUrlError }">
             {{ editBaseUrlError ? $t(editBaseUrlError) : '' }}
@@ -218,6 +219,7 @@
               class="form-input"
               v-model="editData.apiKey"
               :placeholder="$t('api.apiKeyPlaceholder')"
+              :disabled="isEditingActive"
             />
           </div>
           <div class="form-group">
@@ -287,6 +289,7 @@
                 v-model.number="editData.expiryDays"
                 :placeholder="$t('api.expiryDaysPlaceholder')"
                 min="0"
+                :disabled="isEditingActive"
               />
               <span class="input-suffix">{{ $t('api.expiryDaysUnit') }}</span>
             </div>
@@ -686,6 +689,11 @@ const editTokensLimitK = computed({
       props.editData.tokensLimit = Math.round(val * 1000)
     }
   },
+})
+
+// 是否正在编辑当前使用中的配置（仅允许修改模型名称和上下文窗口长度）
+const isEditingActive = computed((): boolean => {
+  return !!(props.currentProfileName && props.editData?.name === props.currentProfileName)
 })
 
 const handleSaveCreate = (): void => {

@@ -78,7 +78,6 @@
           <div class="profile-actions">
             <button
               class="action-btn"
-              v-if="currentProfile !== profile.name"
               @click.stop="$emit('edit-profile', profile.name)"
               :title="$t('api.edit')"
             >
