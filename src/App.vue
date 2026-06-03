@@ -54,7 +54,7 @@
 
           <DocsView v-if="currentSection === 'docs'" />
 
-          <IflowModsView v-if="currentSection === 'iflow'" @show-input-dialog="showInput" />
+          <IflowModsView v-show="currentSection === 'iflow'" @show-input-dialog="showInput" />
 
           <ProjectsView v-show="currentSection === 'projects' && !activeSession" @open-session="openSessionDetail" />
           <SessionDetailView v-if="currentSection === 'projects' && activeSession" :project="activeSession.project" :session="activeSession.session" @back="closeSessionDetail" />
@@ -247,7 +247,7 @@ const IflowModsView = defineAsyncComponent({
   loader: () => import('./views/IflowModsView.vue'),
   loadingComponent,
   errorComponent,
-  delay: 200,
+  delay: 0,
 })
 const ProjectsView = defineAsyncComponent({
   loader: () => import('./views/ProjectsView.vue'),
