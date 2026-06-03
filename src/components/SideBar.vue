@@ -107,6 +107,14 @@ const toggleCollapse = (): void => {
   flex-direction: column;
   flex-shrink: 0;
   transition: width var(--duration-slow) var(--ease-out);
+
+  &.collapsed {
+    width: 48px;
+
+    .nav-content {
+      padding: 16px 4px;
+    }
+  }
 }
 
 .nav-content {
