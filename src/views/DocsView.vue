@@ -6,7 +6,12 @@
       <aside v-if="tocItems.length > 0" :class="['docs-toc', { 'docs-toc-hidden': !tocVisible }]">
         <h4 class="docs-toc-title">{{ t('docs.toc') }}</h4>
         <ul class="docs-toc-list">
-          <li v-for="item in tocItems" :key="item.id" :class="['docs-toc-item', `toc-h${item.level}`, { active: activeHeadingId === item.id }]" @click="scrollToHeading(item.id)">
+          <li
+            v-for="item in tocItems"
+            :key="item.id"
+            :class="['docs-toc-item', `toc-h${item.level}`, { active: activeHeadingId === item.id }]"
+            @click="scrollToHeading(item.id)"
+          >
             {{ item.text }}
           </li>
         </ul>
@@ -32,7 +37,11 @@
     <!-- 文档导航侧边栏（默认收起，点击悬浮按钮展开） -->
     <aside :class="['docs-nav', { expanded: navExpanded }]">
       <!-- 悬浮按钮 -->
-      <button class="docs-nav-toggle" @click="toggleNav" :title="navExpanded ? $t('docs.collapseNav') : $t('docs.expandNav')">
+      <button
+        class="docs-nav-toggle"
+        @click="toggleNav"
+        :title="navExpanded ? $t('docs.collapseNav') : $t('docs.expandNav')"
+      >
         <span class="toggle-icon" :class="{ open: navExpanded }"></span>
       </button>
       <div class="docs-nav-body">
@@ -44,7 +53,12 @@
           <div v-for="section in navSections" :key="section.titleKey" class="docs-nav-section">
             <h3 class="docs-nav-title">{{ t(section.titleKey) }}</h3>
             <ul class="docs-nav-list">
-              <li v-for="item in section.items" :key="item.key" :class="{ active: currentDoc === item.key }" @click="navigateToWithCollapse(item.key)">
+              <li
+                v-for="item in section.items"
+                :key="item.key"
+                :class="{ active: currentDoc === item.key }"
+                @click="navigateToWithCollapse(item.key)"
+              >
                 <span class="nav-indicator"></span>
                 {{ t(item.labelKey) }}
               </li>
@@ -125,7 +139,11 @@ marked.use({
 // ── Vite 构建时静态导入所有 markdown 文件 ──────────────────
 // import.meta.glob + ?raw 将 markdown 内容在构建时打包进 JS，
 // 彻底避免 Electron file:// 协议下 fetch 失败的问题
-const docModules = import.meta.glob('../assets/docs/**/*.md', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>
+const docModules = import.meta.glob('../assets/docs/**/*.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>
 
 // 导航配置（数据驱动，path 匹配 glob 键）
 const navSections = computed(() => [
@@ -138,7 +156,11 @@ const navSections = computed(() => [
     items: [
       { key: 'basic-usage', labelKey: 'docs.basicUsage', path: '../assets/docs/examples/basic-usage.md' },
       { key: 'interactive', labelKey: 'docs.interactiveMode', path: '../assets/docs/features/interactive.md' },
-      { key: 'keyboard-shortcuts', labelKey: 'docs.keyboardShortcuts', path: '../assets/docs/examples/keyboard-shortcuts.md' },
+      {
+        key: 'keyboard-shortcuts',
+        labelKey: 'docs.keyboardShortcuts',
+        path: '../assets/docs/examples/keyboard-shortcuts.md',
+      },
     ],
   },
   {
@@ -435,32 +457,10 @@ onBeforeUnmount(() => {
   height: 100%;
   overflow-y: auto;
   position: relative;
-
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
-  }
 }
 
 .docs-content-inner {
-  max-width: 820px;
-  padding: 32px 48px 64px;
-}
-
-// 窄屏内容区适配
-@media (max-width: 1100px) {
-  .docs-content-inner {
-    max-width: 100%;
-    padding: 32px 32px 64px;
-  }
+  padding: 32px 30px 64px;
 }
 
 // ── 加载骨架屏 ─────────────────────────────────────────
@@ -575,6 +575,7 @@ onBeforeUnmount(() => {
   font-size: 15px;
   line-height: 1.75;
   color: var(--text-primary);
+  user-select: text;
 
   :deep(h1) {
     font-size: 26px;
@@ -935,12 +936,4 @@ onBeforeUnmount(() => {
 .dark .docs-nav .docs-nav-body {
   background: #1a1a1a;
 }
-
-@media (max-width: 1100px) {
-  .docs-nav .docs-nav-body {
-    width: 196px;
-  }
-}
-
-
 </style>
