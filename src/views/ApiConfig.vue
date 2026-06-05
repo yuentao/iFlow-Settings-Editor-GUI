@@ -439,61 +439,107 @@ function getExpiryClass(name) {
     gap: 8px;
 
     .profile-item {
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 10px;
-      gap: 12px;
+      flex-direction: row;
+      align-items: center;
+      padding: 12px 14px;
+      gap: 0;
+      position: relative;
+      overflow: hidden;
+
+      // 悬浮遮罩层
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--bg-elevated);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: 1;
+        pointer-events: none;
+      }
 
       &:hover {
         transform: scale(1.02);
+
+        &::before {
+          opacity: 0.9;
+          pointer-events: auto;
+        }
+
+        .profile-actions,
+        .drag-handle {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+
+      // 内容层（不受遮罩影响）
+      .profile-icon,
+      .profile-info,
+      .profile-status {
+        position: relative;
+        z-index: 0;
       }
 
       .drag-handle {
         position: absolute;
-        top: 8px;
-        right: 8px;
+        top: 6px;
+        right: 6px;
         margin: 0;
         opacity: 0;
+        pointer-events: none;
         transition: opacity 0.15s ease;
-      }
-
-      &:hover .drag-handle {
-        opacity: 1;
+        z-index: 3;
       }
 
       .profile-icon {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
 
         .profile-icon-text {
-          font-size: 18px;
+          font-size: 14px;
         }
       }
 
       .profile-info {
-        margin-left: 0;
-        width: 100%;
+        margin-left: 12px;
+        flex: 1;
+        min-width: 0;
       }
 
       .profile-name-row {
-        flex-wrap: wrap;
-        gap: 6px;
+        flex-wrap: nowrap;
+        gap: 8px;
       }
 
       .profile-model-row {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        margin-top: 4px;
       }
 
       .profile-status {
-        margin-left: 0;
-        margin-top: 0;
+        margin-left: 10px;
+        flex-shrink: 0;
       }
 
+      // 操作按钮在遮罩层中绝对定位，不挤压内容
       .profile-actions {
-        width: 100%;
-        margin-left: 0;
-        margin-top: 0;
-        padding-top: 5px;
-        border-top: 1px solid var(--border-light);
-        justify-content: flex-end;
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        margin: 0;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+        z-index: 3;
+        display: flex;
+        gap: 4px;
+        background: var(--bg-elevated);
+        padding: 4px 8px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
       }
     }
   }
