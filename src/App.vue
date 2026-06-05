@@ -44,8 +44,7 @@
             @edit-profile="openApiEditDialog"
             @duplicate-profile="duplicateApiProfile"
             @delete-profile="deleteApiProfile"
-            @reorder-profiles="reorderApiProfiles"
-            @update-settings="handleApiConfigSettingsUpdate" />
+            @reorder-profiles="reorderApiProfiles" />
 
           <McpServers v-if="currentSection === 'mcp'" :servers="settings.mcpServers" :server-count="serverCount" @add-server="addServer" @quick-add="openQuickAddDialog" @edit-server="openEditServerPanel" @delete-server="deleteServerByName" />
 
@@ -363,11 +362,6 @@ const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', a
 
 const updateSettings = newSettings => {
   settings.value = newSettings
-}
-
-// 处理 ApiConfig 的部分设置更新（如布局模式切换）
-const handleApiConfigSettingsUpdate = partialSettings => {
-  settings.value = { ...settings.value, ...partialSettings }
 }
 
 const loadApiProfiles = async () => {

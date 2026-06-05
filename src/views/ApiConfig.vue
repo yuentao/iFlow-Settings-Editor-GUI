@@ -10,13 +10,6 @@
           <Plus size="14" />
           {{ $t('api.newProfile') }}
         </button>
-        <button
-          class="btn btn-icon layout-toggle-btn"
-          :title="layoutMode === 'list' ? $t('api.switchToGrid') : $t('api.switchToList')"
-          @click="toggleLayout"
-        >
-          <component :is="layoutMode === 'list' ? ViewGridCard : ListView" size="16" />
-        </button>
       </div>
     </div>
     <div class="card" v-if="profiles.length > 0">
@@ -120,7 +113,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Edit, Delete, Exchange, Copy, ViewGridCard, ListView } from '@icon-park/vue-next'
+import { Plus, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import moment from 'moment'
@@ -149,14 +142,10 @@ const emit = defineEmits([
   'duplicate-profile',
   'delete-profile',
   'reorder-profiles',
-  'update-settings',
 ])
 
 // --- 布局模式 ---
 const layoutMode = computed(() => props.settings?.apiConfigLayout || 'list')
-const toggleLayout = () => {
-  emit('update-settings', { apiConfigLayout: layoutMode.value === 'list' ? 'grid' : 'list' })
-}
 
 // Local copy of profiles for VueDraggable v-model sync
 const localProfiles = ref([...props.profiles])
@@ -543,14 +532,6 @@ function getExpiryClass(name) {
       }
     }
   }
-}
-
-// 布局切换按钮
-.layout-toggle-btn {
-  padding: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .profile-item {
