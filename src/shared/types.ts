@@ -61,6 +61,7 @@ export interface Settings {
   connectivityPollInterval?: number  // API 连通性检测间隔（秒），默认 30
   modelUsageRefreshInterval?: number  // 模型使用统计刷新间隔（分钟），默认 5
   logLevel?: 'info' | 'debug' | 'silent'  // 日志级别，默认 info
+  apiConfigLayout?: 'list' | 'grid'  // API 配置页面布局方式，默认 list
   customThemes?: Record<string, CustomThemeConfig>
   cloudSync?: {
     enabled?: boolean

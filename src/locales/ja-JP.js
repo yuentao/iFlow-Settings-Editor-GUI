@@ -156,6 +156,11 @@ export default {
     acrylicIntensity: 'アクリリック強度',
     acrylicMin: '不透明',
     acrylicMax: '透明',
+    apiConfigLayout: 'API 設定レイアウト',
+    layoutMode: 'レイアウトモード',
+    layoutModeDesc: 'API 設定ページの表示方法を選択',
+    layoutList: 'リスト表示',
+    layoutGrid: 'グリッド表示',
     autoLaunchSettings: '自動起動',
     autoLaunch: 'システム起動時に自動起動',
     autoLaunchHint:
@@ -222,6 +227,8 @@ export default {
     configCopied: 'プロファイルを "{name}" に複製しました',
     switchFailed: '切り替えに失敗しました',
     dragToSort: 'ドラッグして並べ替え',
+    switchToList: 'リスト表示に切り替え',
+    switchToGrid: 'グリッド表示に切り替え',
     noProfiles: 'API プロファイルがありません',
     addFirstProfile: '最初の API プロファイルを作成して始めましょう',
     auth: {

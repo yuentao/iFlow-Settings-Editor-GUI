@@ -10,12 +10,19 @@
           <Plus size="14" />
           {{ $t('api.newProfile') }}
         </button>
+        <button
+          class="btn btn-icon layout-toggle-btn"
+          :title="layoutMode === 'list' ? $t('api.switchToGrid') : $t('api.switchToList')"
+          @click="toggleLayout"
+        >
+          <component :is="layoutMode === 'list' ? ViewGridCard : ListView" size="16" />
+        </button>
       </div>
     </div>
     <div class="card" v-if="profiles.length > 0">
       <VueDraggable
         v-model="localProfiles"
-        class="profile-list"
+        :class="['profile-list', `layout-${layoutMode}`]"
         handle=".drag-handle"
         :animation="250"
         ghostClass="sortable-ghost"
@@ -113,7 +120,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Edit, Delete, Exchange, Copy } from '@icon-park/vue-next'
+import { Plus, Edit, Delete, Exchange, Copy, ViewGridCard, ListView } from '@icon-park/vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import moment from 'moment'
@@ -142,7 +149,14 @@ const emit = defineEmits([
   'duplicate-profile',
   'delete-profile',
   'reorder-profiles',
+  'update-settings',
 ])
+
+// --- 布局模式 ---
+const layoutMode = computed(() => props.settings?.apiConfigLayout || 'list')
+const toggleLayout = () => {
+  emit('update-settings', { apiConfigLayout: layoutMode.value === 'list' ? 'grid' : 'list' })
+}
 
 // Local copy of profiles for VueDraggable v-model sync
 const localProfiles = ref([...props.profiles])
@@ -417,6 +431,80 @@ function getExpiryClass(name) {
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  // 网格布局模式
+  &.layout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+
+    .profile-item {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 10px;
+      gap: 12px;
+
+      &:hover {
+        transform: scale(1.02);
+      }
+
+      .drag-handle {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        margin: 0;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+      }
+
+      &:hover .drag-handle {
+        opacity: 1;
+      }
+
+      .profile-icon {
+
+        .profile-icon-text {
+          font-size: 18px;
+        }
+      }
+
+      .profile-info {
+        margin-left: 0;
+        width: 100%;
+      }
+
+      .profile-name-row {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .profile-model-row {
+        flex-wrap: wrap;
+      }
+
+      .profile-status {
+        margin-left: 0;
+        margin-top: 0;
+      }
+
+      .profile-actions {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 0;
+        padding-top: 5px;
+        border-top: 1px solid var(--border-light);
+        justify-content: flex-end;
+      }
+    }
+  }
+}
+
+// 布局切换按钮
+.layout-toggle-btn {
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .profile-item {

@@ -157,6 +157,11 @@ export default {
     acrylicIntensity: 'Acrylic Intensity',
     acrylicMin: 'Opaque',
     acrylicMax: 'Transparent',
+    apiConfigLayout: 'API Config Layout',
+    layoutMode: 'Layout Mode',
+    layoutModeDesc: 'Choose how API profiles are displayed',
+    layoutList: 'List View',
+    layoutGrid: 'Grid View',
     autoLaunchSettings: 'Auto Start',
     autoLaunch: 'Auto Start on Boot',
     autoLaunchHint:
@@ -223,6 +228,8 @@ export default {
     configCopied: 'Configuration copied as "{name}"',
     switchFailed: 'Switch failed',
     dragToSort: 'Drag to sort',
+    switchToList: 'Switch to list view',
+    switchToGrid: 'Switch to grid view',
     noProfiles: 'No API Profiles',
     addFirstProfile: 'Create your first API profile to get started',
     auth: {
