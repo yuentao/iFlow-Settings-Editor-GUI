@@ -29,9 +29,12 @@
       <p class="docs-nav-hint">{{ t('docs.navHint') }}</p>
     </main>
 
-    <!-- 文档导航侧边栏（默认收起为标识条，hover 展开） -->
-    <aside class="docs-nav">
-      <div class="docs-nav-stripe"></div>
+    <!-- 文档导航侧边栏（默认收起，点击悬浮按钮展开） -->
+    <aside :class="['docs-nav', { expanded: navExpanded }]">
+      <!-- 悬浮按钮 -->
+      <button class="docs-nav-toggle" @click="toggleNav" :title="navExpanded ? $t('docs.collapseNav') : $t('docs.expandNav')">
+        <span class="toggle-icon" :class="{ open: navExpanded }"></span>
+      </button>
       <div class="docs-nav-body">
         <div class="docs-nav-header">
           <h1 class="docs-nav-heading">{{ $t('docs.title') }}</h1>
@@ -41,7 +44,7 @@
           <div v-for="section in navSections" :key="section.titleKey" class="docs-nav-section">
             <h3 class="docs-nav-title">{{ t(section.titleKey) }}</h3>
             <ul class="docs-nav-list">
-              <li v-for="item in section.items" :key="item.key" :class="{ active: currentDoc === item.key }" @click="navigateTo(item.key)">
+              <li v-for="item in section.items" :key="item.key" :class="{ active: currentDoc === item.key }" @click="navigateToWithCollapse(item.key)">
                 <span class="nav-indicator"></span>
                 {{ t(item.labelKey) }}
               </li>
@@ -78,8 +81,17 @@ const activeHeadingId = ref('')
 const tocVisible = ref(true)
 let observer: IntersectionObserver | null = null
 
-// ── 导航栏配置 ──────────────────────────────────────────
-// 导航栏默认收起为左侧标识条，hover 时 CSS 展开展开，无需 JS 控制
+// ── 导航栏展开/收起状态 ──────────────────────────────────
+const navExpanded = ref(false)
+const toggleNav = () => {
+  navExpanded.value = !navExpanded.value
+}
+
+// 点击导航项后自动收起
+const navigateToWithCollapse = (docName: string) => {
+  navExpanded.value = false
+  navigateTo(docName)
+}
 
 // 根据标题文本生成 slug，与 Markdown 锚点链接匹配（如 ## 核心命令 → id="核心命令"）
 const slugify = (text: string): string => {
@@ -699,44 +711,101 @@ onBeforeUnmount(() => {
   height: 100%;
   z-index: 20;
   display: flex;
-  width: 4px; // 默认仅标识条宽度
-  transition: width 0.2s ease;
+  width: 0; // 默认不占空间
+  pointer-events: none; // 默认不拦截点击，让内容区可交互
 
-  // 标识条（默认可见，带呼吸动画提示可交互）
-  .docs-nav-stripe {
-    width: 4px;
-    height: 100%;
-    background: var(--accent);
-    opacity: 0.35;
-    border-radius: 0 2px 2px 0;
-    flex-shrink: 0;
-    animation: stripe-pulse 2.5s ease-in-out infinite;
-    transition: opacity 0.25s ease;
-    position: relative;
-    overflow: hidden;
+  // 悬浮按钮（静止时贴靠左边只露一半，hover 时恢复正常）
+  .docs-nav-toggle {
+    position: absolute;
+    left: -18px; // 贴靠左边，36px 宽度只露出 18px（右半部分）
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 25;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-sm);
     cursor: pointer;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    opacity: 0.5; // 静止时降低透明度
+    transition:
+      background 0.15s ease,
+      box-shadow 0.15s ease,
+      left 0.25s ease,
+      opacity 0.2s ease;
 
-    // 光扫效果（与呼吸同步 2.5s）
-    &::after {
-      content: '';
-      position: absolute;
-      top: -40%;
+    // hover 时：恢复正常位置和透明度
+    &:hover {
       left: 0;
-      width: 100%;
-      height: 40%;
-      background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
-      animation: stripe-sweep 2.5s ease-in-out infinite;
+      opacity: 1;
+      background: var(--control-fill);
+      box-shadow: var(--shadow-medium);
+    }
+
+    &:active {
+      background: var(--bg-secondary);
+    }
+
+    // 汉堡图标（三条横线 → X）
+    .toggle-icon {
+      position: relative;
+      width: 16px;
+      height: 2px;
+      background: var(--text-secondary);
+      border-radius: 1px;
+      transition: background 0.25s ease;
+
+      &::before,
+      &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: var(--text-secondary);
+        border-radius: 1px;
+        transition: all 0.25s ease;
+      }
+
+      &::before {
+        top: -6px;
+      }
+
+      &::after {
+        top: 6px;
+      }
+
+      // 展开时变为 X
+      &.open {
+        background: transparent;
+
+        &::before {
+          top: 0;
+          transform: rotate(45deg);
+        }
+
+        &::after {
+          top: 0;
+          transform: rotate(-45deg);
+        }
+      }
     }
   }
 
-  // hover 时：整个导航栏展开，呼吸动画暂停，标识条变亮
-  &:hover,
-  &:has(.docs-nav-stripe:hover) {
-    width: 220px; // 4(stripe) + 216(body)
+  // 展开时：显示导航面板，按钮右移
+  &.expanded {
+    width: 220px;
+    pointer-events: auto;
 
-    .docs-nav-stripe {
-      animation-play-state: paused;
-      opacity: 0.6;
+    .docs-nav-toggle {
+      left: 230px;
+      opacity: 1; // 展开时按钮完全可见
     }
 
     .docs-nav-body {
@@ -748,7 +817,7 @@ onBeforeUnmount(() => {
 
   // 导航栏主体（默认隐藏）
   .docs-nav-body {
-    width: 216px; // 220 - 4(stripe)
+    width: 216px;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -873,35 +942,5 @@ onBeforeUnmount(() => {
   }
 }
 
-// ── 标识条呼吸动画关键帧 ─────────────────────────────────
-@keyframes stripe-pulse {
-  0%,
-  100% {
-    opacity: 0.35;
-    filter: brightness(1);
-  }
-  50% {
-    opacity: 0.55;
-    filter: brightness(1.15);
-  }
-}
 
-// ── 标识条光扫动画关键帧 ─────────────────────────────────
-@keyframes stripe-sweep {
-  0% {
-    top: -40%;
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.8;
-  }
-  50% {
-    top: 100%;
-    opacity: 0.3;
-  }
-  100% {
-    top: 100%;
-    opacity: 0;
-  }
-}
 </style>

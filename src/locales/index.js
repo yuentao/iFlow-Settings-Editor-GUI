@@ -825,6 +825,8 @@ export default {
     loadFailed: '加载文档失败',
     retry: '重试',
     toc: '目录',
-    navHint: '将鼠标悬停在左侧标识条可打开文档导航',
+    navHint: '点击左侧悬浮按钮可打开文档导航',
+    expandNav: '展开文档导航',
+    collapseNav: '收起文档导航',
   },
 }

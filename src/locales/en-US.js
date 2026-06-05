@@ -826,6 +826,8 @@ export default {
     loadFailed: 'Failed to load document',
     retry: 'Retry',
     toc: 'Contents',
-    navHint: 'Hover over the left stripe to open the document navigation',
+    navHint: 'Click the floating button on the left to open the document navigation',
+    expandNav: 'Expand document navigation',
+    collapseNav: 'Collapse document navigation',
   },
 }
