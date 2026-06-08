@@ -85,18 +85,27 @@ function writeModsMetadata(metadata) {
   fs.renameSync(tmpPath, MODS_JSON_PATH)
 }
 
+// 模块级缓存：应用生命周期内 shell 命令结果不变
+let cachedNpmPrefix = null
+let cachedIflowVersion = null
+let preloadPromise = null
+
 /**
- * 获取 npm 全局路径
+ * 获取 npm 全局路径（带缓存）
  * @returns {Promise<string>} npm prefix 路径
  */
 async function getNpmPrefix() {
+  if (cachedNpmPrefix !== null) {
+    return cachedNpmPrefix
+  }
   return new Promise((resolve, reject) => {
     exec('npm config get prefix', { timeout: 5000, windowsHide: true }, (error, stdout, stderr) => {
       if (error) {
         reject(new Error(`Failed to get npm prefix: ${error.message}`))
         return
       }
-      resolve(stdout.trim())
+      cachedNpmPrefix = stdout.trim()
+      resolve(cachedNpmPrefix)
     })
   })
 }
@@ -135,6 +144,9 @@ function stripAnsi(str) {
 }
 
 async function getIflowVersion() {
+  if (cachedIflowVersion !== null) {
+    return cachedIflowVersion
+  }
   return new Promise((resolve, reject) => {
     exec('iflow -v', { timeout: 5000, windowsHide: true }, (error, stdout, stderr) => {
       if (error) {
@@ -157,6 +169,7 @@ async function getIflowVersion() {
         reject(new Error('iflow version is empty'))
         return
       }
+      cachedIflowVersion = version
       resolve(version)
     })
   })
@@ -1179,6 +1192,31 @@ async function removeIncludeFiles(modId, includeMap, iflowPath) {
   }
 }
 
+/**
+ * 预加载 iFlow 状态（npm prefix + iflow 版本号）
+ * 在应用启动时异步调用，结果缓存到模块变量中。
+ * 后续 getNpmPrefix() / getIflowVersion() 直接返回缓存值。
+ * @returns {Promise<void>}
+ */
+async function preloadIflowStatus() {
+  if (preloadPromise) return preloadPromise
+
+  preloadPromise = (async () => {
+    try {
+      // 并行执行两个独立的 shell 命令
+      await Promise.allSettled([
+        getNpmPrefix(),
+        getIflowVersion(),
+      ])
+      logger.info('iFlow status preloaded successfully')
+    } catch (error) {
+      logger.warn('iFlow status preload failed:', error.message)
+    }
+  })()
+
+  return preloadPromise
+}
+
 module.exports = {
   isPathSafe,
   ensureModsDir,
@@ -1214,4 +1252,5 @@ module.exports = {
   MODS_DIR,
   MODS_JSON_PATH,
   IFLOW_BASE_DIR,
+  preloadIflowStatus,
 }

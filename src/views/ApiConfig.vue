@@ -15,7 +15,7 @@
     <div class="card" v-if="profiles.length > 0">
       <VueDraggable
         v-model="localProfiles"
-        class="profile-list"
+        :class="['profile-list', `layout-${layoutMode}`]"
         handle=".drag-handle"
         :animation="250"
         ghostClass="sortable-ghost"
@@ -76,12 +76,7 @@
             </span>
           </div>
           <div class="profile-actions">
-            <button
-              class="action-btn"
-              v-if="currentProfile !== profile.name"
-              @click.stop="$emit('edit-profile', profile.name)"
-              :title="$t('api.edit')"
-            >
+            <button class="action-btn" @click.stop="$emit('edit-profile', profile.name)" :title="$t('api.edit')">
               <Edit size="14" />
             </button>
             <button
@@ -148,6 +143,9 @@ const emit = defineEmits([
   'delete-profile',
   'reorder-profiles',
 ])
+
+// --- 布局模式 ---
+const layoutMode = computed(() => props.settings?.apiConfigLayout || 'list')
 
 // Local copy of profiles for VueDraggable v-model sync
 const localProfiles = ref([...props.profiles])
@@ -294,32 +292,14 @@ watch(pollIntervalMs, () => {
   }
 })
 
-// 窗口可见性监听清理函数
-let visibilityHandler = null
-
 onMounted(() => {
   // 初始化配置名集合
   prevProfileNames = new Set(props.profiles.map(p => p.name))
   startPolling()
-
-  // 窗口隐藏到托盘时暂停连通性轮询，恢复时重启
-  visibilityHandler = () => {
-    if (document.hidden) {
-      stopPolling()
-    } else {
-      startPolling()
-    }
-  }
-  document.addEventListener('visibilitychange', visibilityHandler)
 })
 
 onUnmounted(() => {
   stopPolling()
-  // 移除窗口可见性监听
-  if (visibilityHandler) {
-    document.removeEventListener('visibilitychange', visibilityHandler)
-    visibilityHandler = null
-  }
 })
 
 const profileColors = [
@@ -440,6 +420,118 @@ function getExpiryClass(name) {
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  // 网格布局模式
+  &.layout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+
+    .profile-item {
+      flex-direction: row;
+      align-items: center;
+      padding: 12px 14px;
+      gap: 0;
+      position: relative;
+      overflow: hidden;
+
+      // 悬浮遮罩层
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--bg-elevated);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      &:hover {
+        transform: scale(1.02);
+
+        &::before {
+          opacity: 0.9;
+          pointer-events: auto;
+        }
+
+        .profile-actions,
+        .drag-handle {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+
+      // 内容层（不受遮罩影响）
+      .profile-icon,
+      .profile-info,
+      .profile-status {
+        position: relative;
+        z-index: 0;
+      }
+
+      .drag-handle {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        margin: 0;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+        z-index: 3;
+      }
+
+      .profile-icon {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+
+        .profile-icon-text {
+          font-size: 14px;
+        }
+      }
+
+      .profile-info {
+        margin-left: 12px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .profile-name-row {
+        flex-wrap: nowrap;
+        gap: 8px;
+      }
+
+      .profile-model-row {
+        flex-wrap: nowrap;
+        margin-top: 4px;
+      }
+
+      .profile-status {
+        margin-left: 10px;
+        flex-shrink: 0;
+      }
+
+      // 操作按钮在遮罩层中绝对定位，不挤压内容
+      .profile-actions {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        margin: 0;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+        z-index: 3;
+        display: flex;
+        gap: 4px;
+        background: var(--bg-elevated);
+        padding: 4px 8px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+      }
+    }
+  }
 }
 
 .profile-item {

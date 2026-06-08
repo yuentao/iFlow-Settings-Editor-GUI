@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="dialog-overlay dialog-overlay-top" @click="handleCancel">
+  <div v-if="show" class="dialog-overlay dialog-overlay-top" @click="handleLater" @keyup.esc="handleLater" tabindex="-1" ref="overlayRef">
     <div class="update-notification" @click.stop>
       <div class="update-header">
         <div class="update-icon">
@@ -46,7 +46,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 
 const props = defineProps({
@@ -69,6 +69,16 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update', 'later', 'close'])
+
+const overlayRef = ref(null)
+
+watch(() => props.show, (val) => {
+  if (val) {
+    nextTick(() => {
+      overlayRef.value?.focus()
+    })
+  }
+})
 
 // 格式化 Markdown 格式的更新日志
 const formattedReleaseNotes = computed(() => {

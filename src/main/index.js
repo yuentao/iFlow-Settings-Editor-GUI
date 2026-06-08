@@ -23,6 +23,7 @@ const { createTray, destroyTray } = require('./tray')
 const { registerIpcHandlers } = require('./ipc')
 const { initAutoLaunch } = require('./services/autoLaunchService')
 const { readSettings } = require('./services/configService')
+const { preloadIflowStatus } = require('./services/iflowService')
 const { t } = require('./utils/translations')
 const { initAutoUpdater, setMainWindowRef, cleanupTempFiles } = require('./autoUpdater')
 
@@ -109,6 +110,10 @@ async function initializeApp() {
 
   // 注册 IPC 处理器
   registerIpcHandlers(getMainWindow, t)
+
+  // 后台预加载 iFlow 状态（npm prefix + 版本号），结果缓存到内存
+  // 在 splash 阶段异步执行，不阻塞窗口显示
+  preloadIflowStatus()
 
   // 根据设置初始化日志级别
   try {

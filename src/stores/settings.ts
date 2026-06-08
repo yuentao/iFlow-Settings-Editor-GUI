@@ -36,6 +36,7 @@ export const useSettingsStore = defineStore('settings', () => {
     approvalMode: 'autoEdit',
     thinkingModeEnabled: 'true',
     connectivityPollInterval: 30,
+    apiConfigLayout: 'list',
   })
 
   const isLoading = ref(true)

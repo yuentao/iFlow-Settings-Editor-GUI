@@ -2,7 +2,7 @@
   <aside class="sidebar" :class="{ collapsed }">
     <div class="nav-content">
       <div class="sidebar-section">
-        <div class="sidebar-title" v-show="!collapsed">{{ $t('sidebar.general') }}</div>
+        <div class="sidebar-title" :class="{ 'title-hidden': collapsed }">{{ $t('sidebar.general') }}</div>
         <div class="nav-item" :class="{ active: currentSection === 'dashboard' }" @click="$emit('navigate', 'dashboard')">
           <Dashboard size="16" />
           <span class="nav-item-text">{{ $t('sidebar.dashboard') }}</span>
@@ -22,7 +22,7 @@
         </div>
       </div>
       <div class="sidebar-section">
-        <div class="sidebar-title" v-show="!collapsed">{{ $t('sidebar.advanced') }}</div>
+        <div class="sidebar-title" :class="{ 'title-hidden': collapsed }">{{ $t('sidebar.advanced') }}</div>
         <div class="nav-item" :class="{ active: currentSection === 'mcp' }" @click="$emit('navigate', 'mcp')">
           <Server size="16" />
           <span class="nav-item-text">{{ $t('sidebar.mcpServers') }}</span>
@@ -106,7 +106,16 @@ const toggleCollapse = (): void => {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: width var(--duration-slow) var(--ease-out);
+  overflow: hidden;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.collapsed {
+    width: 48px;
+
+    .nav-content {
+      padding: 8px 0;
+    }
+  }
 }
 
 .nav-content {
@@ -116,6 +125,12 @@ const toggleCollapse = (): void => {
   flex-direction: column;
   gap: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: padding 0.2s cubic-bezier(0.4, 0, 0.2, 1), gap 0.2s ease;
+
+  .sidebar.collapsed & {
+    gap: 4px;
+  }
 }
 
 // 全局后台下载进度条（侧边栏底部）
@@ -212,9 +227,14 @@ const toggleCollapse = (): void => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  opacity: 1;
+  transition: opacity 0.15s ease;
 
   .sidebar.collapsed & {
-    display: none;
+    opacity: 0;
+    width: 0;
+    flex: 0;
+    overflow: hidden;
   }
 }
 
@@ -281,6 +301,11 @@ const toggleCollapse = (): void => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  transition: gap 0.2s ease;
+
+  .sidebar.collapsed & {
+    gap: 2px;
+  }
 }
 
 .sidebar-title {
@@ -291,6 +316,17 @@ const toggleCollapse = (): void => {
   color: var(--text-tertiary);
   padding: 0 12px;
   margin-bottom: 6px;
+  overflow: hidden;
+  max-height: 20px;
+  opacity: 1;
+  transition: opacity 0.15s ease, max-height 0.2s ease, margin 0.2s ease, padding 0.2s ease;
+
+  &.title-hidden {
+    opacity: 0;
+    max-height: 0;
+    margin-bottom: 0;
+    padding: 0;
+  }
 }
 
 // Win11 Fluent NavView item — with left accent pill indicator
@@ -303,12 +339,23 @@ const toggleCollapse = (): void => {
   transition:
     background var(--duration-normal) var(--ease-out),
     color var(--duration-normal) var(--ease-out),
-    box-shadow var(--duration-normal) var(--ease-out);
+    box-shadow var(--duration-normal) var(--ease-out),
+    padding 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    gap 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    margin 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 400;
   gap: 10px;
   position: relative;
+
+  // 图标容器：固定尺寸，不收缩
+  :deep(.iconpark-icon) {
+    flex-shrink: 0;
+  }
 
   // Fluent Reveal hover
   &::before {
@@ -341,11 +388,17 @@ const toggleCollapse = (): void => {
   }
 
   .sidebar.collapsed & {
-    padding: 10px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     justify-content: center;
+    align-items: center;
+    gap: 0;
+    margin: 0 auto;
+    border-radius: 6px;
 
     :deep(.iconpark-icon) {
-      font-size: 20px;
+      font-size: 18px;
     }
 
     // Collapse indicator to bottom dot
@@ -401,9 +454,16 @@ const toggleCollapse = (): void => {
 
 .nav-item-text {
   flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.15s ease, flex 0.2s ease;
 
   .sidebar.collapsed & {
-    display: none;
+    opacity: 0;
+    flex: 0 0 0px;
+    overflow: hidden;
+    pointer-events: none;
   }
 }
 
@@ -416,9 +476,17 @@ const toggleCollapse = (): void => {
   color: var(--warning, #FFB953);
   border: 1px solid var(--warning-border, rgba(255, 185, 83, 0.3));
   flex-shrink: 0;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.15s ease, max-width 0.2s ease, padding 0.2s ease, margin 0.2s ease;
 
   .sidebar.collapsed & {
-    display: none;
+    opacity: 0;
+    max-width: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    flex-shrink: 0;
   }
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
   <!-- API Create Dialog -->
-  <div v-if="showCreate" class="dialog-overlay dialog-overlay-top" @keyup.esc="$emit('close-create')" tabindex="-1">
+  <div v-if="showCreate" class="dialog-overlay dialog-overlay-top" @keyup.esc="$emit('close-create')" tabindex="-1" ref="createOverlayRef">
     <div class="dialog api-edit-dialog" @click.stop>
       <div class="dialog-header">
         <div class="dialog-title">
@@ -161,7 +161,7 @@
   </div>
 
   <!-- API Edit Dialog -->
-  <div v-if="showEdit" class="dialog-overlay dialog-overlay-top" @keyup.esc="$emit('close-edit')" tabindex="-1">
+  <div v-if="showEdit" class="dialog-overlay dialog-overlay-top" @keyup.esc="$emit('close-edit')" tabindex="-1" ref="editOverlayRef">
     <div class="dialog api-edit-dialog" @click.stop>
       <div class="dialog-header">
         <div class="dialog-title">
@@ -191,7 +191,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
-          <select class="form-select" v-model="editData.selectedAuthType">
+          <select class="form-select" v-model="editData.selectedAuthType" :disabled="isEditingActive">
             <option value="iflow">{{ $t('api.auth.iflow') }}</option>
             <option value="api">{{ $t('api.auth.api') }}</option>
             <option value="openai-compatible">{{ $t('api.auth.openaiCompatible') }}</option>
@@ -205,6 +205,7 @@
             :class="{ 'form-input--error': editBaseUrlError }"
             v-model="editData.baseUrl"
             :placeholder="$t('api.baseUrlPlaceholder')"
+            :disabled="isEditingActive"
           />
           <div class="form-error" :class="{ 'form-error--invisible': !editBaseUrlError }">
             {{ editBaseUrlError ? $t(editBaseUrlError) : '' }}
@@ -218,6 +219,7 @@
               class="form-input"
               v-model="editData.apiKey"
               :placeholder="$t('api.apiKeyPlaceholder')"
+              :disabled="isEditingActive"
             />
           </div>
           <div class="form-group">
@@ -287,6 +289,7 @@
                 v-model.number="editData.expiryDays"
                 :placeholder="$t('api.expiryDaysPlaceholder')"
                 min="0"
+                :disabled="isEditingActive"
               />
               <span class="input-suffix">{{ $t('api.expiryDaysUnit') }}</span>
             </div>
@@ -323,7 +326,7 @@
  * ApiProfileDialog - API 配置编辑对话框组件
  * 支持从 OpenAI 兼容 /models 接口自动获取模型列表
  */
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { Key, Save, Refresh, Loading } from '@icon-park/vue-next'
 import type { AuthType } from '@/shared/types'
 
@@ -391,12 +394,14 @@ const createModelsLoading = ref(false)
 const createModelsError = ref('')
 const createModelsErrorParams = ref<Record<string, any>>({})
 const showCreateDropdown = ref(false)
+const createOverlayRef = ref<HTMLElement | null>(null)
 
 const editModels = ref<ModelItem[]>([])
 const editModelsLoading = ref(false)
 const editModelsError = ref('')
 const editModelsErrorParams = ref<Record<string, any>>({})
 const showEditDropdown = ref(false)
+const editOverlayRef = ref<HTMLElement | null>(null)
 
 // Dropdown position (fixed, for Teleport)
 const createDropdownPos = ref({ top: 0, left: 0, width: 0 })
@@ -536,11 +541,29 @@ function handleGlobalClick(e: MouseEvent): void {
   showEditDropdown.value = false
 }
 
+onMounted(() => {
+  if (props.showCreate) {
+    document.addEventListener('mousedown', handleGlobalClick)
+    nextTick(() => {
+      createOverlayRef.value?.focus()
+    })
+  }
+  if (props.showEdit) {
+    document.addEventListener('mousedown', handleGlobalClick)
+    nextTick(() => {
+      editOverlayRef.value?.focus()
+    })
+  }
+})
+
 watch(
   () => props.showCreate,
   val => {
     if (val) {
       document.addEventListener('mousedown', handleGlobalClick)
+      nextTick(() => {
+        createOverlayRef.value?.focus()
+      })
     } else {
       document.removeEventListener('mousedown', handleGlobalClick)
       createModels.value = []
@@ -556,6 +579,9 @@ watch(
   val => {
     if (val) {
       document.addEventListener('mousedown', handleGlobalClick)
+      nextTick(() => {
+        editOverlayRef.value?.focus()
+      })
     } else {
       document.removeEventListener('mousedown', handleGlobalClick)
       editModels.value = []
@@ -686,6 +712,11 @@ const editTokensLimitK = computed({
       props.editData.tokensLimit = Math.round(val * 1000)
     }
   },
+})
+
+// 是否正在编辑当前使用中的配置（仅允许修改模型名称和上下文窗口长度）
+const isEditingActive = computed((): boolean => {
+  return !!(props.currentProfileName && props.editData?.name === props.currentProfileName)
 })
 
 const handleSaveCreate = (): void => {

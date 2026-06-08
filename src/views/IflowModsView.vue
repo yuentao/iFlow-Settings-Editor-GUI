@@ -95,7 +95,7 @@
     </div>
 
     <!-- Mod Detail Modal -->
-    <div v-if="detailMod" class="dialog-overlay" @click.self="detailMod = null" @keyup.esc="detailMod = null" tabindex="-1">
+    <div v-if="detailMod" class="dialog-overlay" @click.self="detailMod = null" @keyup.esc="detailMod = null" tabindex="-1" ref="detailOverlayRef">
       <div class="dialog mod-detail-dialog" @click.stop>
         <div class="dialog-header">
           <div class="dialog-title">
@@ -226,7 +226,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Puzzle, FolderOpen, Download, Delete, Success, Caution, SwitchButton, FolderSettingsOne, FolderCodeOne } from '@icon-park/vue-next'
 import GenericList from '@/components/GenericList.vue'
@@ -248,6 +248,15 @@ const applyingText = ref('')
 const applyingProgress = ref({ current: 0, total: 0, modName: '' })
 const selectedCategory = ref('all')
 const detailMod = ref(null)
+const detailOverlayRef = ref(null)
+
+watch(detailMod, (val) => {
+  if (val) {
+    nextTick(() => {
+      detailOverlayRef.value?.focus()
+    })
+  }
+})
 
 // 进度事件清理函数
 let cleanupApplyProgress = null

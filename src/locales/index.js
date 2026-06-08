@@ -3,35 +3,35 @@ export default {
     title: 'iFlow 设置编辑器',
     name: 'iFlow 设置编辑器',
     company: '上海潘哆呐科技有限公司',
-    retry: '重试'
+    retry: '重试',
   },
   window: {
     minimize: '最小化',
     maximize: '最大化',
-    close: '关闭'
+    close: '关闭',
   },
   sidebar: {
     general: '常规',
-    dashboard: '仪表盘',
+    dashboard: '概览',
     generalSettings: '通用设置',
     projects: '项目会话',
     apiConfig: 'API 配置',
     advanced: '高级',
     mcpServers: 'MCP 服务器',
-    iflowMod: 'iFlow Mod',
+    iflowMod: '模组',
     experimental: '实验性',
     skills: '技能',
     commands: '命令',
-    docs: '使用指南'
+    docs: '指南',
   },
   dashboard: {
-    title: '仪表盘',
+    title: '概览',
     description: '查看 iFlow CLI 配置概览',
     currentApiConfig: '当前 API 配置',
     mcpServers: 'MCP 服务器',
     skills: '技能',
     commands: '命令',
-    iflowMod: 'iFlow Mod',
+    iflowMod: '模组',
     cloudSync: '云同步',
     cloudSyncDisabled: '已禁用',
     cloudSyncNotConfigured: '未配置',
@@ -56,7 +56,7 @@ export default {
     noServers: '暂未配置',
     noSkills: '暂未安装',
     noCommands: '暂无命令',
-    noMods: '暂无 Mod',
+    noMods: '暂无模组',
     enabled: '已启用',
     disabled: '已禁用',
     shown: '已显示',
@@ -96,7 +96,8 @@ export default {
     maxSessionTurnsDesc: '设置会话的最大轮数。如果会话超过此限制，CLI 将停止处理并开始新的聊天。(-1 代表无限制)',
     maxSessionTurnsUnit: '次',
     excludeTools: '排除工具',
-    excludeToolsDesc: '允许您指定应该从CLI中排除的核心工具名称列表。您还可以为支持的工具指定命令特定限制，如 ShellTool。例如，"excludeTools": ["ShellTool(rm -rf)"] 将阻止 rm -rf 命令。默认值：不排除任何工具。',
+    excludeToolsDesc:
+      '允许您指定应该从CLI中排除的核心工具名称列表。您还可以为支持的工具指定命令特定限制，如 ShellTool。例如，"excludeTools": ["ShellTool(rm -rf)"] 将阻止 rm -rf 命令。默认值：不排除任何工具。',
     excludeToolsSecurityNote: '此功能基于简单字符串匹配，可以轻易绕过，不应依赖它来安全执行不受信任的代码。',
     excludeToolsSecurityNoteLabel: '安全注意',
     excludeToolsPlaceholder: '例如：ShellTool, glob',
@@ -146,6 +147,11 @@ export default {
     acrylicIntensity: '亚克力强度',
     acrylicMin: '不透明',
     acrylicMax: '透明',
+    apiConfigLayout: 'API 配置布局',
+    layoutMode: '布局模式',
+    layoutModeDesc: '选择 API 配置页面的显示方式',
+    layoutList: '列表视图',
+    layoutGrid: '网格视图',
     autoLaunchSettings: '开机自启动',
     autoLaunch: '开机自启动',
     autoLaunchHint: '启用后，应用程序将在系统启动时自动运行，并以后台模式静默启动，不显示主窗口。',
@@ -181,7 +187,7 @@ export default {
   theme: {
     dark: '深色',
     light: '浅色',
-    system: '跟随系统'
+    system: '跟随系统',
   },
   api: {
     title: 'API 配置',
@@ -217,12 +223,14 @@ export default {
     configCopied: '配置已复制为 "{name}"',
     switchFailed: '切换失败',
     dragToSort: '拖动排序',
+    switchToList: '切换为列表视图',
+    switchToGrid: '切换为网格视图',
     noProfiles: '暂无 API 配置',
     addFirstProfile: '创建第一个 API 配置来开始使用',
     auth: {
       iflow: 'iFlow',
       api: 'API Key',
-      openaiCompatible: 'OpenAI 兼容'
+      openaiCompatible: 'OpenAI 兼容',
     },
     fetchModelsBtn: '获取模型列表',
     noModelsFound: '未找到匹配的模型',
@@ -234,13 +242,13 @@ export default {
       httpError: '请求失败 (HTTP {status})',
       invalidResponse: '服务器返回了无效的响应',
       networkError: '网络错误，请检查网络连接',
-      timeout: '请求超时，请稍后重试'
+      timeout: '请求超时，请稍后重试',
     },
     validation: {
       nameNoSpecial: '配置名称只能包含字母、数字、中文、中划线和下划线，且不能以数字开头',
       nameNoDigitStart: '配置名称不能以数字开头',
       urlFormat: '请输入有效的 URL 格式，如 https://api.example.com',
-      modelNoSpecial: '模型名称只能包含字母、数字、点号、中划线、下划线、冒号和斜杠'
+      modelNoSpecial: '模型名称只能包含字母、数字、点号、中划线、下划线、冒号和斜杠',
     },
     tokensLimit: '上下文窗口长度',
     tokensLimitPlaceholder: '128',
@@ -263,8 +271,8 @@ export default {
       slow: '延迟较高',
       unreachable: '无法连通',
       checking: '检测中...',
-      latency: '{ms}ms'
-    }
+      latency: '{ms}ms',
+    },
   },
   mcp: {
     title: 'MCP 服务器',
@@ -324,8 +332,8 @@ export default {
     quickAddTitle: '快速添加 MCP 服务器',
     quickAddPlaceholder: '粘贴 JSON 配置、命令行或 URL...',
     quickAddHint: '支持 JSON 配置、命令行、URL 格式，Ctrl+Enter 快速解析',
-  quickAddHelp: '查看格式示例',
-  quickAddHelpCmd: '命令行',
+    quickAddHelp: '查看格式示例',
+    quickAddHelpCmd: '命令行',
     quickAddParse: '解析',
     quickAddResultTitle: '解析到 {count} 个服务器',
     quickAddUnnamed: '未命名',
@@ -340,7 +348,7 @@ export default {
     quickAddErrorUnrecognized: '无法识别输入格式',
     quickAddErrorNotMcpConfig: 'JSON 格式不是有效的 MCP 服务器配置',
     quickAddErrorCmdInvalid: '命令行格式无效',
-    quickAddErrorUrlInvalid: 'URL 格式不正确'
+    quickAddErrorUrlInvalid: 'URL 格式不正确',
   },
   skills: {
     title: '技能管理',
@@ -357,7 +365,7 @@ export default {
     skillName: '技能名称',
     namePlaceholder: 'my-skill',
     cancel: '取消',
-    import: '导入'
+    import: '导入',
   },
   commands: {
     title: '命令管理',
@@ -376,7 +384,7 @@ export default {
       all: '全部',
       utility: '工具类',
       documentation: '文档类',
-      other: '其他'
+      other: '其他',
     },
     editor: {
       createTitle: '新建命令',
@@ -394,7 +402,7 @@ export default {
       promptPlaceholder: '输入命令的详细提示词...',
       promptHint: '支持多行文本，这将作为命令执行时的系统提示词',
       cancel: '取消',
-      save: '保存'
+      save: '保存',
     },
     commandCreated: '命令 "{name}" 已创建',
     commandSaved: '命令已保存',
@@ -406,8 +414,8 @@ export default {
     errors: {
       notFound: '命令不存在',
       alreadyExists: '命令已存在',
-      invalidName: '命令名只能包含字母、数字、中划线和下划线'
-    }
+      invalidName: '命令名只能包含字母、数字、中划线和下划线',
+    },
   },
   messages: {
     error: '错误',
@@ -432,10 +440,10 @@ export default {
   },
   dialog: {
     confirm: '确定',
-    cancel: '取消'
+    cancel: '取消',
   },
   footer: {
-    config: '配置'
+    config: '配置',
   },
   update: {
     title: '检查更新',
@@ -476,14 +484,14 @@ export default {
     menu: {
       checkUpdate: '检查更新',
       about: '关于',
-      autoUpdate: '自动更新'
+      autoUpdate: '自动更新',
     },
-    checking: '检查中...'
+    checking: '检查中...',
   },
   languages: {
     'zh-CN': '简体中文',
     'en-US': 'English',
-    'ja-JP': '日本語'
+    'ja-JP': '日本語',
   },
   cloudSync: {
     title: '云同步',
@@ -549,9 +557,10 @@ export default {
     // 设备
     deviceTitle: '设备管理',
     deviceName: '设备名称',
-      renameDevice: '重命名设备',
-      unnamedDevice: '未命名设备',
-      deviceNamePlaceholder: '请输入设备名称',    syncedDevices: '已同步设备',
+    renameDevice: '重命名设备',
+    unnamedDevice: '未命名设备',
+    deviceNamePlaceholder: '请输入设备名称',
+    syncedDevices: '已同步设备',
     thisDevice: '本机',
     removeDevice: '移除',
     confirmRemoveDevice: '确定要移除设备 "{name}" 的云端数据吗？',
@@ -585,7 +594,8 @@ export default {
     syncPasswordHintTag: '（加密同步数据，与 WebDAV 密码无关）',
     configSectionAdvanced: '高级同步设置',
     tombstoneRetentionDays: '删除记录保留天数',
-    tombstoneRetentionDaysDesc: '同步删除操作在此天数内会传播到其他设备，过期后自动清理。过短可能导致离线设备未收到删除信息，过长会增加配置文件体积',
+    tombstoneRetentionDaysDesc:
+      '同步删除操作在此天数内会传播到其他设备，过期后自动清理。过短可能导致离线设备未收到删除信息，过长会增加配置文件体积',
     tombstoneRetentionDaysUnit: '天',
     setAutoSyncFailed: '设置自动同步失败',
     wizardTitle: '云同步设置向导',
@@ -649,13 +659,16 @@ export default {
     loading: '加载中...',
     expand: '展开',
     collapse: '收起',
-    backToList: '返回列表',
+    backToList: '返回',
     user: '用户',
     assistant: '助手',
     noMessages: '暂无消息',
     newSession: '新会话',
     totalMessages: '消息',
     toolCalls: '工具调用',
+    inputTokens: '输入Token',
+    outputTokens: '输出Token',
+    totalTokens: '总计Token',
     deleteConfirm: '确定要删除这个会话吗？此操作不可恢复。',
     deleteSuccess: '会话已删除',
     deleteFailed: '删除失败',
@@ -683,41 +696,41 @@ export default {
     daysAgo: '{count} 天前',
   },
   iflow: {
-    title: 'iFlow Mod 管理',
+    title: '模组管理',
     description: '管理 iFlow CLI 核心文件的修改模块',
     fileStatus: '文件状态',
-    enabledMods: '已启用 Mod',
+    enabledMods: '已启用模组',
     statusFound: '已找到',
     statusNotFound: '未找到',
     quickOpen: {
       core: 'iFlow CLI 核心目录',
-      config: 'iFlow CLI 配置目录'
+      config: 'iFlow CLI 配置目录',
     },
     mods: {
-      title: '已安装的 Mod',
-      import: '导入 Mod',
+      title: '已安装的模组',
+      import: '导入模组',
       export: '导出',
       delete: '删除',
       enable: '启用',
       disable: '禁用',
-      emptyTitle: '暂无 Mod',
-      emptyDesc: '导入 Mod 来修改 iFlow CLI 核心文件的功能',
+      emptyTitle: '暂无模组',
+      emptyDesc: '导入模组来修改 iFlow CLI 核心文件的功能',
       enableSuccess: '已启用 "{name}"',
       disableSuccess: '已禁用 "{name}"',
       deleteSuccess: '已删除 "{name}"',
       disableFailed: '禁用 "{name}" 失败',
       exportSuccess: '已导出 "{name}"',
-      importSuccess: '已导入 {count} 个 Mod',
-      confirmDelete: '确定要删除 Mod "{name}" 吗？此操作不可撤销。',
-      confirmToggle: '启用/禁用 Mod 后需要重新启动 iFlow CLI 才能生效，是否继续？',
+      importSuccess: '已导入 {count} 个 模组',
+      confirmDelete: '确定要删除 "{name}" 吗？此操作不可撤销。',
+      confirmToggle: '启用/禁用模组后需要重新启动 iFlow CLI 才能生效，是否继续？',
       types: {
         replace: '替换',
         append: '追加',
         prepend: '前置',
         patch: '补丁',
-        diff: '差异'
+        diff: '差异',
       },
-      replaceConflict: '替换类型 Mod "{conflict}" 已启用。启用 "{name}" 将自动禁用 "{conflict}"，是否继续？',
+      replaceConflict: '替换类型模组 "{conflict}" 已启用。启用 "{name}" 将自动禁用 "{conflict}"，是否继续？',
       replaceSwapSuccess: '已替换为 {name}（已禁用 {conflict}）',
       detail: {
         id: '标识',
@@ -732,63 +745,64 @@ export default {
         tags: '标签',
         dependsOn: '依赖',
         include: '包含文件',
-        description: '描述'
-      }
+        description: '描述',
+      },
     },
     applying: {
-      enabling: '正在启用 Mod…',
-      disabling: '正在禁用 Mod…',
-      swapping: '正在替换 Mod…',
-      applyingMod: '正在应用 Mod: {name}',
+      enabling: '正在启用…',
+      disabling: '正在禁用…',
+      swapping: '正在替换…',
+      applyingMod: '正在应用: {name}',
       detectingConflicts: '正在检测冲突…',
       applyingChanges: '正在应用更改…',
       detectingConflictsProgress: '正在检测冲突…',
     },
     category: {
-      all: '全部'
+      all: '全部',
     },
     compatibility: {
       tooOld: '需要 iFlow CLI v{required}，当前 v{current} 版本过低',
       tooNew: '需要 iFlow CLI v{required}，当前 v{current} 版本过高',
       exactRequired: '需要 iFlow CLI v{required}，当前 v{current} 不匹配',
-      versionUnavailable: '无法检测 iFlow CLI 版本，跳过兼容性检查'
+      versionUnavailable: '无法检测 iFlow CLI 版本，跳过兼容性检查',
     },
     errors: {
-      missingModJson: 'Mod 包缺少 mod.json 文件',
+      missingModJson: '模组包缺少 mod.json 文件',
       invalidModJson: 'mod.json 格式无效',
       missingRequiredField: 'mod.json 缺少必填字段: {field}',
       invalidModType: '无效的 Mod 类型: {type}',
-      missingMainFile: 'Mod 包缺少主文件: {file}',
-      diffApplyFailed: '应用 Mod "{mod}" 失败: 补丁上下文不匹配',
-      modNotFound: '未找到 Mod: {id}',
+      missingMainFile: '模组包缺少主文件: {file}',
+      diffApplyFailed: '应用模组 "{mod}" 失败: 补丁上下文不匹配',
+      modNotFound: '未找到模组: {id}',
       iflowPathNotFound: '未找到 iFlow CLI 安装路径',
       iflowNotFound: '未找到 iflow.js 文件，请确认 iFlow CLI 已正确安装',
-      invalidModId: '无效的 Mod ID',
-      modDirNotFound: 'Mod 目录不存在',
+      invalidModId: '无效的模组 ID',
+      modDirNotFound: '模组目录不存在',
       noOriginalBackup: '未找到原始备份文件，无法恢复',
-      patchNotSupported: '补丁类型 Mod 暂不支持',
-      includeMapFileNotFound: 'Mod 额外文件 "{file}" 在包中不存在',
+      patchNotSupported: '补丁类型模组暂不支持',
+      includeMapFileNotFound: '模组额外文件 "{file}" 在包中不存在',
       includeMapDeployFailed: '部署额外文件失败: {error}',
       includeMapRemoveFailed: '清理额外文件失败: {error}',
       invalidDependsOn: 'dependsOn 必须是数组',
       invalidDependsOnItems: 'dependsOn 数组只能包含字符串',
       missingDependencies: '缺少依赖: {deps}，请先安装这些依赖。',
-      cannotDeleteDependent: '无法删除 {mods} - 有其他 Mod 依赖它',
+      cannotDeleteDependent: '无法删除 {mods} - 有其他模组依赖它',
       fileNotFound: '文件不存在',
     },
     exportDialog: {
-      title: '导出 Mod'
+      title: '导出模组',
     },
     importExport: {
-      importTitle: '导入 Mod',
-      overwriteConfirm: '已存在同名 Mod "{name}"，是否覆盖？',
-      importError: '导入 Mod 失败: {error}',
-      diffGenerationError: '自动生成补丁文件失败: {error}'
+      importTitle: '导入模组',
+      overwriteConfirm: '已存在同名模组 "{name}"，是否覆盖？',
+      importError: '导入模组失败: {error}',
+      diffGenerationError: '自动生成补丁文件失败: {error}',
     },
     conflictDetection: {
-      title: 'Mod 冲突检测',
-      message: '发现 "{modA}" 与 "{modB}" 存在冲突，两个 Mod 修改了相同的 {count} 行代码：{lines}\n\n"{modB}" 的改动会覆盖 "{modA}" 的改动，是否继续？'
-    }
+      title: '模组冲突检测',
+      message:
+        '发现 "{modA}" 与 "{modB}" 存在冲突，两个模组修改了相同的 {count} 行代码：{lines}\n\n"{modB}" 的改动会覆盖 "{modA}" 的改动，是否继续？',
+    },
   },
   docs: {
     title: '使用指南',
@@ -818,6 +832,8 @@ export default {
     loadFailed: '加载文档失败',
     retry: '重试',
     toc: '目录',
-    navHint: '将鼠标悬停在左侧标识条可打开文档导航'
-  }
+    navHint: '点击左侧悬浮按钮可打开文档导航',
+    expandNav: '展开文档导航',
+    collapseNav: '收起文档导航',
+  },
 }

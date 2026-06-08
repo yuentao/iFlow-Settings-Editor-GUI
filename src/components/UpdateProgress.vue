@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="dialog-overlay dialog-overlay-top" @click="handleCancel">
+  <div v-if="show" class="dialog-overlay dialog-overlay-top" @click="handleCancel" @keyup.esc="handleCancel" tabindex="-1" ref="overlayRef">
     <div class="update-progress" @click.stop>
       <div class="progress-header">
         <div class="progress-icon">
@@ -65,7 +65,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 
 const props = defineProps({
   show: {
@@ -95,6 +95,16 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['cancel', 'install', 'later', 'background'])
+
+const overlayRef = ref(null)
+
+watch(() => props.show, (val) => {
+  if (val) {
+    nextTick(() => {
+      overlayRef.value?.focus()
+    })
+  }
+})
 
 import { marked } from 'marked'
 

@@ -62,6 +62,23 @@
         </div>
       </div>
 
+      <div class="card card-appear" style="animation-delay: 0.04s">
+        <div class="card-title">
+          <ViewGridCard size="16" />
+          {{ $t('general.apiConfigLayout') }}
+        </div>
+        <div class="setting-item setting-item-main">
+          <div class="setting-info">
+            <label class="setting-label">{{ $t('general.layoutMode') }}</label>
+            <p class="setting-desc">{{ $t('general.layoutModeDesc') }}</p>
+          </div>
+          <select class="form-select setting-select" v-model="localSettings.apiConfigLayout">
+            <option value="list">{{ $t('general.layoutList') }}</option>
+            <option value="grid">{{ $t('general.layoutGrid') }}</option>
+          </select>
+        </div>
+      </div>
+
       <div class="card card-appear" style="animation-delay: 0.05s">
         <div class="card-title">
           <Rocket size="16" />
@@ -670,7 +687,7 @@
 </template>
 
 <script setup>
-import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right, FileSearch, FolderOpen } from '@icon-park/vue-next'
+import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right, FileSearch, FolderOpen, ViewGridCard } from '@icon-park/vue-next'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import ToggleSwitch from '../components/ToggleSwitch.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
