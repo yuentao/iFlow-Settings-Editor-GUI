@@ -113,21 +113,12 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRaw } from 'v
 import { useI18n } from 'vue-i18n'
 import { i18n } from './i18n'
 
-const localeLoaders = {
-  'zh-CN': () => import('./locales/index.js'),
-  'en-US': () => import('./locales/en-US.js'),
-  'ja-JP': () => import('./locales/ja-JP.js'),
-}
-
-// 缓存已加载的语言包
-const loadedLocales = {}
-
-// 动态加载语言包
-async function loadLocale(lang) {
-  if (loadedLocales[lang]) return loadedLocales[lang]
-  const loader = localeLoaders[lang] || localeLoaders['zh-CN']
-  loadedLocales[lang] = (await loader()).default
-  return loadedLocales[lang]
+// 获取已加载的语言包（由 i18n.js 预加载所有语言）
+function getLocaleMessages(lang) {
+  const supported = ['zh-CN', 'en-US', 'ja-JP']
+  const fallback = 'zh-CN'
+  const target = supported.includes(lang) ? lang : fallback
+  return i18n.global.messages.value[target]
 }
 
 // 安全深拷贝：先解包 Vue reactive proxy，再用 JSON 序列化
@@ -644,11 +635,9 @@ watch(
   newLang => {
     locale.value = newLang
     window.electronAPI.notifyLanguageChanged()
-    // 动态加载并注册语言包到 vue-i18n
-    loadLocale(newLang).then(messages => {
-      i18n.global.setLocaleMessage(newLang, messages)
-      window.electronAPI.sendTranslation(messages)
-    })
+    const messages = getLocaleMessages(newLang)
+    i18n.global.setLocaleMessage(newLang, messages)
+    window.electronAPI.sendTranslation(messages)
   },
 )
 
@@ -1195,11 +1184,9 @@ onMounted(async () => {
   // 初始化系统主题
   updateSystemTheme()
 
-  // 动态加载并注册语言包到 vue-i18n
-  loadLocale(settings.value.language).then(messages => {
-    i18n.global.setLocaleMessage(settings.value.language, messages)
-    window.electronAPI.sendTranslation(messages)
-  })
+  const messages = getLocaleMessages(settings.value.language)
+  i18n.global.setLocaleMessage(settings.value.language, messages)
+  window.electronAPI.sendTranslation(messages)
 
   // 监听系统主题变化
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
