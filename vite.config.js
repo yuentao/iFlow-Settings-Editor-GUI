@@ -3,14 +3,27 @@ import vue from '@vitejs/plugin-vue';
 import vueI18n from '@intlify/unplugin-vue-i18n/vite';
 import path from 'path';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
-    vueI18n({
-      compositionOnly: true,
-      include: [path.resolve(__dirname, 'src/locales/**')],
-      strictMessage: false,
-    }),
+    // Only pre-compile i18n messages in production builds (dev mode uses runtime compiler)
+    ...(mode !== 'development' ? [
+      vueI18n({
+        compositionOnly: true,
+        include: [path.resolve(__dirname, 'src/locales/**')],
+        strictMessage: false,
+      }),
+    ] : []),
     vue(),
+    // strip 'unsafe-eval' from CSP in production build
+    {
+      name: 'strip-unsafe-eval-csp',
+      transformIndexHtml(html) {
+        if (mode !== 'development') {
+          return html.replace(" 'unsafe-eval'", '')
+        }
+        return html
+      },
+    },
   ],
   base: './',
   build: {
@@ -62,4 +75,4 @@ export default defineConfig({
       }
     }
   }
-});
+}));
