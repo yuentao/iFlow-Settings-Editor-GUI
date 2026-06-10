@@ -111,14 +111,14 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRaw } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { i18n } from './i18n'
+import { i18n, rawMessages } from './i18n'
 
-// 获取已加载的语言包（由 i18n.js 预加载所有语言）
+// 获取原始语言包数据（用于 IPC 发送，i18n.global.messages 含编译内部对象不可序列化）
 function getLocaleMessages(lang) {
   const supported = ['zh-CN', 'en-US', 'ja-JP']
   const fallback = 'zh-CN'
   const target = supported.includes(lang) ? lang : fallback
-  return i18n.global.messages.value[target]
+  return rawMessages[target]
 }
 
 // 安全深拷贝：先解包 Vue reactive proxy，再用 JSON 序列化
@@ -417,8 +417,11 @@ const saveApiCreate = async data => {
       await window.electronAPI.saveSettings(loadedData)
       showApiCreateDialog.value = false
       skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
-      await loadSettings()
-      skipNextSaveSettings.value = false
+      try {
+        await loadSettings()
+      } finally {
+        skipNextSaveSettings.value = false
+      }
       await loadApiProfiles()
       toast.success(t('api.configCreated', { name }))
     }
@@ -453,10 +456,13 @@ const reorderApiProfiles = async newProfiles => {
   apiProfiles.value = newProfiles
   // 保存排序顺序到settings
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
-  settings.value.apiProfilesOrder = newProfiles.map(p => p.name)
-  const dataToSave = deepClone(settings.value)
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
+  try {
+    settings.value.apiProfilesOrder = newProfiles.map(p => p.name)
+    const dataToSave = deepClone(settings.value)
+    const result = await window.electronAPI.saveSettings(dataToSave)
+  } finally {
+    skipNextSaveSettings.value = false
+  }
   if (result.success) {
     originalSettings.value = structuredClone(dataToSave)
     modified.value = false
@@ -467,8 +473,11 @@ const selectApiProfile = async name => {
   if (name === currentApiProfile.value) return
   skipNextSaveSettings.value = true // 标记跳过下次 saveSettings，避免竞态覆盖
   currentApiProfile.value = name
-  await switchApiProfile()
-  skipNextSaveSettings.value = false
+  try {
+    await switchApiProfile()
+  } finally {
+    skipNextSaveSettings.value = false
+  }
 }
 
 const duplicateApiProfile = async name => {
@@ -538,43 +547,49 @@ const saveApiEdit = async data => {
 
   // 更新配置数据
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
-  if (!settings.value.apiProfiles[newName]) settings.value.apiProfiles[newName] = {}
-  settings.value.apiProfiles[newName].selectedAuthType = data.selectedAuthType
-  settings.value.apiProfiles[newName].apiKey = data.apiKey
-  settings.value.apiProfiles[newName].baseUrl = data.baseUrl
-  settings.value.apiProfiles[newName].modelName = data.modelName
-  settings.value.apiProfiles[newName].tokensLimit = data.tokensLimit
-  settings.value.apiProfiles[newName].expiryDays = data.expiryDays || 0
+  try {
+    if (!settings.value.apiProfiles[newName]) settings.value.apiProfiles[newName] = {}
+    settings.value.apiProfiles[newName].selectedAuthType = data.selectedAuthType
+    settings.value.apiProfiles[newName].apiKey = data.apiKey
+    settings.value.apiProfiles[newName].baseUrl = data.baseUrl
+    settings.value.apiProfiles[newName].modelName = data.modelName
+    settings.value.apiProfiles[newName].tokensLimit = data.tokensLimit
+    settings.value.apiProfiles[newName].expiryDays = data.expiryDays || 0
 
-  // 仅当 expiryDays 发生变更时，才写入/重置 expiryStartDate
-  const newExpiryDays = data.expiryDays || 0
-  const oldExpiryDays = data._originalExpiryDays || 0
-  if (newExpiryDays !== oldExpiryDays) {
-    // expiryDays 被修改了：如果 >0 则重新开始倒计时，否则清除起始时间
-    settings.value.apiProfiles[newName].expiryStartDate = newExpiryDays > 0 ? new Date().toISOString() : undefined
-  } else {
-    // expiryDays 未变更：保留原始 expiryStartDate
-    settings.value.apiProfiles[newName].expiryStartDate = data._originalExpiryStartDate || undefined
-  }
+    // 仅当 expiryDays 发生变更时，才写入/重置 expiryStartDate
+    const newExpiryDays = data.expiryDays || 0
+    const oldExpiryDays = data._originalExpiryDays || 0
+    if (newExpiryDays !== oldExpiryDays) {
+      // expiryDays 被修改了：如果 >0 则重新开始倒计时，否则清除起始时间
+      settings.value.apiProfiles[newName].expiryStartDate = newExpiryDays > 0 ? new Date().toISOString() : undefined
+    } else {
+      // expiryDays 未变更：保留原始 expiryStartDate
+      settings.value.apiProfiles[newName].expiryStartDate = data._originalExpiryStartDate || undefined
+    }
 
-  // 如果编辑的是当前配置，需要同步到主设置对象
-  if (newName === currentApiProfile.value) {
-    settings.value.selectedAuthType = data.selectedAuthType
-    settings.value.apiKey = data.apiKey
-    settings.value.baseUrl = data.baseUrl
-    settings.value.modelName = data.modelName
-    settings.value.tokensLimit = data.tokensLimit
-  }
+    // 如果编辑的是当前配置，需要同步到主设置对象
+    if (newName === currentApiProfile.value) {
+      settings.value.selectedAuthType = data.selectedAuthType
+      settings.value.apiKey = data.apiKey
+      settings.value.baseUrl = data.baseUrl
+      settings.value.modelName = data.modelName
+      settings.value.tokensLimit = data.tokensLimit
+    }
 
-  showApiEditDialog.value = false
-  const dataToSave = deepClone(settings.value)
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
-  if (result.success) {
-    skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
-    await loadSettings()
+    showApiEditDialog.value = false
+    const dataToSave = deepClone(settings.value)
+    const result = await window.electronAPI.saveSettings(dataToSave)
+    if (result.success) {
+      skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
+      try {
+        await loadSettings()
+      } finally {
+        skipNextSaveSettings.value = false
+      }
+      toast.success(t('api.configSaved'))
+    }
+  } finally {
     skipNextSaveSettings.value = false
-    toast.success(t('api.configSaved'))
   }
 }
 
@@ -810,13 +825,16 @@ const handleQuickAddServers = async servers => {
     settings.value.mcpServers[name] = config
   }
   skipNextSaveSettings.value = true
-  const dataToSave = deepClone(settings.value)
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
-  if (result.success) {
-    originalSettings.value = structuredClone(dataToSave)
-    modified.value = false
-    toast.success(t('mcp.quickAddSuccess', { count: servers.length }))
+  try {
+    const dataToSave = deepClone(settings.value)
+    const result = await window.electronAPI.saveSettings(dataToSave)
+    if (result.success) {
+      originalSettings.value = structuredClone(dataToSave)
+      modified.value = false
+      toast.success(t('mcp.quickAddSuccess', { count: servers.length }))
+    }
+  } finally {
+    skipNextSaveSettings.value = false
   }
 }
 
@@ -839,12 +857,15 @@ const saveServerFromPanel = async data => {
   currentServerName.value = name
   showServerPanel.value = false
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
-  const dataToSave = deepClone(settings.value)
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
-  if (result.success) {
-    originalSettings.value = structuredClone(dataToSave)
-    modified.value = false
+  try {
+    const dataToSave = deepClone(settings.value)
+    const result = await window.electronAPI.saveSettings(dataToSave)
+    if (result.success) {
+      originalSettings.value = structuredClone(dataToSave)
+      modified.value = false
+    }
+  } finally {
+    skipNextSaveSettings.value = false
   }
 }
 
@@ -871,12 +892,15 @@ const deleteServerByName = async serverName => {
     showServerPanel.value = false
   }
   skipNextSaveSettings.value = true
-  const dataToSave = deepClone(settings.value)
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
-  if (result.success) {
-    originalSettings.value = structuredClone(dataToSave)
-    modified.value = false
+  try {
+    const dataToSave = deepClone(settings.value)
+    const result = await window.electronAPI.saveSettings(dataToSave)
+    if (result.success) {
+      originalSettings.value = structuredClone(dataToSave)
+      modified.value = false
+    }
+  } finally {
+    skipNextSaveSettings.value = false
   }
 }
 
@@ -1224,8 +1248,11 @@ onMounted(async () => {
     window.electronAPI.onApiProfileSwitched(async profileName => {
       skipNextSaveSettings.value = true
       currentApiProfile.value = profileName
-      await loadSettings()
-      skipNextSaveSettings.value = false
+      try {
+        await loadSettings()
+      } finally {
+        skipNextSaveSettings.value = false
+      }
     }),
   )
 
