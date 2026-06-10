@@ -168,7 +168,8 @@ function updateTrayMenu() {
     {
       label: t('tray.exit'),
       click: () => {
-        app.isQuitting = true
+        const { setIsQuitting } = require('./window')
+        setIsQuitting(true)
         app.quit()
       },
     },
