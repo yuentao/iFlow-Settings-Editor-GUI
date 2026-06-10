@@ -120,7 +120,6 @@ describe('GeneralSettings.vue', () => {
       onUpdateStatusChanged: vi.fn(),
       onUpdateDownloadProgress: vi.fn(),
       onUpdateBackgroundComplete: vi.fn(),
-      removeUpdateListener: vi.fn(),
       installUpdate: vi.fn().mockResolvedValue({}),
       checkForUpdates: vi.fn().mockResolvedValue({ success: true, hasUpdate: false }),
       onCloudSyncStatusChanged: vi.fn(),
@@ -345,18 +344,6 @@ describe('GeneralSettings.vue', () => {
     // Verify the callback correctly sets updateReady when status is downloaded
     wrapper.vm.handleStatusChanged({ status: 'downloaded', info: { version: '2.0.0' } });
     expect(wrapper.vm.updateReady).toBe(true);
-  });
-
-  it('removes update listener on unmount', () => {
-    const wrapper = mount(GeneralSettings, defaultMountOptions());
-
-    wrapper.unmount();
-
-    // The listener function should have been called with the right arguments
-    expect(window.electronAPI.removeUpdateListener).toHaveBeenCalledWith(
-      'update-status-changed',
-      expect.any(Function)
-    );
   });
 
   it('has cloud sync section with toggle switch', () => {

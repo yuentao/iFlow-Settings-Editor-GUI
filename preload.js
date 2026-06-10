@@ -109,9 +109,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update-background-complete', handler)
     return () => ipcRenderer.removeListener('update-background-complete', handler)
   },
-  removeUpdateListener: (channel, callback) => {
-    ipcRenderer.removeListener(channel, callback)
-  },
   onAutoCheckUpdate: (callback) => {
     const handler = (event) => callback()
     ipcRenderer.on('auto-check-update', handler)
@@ -131,17 +128,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 更新历史相关 API
   getUpdateHistory: () => ipcRenderer.invoke('get-update-history'),
   saveUpdateHistory: (history) => ipcRenderer.invoke('save-update-history', history),
-
-  // 移除更新事件监听
-  removeAllUpdateListeners: () => {
-    ipcRenderer.removeAllListeners('update-status-changed')
-    ipcRenderer.removeAllListeners('update-available')
-    ipcRenderer.removeAllListeners('update-download-progress')
-    ipcRenderer.removeAllListeners('update-downloaded')
-    ipcRenderer.removeAllListeners('update-background-complete')
-    ipcRenderer.removeAllListeners('auto-check-update')
-    ipcRenderer.removeAllListeners('install-update')
-  },
 
   // 获取翻译文本（供主进程使用）
   getTranslation: (localeData) => {
