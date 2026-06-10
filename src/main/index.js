@@ -5,7 +5,7 @@
 
 const { app, BrowserWindow } = require('electron')
 const path = require('path')
-const { logger } = require('./utils/logger')
+const { logger, log } = require('./utils/logger')
 
 logger.info('src/main/index.js module loaded')
 
@@ -177,9 +177,6 @@ function checkForUpdates() {
  * 应用准备就绪
  */
 app.whenReady().then(() => {
-  // 初始化 electron-log 渲染进程日志捕获
-  const { log } = require('./utils/logger')
-
   // 便携模式：将日志路径重定向到用户主目录（避免 exe 所在受保护目录不可写）
   if (isPortableMode()) {
     const homeLogDir = path.join(app.getPath('home'), '.iflow', 'logs')
