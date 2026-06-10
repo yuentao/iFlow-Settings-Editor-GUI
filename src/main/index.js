@@ -22,7 +22,7 @@ const { createWindow, getMainWindow, setIsQuitting } = require('./window')
 const { createTray, destroyTray } = require('./tray')
 const { registerIpcHandlers } = require('./ipc')
 const { initAutoLaunch } = require('./services/autoLaunchService')
-const { readSettings } = require('./services/configService')
+const { readSettings, stopWatching } = require('./services/configService')
 const { preloadIflowStatus } = require('./services/iflowService')
 const { t } = require('./utils/translations')
 const { initAutoUpdater, setMainWindowRef, cleanupTempFiles } = require('./autoUpdater')
@@ -246,7 +246,8 @@ app.on('will-quit', () => {
     const { syncService } = require('./ipc/cloud')
     if (syncService) syncService.stopAutoSync()
   } catch (_) { /* ignore */ }
-  // 清理未响应的确认对话框，避免 Promise 泄漏
+  // 停止文件监听
+  stopWatching()
   try {
     const { clearPendingDialogs } = require('./ipc/dialogs')
     clearPendingDialogs()
