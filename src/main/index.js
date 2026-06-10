@@ -241,10 +241,15 @@ app.on('will-quit', () => {
   cleanupTempFiles()
   // 销毁托盘
   destroyTray()
-  // Bug 5 修复：停止自动同步定时器，避免退出过程中触发同步
+  // 停止自动同步定时器，避免退出过程中触发同步
   try {
     const { syncService } = require('./ipc/cloud')
     if (syncService) syncService.stopAutoSync()
+  } catch (_) { /* ignore */ }
+  // 清理未响应的确认对话框，避免 Promise 泄漏
+  try {
+    const { clearPendingDialogs } = require('./ipc/dialogs')
+    clearPendingDialogs()
   } catch (_) { /* ignore */ }
 })
 
