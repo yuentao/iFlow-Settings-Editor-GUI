@@ -455,6 +455,23 @@
                   <span class="input-suffix">{{ $t('cloudSync.tombstoneRetentionDaysUnit') }}</span>
                 </div>
                 </div>
+
+                <div class="setting-item" v-if="cloudStore.autoSyncEnabled">
+                  <div class="setting-info">
+                    <label class="setting-label">{{ $t('cloudSync.syncInterval') }}</label>
+                    <p class="setting-desc">{{ $t('cloudSync.syncIntervalDesc') }}</p>
+                  </div>
+                  <div class="input-with-suffix">
+                    <select class="form-input setting-input-select" v-model.number="syncIntervalMinutes" @change="handleSetSyncInterval">
+                      <option :value="1">1 {{ $t('cloudSync.syncIntervalUnit') }}</option>
+                      <option :value="5">5 {{ $t('cloudSync.syncIntervalUnit') }}</option>
+                      <option :value="10">10 {{ $t('cloudSync.syncIntervalUnit') }}</option>
+                      <option :value="15">15 {{ $t('cloudSync.syncIntervalUnit') }}</option>
+                      <option :value="30">30 {{ $t('cloudSync.syncIntervalUnit') }}</option>
+                      <option :value="60">60 {{ $t('cloudSync.syncIntervalUnit') }}</option>
+                    </select>
+                  </div>
+                </div>
               </template>
 
               <!-- 设备管理 -->
@@ -729,6 +746,7 @@ let checkUpdateTimer = null
 const selectedProvider = ref('webdav')
 const deviceName = ref('')
 const tombstoneRetentionDays = ref(30)
+const syncIntervalMinutes = ref(5)
 const webdavConfig = ref({
   serverUrl: '',
   username: '',
@@ -869,6 +887,7 @@ onMounted(async () => {
   deviceName.value = cloudStore.status.deviceName || ''
   selectedProvider.value = cloudStore.status.provider || 'webdav'
   tombstoneRetentionDays.value = cloudStore.status.tombstoneRetentionDays || 30
+  syncIntervalMinutes.value = cloudStore.status.syncInterval || 5
   if (cloudStore.syncEnabled && cloudStore.isConfigured) {
     await cloudStore.loadDevices()
   }
@@ -1135,6 +1154,8 @@ function showCloudMessage({ type = 'info', title, message }) {
 
 // 待处理的云同步启用标记（密码设置完成后继续）
 const pendingSyncEnable = ref(false)
+// Bug 6: 记住关闭同步总开关前的自动同步状态，重新开启时恢复
+const _prevAutoSyncEnabled = ref(false)
 
 async function onToggleSyncEnabled(targetChecked) {
   if (targetChecked) {
@@ -1148,10 +1169,18 @@ async function onToggleSyncEnabled(targetChecked) {
       // 已完成配置，直接启用
       cloudStore.setSyncEnabled(true)
       await cloudStore.loadStatus()
+      // Bug 6: 恢复之前的自动同步状态
+      if (_prevAutoSyncEnabled.value) {
+        _prevAutoSyncEnabled.value = false
+        // 恢复自动同步（需要密码，走 onToggleAutoSync 流程）
+        await onToggleAutoSync(true)
+      }
     }
   } else {
     // 关闭云同步
     cloudStore.setSyncEnabled(false)
+    // Bug 6: 保存当前自动同步状态，以便重新开启时恢复
+    _prevAutoSyncEnabled.value = cloudStore.autoSyncEnabled
     // 同步关闭时，同时关闭自动同步，保持状态一致
     cloudStore.setAutoSyncEnabled(false)
     await cloudStore.setAutoSync(false)
@@ -1284,6 +1313,13 @@ async function handleSetTombstoneRetentionDays() {
   const result = await window.electronAPI.cloudSyncSetTombstoneRetentionDays(days)
   if (result.success && result.tombstoneRetentionDays) {
     tombstoneRetentionDays.value = result.tombstoneRetentionDays
+  }
+}
+
+async function handleSetSyncInterval() {
+  const result = await cloudStore.setSyncInterval(syncIntervalMinutes.value)
+  if (result.success && result.syncInterval) {
+    syncIntervalMinutes.value = result.syncInterval
   }
 }
 
@@ -1658,6 +1694,18 @@ function onWizardCancel() {
     }
     -moz-appearance: textfield;
   }
+}
+
+.setting-input-select {
+  width: 120px;
+  flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%23666' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+  cursor: pointer;
 }
 
 .input-with-suffix {

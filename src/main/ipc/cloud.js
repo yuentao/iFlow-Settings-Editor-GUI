@@ -25,6 +25,27 @@ function getSyncService() {
     _syncService = new SyncService()
     // 每次 isSyncing 翻转都广播一次最新状态
     _syncService.onSyncingChanged(() => broadcastSyncStatus())
+    // Bug 7 修复：转发同步进度和冲突检测事件到渲染进程
+    _syncService.onSyncProgress((progress) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win.isDestroyed()) continue
+        try {
+          win.webContents.send('cloud-sync:sync-progress', progress)
+        } catch (err) {
+          logger.warn('Failed to send cloud-sync:sync-progress:', err && err.message ? err.message : err)
+        }
+      }
+    })
+    _syncService.onConflictDetected((conflictInfo) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win.isDestroyed()) continue
+        try {
+          win.webContents.send('cloud-sync:conflict-detected', conflictInfo)
+        } catch (err) {
+          logger.warn('Failed to send cloud-sync:conflict-detected:', err && err.message ? err.message : err)
+        }
+      }
+    })
   }
   if (!_syncServiceInitialized) {
     _syncServiceInitialized = true
@@ -184,13 +205,19 @@ function registerCloudSyncIpcHandlers() {
     return { success: true, ...status }
   }, 'cloud-sync:get-status'))
 
-  ipcMain.handle('cloud-sync:set-auto-sync', wrapIpcHandler(async (_event, enabled) => {
+  ipcMain.handle('cloud-sync:set-auto-sync', wrapIpcHandler(async (_event, enabled, interval) => {
     // autoSyncEnabled 由渲染进程通过 localStorage 持久化
     if (!enabled) {
       getSyncService().stopAutoSync()
       getSyncService().clearCachedPassword()
     } else {
-      getSyncService().startAutoSync()
+      // Bug 1 修复：从 settings 读取 syncInterval，或使用调用方传入的 interval
+      const syncInterval = interval || (readSettings() || {}).cloudSync?.syncInterval
+      const options = {}
+      if (syncInterval) options.interval = syncInterval
+      // Bug 2 修复：检查 startAutoSync 返回值
+      const result = getSyncService().startAutoSync(options)
+      if (result && !result.success) return result
     }
     return { success: true }
   }, 'cloud-sync:set-auto-sync'))
@@ -426,6 +453,20 @@ function registerCloudSyncIpcHandlers() {
     await writeSettings(settings)
     return { success: true, tombstoneRetentionDays: clamped }
   }, 'cloud-sync:set-tombstone-retention-days'))
+
+  ipcMain.handle('cloud-sync:set-sync-interval', wrapIpcHandler(async (_event, minutes) => {
+    const clamped = Math.max(1, Math.min(1440, Number(minutes) || 5))
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.syncInterval = clamped
+    await writeSettings(settings)
+    // 如果自动同步正在运行，重启定时器以应用新间隔
+    const syncService = getSyncService()
+    if (syncService._autoSyncEnabled) {
+      syncService.startAutoSync({ interval: clamped * 60 * 1000 })
+    }
+    return { success: true, syncInterval: clamped }
+  }, 'cloud-sync:set-sync-interval'))
 
   ipcMain.handle('cloud-sync:remove-device', wrapIpcHandler(async (_event, deviceId) => {
     await getSyncService().removeDevice(deviceId)

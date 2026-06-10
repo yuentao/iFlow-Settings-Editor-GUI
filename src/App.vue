@@ -1254,7 +1254,13 @@ onMounted(async () => {
   if (cloudSyncStore.autoSyncEnabled) {
     await cloudSyncStore.loadStatus()
     if (cloudSyncStore.isConfigured) {
-      await cloudSyncStore.setAutoSync(true)
+      // Bug 1: 传递 settings 中的 syncInterval；Bug 2: 检查返回值
+      const syncInterval = settingsStore.settings?.cloudSync?.syncInterval
+      const result = await cloudSyncStore.setAutoSync(true, syncInterval)
+      if (!result.success) {
+        // 无可用密码等原因导致启动失败，回滚 UI 状态
+        cloudSyncStore.setAutoSyncEnabled(false)
+      }
     }
   }
 })

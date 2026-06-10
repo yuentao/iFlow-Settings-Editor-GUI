@@ -597,6 +597,9 @@ export default {
     tombstoneRetentionDaysDesc:
       '同步删除操作在此天数内会传播到其他设备，过期后自动清理。过短可能导致离线设备未收到删除信息，过长会增加配置文件体积',
     tombstoneRetentionDaysUnit: '天',
+    syncInterval: '自动同步间隔',
+    syncIntervalDesc: '每隔多长时间自动同步一次配置',
+    syncIntervalUnit: '分钟',
     setAutoSyncFailed: '设置自动同步失败',
     wizardTitle: '云同步设置向导',
     wizardStep1: '连接云服务',

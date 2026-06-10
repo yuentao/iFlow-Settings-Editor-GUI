@@ -598,6 +598,9 @@ export default {
     tombstoneRetentionDaysDesc:
       'Sync deletions will propagate to other devices within this period. Expired records are auto-cleaned. Too short may cause offline devices to miss deletions; too long increases config file size',
     tombstoneRetentionDaysUnit: 'days',
+    syncInterval: 'Auto Sync Interval',
+    syncIntervalDesc: 'How often to automatically sync configuration',
+    syncIntervalUnit: 'min',
     setAutoSyncFailed: 'Failed to set auto sync',
     wizardTitle: 'Cloud Sync Setup Wizard',
     wizardStep1: 'Connect Cloud Service',

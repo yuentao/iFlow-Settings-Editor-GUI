@@ -155,7 +155,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 云同步
   cloudSyncGetStatus: () => ipcRenderer.invoke('cloud-sync:get-status'),
-  cloudSyncSetAutoSync: (enabled) => ipcRenderer.invoke('cloud-sync:set-auto-sync', enabled),
+  cloudSyncSetAutoSync: (enabled, interval) => ipcRenderer.invoke('cloud-sync:set-auto-sync', enabled, interval),
   cloudSyncConfigureProvider: (provider, config, testOnly) => ipcRenderer.invoke('cloud-sync:configure-provider', provider, config, testOnly),
   cloudSyncTestConnection: () => ipcRenderer.invoke('cloud-sync:test-connection'),
   cloudSyncRevokeAuth: () => ipcRenderer.invoke('cloud-sync:revoke-auth'),
@@ -173,6 +173,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cloudSyncGetDevices: () => ipcRenderer.invoke('cloud-sync:get-devices'),
   cloudSyncSetDeviceName: (name) => ipcRenderer.invoke('cloud-sync:set-device-name', name),
   cloudSyncSetTombstoneRetentionDays: (days) => ipcRenderer.invoke('cloud-sync:set-tombstone-retention-days', days),
+  cloudSyncSetSyncInterval: (minutes) => ipcRenderer.invoke('cloud-sync:set-sync-interval', minutes),
   cloudSyncRemoveDevice: (deviceId) => ipcRenderer.invoke('cloud-sync:remove-device', deviceId),
 
   // 外部链接
