@@ -107,14 +107,16 @@ watch(() => props.show, (val) => {
 })
 
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
-// 格式化 Markdown 格式的更新日志
+// 格式化 Markdown 格式的更新日志（消毒后渲染，防止 XSS）
 const formattedReleaseNotes = computed(() => {
   if (!props.releaseNotes) return ''
-  return marked.parse(props.releaseNotes, {
+  const html = marked.parse(props.releaseNotes, {
     breaks: true,
     gfm: true,
   })
+  return DOMPurify.sanitize(html)
 })
 
 const handleCancel = () => {

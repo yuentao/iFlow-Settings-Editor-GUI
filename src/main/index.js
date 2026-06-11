@@ -22,7 +22,7 @@ const { createWindow, getMainWindow, setIsQuitting } = require('./window')
 const { createTray, destroyTray } = require('./tray')
 const { registerIpcHandlers } = require('./ipc')
 const { initAutoLaunch } = require('./services/autoLaunchService')
-const { readSettings } = require('./services/configService')
+const { readSettings, stopWatching } = require('./services/configService')
 const { preloadIflowStatus } = require('./services/iflowService')
 const { t } = require('./utils/translations')
 const { initAutoUpdater, setMainWindowRef, cleanupTempFiles } = require('./autoUpdater')
@@ -241,10 +241,16 @@ app.on('will-quit', () => {
   cleanupTempFiles()
   // 销毁托盘
   destroyTray()
-  // Bug 5 修复：停止自动同步定时器，避免退出过程中触发同步
+  // 停止自动同步定时器，避免退出过程中触发同步
   try {
     const { syncService } = require('./ipc/cloud')
     if (syncService) syncService.stopAutoSync()
+  } catch (_) { /* ignore */ }
+  // 停止文件监听
+  stopWatching()
+  try {
+    const { clearPendingDialogs } = require('./ipc/dialogs')
+    clearPendingDialogs()
   } catch (_) { /* ignore */ }
 })
 

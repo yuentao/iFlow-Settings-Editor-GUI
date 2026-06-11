@@ -21,19 +21,29 @@ function getMainWindowRef() {
  * @param {string} titleKey
  * @param {string} messageKey
  * @param {string} messageParams
+ * @param {number} [timeout=30000] - 超时时间（毫秒），超时后自动 resolve(false)
  * @returns {Promise<boolean>}
  */
-function callConfirmDialog(titleKey, messageKey, messageParams) {
+function callConfirmDialog(titleKey, messageKey, messageParams, timeout = 30000) {
   return new Promise(resolve => {
     const requestId = `confirm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    pendingConfirmDialogs.set(requestId, resolve)
 
     const mainWindow = getMainWindowRef()
-    if (mainWindow && mainWindow.webContents) {
-      mainWindow.webContents.send('show-confirm-request', { requestId, titleKey, messageKey, messageParams })
-    } else {
+    if (!mainWindow || !mainWindow.webContents) {
       resolve(false)
+      return
     }
+
+    pendingConfirmDialogs.set(requestId, resolve)
+    mainWindow.webContents.send('show-confirm-request', { requestId, titleKey, messageKey, messageParams })
+
+    // 超时自动清理，防止渲染进程无响应导致 Map 泄漏
+    setTimeout(() => {
+      if (pendingConfirmDialogs.has(requestId)) {
+        pendingConfirmDialogs.delete(requestId)
+        resolve(false)
+      }
+    }, timeout)
   })
 }
 

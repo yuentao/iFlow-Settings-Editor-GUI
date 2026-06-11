@@ -326,7 +326,7 @@
  * ApiProfileDialog - API 配置编辑对话框组件
  * 支持从 OpenAI 兼容 /models 接口自动获取模型列表
  */
-import { computed, ref, watch, nextTick, onMounted } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { Key, Save, Refresh, Loading } from '@icon-park/vue-next'
 import type { AuthType } from '@/shared/types'
 
@@ -542,18 +542,18 @@ function handleGlobalClick(e: MouseEvent): void {
 }
 
 onMounted(() => {
+  // 挂载时弹窗已打开则自动获取焦点（watch 无 immediate，不触发初始值）
   if (props.showCreate) {
-    document.addEventListener('mousedown', handleGlobalClick)
-    nextTick(() => {
-      createOverlayRef.value?.focus()
-    })
+    nextTick(() => createOverlayRef.value?.focus())
   }
   if (props.showEdit) {
-    document.addEventListener('mousedown', handleGlobalClick)
-    nextTick(() => {
-      editOverlayRef.value?.focus()
-    })
+    nextTick(() => editOverlayRef.value?.focus())
   }
+})
+
+onUnmounted(() => {
+  // 安全网：确保组件卸载时移除所有全局监听器
+  document.removeEventListener('mousedown', handleGlobalClick)
 })
 
 watch(
