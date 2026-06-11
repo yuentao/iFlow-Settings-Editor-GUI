@@ -17,6 +17,7 @@ export interface CloudSyncStatus {
   lastSyncError: string | null
   isSyncing: boolean
   tombstoneRetentionDays: number
+  syncInterval: number // 分钟，默认 5
 }
 
 export interface CloudDeviceInfo {
@@ -38,6 +39,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     lastSyncError: null,
     isSyncing: false,
     tombstoneRetentionDays: 30,
+    syncInterval: 5,
   })
 
   const devices = ref<CloudDeviceInfo[]>([])
@@ -110,9 +112,9 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     }
   }
 
-  async function setAutoSync(enabled: boolean) {
+  async function setAutoSync(enabled: boolean, interval?: number) {
     try {
-      const result = await window.electronAPI.cloudSyncSetAutoSync(enabled)
+      const result = await window.electronAPI.cloudSyncSetAutoSync(enabled, interval)
       // autoSyncEnabled 由渲染进程通过 localStorage 管理，不更新 status
       return result
     } catch (error) {
@@ -184,7 +186,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   async function verifyPassword(password: string) {
     try {
       const result = await window.electronAPI.cloudSyncVerifyPassword(password)
-      if (result.success && result.data) {
+      if (result.success && result.valid) {
         cachedPassword.value = password
       }
       return result
@@ -323,6 +325,19 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     }
   }
 
+  async function setSyncInterval(minutes: number) {
+    try {
+      const result = await window.electronAPI.cloudSyncSetSyncInterval(minutes)
+      if (result.success) {
+        status.value.syncInterval = result.syncInterval
+      }
+      return result
+    } catch (error) {
+      console.error('[CloudSync] Failed to set sync interval:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  }
+
   async function removeDevice(deviceId: string) {
     try {
       const result = await window.electronAPI.cloudSyncRemoveDevice(deviceId)
@@ -404,6 +419,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     clearCloud,
     loadDevices,
     setDeviceName,
+    setSyncInterval,
     removeDevice,
     clearCachedPassword,
     rememberPassword,

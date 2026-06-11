@@ -5,7 +5,7 @@
 
 const { app, BrowserWindow } = require('electron')
 const path = require('path')
-const { logger } = require('./utils/logger')
+const { logger, log } = require('./utils/logger')
 
 logger.info('src/main/index.js module loaded')
 
@@ -22,7 +22,7 @@ const { createWindow, getMainWindow, setIsQuitting } = require('./window')
 const { createTray, destroyTray } = require('./tray')
 const { registerIpcHandlers } = require('./ipc')
 const { initAutoLaunch } = require('./services/autoLaunchService')
-const { readSettings } = require('./services/configService')
+const { readSettings, stopWatching } = require('./services/configService')
 const { preloadIflowStatus } = require('./services/iflowService')
 const { t } = require('./utils/translations')
 const { initAutoUpdater, setMainWindowRef, cleanupTempFiles } = require('./autoUpdater')
@@ -177,9 +177,6 @@ function checkForUpdates() {
  * 应用准备就绪
  */
 app.whenReady().then(() => {
-  // 初始化 electron-log 渲染进程日志捕获
-  const { log } = require('./utils/logger')
-
   // 便携模式：将日志路径重定向到用户主目录（避免 exe 所在受保护目录不可写）
   if (isPortableMode()) {
     const homeLogDir = path.join(app.getPath('home'), '.iflow', 'logs')
@@ -244,6 +241,17 @@ app.on('will-quit', () => {
   cleanupTempFiles()
   // 销毁托盘
   destroyTray()
+  // 停止自动同步定时器，避免退出过程中触发同步
+  try {
+    const { syncService } = require('./ipc/cloud')
+    if (syncService) syncService.stopAutoSync()
+  } catch (_) { /* ignore */ }
+  // 停止文件监听
+  stopWatching()
+  try {
+    const { clearPendingDialogs } = require('./ipc/dialogs')
+    clearPendingDialogs()
+  } catch (_) { /* ignore */ }
 })
 
 /**

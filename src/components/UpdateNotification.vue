@@ -48,6 +48,7 @@
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 const props = defineProps({
   show: {
@@ -80,14 +81,14 @@ watch(() => props.show, (val) => {
   }
 })
 
-// 格式化 Markdown 格式的更新日志
+// 格式化 Markdown 格式的更新日志（消毒后渲染，防止 XSS）
 const formattedReleaseNotes = computed(() => {
   if (!props.releaseNotes) return ''
-  // 使用 marked.use 代替弃用的 setOptions，避免全局配置冲突
-  return marked.parse(props.releaseNotes, {
+  const html = marked.parse(props.releaseNotes, {
     breaks: true,
     gfm: true,
   })
+  return DOMPurify.sanitize(html)
 })
 
 const handleUpdate = () => {

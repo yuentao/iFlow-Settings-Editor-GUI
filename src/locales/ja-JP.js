@@ -599,6 +599,9 @@ export default {
     tombstoneRetentionDaysDesc:
       '同期削除操作はこの日数内に他のデバイスに伝播されます。期限切れ後は自動クリーンアップされます。短すぎるとオフラインデバイスが削除を見逃す可能性があり、長すぎると設定ファイルのサイズが増加します',
     tombstoneRetentionDaysUnit: '日',
+    syncInterval: '自動同期間隔',
+    syncIntervalDesc: '設定を自動同期する間隔',
+    syncIntervalUnit: '分',
     setAutoSyncFailed: '自動同期の設定に失敗しました',
     wizardTitle: 'クラウド同期設定ウィザード',
     wizardStep1: 'クラウドサービス接続',

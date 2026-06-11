@@ -1650,20 +1650,34 @@ describe('SyncService', () => {
     })
 
     describe('startAutoSync / stopAutoSync', () => {
-      it('should start the auto-sync timer', () => {
+      it('should start the auto-sync timer when password is cached', () => {
+        service.cachePassword('pass')
         service.startAutoSync({ interval: 60000 })
         expect(service._autoSyncTimer).not.toBeNull()
+        expect(service._autoSyncEnabled).toBe(true)
         expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Auto-sync started'))
       })
 
+      it('should not start timer when no cached password (Bug 2 fix)', () => {
+        service.clearCachedPassword()
+        const result = service.startAutoSync({ interval: 60000 })
+        expect(service._autoSyncTimer).toBeNull()
+        expect(service._autoSyncEnabled).toBe(false)
+        expect(result).toEqual({ success: false, error: 'NO_CACHED_PASSWORD' })
+        expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('no cached password'))
+      })
+
       it('should stop the auto-sync timer', () => {
+        service.cachePassword('pass')
         service.startAutoSync({ interval: 60000 })
         service.stopAutoSync()
         expect(service._autoSyncTimer).toBeNull()
+        expect(service._autoSyncEnabled).toBe(false)
         expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Auto-sync stopped'))
       })
 
       it('should restart timer if startAutoSync called again', () => {
+        service.cachePassword('pass')
         service.startAutoSync({ interval: 60000 })
         const firstTimer = service._autoSyncTimer
         service.startAutoSync({ interval: 120000 })
@@ -1722,6 +1736,7 @@ describe('SyncService', () => {
       it('should not trigger when no provider is configured', () => {
         service.provider = null
         service.cachePassword('pass')
+        service._autoSyncEnabled = true
 
         service.onSettingsSaved()
         expect(service._settingsSaveDebounceTimer).toBeNull()
@@ -1729,6 +1744,7 @@ describe('SyncService', () => {
 
       it('should not trigger when no cached password', () => {
         // provider is set in beforeEach, but no password cached
+        service._autoSyncEnabled = true
 
         service.onSettingsSaved()
         expect(service._settingsSaveDebounceTimer).toBeNull()
@@ -1736,6 +1752,7 @@ describe('SyncService', () => {
 
       it('should not trigger when syncing is in progress (via _currentSyncPromise)', () => {
         service.cachePassword('pass')
+        service._autoSyncEnabled = true
         // Simulate real concurrent state: set _currentSyncPromise (which also implies isSyncing=true)
         const pendingPromise = new Promise(() => {}) // never resolves
         service._currentSyncPromise = pendingPromise
@@ -1749,8 +1766,17 @@ describe('SyncService', () => {
         service.isSyncing = false
       })
 
+      it('should not trigger when auto sync is not enabled (Bug 3 fix)', () => {
+        service.cachePassword('pass')
+        service._autoSyncEnabled = false
+
+        service.onSettingsSaved()
+        expect(service._settingsSaveDebounceTimer).toBeNull()
+      })
+
       it('should set debounce timer when conditions are met', () => {
         service.cachePassword('pass')
+        service._autoSyncEnabled = true
 
         service.onSettingsSaved()
         expect(service._settingsSaveDebounceTimer).not.toBeNull()
@@ -1758,6 +1784,7 @@ describe('SyncService', () => {
 
       it('should debounce multiple calls', () => {
         service.cachePassword('pass')
+        service._autoSyncEnabled = true
 
         service.onSettingsSaved()
         const firstTimer = service._settingsSaveDebounceTimer
@@ -1769,6 +1796,7 @@ describe('SyncService', () => {
 
       it('should trigger _doAutoSync after debounce delay', async () => {
         service.cachePassword('pass')
+        service._autoSyncEnabled = true
         mockProvider.list.mockResolvedValue([])
         mockProvider.upload.mockResolvedValue(undefined)
 

@@ -81,7 +81,7 @@ async function getAutoLaunch() {
  */
 async function setAutoLaunch(enabled) {
   try {
-    setAutoLaunchEnabled(enabled)
+    await setAutoLaunchEnabled(enabled)
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }

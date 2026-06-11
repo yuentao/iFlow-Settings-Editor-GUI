@@ -97,7 +97,7 @@ function createWindow() {
       preload: getPreloadPath(),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: process.env.NODE_ENV === 'production',
+      webSecurity: !isDev,
     },
     // 禁用双击标题栏最大化
     maximizable: false,

@@ -90,10 +90,8 @@ interface Window {
     onUpdateDownloadProgress: (callback: (progress: number) => void) => void
     onUpdateDownloaded: (callback: () => void) => void
     onUpdateBackgroundComplete: (callback: (info: { version: string; downloadPath: string }) => void) => void
-    removeUpdateListener: (channel: string, callback: (...args: any[]) => void) => void
     onAutoCheckUpdate: (callback: () => void) => void
     onInstallUpdate: (callback: () => void) => void
-    removeAllUpdateListeners: () => void
 
     // ─── 外部链接/路径 ────────────────────────────────────
     openExternal: (url: string) => Promise<import('./shared/types').IpcResult>

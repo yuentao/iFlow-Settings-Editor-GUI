@@ -109,9 +109,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update-background-complete', handler)
     return () => ipcRenderer.removeListener('update-background-complete', handler)
   },
-  removeUpdateListener: (channel, callback) => {
-    ipcRenderer.removeListener(channel, callback)
-  },
   onAutoCheckUpdate: (callback) => {
     const handler = (event) => callback()
     ipcRenderer.on('auto-check-update', handler)
@@ -132,17 +129,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getUpdateHistory: () => ipcRenderer.invoke('get-update-history'),
   saveUpdateHistory: (history) => ipcRenderer.invoke('save-update-history', history),
 
-  // 移除更新事件监听
-  removeAllUpdateListeners: () => {
-    ipcRenderer.removeAllListeners('update-status-changed')
-    ipcRenderer.removeAllListeners('update-available')
-    ipcRenderer.removeAllListeners('update-download-progress')
-    ipcRenderer.removeAllListeners('update-downloaded')
-    ipcRenderer.removeAllListeners('update-background-complete')
-    ipcRenderer.removeAllListeners('auto-check-update')
-    ipcRenderer.removeAllListeners('install-update')
-  },
-
   // 获取翻译文本（供主进程使用）
   getTranslation: (localeData) => {
     return localeData
@@ -155,7 +141,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 云同步
   cloudSyncGetStatus: () => ipcRenderer.invoke('cloud-sync:get-status'),
-  cloudSyncSetAutoSync: (enabled) => ipcRenderer.invoke('cloud-sync:set-auto-sync', enabled),
+  cloudSyncSetAutoSync: (enabled, interval) => ipcRenderer.invoke('cloud-sync:set-auto-sync', enabled, interval),
   cloudSyncConfigureProvider: (provider, config, testOnly) => ipcRenderer.invoke('cloud-sync:configure-provider', provider, config, testOnly),
   cloudSyncTestConnection: () => ipcRenderer.invoke('cloud-sync:test-connection'),
   cloudSyncRevokeAuth: () => ipcRenderer.invoke('cloud-sync:revoke-auth'),
@@ -173,6 +159,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cloudSyncGetDevices: () => ipcRenderer.invoke('cloud-sync:get-devices'),
   cloudSyncSetDeviceName: (name) => ipcRenderer.invoke('cloud-sync:set-device-name', name),
   cloudSyncSetTombstoneRetentionDays: (days) => ipcRenderer.invoke('cloud-sync:set-tombstone-retention-days', days),
+  cloudSyncSetSyncInterval: (minutes) => ipcRenderer.invoke('cloud-sync:set-sync-interval', minutes),
   cloudSyncRemoveDevice: (deviceId) => ipcRenderer.invoke('cloud-sync:remove-device', deviceId),
 
   // 外部链接

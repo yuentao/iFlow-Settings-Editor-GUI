@@ -99,27 +99,28 @@ const ErrorCodes = Object.freeze({
  * @returns {number} HTTP 状态码
  */
 function getStatusCodeForError(code) {
-  // 4xx 客户端错误
-  if (code.startsWith('CONFIG_') || code.startsWith('API_') ||
-      code.startsWith('MCP_') || code.startsWith('SKILL_') ||
-      code.startsWith('COMMAND_') || code.startsWith('FILE_') ||
-      code.startsWith('VALIDATION_')) {
-    return 400
-  }
-
-  // 404 资源不存在
-  if (code.endsWith('_NOT_FOUND')) {
-    return 404
-  }
-
   // 403 权限问题
   if (code === 'PERMISSION_DENIED') {
     return 403
   }
 
-  // 409 资源冲突
-  if (code.endsWith('_EXISTS') || code === 'COMMAND_ALREADY_EXISTS') {
+  // 404 资源不存在 — 后缀检查必须先于前缀，否则被 CONFIG_/API_ 等前缀吞掉
+  if (code.endsWith('_NOT_FOUND')) {
+    return 404
+  }
+
+  // 409 资源冲突 — 后缀检查必须先于前缀
+  if (code.endsWith('_EXISTS')) {
     return 409
+  }
+
+  // 4xx 客户端错误 — 通用前缀匹配（兜底）
+  // 注意：_NOT_FOUND / _EXISTS 已在上方处理，此处不会误匹配
+  if (code.startsWith('CONFIG_') || code.startsWith('API_') ||
+      code.startsWith('MCP_') || code.startsWith('SKILL_') ||
+      code.startsWith('COMMAND_') || code.startsWith('FILE_') ||
+      code.startsWith('VALIDATION_')) {
+    return 400
   }
 
   // 5xx 服务器错误
