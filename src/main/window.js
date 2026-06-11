@@ -118,7 +118,11 @@ function createWindow() {
   }
 
   logger.info('Loading index.html...')
-  mainWindow.loadURL(getEntryHtmlPath())
+  if (isDev) {
+    mainWindow.loadURL(getEntryHtmlPath())
+  } else {
+    mainWindow.loadFile(getEntryHtmlPath())
+  }
 
   // 阻止渲染进程中的链接点击导致页面导航（防止跳转到仪表盘等问题）
   mainWindow.webContents.on('will-navigate', (event, url) => {
