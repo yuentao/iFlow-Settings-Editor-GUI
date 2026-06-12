@@ -33,8 +33,8 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return
-          // 核心框架
-          if (id.includes('node_modules/vue') || id.includes('node_modules/pinia') || id.includes('node_modules/vue-i18n')) {
+          // 核心框架 + i18n 全家桶（@intlify 子包需要与 vue-i18n 同 chunk 避免 tree-shaking 失效）
+          if (id.includes('node_modules/vue') || id.includes('node_modules/pinia') || id.includes('node_modules/vue-i18n') || id.includes('node_modules/@intlify')) {
             return 'vendor-vue'
           }
           // 图表库（仅在 Dashboard 使用，独立分包减少首屏体积）

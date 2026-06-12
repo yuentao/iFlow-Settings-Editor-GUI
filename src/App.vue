@@ -111,15 +111,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRaw } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { i18n, rawMessages } from './i18n'
-
-// 获取原始语言包数据（用于 IPC 发送，i18n.global.messages 含编译内部对象不可序列化）
-function getLocaleMessages(lang) {
-  const supported = ['zh-CN', 'en-US', 'ja-JP']
-  const fallback = 'zh-CN'
-  const target = supported.includes(lang) ? lang : fallback
-  return rawMessages[target]
-}
 
 // 安全深拷贝：先解包 Vue reactive proxy，再用 JSON 序列化
 // structuredClone 无法处理 undefined 等值，改用 JSON 方式
@@ -650,9 +641,6 @@ watch(
   newLang => {
     locale.value = newLang
     window.electronAPI.notifyLanguageChanged()
-    const messages = getLocaleMessages(newLang)
-    i18n.global.setLocaleMessage(newLang, messages)
-    window.electronAPI.sendTranslation(messages)
   },
 )
 
@@ -1207,10 +1195,6 @@ onMounted(async () => {
 
   // 初始化系统主题
   updateSystemTheme()
-
-  const messages = getLocaleMessages(settings.value.language)
-  i18n.global.setLocaleMessage(settings.value.language, messages)
-  window.electronAPI.sendTranslation(messages)
 
   // 监听系统主题变化
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')

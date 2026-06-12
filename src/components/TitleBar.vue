@@ -39,8 +39,8 @@ const close = (): void => {
 .titlebar {
   height: 32px;
   background: var(--bg-mica);
-  backdrop-filter: blur(20px) saturate(125%);
   -webkit-backdrop-filter: blur(20px) saturate(125%);
+  backdrop-filter: blur(20px) saturate(125%);
   display: flex;
   align-items: center;
   justify-content: space-between;

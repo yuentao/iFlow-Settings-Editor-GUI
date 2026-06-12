@@ -93,7 +93,7 @@ function createWindow() {
     show: false,
     icon: getWindowIcon(),
     webPreferences: {
-      devTools: isDev,
+      devTools: true,
       preload: getPreloadPath(),
       contextIsolation: true,
       nodeIntegration: false,

@@ -56,6 +56,7 @@ function createMainWindow() {
     win.webContents.openDevTools()
   }
 
+
   // 窗口准备好后显示（如果不是静默启动）
   win.once('ready-to-show', () => {
     if (!isSilentLaunch && !startHidden) {
