@@ -1241,10 +1241,16 @@ onMounted(async () => {
   )
 
   // 监听外部应用对 settings.json 的修改
+  // skipNextSaveSettings 防止文件监听触发的重载 → 深 watch → 再次 saveSettings 的回存循环
   cleanupFns.push(
     window.electronAPI.onSettingsFileChanged(async () => {
-      await loadSettings()
-      await loadApiProfiles()
+      skipNextSaveSettings.value = true
+      try {
+        await loadSettings()
+        await loadApiProfiles()
+      } finally {
+        skipNextSaveSettings.value = false
+      }
     }),
   )
 

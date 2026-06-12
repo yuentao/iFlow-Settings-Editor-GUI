@@ -98,9 +98,20 @@ function registerSettingsIpcHandlers() {
     const { updateTrayMenu } = require('../tray')
     updateTrayMenu()
 
-    // 通知云同步服务：设置已保存，可能需要自动同步
-    const { syncService } = require('./cloud')
-    syncService.onSettingsSaved()
+    // 通知云同步服务：仅在同步相关字段内容实际发生变化时才触发自动同步
+    // 避免修改语言、主题、亚克力等非同步设置时也错误触发 auto-sync
+    const syncFields = ['apiProfiles', 'mcpServers', 'apiProfilesOrder']
+    const hasSyncRelevantChange = syncFields.some(field => {
+      const oldVal = existing[field]
+      const newVal = merged[field]
+      if (oldVal === undefined && newVal === undefined) return false
+      if (oldVal === undefined || newVal === undefined) return true
+      return JSON.stringify(oldVal) !== JSON.stringify(newVal)
+    })
+    if (hasSyncRelevantChange) {
+      const { syncService } = require('./cloud')
+      syncService.onSettingsSaved()
+    }
 
     return successResult()
   }, 'save-settings'))
