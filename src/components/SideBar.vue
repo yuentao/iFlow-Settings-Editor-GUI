@@ -100,8 +100,8 @@ const toggleCollapse = (): void => {
 .sidebar {
   width: 220px;
   background: var(--bg-mica);
-  backdrop-filter: blur(20px) saturate(125%);
   -webkit-backdrop-filter: blur(20px) saturate(125%);
+  backdrop-filter: blur(20px) saturate(125%);
   border-right: 1px solid var(--border-subtle, var(--border-light));
   display: flex;
   flex-direction: column;

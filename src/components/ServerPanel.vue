@@ -637,6 +637,7 @@ const handleSave = (): void => {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.32);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 
