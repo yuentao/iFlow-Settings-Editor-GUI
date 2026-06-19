@@ -212,7 +212,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
   async function hasPassword() {
     try {
       const result = await window.electronAPI.cloudSyncHasPassword()
-      return result.success && (result.data ?? false)
+      return result.success && (result.hasPassword ?? false)
     } catch {
       return false
     }
@@ -369,7 +369,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     try {
       const result = await window.electronAPI.cloudSyncGetRememberPassword()
       if (result.success) {
-        rememberPassword.value = result.data ?? false
+        rememberPassword.value = result.remember ?? false
       }
     } catch (error) {
       console.error('[CloudSync] Failed to get remember password:', error)
