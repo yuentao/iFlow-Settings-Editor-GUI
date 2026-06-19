@@ -212,9 +212,10 @@ function registerCloudSyncIpcHandlers() {
       getSyncService().clearCachedPassword()
     } else {
       // Bug 1 修复：从 settings 读取 syncInterval，或使用调用方传入的 interval
+      // settings 中 syncInterval 单位为分钟，需转换为毫秒
       const syncInterval = interval || (readSettings() || {}).cloudSync?.syncInterval
       const options = {}
-      if (syncInterval) options.interval = syncInterval
+      if (syncInterval) options.interval = syncInterval * 60 * 1000
       // Bug 2 修复：检查 startAutoSync 返回值
       const result = getSyncService().startAutoSync(options)
       if (result && !result.success) return result

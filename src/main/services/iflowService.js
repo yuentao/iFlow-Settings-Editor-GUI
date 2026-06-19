@@ -104,19 +104,113 @@ async function getNpmPrefix() {
         reject(new Error(`Failed to get npm prefix: ${error.message}`))
         return
       }
-      cachedNpmPrefix = stdout.trim()
+      const trimmed = stdout.trim()
+      // 不缓存空字符串，避免后续调用永远返回错误路径
+      if (!trimmed) {
+        reject(new Error('npm prefix is empty'))
+        return
+      }
+      cachedNpmPrefix = trimmed
       resolve(cachedNpmPrefix)
     })
   })
 }
 
 /**
- * 获取 iflow.js 文件路径
+ * 通过 which/where 命令解析 iflow 可执行文件的真实路径
+ * @returns {Promise<string|null>} iflow 可执行文件的绝对路径，失败返回 null
+ */
+function resolveIflowBinaryPath() {
+  const cmd = process.platform === 'win32' ? 'where iflow' : 'which iflow'
+  return new Promise((resolve) => {
+    exec(cmd, { timeout: 5000, windowsHide: true }, (error, stdout) => {
+      if (error || !stdout.trim()) {
+        resolve(null)
+        return
+      }
+      // 取第一行结果
+      const binaryPath = stdout.trim().split('\n')[0].trim()
+      if (!binaryPath) {
+        resolve(null)
+        return
+      }
+      // 解析符号链接，获取真实路径
+      try {
+        const realPath = fs.realpathSync(binaryPath)
+        resolve(realPath)
+      } catch {
+        // realpathSync 失败时，尝试用原始路径
+        resolve(binaryPath)
+      }
+    })
+  })
+}
+
+/**
+ * 通过 iflow 二进制路径推导 iflow.js 文件路径
+ * iflow 可执行文件通常位于 .../node_modules/.bin/iflow，
+ * 其符号链接指向 .../node_modules/@iflow-ai/iflow-cli/bundle/iflow.js
+ * @param {string} binaryPath - iflow 可执行文件的真实路径
+ * @returns {string|null} iflow.js 路径，无法推导返回 null
+ */
+function deriveIflowJsPathFromBinary(binaryPath) {
+  if (!binaryPath) return null
+
+  // 如果二进制路径直接以 iflow.js 结尾，直接返回
+  if (binaryPath.endsWith('iflow.js') || binaryPath.endsWith('iflow.js')) {
+    return binaryPath
+  }
+
+  // 从真实路径向上查找 bundle/iflow.js
+  // 典型路径: /usr/local/lib/node_modules/@iflow-ai/iflow-cli/bundle/iflow.js
+  let dir = path.dirname(binaryPath)
+  for (let i = 0; i < 5; i++) {
+    const candidate = path.join(dir, 'bundle', 'iflow.js')
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
+    const parent = path.dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+
+  return null
+}
+
+/**
+ * 获取 iflow.js 文件路径（多策略回退）
+ * 策略1: npm config get prefix → node_modules/@iflow-ai/iflow-cli/bundle/iflow.js
+ * 策略2: which iflow → 解析符号链接 → 推导 bundle/iflow.js
  * @returns {Promise<string>} iflow.js 完整路径
  */
 async function getIflowPath() {
-  const prefix = await getNpmPrefix()
-  return path.join(prefix, 'node_modules', '@iflow-ai', 'iflow-cli', 'bundle', 'iflow.js')
+  // 策略1: npm prefix
+  try {
+    const prefix = await getNpmPrefix()
+    const npmPath = path.join(prefix, 'node_modules', '@iflow-ai', 'iflow-cli', 'bundle', 'iflow.js')
+    if (fs.existsSync(npmPath)) {
+      return npmPath
+    }
+  } catch {
+    // npm prefix 失败，尝试策略2
+  }
+
+  // 策略2: which iflow
+  const binaryPath = await resolveIflowBinaryPath()
+  if (binaryPath) {
+    const derivedPath = deriveIflowJsPathFromBinary(binaryPath)
+    if (derivedPath && fs.existsSync(derivedPath)) {
+      return derivedPath
+    }
+  }
+
+  // 所有策略失败，返回 npm 路径（供上层显示路径信息）
+  try {
+    const prefix = await getNpmPrefix()
+    return path.join(prefix, 'node_modules', '@iflow-ai', 'iflow-cli', 'bundle', 'iflow.js')
+  } catch {
+    throw new Error('Cannot resolve iflow.js path')
+  }
 }
 
 /**

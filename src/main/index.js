@@ -107,7 +107,11 @@ async function initializeApp() {
   // 初始化系统托盘（先设置翻译函数）
   const { setTranslator } = require('./tray')
   setTranslator(t)
-  createTray()
+  try {
+    createTray()
+  } catch (e) {
+    logger.error('Failed to create tray:', e)
+  }
 
   // 注册 IPC 处理器
   registerIpcHandlers(getMainWindow, t)

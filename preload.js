@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('show-confirm-request', handler)
   },
 
+  // 平台信息
+  getPlatform: () => ipcRenderer.invoke('get-platform'),
+
   // 亚克力效果开关
   setAcrylicEnabled: (enabled) => ipcRenderer.invoke('set-acrylic-enabled', enabled),
 

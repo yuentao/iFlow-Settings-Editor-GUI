@@ -380,7 +380,7 @@ export const useCloudSyncStore = defineStore('cloudSync', () => {
     try {
       const result = await window.electronAPI.cloudSyncSetRememberPassword(enabled)
       if (result.success) {
-        rememberPassword.value = enabled
+        rememberSyncPassword.value = enabled
       }
       return result
     } catch (error) {

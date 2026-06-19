@@ -34,24 +34,14 @@ function getTrayIconPath() {
   if (app.isPackaged) {
     const iconDir = path.join(process.resourcesPath, 'icon')
     if (isMac) {
-      let iconPath = path.join(iconDir, 'icon.icns')
-      if (!fs.existsSync(iconPath)) {
-        iconPath = path.join(iconDir, 'icon.ico')
-      }
-      return iconPath
-    } else {
-      return path.join(iconDir, 'icon.ico')
+      return path.join(iconDir, 'icon.png')
     }
+    return path.join(iconDir, 'icon.ico')
   } else {
     if (isMac) {
-      let iconPath = path.join(__dirname, '..', '..', 'build', 'icon.icns')
-      if (!fs.existsSync(iconPath)) {
-        iconPath = path.join(__dirname, '..', '..', 'build', 'icon.ico')
-      }
-      return iconPath
-    } else {
-      return path.join(__dirname, '..', '..', 'build', 'icon.ico')
+      return path.join(__dirname, '..', '..', 'build', 'icon.png')
     }
+    return path.join(__dirname, '..', '..', 'build', 'icon.ico')
   }
 }
 
@@ -61,15 +51,27 @@ function getTrayIconPath() {
  */
 function createTrayIcon() {
   const iconPath = getTrayIconPath()
+  logger.info('[Tray] Platform:', process.platform, '| Packaged:', app.isPackaged, '| Icon path:', iconPath)
   let trayIcon
 
   if (fs.existsSync(iconPath)) {
-    trayIcon = nativeImage.createFromPath(iconPath)
+    // macOS 上 createFromPath 对某些 PNG 有兼容问题，改用 createFromBuffer
+    const iconBuffer = fs.readFileSync(iconPath)
+    trayIcon = nativeImage.createFromBuffer(iconBuffer)
+    logger.info('[Tray] Icon loaded via buffer, isEmpty:', trayIcon.isEmpty(), '| size:', trayIcon.getSize())
   } else {
+    logger.warn('[Tray] Icon not found at:', iconPath)
     trayIcon = nativeImage.createEmpty()
   }
 
-  return trayIcon.resize({ width: 16, height: 16 })
+  const isMac = process.platform === 'darwin'
+  if (isMac) {
+    // macOS 菜单栏图标不手动 resize，让 Electron 自动适配
+    logger.info('[Tray] macOS tray icon (no manual resize), isEmpty:', trayIcon.isEmpty())
+  } else {
+    trayIcon = trayIcon.resize({ width: 16, height: 16 })
+  }
+  return trayIcon
 }
 
 /**
@@ -89,8 +91,10 @@ function createTray() {
   }
 
   const trayIcon = createTrayIcon()
+  logger.info('[Tray] Creating tray, icon isEmpty:', trayIcon.isEmpty(), '| size:', trayIcon.getSize())
   tray = new Tray(trayIcon)
   tray.setToolTip(t('tray.tooltip'))
+  logger.info('[Tray] Tray created successfully')
 
   updateTrayMenu()
 
