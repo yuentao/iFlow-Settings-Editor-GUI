@@ -68,6 +68,10 @@
       {
         "from": "build/icon.icns",
         "to": "icon/icon.icns"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon/icon.png"
       }
     ],
     "files": [
