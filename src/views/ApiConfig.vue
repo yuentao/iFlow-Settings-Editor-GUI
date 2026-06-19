@@ -19,6 +19,7 @@
         handle=".drag-handle"
         :animation="250"
         ghostClass="sortable-ghost"
+        :forceFallback="layoutMode === 'grid'"
         @start="onDragStart"
         @end="onDragEnd"
       >
@@ -49,7 +50,7 @@
                   class="connectivity-dot"
                   :class="{ animated: getConnectivityLevel(profile.name) === 'checking' }"
                 ></span>
-                <span class="connectivity-label" v-if="getConnectivityLevel(profile.name) !== 'checking'">
+                <span class="connectivity-label" v-if="getConnectivityLevel(profile.name) !== 'checking' && layoutMode !== 'grid'">
                   {{ getConnectivityLabel(profile.name) }}
                 </span>
               </div>
@@ -63,11 +64,11 @@
                 {{ getProfileModel(profile.name) }}
               </div>
               <div class="profile-expiry" v-if="getExpiryText(profile.name)" :class="getExpiryClass(profile.name)">
-                {{ getExpiryText(profile.name) }}
+                <span v-if="layoutMode !== 'grid'">{{ getExpiryText(profile.name) }}</span>
               </div>
             </div>
           </div>
-          <div class="profile-status" v-if="currentProfile === profile.name">
+          <div class="profile-status" v-if="currentProfile === profile.name && layoutMode !== 'grid'">
             <span class="status-badge">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3,8 6,11 13,4"></polyline>
@@ -455,8 +456,7 @@ function getExpiryClass(name) {
           pointer-events: auto;
         }
 
-        .profile-actions,
-        .drag-handle {
+        .profile-actions {
           opacity: 1;
           pointer-events: auto;
         }
@@ -475,10 +475,14 @@ function getExpiryClass(name) {
         top: 6px;
         right: 6px;
         margin: 0;
-        opacity: 0;
-        pointer-events: none;
+        opacity: 0.5;
+        pointer-events: auto;
         transition: opacity 0.15s ease;
         z-index: 3;
+
+        &:hover {
+          opacity: 1;
+        }
       }
 
       .profile-icon {
@@ -529,6 +533,36 @@ function getExpiryClass(name) {
         padding: 4px 8px;
         border-radius: var(--radius);
         box-shadow: var(--shadow-sm);
+      }
+
+      // 网格模式下过期标签简化为纯圆点
+      .profile-expiry {
+        padding: 0;
+        width: 8px;
+        height: 8px;
+        min-width: 8px;
+        border-radius: 50%;
+        font-size: 0;
+        gap: 0;
+        border: none;
+        background: transparent;
+
+        &::before {
+          width: 8px;
+          height: 8px;
+          margin: 0;
+        }
+      }
+
+      // 网格模式下连通性指示器更紧凑
+      .connectivity-indicator {
+        margin-left: 6px;
+        gap: 0;
+      }
+
+      .connectivity-dot {
+        width: 6px;
+        height: 6px;
       }
     }
   }
