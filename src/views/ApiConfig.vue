@@ -473,16 +473,9 @@ function getExpiryClass(name) {
       .drag-handle {
         position: absolute;
         top: 6px;
-        right: 6px;
+        left: 6px;
         margin: 0;
-        opacity: 0.5;
-        pointer-events: auto;
-        transition: opacity 0.15s ease;
         z-index: 3;
-
-        &:hover {
-          opacity: 1;
-        }
       }
 
       .profile-icon {
@@ -626,7 +619,12 @@ function getExpiryClass(name) {
   color: var(--text-tertiary);
   cursor: grab;
   border-radius: var(--radius);
+  opacity: 0;
   transition: all 0.15s ease;
+
+  .profile-item:hover & {
+    opacity: 1;
+  }
 
   &:hover {
     color: var(--text-secondary);
