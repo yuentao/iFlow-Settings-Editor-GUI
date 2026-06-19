@@ -116,6 +116,11 @@ function registerSettingsIpcHandlers() {
     return successResult()
   }, 'save-settings'))
 
+  // 获取当前平台
+  ipcMain.handle('get-platform', wrapIpcHandler(async () => {
+    return successResult(process.platform)
+  }, 'get-platform'))
+
   // 运行时切换亚克力效果
   ipcMain.handle('set-acrylic-enabled', wrapIpcHandler(async (_event, enabled) => {
     const { setAcrylicEnabled } = require('../window')

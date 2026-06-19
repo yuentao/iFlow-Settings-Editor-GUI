@@ -40,7 +40,7 @@
             </select>
           </div>
         </div>
-        <div class="setting-divider"></div>
+        <div class="setting-divider" v-if="supportsAcrylic"></div>
         <div class="setting-item" v-if="supportsAcrylic">
           <div class="setting-info">
             <label class="setting-label">{{ $t('general.acrylicEffect') }}</label>
@@ -783,7 +783,11 @@ const cloudConfirmDialog = ref({
 const updateReady = ref(false)
 const updateVersion = ref('')
 
+const platform = ref('')
+
 const supportsAcrylic = computed(() => {
+  // 亚克力效果仅 Windows 平台支持
+  if (platform.value !== 'win32') return false
   if (typeof document === 'undefined' || !('backdropFilter' in document.documentElement.style)) return false
   const effectiveTheme = props.settings.uiTheme === 'System' ? systemTheme.value : props.settings.uiTheme
   return effectiveTheme !== 'Dark'
@@ -803,6 +807,16 @@ const handleStatusChanged = state => {
 }
 
 onMounted(async () => {
+  // 获取当前平台
+  try {
+    if (window.electronAPI?.getPlatform) {
+      const result = await window.electronAPI.getPlatform()
+      if (result.success) {
+        platform.value = result.data
+      }
+    }
+  } catch (_) {}
+
   // 加载云同步设置（确保默认值正确显示）
   await cloudStore.loadSettings()
 
