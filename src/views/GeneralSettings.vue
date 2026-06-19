@@ -1298,6 +1298,11 @@ async function confirmRenameDevice() {
   if (trimmed !== cloudStore.status.deviceName) {
     await cloudStore.setDeviceName(trimmed)
     deviceName.value = trimmed
+    // 同步更新 devices 数组中本机设备的名称，确保 UI 实时刷新
+    const selfDevice = cloudStore.devices.find(d => d.isSelf)
+    if (selfDevice) {
+      selfDevice.deviceName = trimmed
+    }
   }
 }
 
