@@ -325,7 +325,7 @@ onUnmounted(() => {
   gap: var(--space-lg);
   align-content: center;
   margin-top: var(--space-lg);
-  @media (max-width: 768px) {
+  @media (max-width: 900px) {
     grid-template-columns: 1fr;
   }
 }

@@ -62,6 +62,7 @@ export interface Settings {
   modelUsageRefreshInterval?: number  // 模型使用统计刷新间隔（分钟），默认 5
   logLevel?: 'info' | 'debug' | 'silent'  // 日志级别，默认 info
   apiConfigLayout?: 'list' | 'grid'  // API 配置页面布局方式，默认 list
+  zoomFactor?: number  // UI 缩放因子，默认 1.0，范围 0.5~1.5
   customThemes?: Record<string, CustomThemeConfig>
   cloudSync?: {
     enabled?: boolean

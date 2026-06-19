@@ -311,6 +311,7 @@ const settings = ref({
   apiProfiles: { default: {} },
   acrylicEnabled: true,
   acrylicIntensity: 50,
+  zoomFactor: 1.0,
   connectivityPollInterval: 30,
   modelUsageRefreshInterval: 5,
 })
@@ -605,6 +606,7 @@ const loadSettings = async () => {
       if (!data.currentApiProfile) data.currentApiProfile = 'default'
       if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
       if (data.acrylicEnabled === undefined) data.acrylicEnabled = true
+      if (data.zoomFactor === undefined) data.zoomFactor = 1.0
       if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
       if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
       applyDefaults(data)

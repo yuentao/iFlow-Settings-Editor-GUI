@@ -1323,3 +1323,11 @@ body {
     min-width: 100px;
   }
 }
+
+// 小屏幕适配：对话框在小屏幕上限制高度
+@media (max-height: 700px) {
+  .dialog {
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+}

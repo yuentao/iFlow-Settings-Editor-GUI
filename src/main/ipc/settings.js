@@ -130,7 +130,29 @@ function registerSettingsIpcHandlers() {
     await writeSettings(settings)
     return successResult()
   }, 'set-acrylic-enabled'))
-// 监听外部对 settings.json 文件的修改
+
+  // UI 缩放因子
+  ipcMain.handle('get-zoom-factor', wrapIpcHandler(async () => {
+    const settings = readSettings() || {}
+    return successResult(settings.zoomFactor ?? 1.0)
+  }, 'get-zoom-factor'))
+
+  ipcMain.handle('set-zoom-factor', wrapIpcHandler(async (event, factor) => {
+    const num = Number(factor)
+    if (isNaN(num) || num < 0.5 || num > 1.5) {
+      return { success: false, error: 'zoomFactor must be between 0.5 and 1.5' }
+    }
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (win && !win.isDestroyed()) {
+      win.webContents.setZoomFactor(num)
+    }
+    const settings = readSettings() || {}
+    settings.zoomFactor = num
+    await writeSettings(settings)
+    return successResult()
+  }, 'set-zoom-factor'))
+
+  // 监听外部对 settings.json 文件的修改
   startWatching(() => {
     const wins = BrowserWindow.getAllWindows()
     for (const win of wins) {

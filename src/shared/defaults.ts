@@ -18,6 +18,7 @@ export const CLI_DEFAULTS = {
   thinkingModeEnabled: 'true',
   logLevel: 'info',
   apiConfigLayout: 'list',
+  zoomFactor: 1.0,
 } as const
 
 /** 将 CLI_DEFAULTS 中 undefined 的字段补充到目标对象（非覆盖） */

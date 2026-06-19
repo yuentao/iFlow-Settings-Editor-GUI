@@ -62,6 +62,33 @@
         </div>
       </div>
 
+      <div class="card card-appear" style="animation-delay: 0.03s">
+        <div class="card-title">
+          <ZoomIn size="16" />
+          {{ $t('general.displayScaling') }}
+        </div>
+        <div class="setting-item setting-item-full">
+          <div class="setting-info">
+            <label class="setting-label">{{ $t('general.zoomFactor') }}</label>
+            <p class="setting-desc">{{ Math.round(localSettings.zoomFactor * 100) }}% — {{ $t('general.zoomMin') }} — {{ $t('general.zoomMax') }}</p>
+          </div>
+          <div class="slider-container">
+            <div class="slider-track">
+              <div class="slider-fill" :style="{ width: ((localSettings.zoomFactor - 0.5) / 1.0 * 100) + '%' }"></div>
+            </div>
+            <input type="range" class="form-slider" min="0.5" max="1.5" step="0.05" :value="localSettings.zoomFactor" @input="onZoomFactorChange" />
+          </div>
+        </div>
+        <div class="zoom-presets">
+          <button v-for="p in zoomPresets" :key="p.value"
+            class="btn btn-sm"
+            :class="Math.abs(localSettings.zoomFactor - p.value) < 0.001 ? 'btn-primary' : 'btn-secondary'"
+            @click="setZoomPreset(p.value)">
+            {{ p.label }}
+          </button>
+        </div>
+      </div>
+
       <div class="card card-appear" style="animation-delay: 0.04s">
         <div class="card-title">
           <ViewGridCard size="16" />
@@ -704,7 +731,7 @@
 </template>
 
 <script setup>
-import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right, FileSearch, FolderOpen, ViewGridCard } from '@icon-park/vue-next'
+import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right, FileSearch, FolderOpen, ViewGridCard, ZoomIn } from '@icon-park/vue-next'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import ToggleSwitch from '../components/ToggleSwitch.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
@@ -1078,6 +1105,30 @@ const onExcludeToolsInput = e => {
 const updateSliderValue = e => {
   const value = Number(e.target.value)
   emit('update:settings', { ...props.settings, acrylicIntensity: value })
+}
+
+// === UI 缩放 ===
+const zoomPresets = [
+  { label: '80%', value: 0.8 },
+  { label: '90%', value: 0.9 },
+  { label: '100%', value: 1.0 },
+  { label: '110%', value: 1.1 },
+  { label: '120%', value: 1.2 },
+]
+
+const onZoomFactorChange = e => {
+  const value = Number(e.target.value)
+  emit('update:settings', { ...props.settings, zoomFactor: value })
+  if (window.electronAPI?.setZoomFactor) {
+    window.electronAPI.setZoomFactor(value)
+  }
+}
+
+const setZoomPreset = value => {
+  emit('update:settings', { ...props.settings, zoomFactor: value })
+  if (window.electronAPI?.setZoomFactor) {
+    window.electronAPI.setZoomFactor(value)
+  }
 }
 
 // === 云同步 Computed ===
@@ -1871,6 +1922,20 @@ function onWizardCancel() {
   }
 }
 
+// Zoom presets
+.zoom-presets {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  flex-wrap: wrap;
+
+  .btn-sm {
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: var(--radius-sm);
+  }
+}
+
 // ============================================
 // Cloud sync - Status
 // ============================================
@@ -2496,7 +2561,7 @@ function onWizardCancel() {
 // ============================================
 // Responsive
 // ============================================
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .setting-item {
     flex-direction: column;
     align-items: flex-start;

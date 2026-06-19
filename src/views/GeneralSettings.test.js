@@ -88,6 +88,8 @@ describe('GeneralSettings.vue', () => {
     bootAnimationShown: true,
     checkpointing: { enabled: true },
     acrylicIntensity: 50,
+    zoomFactor: 1.0,
+    apiConfigLayout: 'list',
   };
 
   const defaultMountOptions = () => ({
@@ -135,8 +137,8 @@ describe('GeneralSettings.vue', () => {
 
     expect(wrapper.exists()).toBe(true);
     expect(wrapper.find('.content-title').exists()).toBe(true);
-    // Cards: language, autoLaunch, conversation, session, toolFiltering, updateTelemetry, monitoring, about, feedback, logManagement = 10
-    expect(wrapper.findAll('.card').length).toBe(10);
+    // Cards: language, zoom, apiConfigLayout, autoLaunch, monitoring, conversation, displayUpdates, session, toolFiltering, about, feedback, logManagement = 12
+    expect(wrapper.findAll('.card').length).toBe(12);
   });
 
   it('displays language options correctly', () => {
@@ -164,11 +166,12 @@ describe('GeneralSettings.vue', () => {
 
     await nextTick();
     const selectElements = wrapper.findAll('.form-select');
-    // Selects: language, theme, thinkingModeEnabled, approvalMode, providerType = 5
+    // Selects: language, theme, layoutMode, thinkingModeEnabled, approvalMode, providerType = 6
     expect(selectElements[0].element.value).toBe('zh-CN');
     expect(selectElements[1].element.value).toBe('Light');
-    expect(selectElements[2].element.value).toBe('true');
-    expect(selectElements[3].element.value).toBe('autoEdit');
+    expect(selectElements[2].element.value).toBe('list');
+    expect(selectElements[3].element.value).toBe('true');
+    expect(selectElements[4].element.value).toBe('autoEdit');
   });
 
   it('applies translation correctly', () => {
@@ -198,26 +201,28 @@ describe('GeneralSettings.vue', () => {
   it('has settings cards for each section', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    // Cards: language, autoLaunch, conversation, session, toolFiltering, updateTelemetry, monitoring, about, feedback, logManagement = 10
+    // Cards: language, zoom, apiConfigLayout, autoLaunch, monitoring, conversation, displayUpdates, session, toolFiltering, about, feedback, logManagement = 12
     const cards = wrapper.findAll('.card');
-    expect(cards.length).toBe(10);
+    expect(cards.length).toBe(12);
   });
 
   it('displays card titles with icons', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     const cardTitles = wrapper.findAll('.card-title');
-    // Preference section: language, autoLaunch, monitoring = 3
+    // Preference section: language, zoom, apiConfigLayout, autoLaunch, monitoring = 5
     // CLI section: conversationMode, displayUpdates, sessionTimeout, toolFiltering = 4
     // About section: feedback, logManagement = 2
-    expect(cardTitles.length).toBe(9);
+    expect(cardTitles.length).toBe(11);
     expect(cardTitles[0].text()).toContain('general.languageInterface');
-    expect(cardTitles[1].text()).toContain('general.autoLaunchSettings');
-    expect(cardTitles[2].text()).toContain('general.monitoring');
-    expect(cardTitles[3].text()).toContain('general.conversationMode');
-    expect(cardTitles[4].text()).toContain('general.displayUpdates');
-    expect(cardTitles[5].text()).toContain('general.sessionTimeout');
-    expect(cardTitles[6].text()).toContain('general.toolFiltering');
+    expect(cardTitles[1].text()).toContain('general.displayScaling');
+    expect(cardTitles[2].text()).toContain('general.apiConfigLayout');
+    expect(cardTitles[3].text()).toContain('general.autoLaunchSettings');
+    expect(cardTitles[4].text()).toContain('general.monitoring');
+    expect(cardTitles[5].text()).toContain('general.conversationMode');
+    expect(cardTitles[6].text()).toContain('general.displayUpdates');
+    expect(cardTitles[7].text()).toContain('general.sessionTimeout');
+    expect(cardTitles[8].text()).toContain('general.toolFiltering');
   });
 
   it('displays section group headers', () => {
@@ -236,18 +241,20 @@ describe('GeneralSettings.vue', () => {
 
     // All setting-item divs in DOM (v-show only hides with CSS, elements remain in DOM):
     // Language card: 2 grid items + 1 acrylic checkbox = 3
+    // Zoom card: 1 setting-item-full = 1
+    // ApiConfigLayout card: 1 setting-item-main = 1
     // AutoLaunch card: 1 setting-item-main = 1
     // Monitoring card: 2 items = 2
     // ConversationMode card: 3 items = 3
     // DisplayUpdates card: 4 items = 4
     // SessionTimeout card: 4 items = 4
     // ToolFiltering card: 1 setting-item-main = 1
-    // Total: 3 + 1 + 2 + 3 + 4 + 4 + 1 = 18
-    expect(wrapper.findAll('.setting-item').length).toBe(18);
-    expect(wrapper.findAll('.setting-label').length).toBe(18);
-    // Selects: language, theme, thinkingModeEnabled, approvalMode = 4
-    expect(wrapper.findAll('.form-select').length).toBe(4);
-    expect(wrapper.find('.switch').exists()).toBe(true);
+    // Total: 3 + 1 + 1 + 1 + 2 + 3 + 4 + 4 + 1 = 20
+    expect(wrapper.findAll('.setting-item').length).toBe(20);
+    expect(wrapper.findAll('.setting-label').length).toBe(20);
+    // Selects: language, theme, layoutMode, thinkingModeEnabled, approvalMode, providerType = 6
+    expect(wrapper.findAll('.form-select').length).toBe(6);
+    expect(wrapper.find('.toggle-switch').exists()).toBe(true);
   });
 
   it('does not show install button when updateReady is false', async () => {
@@ -352,7 +359,7 @@ describe('GeneralSettings.vue', () => {
     // Cloud sync section header with toggle (3rd section-group, index 2)
     const cloudSection = wrapper.findAll('.section-group')[2];
     expect(cloudSection.find('.section-title').text()).toContain('general.sectionCloudSync');
-    expect(cloudSection.find('.switch').exists()).toBe(true);
+    expect(cloudSection.find('.toggle-switch').exists()).toBe(true);
   });
 
   it('has cloud sync section that shows when enabled', () => {
