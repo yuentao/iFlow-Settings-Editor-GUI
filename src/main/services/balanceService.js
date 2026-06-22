@@ -1,6 +1,6 @@
 /**
  * Token 余额查询服务
- * 支持 BUZZ (MiniMax) / DeepSeek / 云雾
+ * 支持 BUZZ / DeepSeek / 云雾
  * 使用 Electron net.request 发起 HTTP 请求，与 fetchModels 保持一致
  */
 
@@ -145,7 +145,7 @@ function httpGetJson(url, apiKey, timeout = 10000) {
 }
 
 /**
- * BUZZ (MiniMax) 余额查询
+ * BUZZ 余额查询
  * 接口: /api/usage/token/ (GET)
  * 返回示例:
  * {

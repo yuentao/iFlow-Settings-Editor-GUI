@@ -401,6 +401,7 @@ const saveApiCreate = async data => {
       tokensLimit: data.tokensLimit,
       expiryDays: data.expiryDays || 0,
       expiryStartDate: data.expiryDays > 0 ? new Date().toISOString() : undefined,
+      balanceProvider: data.balanceProvider || 'auto',
     }
     const loadResult = await window.electronAPI.loadSettings()
     if (loadResult.success) {
@@ -548,6 +549,7 @@ const saveApiEdit = async data => {
     settings.value.apiProfiles[newName].baseUrl = data.baseUrl
     settings.value.apiProfiles[newName].modelName = data.modelName
     settings.value.apiProfiles[newName].tokensLimit = data.tokensLimit
+    settings.value.apiProfiles[newName].balanceProvider = data.balanceProvider || 'auto'
     settings.value.apiProfiles[newName].expiryDays = data.expiryDays || 0
 
     // 仅当 expiryDays 发生变更时，才写入/重置 expiryStartDate

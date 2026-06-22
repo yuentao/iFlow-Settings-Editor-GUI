@@ -296,7 +296,7 @@ export default {
       available: '可用余额',
       provider: '余额查询服务',
       auto: '自动检测',
-      buzz: 'BUZZ (MiniMax)',
+      buzz: 'BUZZ',
       deepseek: 'DeepSeek',
       yunwu: '云雾',
       disabled: '不查询',

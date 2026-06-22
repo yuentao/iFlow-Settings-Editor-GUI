@@ -300,7 +300,7 @@ export default {
       available: '利用可能',
       provider: '残高照会サービス',
       auto: '自動検出',
-      buzz: 'BUZZ (MiniMax)',
+      buzz: 'BUZZ',
       deepseek: 'DeepSeek',
       yunwu: '雲霧',
       disabled: '照会しない',
