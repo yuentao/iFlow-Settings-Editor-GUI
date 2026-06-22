@@ -737,11 +737,15 @@ const handleSaveEdit = (): void => {
 .api-edit-dialog {
   width: 520px;
   padding: 0;
-  overflow: hidden;
   border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
 }
 
 .api-edit-dialog .dialog-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -765,8 +769,9 @@ const handleSaveEdit = (): void => {
 }
 
 .api-edit-dialog .dialog-body {
+  flex: 1;
+  min-height: 0;
   padding: var(--space-xl);
-  max-height: 80vh;
   overflow-y: auto;
 
   .form-group {
@@ -781,6 +786,7 @@ const handleSaveEdit = (): void => {
 }
 
 .api-edit-dialog .dialog-actions {
+  flex-shrink: 0;
   padding: var(--space-lg) var(--space-xl);
   border-top: 1px solid var(--border-light);
   background: var(--control-fill);
