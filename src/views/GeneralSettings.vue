@@ -146,6 +146,40 @@
               <span class="input-suffix">{{ $t('general.modelUsageRefreshIntervalUnit') }}</span>
             </div>
           </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.balanceRefreshInterval') }}</label>
+              <p class="setting-desc">{{ $t('general.balanceRefreshIntervalDesc') }}</p>
+            </div>
+            <div class="input-with-suffix">
+              <input type="number" class="form-input setting-input-number has-suffix" v-model.number="localSettings.balanceRefreshInterval" min="1" max="60" />
+              <span class="input-suffix">{{ $t('general.balanceRefreshIntervalUnit') }}</span>
+            </div>
+          </div>
+          <div class="setting-item" style="flex-wrap: wrap;">
+            <div class="setting-info" style="width: 100%;">
+              <label class="setting-label">{{ $t('general.balanceProviderRules') }}</label>
+              <p class="setting-desc">{{ $t('general.balanceProviderRulesDesc') }}</p>
+            </div>
+            <div class="rules-editor" style="width: 100%; margin-top: 8px;">
+              <div class="rule-row" v-for="(rule, idx) in localSettings.balanceProviderRules" :key="idx">
+                <input type="text" class="form-input rule-pattern" v-model="rule.pattern" :placeholder="$t('general.balanceRulePattern')" style="flex: 1; min-width: 120px;" />
+                <select class="form-select rule-provider" v-model="rule.provider" style="width: 120px;">
+                  <option value="buzz">BUZZ</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="yunwu">云雾</option>
+                </select>
+                <button class="btn btn-sm btn-ghost rule-remove" @click="removeBalanceRule(idx)" :title="$t('general.delete')">
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <line x1="3" y1="3" x2="13" y2="13" /><line x1="13" y1="3" x2="3" y2="13" />
+                  </svg>
+                </button>
+              </div>
+              <button class="btn btn-secondary btn-sm" style="margin-top: 6px;" @click="addBalanceRule">
+                + {{ $t('general.balanceProviderRulesAdd') }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1121,6 +1155,23 @@ const onZoomFactorChange = e => {
   emit('update:settings', { ...props.settings, zoomFactor: value })
   if (window.electronAPI?.setZoomFactor) {
     window.electronAPI.setZoomFactor(value)
+  }
+}
+
+// 余额 Provider 检测规则管理
+const addBalanceRule = () => {
+  if (!localSettings.value.balanceProviderRules) {
+    localSettings.value.balanceProviderRules = []
+  }
+  localSettings.value.balanceProviderRules.push({ pattern: '', provider: 'buzz' })
+  // 触发更新通知
+  emit('update:settings', { ...props.settings })
+}
+
+const removeBalanceRule = (idx) => {
+  if (localSettings.value.balanceProviderRules && Array.isArray(localSettings.value.balanceProviderRules)) {
+    localSettings.value.balanceProviderRules.splice(idx, 1)
+    emit('update:settings', { ...props.settings })
   }
 }
 

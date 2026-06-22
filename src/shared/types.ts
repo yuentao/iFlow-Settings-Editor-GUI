@@ -103,6 +103,8 @@ export interface ApiProfileConfig {
   expiryDays?: number
   /** 过期倒计时起始时间（ISO 字符串），仅在设置/修改 expiryDays 时写入 */
   expiryStartDate?: string
+  /** Token 余额查询服务商，auto=自动检测 */
+  balanceProvider?: 'auto' | 'buzz' | 'deepseek' | 'yunwu' | 'disabled'
 }
 
 // ─── API Profile（列表展示用） ────────────────────────────
@@ -370,4 +372,28 @@ export interface ModCompatibilityResult extends IpcResult {
   modVersion?: string
   constraint?: string
   reason?: string
+}
+
+// ─── Token Balance ───────────────────────────────────────
+
+export interface TokenBalanceResult {
+  success: boolean
+  provider: 'buzz' | 'deepseek' | 'yunwu'
+  status?: 'ok' | 'unlimited' | 'expired'
+  total?: number
+  used?: number
+  remaining?: number
+  currency?: string
+  unit?: string
+  isAvailable?: boolean
+  unlimitedQuota?: boolean
+  expiresAt?: number
+  fetchedAt: string
+  raw?: unknown
+  error?: string
+}
+
+export interface BalanceProviderRule {
+  pattern: string
+  provider: 'buzz' | 'deepseek' | 'yunwu'
 }

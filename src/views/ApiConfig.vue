@@ -66,6 +66,14 @@
               <div class="profile-expiry" v-if="getExpiryText(profile.name)" :class="getExpiryClass(profile.name)">
                 <span v-if="layoutMode !== 'grid'">{{ getExpiryText(profile.name) }}</span>
               </div>
+              <span
+                v-if="getBalanceText(profile.name)"
+                class="balance-badge"
+                :class="getBalanceClass(profile.name)"
+                :title="getBalanceTooltip(profile.name)"
+              >
+                {{ getBalanceText(profile.name) }}
+              </span>
             </div>
           </div>
           <div class="profile-status" v-if="currentProfile === profile.name && layoutMode !== 'grid'">
@@ -297,11 +305,143 @@ onMounted(() => {
   // 初始化配置名集合
   prevProfileNames = new Set(props.profiles.map(p => p.name))
   startPolling()
+  startBalancePolling()
 })
 
 onUnmounted(() => {
   stopPolling()
+  stopBalancePolling()
 })
+
+// --- 余额查询 ---
+const balanceMap = reactive({})
+// value: { loading: boolean, result: TokenBalanceResult | null, lastError: string | null }
+
+let balanceTimer = null
+let balancePollCancelled = false
+
+const balancePollIntervalMs = computed(() => {
+  const minutes = props.settings?.balanceRefreshInterval ?? 5
+  return Math.max(1, minutes) * 60 * 1000
+})
+
+async function fetchBalance(name) {
+  const profile = props.settings.apiProfiles?.[name]
+  if (!profile?.baseUrl || !profile?.apiKey) return
+  if (isProfileExpired(name)) return
+  if (profile.balanceProvider === 'disabled') return
+
+  balanceMap[name] = { ...balanceMap[name], loading: true }
+
+  try {
+    const result = await window.electronAPI.fetchTokenBalance({
+      baseUrl: profile.baseUrl,
+      apiKey: profile.apiKey,
+      provider: profile.balanceProvider || 'auto',
+      detectionRules: props.settings?.balanceProviderRules,
+    })
+    if (balancePollCancelled) return
+    balanceMap[name] = {
+      loading: false,
+      result,
+      lastError: result.success ? null : (result.error || null),
+    }
+  } catch (e) {
+    if (balancePollCancelled) return
+    balanceMap[name] = { loading: false, result: null, lastError: 'api.balance.fetchFailed' }
+  }
+}
+
+async function fetchAllBalances() {
+  if (balancePollCancelled) return
+  const targets = props.profiles.filter(p => {
+    const prof = props.settings.apiProfiles?.[p.name]
+    return prof?.baseUrl && prof?.apiKey && !isProfileExpired(p.name) && prof.balanceProvider !== 'disabled'
+  })
+  await Promise.all(targets.map(p => fetchBalance(p.name)))
+}
+
+function startBalancePolling() {
+  stopBalancePolling()
+  balancePollCancelled = false
+  // 首屏延迟 2s 再查询
+  setTimeout(() => { if (!balancePollCancelled) fetchAllBalances() }, 2000)
+  balanceTimer = setInterval(() => { if (!balancePollCancelled) fetchAllBalances() }, balancePollIntervalMs.value)
+}
+
+function stopBalancePolling() {
+  balancePollCancelled = true
+  if (balanceTimer) {
+    clearInterval(balanceTimer)
+    balanceTimer = null
+  }
+}
+
+// 余额检测间隔变化时重启轮询
+watch(balancePollIntervalMs, () => {
+  if (balanceTimer) {
+    startBalancePolling()
+  }
+})
+
+// Profile 列表变化时重新查询余额
+watch(
+  () => props.profiles,
+  (newProfiles) => {
+    const newNames = new Set(newProfiles.map(p => p.name))
+    for (const key of Object.keys(balanceMap)) {
+      if (!newNames.has(key)) delete balanceMap[key]
+    }
+    // 非纯顺序变化才触发重新查询
+    const isOnlyReorder = prevProfileNames.size === newNames.size && [...prevProfileNames].every(n => newNames.has(n))
+    if (!isOnlyReorder) {
+      fetchAllBalances()
+    }
+  },
+  { deep: true },
+)
+
+function getBalanceText(name) {
+  const info = balanceMap[name]
+  if (!info) return ''
+  if (info.loading) return t('api.balance.loading')
+  if (!info.result) return ''
+  if (!info.result.success) return '—'
+  const r = info.result
+  if (r.status === 'unlimited') return t('api.balance.unlimited')
+  if (r.remaining !== undefined && r.unit && r.remaining >= 0) {
+    const displayVal = r.remaining < 0.01 ? r.remaining.toFixed(4) : r.remaining.toFixed(2)
+    return `${r.unit}${displayVal}`
+  }
+  if (r.status === 'ok') return t('api.balance.available')
+  return ''
+}
+
+function getBalanceClass(name) {
+  const info = balanceMap[name]
+  if (!info || !info.result || !info.result.success) return 'balance-error'
+  const r = info.result
+  if (r.status === 'unlimited') return 'balance-unlimited'
+  if (r.status === 'expired') return 'balance-low'
+  // 余额低于 10% 视为低余额
+  if (r.total && r.total > 0 && r.remaining !== undefined && r.remaining / r.total < 0.1) {
+    return 'balance-low'
+  }
+  return 'balance-ok'
+}
+
+function getBalanceTooltip(name) {
+  const info = balanceMap[name]
+  if (!info || !info.result) return ''
+  const r = info.result
+  const parts = []
+  if (r.total !== undefined) parts.push(`${t('api.balance.total')}: ${r.unit || ''}${r.total.toFixed(2)}`)
+  if (r.used !== undefined) parts.push(`${t('api.balance.used')}: ${r.unit || ''}${r.used.toFixed(2)}`)
+  if (r.remaining !== undefined) parts.push(`${t('api.balance.remaining')}: ${r.unit || ''}${r.remaining.toFixed(2)}`)
+  if (r.unlimitedQuota) parts.push(t('api.balance.unlimited'))
+  if (r.isAvailable === false) parts.push(t('api.balance.notAvailable'))
+  return parts.join(' | ')
+}
 
 const profileColors = [
   'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
@@ -774,6 +914,37 @@ function getExpiryClass(name) {
   50% {
     opacity: 1;
     transform: scale(1.1);
+  }
+}
+
+// Balance badge
+.balance-badge {
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: default;
+
+  &.balance-ok {
+    color: var(--success);
+    background: color-mix(in srgb, var(--success) 12%, transparent);
+  }
+
+  &.balance-low {
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+  }
+
+  &.balance-unlimited {
+    color: var(--info);
+    background: color-mix(in srgb, var(--info) 12%, transparent);
+  }
+
+  &.balance-error {
+    color: var(--text-tertiary);
   }
 }
 

@@ -149,6 +149,16 @@
             </div>
           </div>
         </div>
+        <div class="form-group">
+          <label class="form-label">{{ $t('api.balance.provider') }}</label>
+          <select class="form-select" v-model="createData.balanceProvider">
+            <option value="auto">{{ $t('api.balance.auto') }}</option>
+            <option value="buzz">{{ $t('api.balance.buzz') }}</option>
+            <option value="deepseek">{{ $t('api.balance.deepseek') }}</option>
+            <option value="yunwu">{{ $t('api.balance.yunwu') }}</option>
+            <option value="disabled">{{ $t('api.balance.disabled') }}</option>
+          </select>
+        </div>
       </div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('close-create')">{{ $t('dialog.cancel') }}</button>
@@ -309,6 +319,16 @@
             </div>
           </div>
         </div>
+        <div class="form-group">
+          <label class="form-label">{{ $t('api.balance.provider') }}</label>
+          <select class="form-select" v-model="editData.balanceProvider">
+            <option value="auto">{{ $t('api.balance.auto') }}</option>
+            <option value="buzz">{{ $t('api.balance.buzz') }}</option>
+            <option value="deepseek">{{ $t('api.balance.deepseek') }}</option>
+            <option value="yunwu">{{ $t('api.balance.yunwu') }}</option>
+            <option value="disabled">{{ $t('api.balance.disabled') }}</option>
+          </select>
+        </div>
       </div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('close-edit')">{{ $t('dialog.cancel') }}</button>
@@ -339,6 +359,7 @@ interface ApiProfileData {
   tokensLimit: number
   expiryDays: number
   createdAt: string
+  balanceProvider: 'auto' | 'buzz' | 'deepseek' | 'yunwu' | 'disabled'
 }
 
 interface ModelItem {
@@ -366,6 +387,7 @@ const props = withDefaults(defineProps<Props>(), {
     tokensLimit: 128000,
     expiryDays: 0,
     createdAt: '',
+    balanceProvider: 'auto',
   }),
   editData: () => ({
     name: '',
@@ -376,6 +398,7 @@ const props = withDefaults(defineProps<Props>(), {
     tokensLimit: 128000,
     expiryDays: 0,
     createdAt: '',
+    balanceProvider: 'auto',
   }),
   currentProfileName: '',
 })

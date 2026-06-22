@@ -8,6 +8,7 @@ const { readSettings, writeSettings, API_FIELDS, extractApiConfig, applyApiConfi
 const { updateTrayMenu } = require('../tray')
 const { wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 const { t } = require('../utils/translations')
+const { fetchTokenBalance } = require('../services/balanceService')
 
 /**
  * 注册 API 配置相关的 IPC 处理器
@@ -365,6 +366,14 @@ function registerApiProfilesIpcHandlers() {
         request.end()
       })
     }, 'ping-api-profile'),
+  )
+
+  // Token 余额查询
+  ipcMain.handle(
+    'fetch-token-balance',
+    wrapIpcHandler(async (event, { baseUrl, apiKey, provider, detectionRules }) => {
+      return await fetchTokenBalance({ baseUrl, apiKey, provider, detectionRules })
+    }, 'fetch-token-balance'),
   )
 }
 

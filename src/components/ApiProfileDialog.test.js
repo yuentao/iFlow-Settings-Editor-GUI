@@ -241,7 +241,7 @@ describe('ApiProfileDialog.vue', () => {
       });
 
       const formGroups = wrapper.findAll('.form-group');
-      expect(formGroups.length).toBe(7); // name, authType, baseUrl, apiKey, modelName, expiryDays, tokensLimit
+      expect(formGroups.length).toBe(8); // name, authType, baseUrl, apiKey, modelName, expiryDays, tokensLimit, balanceProvider
     });
 
     it('emits close-edit when cancel button is clicked', async () => {
@@ -363,5 +363,8 @@ describe('ApiProfileDialog.vue', () => {
       await wrapper.find('.api-edit-dialog').trigger('click');
       expect(wrapper.emitted('close-create')).toBeFalsy();
     });
+  });
+});
+ });
   });
 });
