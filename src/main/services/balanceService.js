@@ -6,19 +6,19 @@
 
 const { net } = require('electron')
 
-// 内置检测关键词（大小写不敏感子串匹配）
+// 内置检测规则（使用 provider 名作为 baseUrl 匹配关键词）
 const BUILTIN_RULES = [
-  { pattern: 'buzz', provider: 'buzz' },
-  { pattern: 'deepseek', provider: 'deepseek' },
-  { pattern: 'yunwu', provider: 'yunwu' },
+  { provider: 'buzz', endpoint: '/api/usage/token/' },
+  { provider: 'deepseek', endpoint: '/user/balance' },
+  { provider: 'yunwu', endpoint: '' },
 ]
 
 /**
  * 自动检测 Provider
  * @param {string} baseUrl
  * @param {string} forceProvider  — profile 级手动指定值
- * @param {Array<{pattern:string, provider:string}>} [customRules] — 用户自定义规则
- * @returns {'buzz'|'deepseek'|'yunwu'|'disabled'}
+ * @param {Array<{provider:string, endpoint:string}>} [customRules] — 用户自定义规则
+ * @returns {string} 匹配到的 provider 名称或 'disabled'
  */
 function detectProvider(baseUrl, forceProvider, customRules) {
   if (forceProvider && forceProvider !== 'auto') {
@@ -31,10 +31,10 @@ function detectProvider(baseUrl, forceProvider, customRules) {
 
   const url = baseUrl.toLowerCase()
 
-  // 1️⃣ 优先匹配用户自定义规则
+  // 1️⃣ 优先匹配用户自定义规则（用 provider 名作为关键词匹配）
   if (Array.isArray(customRules) && customRules.length > 0) {
     for (const rule of customRules) {
-      if (rule.pattern && url.includes(rule.pattern.toLowerCase())) {
+      if (rule.provider && url.includes(rule.provider.toLowerCase())) {
         return rule.provider
       }
     }
@@ -44,7 +44,7 @@ function detectProvider(baseUrl, forceProvider, customRules) {
 
   // 2️⃣ 匹配内置规则
   for (const rule of BUILTIN_RULES) {
-    if (url.includes(rule.pattern)) {
+    if (url.includes(rule.provider)) {
       return rule.provider
     }
   }
@@ -54,7 +54,7 @@ function detectProvider(baseUrl, forceProvider, customRules) {
 
 /**
  * 统一入口：查询 Token 余额
- * @param {{ baseUrl: string, apiKey: string, provider: string, detectionRules?: Array<{pattern:string, provider:string}> }} params
+ * @param {{ baseUrl: string, apiKey: string, provider: string, detectionRules?: Array<{provider:string, endpoint:string}> }} params
  * @returns {Promise<import('../../shared/types').TokenBalanceResult>}
  */
 async function fetchTokenBalance({ baseUrl, apiKey, provider, detectionRules }) {

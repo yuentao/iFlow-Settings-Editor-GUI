@@ -69,6 +69,7 @@
       :create-data="creatingApiData"
       :edit-data="editingApiData"
       :current-profile-name="currentApiProfile"
+      :balance-provider-rules="settings?.balanceProviderRules"
       @close-create="closeApiCreateDialog"
       @save-create="saveApiCreate"
       @close-edit="closeApiEditDialog"
@@ -341,7 +342,7 @@ const showApiEditDialog = ref(false)
 const editingApiProfileName = ref('')
 const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 })
 const showApiCreateDialog = ref(false)
-const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 })
+const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, balanceProvider: 'auto' })
 
 const updateSettings = newSettings => {
   settings.value = newSettings
@@ -499,6 +500,7 @@ const openApiEditDialog = profileName => {
     modelName: profile?.modelName ?? '',
     tokensLimit: profile?.tokensLimit ?? 128000,
     expiryDays: profile?.expiryDays ?? 0,
+    balanceProvider: profile?.balanceProvider ?? 'auto',
     _originalExpiryDays: profile?.expiryDays ?? 0,
     _originalExpiryStartDate: profile?.expiryStartDate ?? null,
   }

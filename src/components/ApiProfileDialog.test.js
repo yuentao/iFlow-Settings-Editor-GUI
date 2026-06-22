@@ -92,7 +92,7 @@ describe('ApiProfileDialog.vue', () => {
       });
 
       const selects = wrapper.findAll('.form-select');
-      expect(selects.length).toBe(1);
+      expect(selects.length).toBe(2);
     });
 
     it('emits close-create when cancel button is clicked', async () => {
@@ -363,8 +363,5 @@ describe('ApiProfileDialog.vue', () => {
       await wrapper.find('.api-edit-dialog').trigger('click');
       expect(wrapper.emitted('close-create')).toBeFalsy();
     });
-  });
-});
- });
   });
 });

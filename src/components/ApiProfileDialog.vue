@@ -152,11 +152,9 @@
         <div class="form-group">
           <label class="form-label">{{ $t('api.balance.provider') }}</label>
           <select class="form-select" v-model="createData.balanceProvider">
-            <option value="auto">{{ $t('api.balance.auto') }}</option>
-            <option value="buzz">{{ $t('api.balance.buzz') }}</option>
-            <option value="deepseek">{{ $t('api.balance.deepseek') }}</option>
-            <option value="yunwu">{{ $t('api.balance.yunwu') }}</option>
-            <option value="disabled">{{ $t('api.balance.disabled') }}</option>
+            <option v-for="opt in providerOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label.startsWith('api.') ? $t(opt.label) : opt.label }}
+            </option>
           </select>
         </div>
       </div>
@@ -322,11 +320,9 @@
         <div class="form-group">
           <label class="form-label">{{ $t('api.balance.provider') }}</label>
           <select class="form-select" v-model="editData.balanceProvider">
-            <option value="auto">{{ $t('api.balance.auto') }}</option>
-            <option value="buzz">{{ $t('api.balance.buzz') }}</option>
-            <option value="deepseek">{{ $t('api.balance.deepseek') }}</option>
-            <option value="yunwu">{{ $t('api.balance.yunwu') }}</option>
-            <option value="disabled">{{ $t('api.balance.disabled') }}</option>
+            <option v-for="opt in providerOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label.startsWith('api.') ? $t(opt.label) : opt.label }}
+            </option>
           </select>
         </div>
       </div>
@@ -348,7 +344,7 @@
  */
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { Key, Save, Refresh, Loading } from '@icon-park/vue-next'
-import type { AuthType } from '@/shared/types'
+import type { AuthType, BalanceProviderRule } from '@/shared/types'
 
 interface ApiProfileData {
   name: string
@@ -359,7 +355,7 @@ interface ApiProfileData {
   tokensLimit: number
   expiryDays: number
   createdAt: string
-  balanceProvider: 'auto' | 'buzz' | 'deepseek' | 'yunwu' | 'disabled'
+  balanceProvider: string
 }
 
 interface ModelItem {
@@ -373,6 +369,7 @@ interface Props {
   createData: ApiProfileData
   editData: ApiProfileData
   currentProfileName?: string
+  balanceProviderRules?: BalanceProviderRule[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -401,6 +398,35 @@ const props = withDefaults(defineProps<Props>(), {
     balanceProvider: 'auto',
   }),
   currentProfileName: '',
+  balanceProviderRules: () => [],
+})
+
+// 从 rules 和内置列表生成动态 provider 选项
+const providerOptions = computed(() => {
+  const options = [
+    { value: 'auto', label: 'api.balance.auto' },
+  ]
+  // 来自自定义规则的 provider
+  if (Array.isArray(props.balanceProviderRules)) {
+    for (const rule of props.balanceProviderRules) {
+      if (rule.provider && !options.some(o => o.value === rule.provider)) {
+        options.push({ value: rule.provider, label: rule.provider })
+      }
+    }
+  }
+  // 内置 provider
+  const builtin = [
+    { value: 'buzz', label: 'api.balance.buzz' },
+    { value: 'deepseek', label: 'api.balance.deepseek' },
+    { value: 'yunwu', label: 'api.balance.yunwu' },
+  ]
+  for (const b of builtin) {
+    if (!options.some(o => o.value === b.value)) {
+      options.push(b)
+    }
+  }
+  options.push({ value: 'disabled', label: 'api.balance.disabled' })
+  return options
 })
 
 const emit = defineEmits<{

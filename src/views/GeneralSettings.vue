@@ -163,12 +163,8 @@
             </div>
             <div class="rules-editor" style="width: 100%; margin-top: 8px;">
               <div class="rule-row" v-for="(rule, idx) in localSettings.balanceProviderRules" :key="idx">
-                <input type="text" class="form-input rule-pattern" v-model="rule.pattern" :placeholder="$t('general.balanceRulePattern')" style="flex: 1; min-width: 120px;" />
-                <select class="form-select rule-provider" v-model="rule.provider" style="width: 120px;">
-                  <option value="buzz">BUZZ</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="yunwu">云雾</option>
-                </select>
+                <input type="text" class="form-input" v-model="rule.provider" :placeholder="$t('general.balanceSupplierNamePlaceholder')" style="flex: 1; min-width: 80px;" :title="$t('general.balanceSupplierName')" />
+                <input type="text" class="form-input" v-model="rule.endpoint" :placeholder="$t('general.balanceEndpointPlaceholder')" style="flex: 1.5; min-width: 120px;" :title="$t('general.balanceEndpoint')" />
                 <button class="btn btn-sm btn-ghost rule-remove" @click="removeBalanceRule(idx)" :title="$t('general.delete')">
                   <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5">
                     <line x1="3" y1="3" x2="13" y2="13" /><line x1="13" y1="3" x2="3" y2="13" />
@@ -1163,7 +1159,7 @@ const addBalanceRule = () => {
   if (!localSettings.value.balanceProviderRules) {
     localSettings.value.balanceProviderRules = []
   }
-  localSettings.value.balanceProviderRules.push({ pattern: '', provider: 'buzz' })
+  localSettings.value.balanceProviderRules.push({ provider: '', endpoint: '' })
   // 触发更新通知
   emit('update:settings', { ...props.settings })
 }

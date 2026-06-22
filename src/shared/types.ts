@@ -394,6 +394,6 @@ export interface TokenBalanceResult {
 }
 
 export interface BalanceProviderRule {
-  pattern: string
-  provider: 'buzz' | 'deepseek' | 'yunwu'
+  provider: string
+  endpoint: string
 }

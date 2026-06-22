@@ -19,6 +19,12 @@ export const CLI_DEFAULTS = {
   logLevel: 'info',
   apiConfigLayout: 'list',
   zoomFactor: 1.0,
+  balanceRefreshInterval: 5,
+  balanceProviderRules: [
+    { provider: 'buzz', endpoint: '/api/usage/token/' },
+    { provider: 'deepseek', endpoint: '/user/balance' },
+    { provider: 'yunwu', endpoint: '' },
+  ],
 } as const
 
 /** 将 CLI_DEFAULTS 中 undefined 的字段补充到目标对象（非覆盖） */
