@@ -54,17 +54,22 @@ function createTrayIcon() {
   logger.info('[Tray] Platform:', process.platform, '| Packaged:', app.isPackaged, '| Icon path:', iconPath)
   let trayIcon
 
+  const isMac = process.platform === 'darwin'
+
   if (fs.existsSync(iconPath)) {
-    // macOS 上 createFromPath 对某些 PNG 有兼容问题，改用 createFromBuffer
-    const iconBuffer = fs.readFileSync(iconPath)
-    trayIcon = nativeImage.createFromBuffer(iconBuffer)
-    logger.info('[Tray] Icon loaded via buffer, isEmpty:', trayIcon.isEmpty(), '| size:', trayIcon.getSize())
+    if (isMac) {
+      // macOS 上 createFromPath 对某些 PNG 有兼容问题，改用 createFromBuffer
+      const iconBuffer = fs.readFileSync(iconPath)
+      trayIcon = nativeImage.createFromBuffer(iconBuffer)
+    } else {
+      // Windows 上 createFromBuffer 不支持 ICO 格式，使用 createFromPath
+      trayIcon = nativeImage.createFromPath(iconPath)
+    }
+    logger.info('[Tray] Icon loaded, isEmpty:', trayIcon.isEmpty(), '| size:', trayIcon.getSize())
   } else {
     logger.warn('[Tray] Icon not found at:', iconPath)
     trayIcon = nativeImage.createEmpty()
   }
-
-  const isMac = process.platform === 'darwin'
   if (isMac) {
     // macOS 菜单栏图标不手动 resize，让 Electron 自动适配
     logger.info('[Tray] macOS tray icon (no manual resize), isEmpty:', trayIcon.isEmpty())
