@@ -112,6 +112,7 @@ export default {
     balanceSupplierNamePlaceholder: '例：buzz',
     balanceEndpoint: '残高照会エンドポイント',
     balanceEndpointPlaceholder: '例：/api/usage/token/',
+    delete: '削除',
     excludeTools: '除外ツール',
     excludeToolsDesc:
       'CLIから除外するコアツール名のリストを指定できます。ShellToolなどのサポートされているツールに対してコマンド固有の制限を指定することもできます。例えば、"excludeTools": ["ShellTool(rm -rf)"] はrm -rfコマンドをブロックします。デフォルト：ツールは除外されません。',

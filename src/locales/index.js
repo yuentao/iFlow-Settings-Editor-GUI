@@ -143,6 +143,7 @@ export default {
     balanceSupplierNamePlaceholder: '如 buzz',
     balanceEndpoint: '余额查询接口',
     balanceEndpointPlaceholder: '如 /api/usage/token/',
+    delete: '删除',
     approvalMode: '审批模式',
     approvalModeDesc: 'CLI 启动时默认模式',
     approvalModeYolo: 'YOLO',

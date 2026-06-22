@@ -161,19 +161,38 @@
               <label class="setting-label">{{ $t('general.balanceProviderRules') }}</label>
               <p class="setting-desc">{{ $t('general.balanceProviderRulesDesc') }}</p>
             </div>
-            <div class="rules-editor" style="width: 100%; margin-top: 8px;">
-              <div class="rule-row" v-for="(rule, idx) in localSettings.balanceProviderRules" :key="idx">
-                <input type="text" class="form-input" v-model="rule.provider" :placeholder="$t('general.balanceSupplierNamePlaceholder')" style="flex: 1; min-width: 80px;" :title="$t('general.balanceSupplierName')" />
-                <input type="text" class="form-input" v-model="rule.endpoint" :placeholder="$t('general.balanceEndpointPlaceholder')" style="flex: 1.5; min-width: 120px;" :title="$t('general.balanceEndpoint')" />
-                <button class="btn btn-sm btn-ghost rule-remove" @click="removeBalanceRule(idx)" :title="$t('general.delete')">
-                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <line x1="3" y1="3" x2="13" y2="13" /><line x1="13" y1="3" x2="3" y2="13" />
-                  </svg>
-                </button>
+            <div class="advanced-config" style="width: 100%; margin-top: 8px;">
+              <div class="advanced-config-header" @click="balanceRulesExpanded = !balanceRulesExpanded">
+                <svg class="chevron" :class="{ expanded: balanceRulesExpanded }" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 4l4 4-4 4" />
+                </svg>
+                {{ $t('general.balanceEndpoint') }}
+                <span v-if="localSettings.balanceProviderRules?.length > 0" class="advanced-badge">{{ localSettings.balanceProviderRules.length }}</span>
               </div>
-              <button class="btn btn-secondary btn-sm" style="margin-top: 6px;" @click="addBalanceRule">
-                + {{ $t('general.balanceProviderRulesAdd') }}
-              </button>
+              <div v-if="balanceRulesExpanded" class="advanced-config-body">
+                <div class="custom-fields">
+                  <div v-for="(rule, idx) in localSettings.balanceProviderRules" :key="idx" class="custom-field-row">
+                    <input
+                      type="text"
+                      class="form-input field-key"
+                      v-model="rule.provider"
+                      :placeholder="$t('general.balanceSupplierNamePlaceholder')"
+                    />
+                    <input
+                      type="text"
+                      class="form-input field-key"
+                      v-model="rule.endpoint"
+                      :placeholder="$t('general.balanceEndpointPlaceholder')"
+                    />
+                    <button class="btn-icon btn-remove" @click="removeBalanceRule(idx)" :title="$t('general.delete')">
+                      <CloseSmall size="12" />
+                    </button>
+                  </div>
+                  <button class="btn btn-secondary btn-add-field" @click="addBalanceRule">
+                    + {{ $t('general.balanceProviderRulesAdd') }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1153,6 +1172,8 @@ const onZoomFactorChange = e => {
     window.electronAPI.setZoomFactor(value)
   }
 }
+
+const balanceRulesExpanded = ref(false)
 
 // 余额 Provider 检测规则管理
 const addBalanceRule = () => {
@@ -2639,6 +2660,106 @@ function onWizardCancel() {
 
   .sync-content-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+// Advanced config (collapsible rule editor)
+.advanced-config {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+
+  .advanced-config-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    background: var(--bg-secondary);
+    transition: background var(--transition-fast) var(--ease-out);
+    user-select: none;
+
+    &:hover {
+      background: var(--control-fill);
+    }
+
+    .chevron {
+      width: 14px;
+      height: 14px;
+      color: var(--text-tertiary);
+      transition: transform var(--duration-slow) var(--ease-out);
+
+      &.expanded {
+        transform: rotate(90deg);
+      }
+    }
+
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .advanced-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .advanced-config-body {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-primary);
+  }
+
+  .custom-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .custom-field-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    animation: fadeIn 0.15s ease;
+  }
+
+  .field-key {
+    flex: 1;
+  }
+
+  .btn-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all var(--transition-fast) var(--ease-out);
+
+    &:hover {
+      background: color-mix(in srgb, var(--danger) 15%, transparent);
+      color: var(--danger);
+    }
+  }
+
+  .btn-add-field {
+    align-self: flex-start;
+    margin-top: 4px;
   }
 }
 

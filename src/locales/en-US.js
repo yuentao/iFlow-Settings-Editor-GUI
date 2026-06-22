@@ -112,6 +112,7 @@ export default {
     balanceSupplierNamePlaceholder: 'e.g. buzz',
     balanceEndpoint: 'Balance Endpoint',
     balanceEndpointPlaceholder: 'e.g. /api/usage/token/',
+    delete: 'Delete',
     excludeTools: 'Exclude Tools',
     excludeToolsDesc:
       'Specify a list of core tool names to exclude from the CLI. You can also specify command-specific restrictions for supported tools like ShellTool. For example, "excludeTools": ["ShellTool(rm -rf)"] would block the rm -rf command. Default: no tools excluded.',

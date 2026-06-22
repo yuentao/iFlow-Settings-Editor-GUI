@@ -249,9 +249,11 @@ describe('GeneralSettings.vue', () => {
     // DisplayUpdates card: 4 items = 4
     // SessionTimeout card: 4 items = 4
     // ToolFiltering card: 1 setting-item-main = 1
-    // Total: 3 + 1 + 1 + 1 + 2 + 3 + 4 + 4 + 1 = 20
-    expect(wrapper.findAll('.setting-item').length).toBe(20);
-    expect(wrapper.findAll('.setting-label').length).toBe(20);
+    // BalanceRefresh card: 1 item = 1
+    // BalanceProviderRules card: 1 item = 1
+    // Total: 3 + 1 + 1 + 1 + 2 + 3 + 4 + 4 + 1 + 1 + 1 = 22
+    expect(wrapper.findAll('.setting-item').length).toBe(22);
+    expect(wrapper.findAll('.setting-label').length).toBe(22);
     // Selects: language, theme, layoutMode, thinkingModeEnabled, approvalMode, providerType = 6
     expect(wrapper.findAll('.form-select').length).toBe(6);
     expect(wrapper.find('.toggle-switch').exists()).toBe(true);
