@@ -66,13 +66,23 @@
               <div class="profile-expiry" v-if="getExpiryText(profile.name)" :class="getExpiryClass(profile.name)">
                 <span v-if="layoutMode !== 'grid'">{{ getExpiryText(profile.name) }}</span>
               </div>
+              <!-- 网格布局：简洁版，仅显示余额/状态 -->
               <span
-                v-if="getBalanceText(profile.name)"
+                v-if="layoutMode === 'grid' && getBalanceSimple(profile.name)"
                 class="balance-badge"
                 :class="getBalanceClass(profile.name)"
                 :title="getBalanceTooltip(profile.name)"
               >
-                {{ getBalanceText(profile.name) }}
+                {{ getBalanceSimple(profile.name) }}
+              </span>
+              <!-- 列表布局：直接显示 title 明细文本 -->
+              <span
+                v-if="layoutMode !== 'grid' && getBalanceTooltip(profile.name)"
+                class="balance-detail-text"
+                :class="getBalanceClass(profile.name)"
+                :title="getBalanceTooltip(profile.name)"
+              >
+                {{ getBalanceTooltip(profile.name) }}
               </span>
             </div>
           </div>
@@ -523,6 +533,25 @@ function getBalanceTooltip(name) {
   if (r.unlimitedQuota) parts.push(t('api.balance.unlimited'))
   if (r.isAvailable === false) parts.push(t('api.balance.notAvailable'))
   return parts.join(' | ')
+}
+
+/** 网格布局：简洁版，仅显示余额状态/金额 */
+function getBalanceSimple(name) {
+  const info = balanceMap[name]
+  if (!info) return ''
+  if (info.loading) return t('api.balance.loading')
+  if (!info.result) return ''
+  if (!info.result.success) return '—'
+  const r = info.result
+  if (r.status === 'unlimited') return t('api.balance.unlimited')
+  if (r.remaining !== undefined && r.remaining >= 0) {
+    if (r.unit) {
+      return r.remaining < 0.01 ? `${r.unit}${r.remaining.toFixed(4)}` : `${r.unit}${r.remaining.toFixed(2)}`
+    }
+    return formatTokenCount(r.remaining)
+  }
+  if (r.status === 'ok') return t('api.balance.available')
+  return ''
 }
 
 const profileColors = [
@@ -1028,6 +1057,21 @@ function getExpiryClass(name) {
   &.balance-error {
     color: var(--text-tertiary);
   }
+}
+
+/* 列表布局余额明细文本：默认灰色（过期/错误），可用时绿色 */
+.balance-detail-text {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-left: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.balance-detail-text.balance-ok {
+  color: var(--success);
 }
 
 // Disabled / expired state — only block profile selection, keep actions/sort active
