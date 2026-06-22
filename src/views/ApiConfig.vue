@@ -347,7 +347,7 @@ async function fetchBalance(name) {
       provider: profile.balanceProvider || 'auto',
       detectionRules: props.settings?.balanceProviderRules ?? [],
     }
-    console.log(`[余额] 发起查询:`, { name, ...params, rulesCount: (params.detectionRules || []).length })
+    console.log(`[余额] 发起查询:`, { name, baseUrl: params.baseUrl, provider: params.provider, apiKeyMask: params.apiKey ? params.apiKey.substring(0, 8) + '...' : '', rulesCount: (params.detectionRules || []).length })
     // JSON round-trip 剥离 Vue reactive proxy，确保 contextBridge 可序列化
     const safeParams = JSON.parse(JSON.stringify(params))
     const ipcResult = await window.electronAPI.fetchTokenBalance(safeParams)
@@ -359,7 +359,10 @@ async function fetchBalance(name) {
       status: result?.status,
       remaining: result?.remaining,
       unit: result?.unit,
+      used: result?.used,
+      total: result?.total,
       error: result?.error || ipcResult.error,
+      raw: result?.raw,
     })
     if (balancePollCancelled) return
     balanceMap[name] = {
@@ -453,6 +456,13 @@ watch(
   { deep: true },
 )
 
+function formatTokenCount(n) {
+  if (n == null || isNaN(n)) return ''
+  if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M'
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K'
+  return n.toLocaleString()
+}
+
 function getBalanceText(name) {
   const info = balanceMap[name]
   if (!info) return ''
@@ -460,10 +470,21 @@ function getBalanceText(name) {
   if (!info.result) return ''
   if (!info.result.success) return '—'
   const r = info.result
-  if (r.status === 'unlimited') return t('api.balance.unlimited')
-  if (r.remaining !== undefined && r.unit && r.remaining >= 0) {
-    const displayVal = r.remaining < 0.01 ? r.remaining.toFixed(4) : r.remaining.toFixed(2)
-    return `${r.unit}${displayVal}`
+  if (r.status === 'unlimited') {
+    if (r.used != null) {
+      return `${t('api.balance.unlimited')} · ↑${formatTokenCount(r.used)}`
+    }
+    return t('api.balance.unlimited')
+  }
+  if (r.remaining !== undefined && r.remaining >= 0) {
+    const bal = r.unit
+      ? r.remaining < 0.01 ? r.remaining.toFixed(4) : r.remaining.toFixed(2)
+      : formatTokenCount(r.remaining)
+    const displayRemaining = r.unit ? `${r.unit}${bal}` : bal
+    if (r.used != null) {
+      return `${displayRemaining} · ↑${formatTokenCount(r.used)}`
+    }
+    return displayRemaining
   }
   if (r.status === 'ok') return t('api.balance.available')
   return ''
@@ -487,9 +508,18 @@ function getBalanceTooltip(name) {
   if (!info || !info.result) return ''
   const r = info.result
   const parts = []
-  if (r.total !== undefined) parts.push(`${t('api.balance.total')}: ${r.unit || ''}${r.total.toFixed(2)}`)
-  if (r.used !== undefined) parts.push(`${t('api.balance.used')}: ${r.unit || ''}${r.used.toFixed(2)}`)
-  if (r.remaining !== undefined) parts.push(`${t('api.balance.remaining')}: ${r.unit || ''}${r.remaining.toFixed(2)}`)
+  if (r.total !== undefined) {
+    const val = r.unit ? r.unit + r.total.toFixed(2) : formatTokenCount(r.total)
+    parts.push(`${t('api.balance.total')}: ${val}`)
+  }
+  if (r.used !== undefined) {
+    const val = r.unit ? r.unit + r.used.toFixed(2) : formatTokenCount(r.used)
+    parts.push(`${t('api.balance.used')}: ${val}`)
+  }
+  if (r.remaining !== undefined) {
+    const val = r.unit ? r.unit + r.remaining.toFixed(2) : formatTokenCount(r.remaining)
+    parts.push(`${t('api.balance.remaining')}: ${val}`)
+  }
   if (r.unlimitedQuota) parts.push(t('api.balance.unlimited'))
   if (r.isAvailable === false) parts.push(t('api.balance.notAvailable'))
   return parts.join(' | ')

@@ -170,24 +170,22 @@ async function fetchBuzzBalance(baseUrl, apiKey) {
     return { ...result, provider: 'buzz', fetchedAt: new Date().toISOString() }
   }
 
-  const { quota, used, api_key_usable, total_usage } = result.body
+  // BUZZ API 实际返回格式:
+  // { "code": true, "data": { "total_available": -1683864, "total_granted": 6083440,
+  //   "total_used": 7767304, "unlimited_quota": true }, "message": "ok" }
+  const body = result.body
+  const data = body?.data && typeof body.data === 'object' ? body.data : body
+  const { total_available, total_granted, total_used } = data || {}
 
-  const softLimit = parseFloat(quota?.soft_limit_usd || '0')
-  const usedUsd = parseFloat(used?.usd || total_usage?.usd || '0')
-  const remaining = Math.max(0, softLimit - usedUsd)
-  const isUnlimited = softLimit >= 999999
-
+  const remaining = total_available != null ? Math.max(0, total_available) : 0
   return {
     success: true,
     provider: 'buzz',
-    status: isUnlimited ? 'unlimited' : (remaining > 0 ? 'ok' : 'expired'),
-    total: isUnlimited ? undefined : softLimit,
-    used: usedUsd,
-    remaining: isUnlimited ? undefined : remaining,
-    currency: 'USD',
-    unit: '$',
-    isAvailable: !!api_key_usable,
-    unlimitedQuota: isUnlimited,
+    status: remaining > 0 ? 'ok' : 'expired',
+    total: total_granted != null ? total_granted : undefined,
+    used: total_used != null ? total_used : undefined,
+    remaining,
+    isAvailable: remaining > 0,
     fetchedAt: new Date().toISOString(),
     raw: result.body,
   }
