@@ -380,13 +380,15 @@ async function fetchBalance(name) {
 
 async function fetchAllBalances() {
   if (balancePollCancelled) return
-  const targets = props.profiles.filter(p => {
-    const prof = props.settings.apiProfiles?.[p.name]
-    const valid = prof?.baseUrl && prof?.apiKey && !isProfileExpired(p.name) && prof.balanceProvider !== 'disabled'
-    return valid
-  })
-  console.log(`[余额] fetchAllBalances: profiles=${props.profiles.length}, targets=${targets.length}, targetNames=${targets.map(p => p.name)}`)
-  await Promise.all(targets.map(p => fetchBalance(p.name)))
+  // 仅查询当前使用中的 API 配置
+  const currentName = props.currentProfile
+  if (!currentName) return
+  const prof = props.settings.apiProfiles?.[currentName]
+  const valid = prof?.baseUrl && prof?.apiKey && !isProfileExpired(currentName) && prof.balanceProvider !== 'disabled'
+  console.log(`[余额] fetchAllBalances: current=${currentName}, valid=${valid}`)
+  if (valid) {
+    await fetchBalance(currentName)
+  }
 }
 
 function startBalancePolling() {
