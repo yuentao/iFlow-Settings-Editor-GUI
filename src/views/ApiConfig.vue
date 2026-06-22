@@ -327,6 +327,13 @@ const balancePollIntervalMs = computed(() => {
 
 async function fetchBalance(name) {
   const profile = props.settings.apiProfiles?.[name]
+  console.log(`[余额] fetchBalance(${name})`, {
+    hasBaseUrl: !!profile?.baseUrl,
+    hasApiKey: !!profile?.apiKey,
+    balanceProvider: profile?.balanceProvider,
+    expired: isProfileExpired(name),
+    disabled: profile?.balanceProvider === 'disabled',
+  })
   if (!profile?.baseUrl || !profile?.apiKey) return
   if (isProfileExpired(name)) return
   if (profile.balanceProvider === 'disabled') return
@@ -334,19 +341,38 @@ async function fetchBalance(name) {
   balanceMap[name] = { ...balanceMap[name], loading: true }
 
   try {
-    const result = await window.electronAPI.fetchTokenBalance({
+    const params = {
       baseUrl: profile.baseUrl,
       apiKey: profile.apiKey,
       provider: profile.balanceProvider || 'auto',
-      detectionRules: props.settings?.balanceProviderRules,
+      detectionRules: props.settings?.balanceProviderRules ?? [],
+    }
+    console.log(`[余额] 发起查询:`, { name, ...params, rulesCount: (params.detectionRules || []).length })
+    // JSON round-trip 剥离 Vue reactive proxy，确保 contextBridge 可序列化
+    const safeParams = JSON.parse(JSON.stringify(params))
+    const ipcResult = await window.electronAPI.fetchTokenBalance(safeParams)
+    const result = ipcResult.success ? ipcResult.data : null
+    console.log(`[余额] 查询结果:`, {
+      name,
+      success: result?.success,
+      provider: result?.provider,
+      status: result?.status,
+      remaining: result?.remaining,
+      unit: result?.unit,
+      error: result?.error || ipcResult.error,
     })
     if (balancePollCancelled) return
     balanceMap[name] = {
       loading: false,
       result,
-      lastError: result.success ? null : (result.error || null),
+      lastError: result?.success ? null : (result?.error || ipcResult.error || null),
     }
   } catch (e) {
+    console.log(`[余额] 查询异常:`, {
+      name,
+      msg: e?.message || String(e),
+      stack: e?.stack?.substring(0, 300),
+    })
     if (balancePollCancelled) return
     balanceMap[name] = { loading: false, result: null, lastError: 'api.balance.fetchFailed' }
   }
@@ -356,8 +382,10 @@ async function fetchAllBalances() {
   if (balancePollCancelled) return
   const targets = props.profiles.filter(p => {
     const prof = props.settings.apiProfiles?.[p.name]
-    return prof?.baseUrl && prof?.apiKey && !isProfileExpired(p.name) && prof.balanceProvider !== 'disabled'
+    const valid = prof?.baseUrl && prof?.apiKey && !isProfileExpired(p.name) && prof.balanceProvider !== 'disabled'
+    return valid
   })
+  console.log(`[余额] fetchAllBalances: profiles=${props.profiles.length}, targets=${targets.length}, targetNames=${targets.map(p => p.name)}`)
   await Promise.all(targets.map(p => fetchBalance(p.name)))
 }
 
@@ -397,6 +425,28 @@ watch(
     if (!isOnlyReorder) {
       fetchAllBalances()
     }
+  },
+  { deep: true },
+)
+
+// Profile 数据变化时（如 balanceProvider 修改）重新触发余额查询
+watch(
+  () => props.settings?.apiProfiles,
+  (newVal, oldVal) => {
+    console.log(`[余额] apiProfiles watch fired: new=${Object.keys(newVal || {}).length}, old=${Object.keys(oldVal || {}).length}`)
+    fetchAllBalances()
+  },
+  { deep: true },
+)
+
+// 供应商检测规则变化时重新查询余额（可能影响 auto 检测结果）
+watch(
+  () => props.settings?.balanceProviderRules,
+  (newVal, oldVal) => {
+    const newLen = Array.isArray(newVal) ? newVal.length : 0
+    const oldLen = Array.isArray(oldVal) ? oldVal.length : 0
+    console.log(`[余额] balanceProviderRules watch fired: new=${newLen}, old=${oldLen}`)
+    fetchAllBalances()
   },
   { deep: true },
 )

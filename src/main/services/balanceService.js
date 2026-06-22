@@ -124,7 +124,7 @@ function httpGetJson(url, apiKey, timeout = 10000) {
       response.on('data', chunk => { body += chunk.toString() })
       response.on('end', () => {
         try {
-          resolve({ statusCode, body: JSON.parse(body) })
+          resolve({ success: true, statusCode, body: JSON.parse(body) })
         } catch (e) {
           resolve({ success: false, error: 'api.balance.invalidResponse' })
         }

@@ -570,6 +570,7 @@ const saveApiEdit = async data => {
       settings.value.baseUrl = data.baseUrl
       settings.value.modelName = data.modelName
       settings.value.tokensLimit = data.tokensLimit
+      settings.value.balanceProvider = data.balanceProvider || 'auto'
     }
 
     showApiEditDialog.value = false
