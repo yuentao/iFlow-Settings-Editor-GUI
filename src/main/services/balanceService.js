@@ -74,6 +74,13 @@ async function fetchTokenBalance({ baseUrl, apiKey, provider, detectionRules }) 
   }
 
   // 分发到具体 provider 实现
+  // 优先检查自定义规则是否包含字段映射
+  const customRule = (Array.isArray(detectionRules) ? detectionRules : [])
+    .find(r => r.provider === resolvedProvider && r.balanceField)
+  if (customRule) {
+    return fetchCustomBalance({ baseUrl, apiKey, rule: customRule })
+  }
+
   switch (resolvedProvider) {
     case 'buzz':
       return fetchBuzzBalance(baseUrl.trim(), apiKey.trim())
@@ -258,10 +265,74 @@ async function fetchYunwuBalance(baseUrl, apiKey) {
   }
 }
 
+/**
+ * 按 dot-path 从对象中取值，支持数组下标语法 key[index]
+ * 示例:
+ *   getValueByPath({ a: { b: [{ c: 1 }] } }, 'a.b[0].c') => 1
+ *   getValueByPath({ data: { total_available: 100 } }, 'data.total_available') => 100
+ * @param {object} obj
+ * @param {string} path
+ * @returns {*}
+ */
+function getValueByPath(obj, path) {
+  if (!obj || !path) return undefined
+  const parts = path.split('.')
+  let current = obj
+  for (const part of parts) {
+    if (current == null) return undefined
+    const arrMatch = part.match(/^(\w+)\[(\d+)\]$/)
+    if (arrMatch) {
+      current = current[arrMatch[1]]
+      if (!Array.isArray(current)) return undefined
+      current = current[parseInt(arrMatch[2])]
+    } else {
+      current = current[part]
+    }
+  }
+  return current
+}
+
+/**
+ * 通用余额查询 — 根据自定义规则的字段映射从 JSON 响应提取值
+ * @param {{ baseUrl: string, apiKey: string, rule: import('../../shared/types').BalanceProviderRule }} params
+ * @returns {Promise<import('../../shared/types').TokenBalanceResult>}
+ */
+async function fetchCustomBalance({ baseUrl, apiKey, rule }) {
+  const origin = getOrigin(baseUrl)
+  const ep = rule.endpoint.startsWith('/') ? rule.endpoint : `/${rule.endpoint}`
+  const result = await httpGetJson(`${origin}${ep}`, apiKey)
+
+  if (!result.success) {
+    return { ...result, provider: rule.provider, fetchedAt: new Date().toISOString() }
+  }
+
+  const body = result.body
+  const balanceVal = rule.balanceField ? parseFloat(getValueByPath(body, rule.balanceField) ?? '0') : 0
+  const usedVal = rule.usedField ? parseFloat(getValueByPath(body, rule.usedField) ?? '0') : undefined
+  const totalVal = rule.totalField ? parseFloat(getValueByPath(body, rule.totalField) ?? '0') : undefined
+
+  const remaining = Math.max(0, balanceVal)
+
+  return {
+    success: true,
+    provider: rule.provider,
+    status: remaining > 0 ? 'ok' : 'expired',
+    remaining,
+    used: usedVal,
+    total: totalVal,
+    unit: rule.unit || '',
+    isAvailable: remaining > 0,
+    fetchedAt: new Date().toISOString(),
+    raw: result.body,
+  }
+}
+
 module.exports = {
   detectProvider,
   fetchTokenBalance,
   fetchBuzzBalance,
   fetchDeepSeekBalance,
   fetchYunwuBalance,
+  fetchCustomBalance,
+  getValueByPath,
 }

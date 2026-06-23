@@ -171,22 +171,67 @@
               </div>
               <div v-if="balanceRulesExpanded" class="advanced-config-body">
                 <div class="custom-fields">
-                  <div v-for="(rule, idx) in localSettings.balanceProviderRules" :key="idx" class="custom-field-row">
-                    <input
-                      type="text"
-                      class="form-input field-key"
-                      v-model="rule.provider"
-                      :placeholder="$t('general.balanceSupplierNamePlaceholder')"
-                    />
-                    <input
-                      type="text"
-                      class="form-input field-key"
-                      v-model="rule.endpoint"
-                      :placeholder="$t('general.balanceEndpointPlaceholder')"
-                    />
-                    <button class="btn-icon btn-remove" @click="removeBalanceRule(idx)" :title="$t('general.delete')">
-                      <CloseSmall size="12" />
-                    </button>
+                  <div v-for="(rule, idx) in localSettings.balanceProviderRules" :key="idx" class="rule-card">
+                    <div class="rule-row">
+                      <div class="field-group field-group-provider">
+                        <span class="field-label">{{ $t('general.balanceSupplierName') }}</span>
+                        <input
+                          type="text"
+                          class="form-input field-provider"
+                          v-model="rule.provider"
+                          :placeholder="$t('general.balanceSupplierNamePlaceholder')"
+                        />
+                      </div>
+                      <div class="field-group">
+                        <span class="field-label">{{ $t('general.balanceEndpoint') }}</span>
+                        <input
+                          type="text"
+                          class="form-input field-key"
+                          v-model="rule.endpoint"
+                          :placeholder="$t('general.balanceEndpointPlaceholder')"
+                        />
+                      </div>
+                      <button class="btn-icon btn-remove" @click="removeBalanceRule(idx)" :title="$t('general.delete')">
+                        <CloseSmall size="12" />
+                      </button>
+                    </div>
+                    <div class="rule-row rule-mapping-row">
+                      <div class="field-group">
+                        <span class="field-label">{{ $t('general.balanceField') }}</span>
+                        <input
+                          type="text"
+                          class="form-input field-key field-mapping"
+                          v-model="rule.balanceField"
+                          :placeholder="$t('general.balanceFieldPlaceholder')"
+                        />
+                      </div>
+                      <div class="field-group">
+                        <span class="field-label">{{ $t('general.balanceUsedField') }}</span>
+                        <input
+                          type="text"
+                          class="form-input field-key field-mapping"
+                          v-model="rule.usedField"
+                          :placeholder="$t('general.balanceUsedFieldPlaceholder')"
+                        />
+                      </div>
+                      <div class="field-group">
+                        <span class="field-label">{{ $t('general.balanceTotalField') }}</span>
+                        <input
+                          type="text"
+                          class="form-input field-key field-mapping"
+                          v-model="rule.totalField"
+                          :placeholder="$t('general.balanceTotalFieldPlaceholder')"
+                        />
+                      </div>
+                      <div class="field-group field-group-unit">
+                        <span class="field-label">{{ $t('general.balanceUnit') }}</span>
+                        <select class="form-input field-unit-select" v-model="rule.unit">
+                          <option value="">{{ $t('general.balanceUnitNotSet') }}</option>
+                          <option value="¥">¥</option>
+                          <option value="$">$</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                   <button class="btn btn-secondary btn-add-field" @click="addBalanceRule">
                     + {{ $t('general.balanceProviderRulesAdd') }}
@@ -1180,7 +1225,7 @@ const addBalanceRule = () => {
   if (!localSettings.value.balanceProviderRules) {
     localSettings.value.balanceProviderRules = []
   }
-  localSettings.value.balanceProviderRules.push({ provider: '', endpoint: '' })
+  localSettings.value.balanceProviderRules.push({ provider: '', endpoint: '', balanceField: '', usedField: '', totalField: '', unit: '' })
   // 触发更新通知
   emit('update:settings', { ...props.settings })
 }
@@ -2760,6 +2805,80 @@ function onWizardCancel() {
   .btn-add-field {
     align-self: flex-start;
     margin-top: 4px;
+  }
+
+  .rule-card {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    margin-bottom: 8px;
+    animation: fadeIn 0.15s ease;
+  }
+
+  .rule-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .rule-mapping-row {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border-light);
+  }
+
+  .field-mapping {
+    flex: 1;
+  }
+
+  .field-unit {
+    width: 64px;
+    flex-shrink: 0;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .field-group-unit {
+    flex: 0 0 auto;
+    width: 100px;
+  }
+
+  .field-group-provider {
+    flex: 0 0 auto;
+    width: 140px;
+  }
+
+  .field-provider {
+    width: 100%;
+  }
+
+  .field-unit-select {
+    width: 100%;
+    padding: calc(var(--space-sm) - 1px) var(--space-md);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+    background: var(--control-fill);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .field-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    padding-left: 2px;
+    line-height: 1.4;
   }
 }
 

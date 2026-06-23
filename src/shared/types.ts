@@ -396,4 +396,12 @@ export interface TokenBalanceResult {
 export interface BalanceProviderRule {
   provider: string
   endpoint: string
+  /** JSON 响应中余额字段的 dot-path，如 data.total_available */
+  balanceField?: string
+  /** JSON 响应中用量的 dot-path，如 data.total_used */
+  usedField?: string
+  /** JSON 响应中总量字段的 dot-path，如 data.total_granted */
+  totalField?: string
+  /** 显示前缀，如 $、¥ 或留空 */
+  unit?: string
 }
