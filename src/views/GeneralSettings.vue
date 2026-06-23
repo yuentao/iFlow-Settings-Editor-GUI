@@ -22,22 +22,14 @@
               <label class="setting-label">{{ $t('general.language') }}</label>
               <p class="setting-desc">{{ $t('general.languageDesc') || '' }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.language">
-              <option value="zh-CN">{{ $t('languages.zh-CN') }}</option>
-              <option value="en-US">{{ $t('languages.en-US') }}</option>
-              <option value="ja-JP">{{ $t('languages.ja-JP') }}</option>
-            </select>
+            <custom-dropdown class="setting-select" v-model="localSettings.language" :options="languageOptions" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.theme') }}</label>
               <p class="setting-desc">{{ $t('general.themeDesc') || '' }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.uiTheme">
-              <option value="Light">{{ $t('theme.light') }}</option>
-              <option value="Dark">{{ $t('theme.dark') }}</option>
-              <option value="System">{{ $t('theme.system') }}</option>
-            </select>
+            <custom-dropdown class="setting-select" v-model="localSettings.uiTheme" :options="themeOptions" />
           </div>
         </div>
         <div class="setting-divider" v-if="supportsAcrylic"></div>
@@ -99,10 +91,7 @@
             <label class="setting-label">{{ $t('general.layoutMode') }}</label>
             <p class="setting-desc">{{ $t('general.layoutModeDesc') }}</p>
           </div>
-          <select class="form-select setting-select" v-model="localSettings.apiConfigLayout">
-            <option value="list">{{ $t('general.layoutList') }}</option>
-            <option value="grid">{{ $t('general.layoutGrid') }}</option>
-          </select>
+          <custom-dropdown class="setting-select" v-model="localSettings.apiConfigLayout" :options="layoutOptions" />
         </div>
       </div>
 
@@ -268,22 +257,14 @@
               <label class="setting-label">{{ $t('general.thinkingModeEnabled') }}</label>
               <p class="setting-desc">{{ $t('general.thinkingModeEnabledDesc') }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.thinkingModeEnabled">
-              <option value="true">{{ $t('general.enabled') }}</option>
-              <option value="false">{{ $t('general.disabled') }}</option>
-            </select>
+            <custom-dropdown class="setting-select" v-model="localSettings.thinkingModeEnabled" :options="thinkingModeOptions" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.approvalMode') }}</label>
               <p class="setting-desc">{{ $t('general.approvalModeDesc') }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.approvalMode">
-              <option value="yolo">{{ $t('general.approvalModeYolo') }}</option>
-              <option value="plan">{{ $t('general.approvalModePlan') }}</option>
-              <option value="autoEdit">{{ $t('general.approvalModeAutoEdit') }}</option>
-              <option value="default">{{ $t('general.approvalModeDefault') }}</option>
-            </select>
+            <custom-dropdown class="setting-select" v-model="localSettings.approvalMode" :options="approvalModeOptions" />
           </div>
         </div>
       </div>
@@ -457,11 +438,7 @@
                 <div class="setting-info">
                   <label class="setting-label">{{ $t('cloudSync.providerType') }}</label>
                 </div>
-                <select class="form-select setting-select" v-model="selectedProvider" @change="onProviderChange">
-                  <option value="webdav">{{ $t('cloudSync.webdav') }}</option>
-                  <option value="onedrive" disabled>{{ $t('cloudSync.onedrive') }}</option>
-                  <option value="dropbox" disabled>{{ $t('cloudSync.dropbox') }}</option>
-                </select>
+                <custom-dropdown class="setting-select" v-model="selectedProvider" :options="cloudProviderOptions" @update:modelValue="onProviderChange" />
               </div>
 
               <template v-if="selectedProvider === 'webdav'">
@@ -583,14 +560,7 @@
                     <p class="setting-desc">{{ $t('cloudSync.syncIntervalDesc') }}</p>
                   </div>
                   <div class="input-with-suffix">
-                    <select class="form-input setting-input-select" v-model.number="syncIntervalMinutes" @change="handleSetSyncInterval">
-                      <option :value="1">1 {{ $t('cloudSync.syncIntervalUnit') }}</option>
-                      <option :value="5">5 {{ $t('cloudSync.syncIntervalUnit') }}</option>
-                      <option :value="10">10 {{ $t('cloudSync.syncIntervalUnit') }}</option>
-                      <option :value="15">15 {{ $t('cloudSync.syncIntervalUnit') }}</option>
-                      <option :value="30">30 {{ $t('cloudSync.syncIntervalUnit') }}</option>
-                      <option :value="60">60 {{ $t('cloudSync.syncIntervalUnit') }}</option>
-                    </select>
+                    <custom-dropdown v-model="syncIntervalMinutes" :options="syncIntervalOptions" @update:modelValue="handleSetSyncInterval" />
                   </div>
                 </div>
               </template>
@@ -713,11 +683,7 @@
               <label class="setting-label">{{ $t('general.logLevel') }}</label>
               <p class="setting-desc">{{ $t('general.logLevelDesc') }}</p>
             </div>
-            <select class="form-select setting-select" v-model="currentLogLevel" @change="handleLogLevelChange">
-              <option value="info">{{ $t('general.logLevelInfo') }}</option>
-              <option value="debug">{{ $t('general.logLevelDebug') }}</option>
-              <option value="silent">{{ $t('general.logLevelSilent') }}</option>
-            </select>
+            <custom-dropdown class="setting-select" v-model="currentLogLevel" :options="logLevelOptions" @update:modelValue="handleLogLevelChange" />
           </div>
           <div class="setting-divider"></div>
           <div class="log-info-row">
@@ -861,6 +827,52 @@ const unitOptions = [
   { value: '¥', label: '¥' },
   { value: '$', label: '$' },
 ]
+
+const languageOptions = computed(() => [
+  { value: 'zh-CN', label: t('languages.zh-CN') },
+  { value: 'en-US', label: t('languages.en-US') },
+  { value: 'ja-JP', label: t('languages.ja-JP') },
+])
+
+const themeOptions = computed(() => [
+  { value: 'Light', label: t('theme.light') },
+  { value: 'Dark', label: t('theme.dark') },
+  { value: 'System', label: t('theme.system') },
+])
+
+const layoutOptions = computed(() => [
+  { value: 'list', label: t('general.layoutList') },
+  { value: 'grid', label: t('general.layoutGrid') },
+])
+
+const thinkingModeOptions = computed(() => [
+  { value: 'true', label: t('general.enabled') },
+  { value: 'false', label: t('general.disabled') },
+])
+
+const approvalModeOptions = computed(() => [
+  { value: 'yolo', label: t('general.approvalModeYolo') },
+  { value: 'plan', label: t('general.approvalModePlan') },
+  { value: 'autoEdit', label: t('general.approvalModeAutoEdit') },
+  { value: 'default', label: t('general.approvalModeDefault') },
+])
+
+const cloudProviderOptions = computed(() => [
+  { value: 'webdav', label: t('cloudSync.webdav') },
+  { value: 'onedrive', label: t('cloudSync.onedrive'), disabled: true },
+  { value: 'dropbox', label: t('cloudSync.dropbox'), disabled: true },
+])
+
+const syncIntervalOptions = computed(() => {
+  const unit = t('cloudSync.syncIntervalUnit')
+  return [1, 5, 10, 15, 30, 60].map(n => ({ value: n, label: `${n} ${unit}` }))
+})
+
+const logLevelOptions = computed(() => [
+  { value: 'info', label: t('general.logLevelInfo') },
+  { value: 'debug', label: t('general.logLevelDebug') },
+  { value: 'silent', label: t('general.logLevelSilent') },
+])
 
 const autoLaunchEnabled = ref(false)
 const autoUpdateEnabled = ref(true)

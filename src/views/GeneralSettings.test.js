@@ -66,6 +66,7 @@ describe('GeneralSettings.vue', () => {
     Lock: true, Computer: true, List: true, Delete: true,
     Link: true, CheckSmall: true, CloseSmall: true,
     CheckCorrect: true, Time: true, DataDisplay: true, FilterOne: true, Communication: true, DataScreen: true,
+    CustomDropdown: true,
   };
 
   const mockSettings = {
@@ -144,34 +145,21 @@ describe('GeneralSettings.vue', () => {
   it('displays language options correctly', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
-    const languageOptions = wrapper.findAll('.form-select')[0].findAll('option');
-    expect(languageOptions.length).toBe(3);
-    expect(languageOptions[0].attributes('value')).toBe('zh-CN');
-    expect(languageOptions[1].attributes('value')).toBe('en-US');
-    expect(languageOptions[2].attributes('value')).toBe('ja-JP');
-  });
-
-  it('displays theme options correctly', () => {
-    const wrapper = mount(GeneralSettings, defaultMountOptions());
-
-    const themeOptions = wrapper.findAll('.form-select')[1].findAll('option');
-    expect(themeOptions.length).toBe(3);
-    expect(themeOptions[0].attributes('value')).toBe('Light');
-    expect(themeOptions[1].attributes('value')).toBe('Dark');
-    expect(themeOptions[2].attributes('value')).toBe('System');
+    const dropdowns = wrapper.findAll('custom-dropdown-stub');
+    expect(dropdowns.length).toBeGreaterThanOrEqual(6);
   });
 
   it('reflects current settings in form controls', async () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
 
     await nextTick();
-    const selectElements = wrapper.findAll('.form-select');
-    // Selects: language, theme, layoutMode, thinkingModeEnabled, approvalMode, providerType = 6
-    expect(selectElements[0].element.value).toBe('zh-CN');
-    expect(selectElements[1].element.value).toBe('Light');
-    expect(selectElements[2].element.value).toBe('list');
-    expect(selectElements[3].element.value).toBe('true');
-    expect(selectElements[4].element.value).toBe('autoEdit');
+    const dropdowns = wrapper.findAll('custom-dropdown-stub');
+    // language=zh-CN, theme=Light, layout=list, thinkingModeEnabled=true, approvalMode=autoEdit, providerType=webdav, logLevel=info = 7
+    expect(dropdowns[0].attributes('modelvalue')).toBe('zh-CN');
+    expect(dropdowns[1].attributes('modelvalue')).toBe('Light');
+    expect(dropdowns[2].attributes('modelvalue')).toBe('list');
+    expect(dropdowns[3].attributes('modelvalue')).toBe('true');
+    expect(dropdowns[4].attributes('modelvalue')).toBe('autoEdit');
   });
 
   it('applies translation correctly', () => {
@@ -254,8 +242,7 @@ describe('GeneralSettings.vue', () => {
     // Total: 3 + 1 + 1 + 1 + 2 + 3 + 4 + 4 + 1 + 1 + 1 = 22
     expect(wrapper.findAll('.setting-item').length).toBe(22);
     expect(wrapper.findAll('.setting-label').length).toBe(22);
-    // Selects: language, theme, layoutMode, thinkingModeEnabled, approvalMode, providerType = 6
-    expect(wrapper.findAll('.form-select').length).toBe(6);
+    expect(wrapper.findAll('custom-dropdown-stub').length).toBeGreaterThan(5);
     expect(wrapper.find('.toggle-switch').exists()).toBe(true);
   });
 

@@ -30,11 +30,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
-          <select class="form-select" v-model="createData.selectedAuthType">
-            <option value="iflow">{{ $t('api.auth.iflow') }}</option>
-            <option value="api">{{ $t('api.auth.api') }}</option>
-            <option value="openai-compatible">{{ $t('api.auth.openaiCompatible') }}</option>
-          </select>
+          <custom-dropdown v-model="createData.selectedAuthType" :options="authTypeOptions" />
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
@@ -151,11 +147,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.balance.provider') }}</label>
-          <select class="form-select" v-model="createData.balanceProvider">
-            <option v-for="opt in providerOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label.startsWith('api.') ? $t(opt.label) : opt.label }}
-            </option>
-          </select>
+          <custom-dropdown v-model="createData.balanceProvider" :options="balanceProviderDropdownOptions" />
         </div>
       </div>
       <div class="dialog-actions">
@@ -199,11 +191,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
-          <select class="form-select" v-model="editData.selectedAuthType" :disabled="isEditingActive">
-            <option value="iflow">{{ $t('api.auth.iflow') }}</option>
-            <option value="api">{{ $t('api.auth.api') }}</option>
-            <option value="openai-compatible">{{ $t('api.auth.openaiCompatible') }}</option>
-          </select>
+          <custom-dropdown v-model="editData.selectedAuthType" :options="authTypeOptions" :disabled="isEditingActive" />
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
@@ -319,11 +307,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.balance.provider') }}</label>
-          <select class="form-select" v-model="editData.balanceProvider">
-            <option v-for="opt in providerOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label.startsWith('api.') ? $t(opt.label) : opt.label }}
-            </option>
-          </select>
+          <custom-dropdown v-model="editData.balanceProvider" :options="balanceProviderDropdownOptions" />
         </div>
       </div>
       <div class="dialog-actions">
@@ -343,8 +327,10 @@
  * 支持从 OpenAI 兼容 /models 接口自动获取模型列表
  */
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Key, Save, Refresh, Loading } from '@icon-park/vue-next'
 import type { AuthType, BalanceProviderRule } from '@/shared/types'
+import CustomDropdown from '../components/CustomDropdown.vue'
 
 interface ApiProfileData {
   name: string
@@ -401,6 +387,15 @@ const props = withDefaults(defineProps<Props>(), {
   balanceProviderRules: () => [],
 })
 
+const { t } = useI18n()
+
+// 认证类型选项
+const authTypeOptions = computed(() => [
+  { value: 'iflow', label: t('api.auth.iflow') },
+  { value: 'api', label: t('api.auth.api') },
+  { value: 'openai-compatible', label: t('api.auth.openaiCompatible') },
+])
+
 // 从 rules 和内置列表生成动态 provider 选项
 const providerOptions = computed(() => {
   const options = [
@@ -428,6 +423,14 @@ const providerOptions = computed(() => {
   options.push({ value: 'disabled', label: 'api.balance.disabled' })
   return options
 })
+
+// 解析标签后的余额 provider 选项（供 CustomDropdown 使用）
+const balanceProviderDropdownOptions = computed(() =>
+  providerOptions.value.map(opt => ({
+    value: opt.value,
+    label: opt.label.startsWith('api.') ? t(opt.label) : opt.label
+  }))
+)
 
 const emit = defineEmits<{
   'close-create': []

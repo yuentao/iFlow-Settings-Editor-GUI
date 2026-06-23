@@ -38,11 +38,7 @@
         <!-- Category -->
         <div class="form-group">
           <label class="form-label">{{ $t('commands.editor.category') }}</label>
-          <select class="form-select" v-model="formData.category">
-            <option value="utility">{{ $t('commands.category.utility') }}</option>
-            <option value="documentation">{{ $t('commands.category.documentation') }}</option>
-            <option value="other">{{ $t('commands.category.other') }}</option>
-          </select>
+          <custom-dropdown v-model="formData.category" :options="categoryOptions" />
         </div>
 
         <!-- Version -->
@@ -91,6 +87,8 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import CustomDropdown from '../components/CustomDropdown.vue'
 
 const props = defineProps({
   show: {
@@ -106,6 +104,14 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save'])
 
 const overlayRef = ref(null)
+
+const { t } = useI18n()
+
+const categoryOptions = computed(() => [
+  { value: 'utility', label: t('commands.category.utility') },
+  { value: 'documentation', label: t('commands.category.documentation') },
+  { value: 'other', label: t('commands.category.other') },
+])
 
 const formData = ref({
   name: '',

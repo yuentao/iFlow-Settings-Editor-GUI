@@ -29,6 +29,7 @@ describe('ApiProfileDialog.vue', () => {
           editData: {}
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -48,6 +49,7 @@ describe('ApiProfileDialog.vue', () => {
           editData: {}
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -66,6 +68,7 @@ describe('ApiProfileDialog.vue', () => {
           editData: {}
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -85,14 +88,15 @@ describe('ApiProfileDialog.vue', () => {
           editData: {}
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
         },
       });
 
-      const selects = wrapper.findAll('.form-select');
-      expect(selects.length).toBe(2);
+      const dropdowns = wrapper.findAll('custom-dropdown-stub');
+      expect(dropdowns.length).toBe(2);
     });
 
     it('emits close-create when cancel button is clicked', async () => {
@@ -104,6 +108,7 @@ describe('ApiProfileDialog.vue', () => {
           editData: {}
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -130,6 +135,7 @@ describe('ApiProfileDialog.vue', () => {
           editData: {}
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -150,6 +156,7 @@ describe('ApiProfileDialog.vue', () => {
           editData: {}
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -174,6 +181,7 @@ describe('ApiProfileDialog.vue', () => {
           currentProfileName: 'production'
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -194,6 +202,7 @@ describe('ApiProfileDialog.vue', () => {
           currentProfileName: 'production'
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -214,6 +223,7 @@ describe('ApiProfileDialog.vue', () => {
           currentProfileName: 'production'
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -234,6 +244,7 @@ describe('ApiProfileDialog.vue', () => {
           currentProfileName: 'production'
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -254,6 +265,7 @@ describe('ApiProfileDialog.vue', () => {
           currentProfileName: 'production'
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -274,6 +286,7 @@ describe('ApiProfileDialog.vue', () => {
           currentProfileName: 'production'
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -295,6 +308,7 @@ describe('ApiProfileDialog.vue', () => {
           currentProfileName: 'production'
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -315,6 +329,7 @@ describe('ApiProfileDialog.vue', () => {
           editData: {}
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -335,6 +350,7 @@ describe('ApiProfileDialog.vue', () => {
           currentProfileName: 'production'
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },
@@ -354,6 +370,7 @@ describe('ApiProfileDialog.vue', () => {
           editData: {}
         },
         global: {
+          stubs: { CustomDropdown: true },
           mocks: {
             $t: (key) => key,
           },

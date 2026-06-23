@@ -2,7 +2,7 @@
   <div class="custom-dropdown" ref="dropdownRef">
     <div
       class="dropdown-trigger"
-      :class="{ open: isOpen }"
+      :class="{ open: isOpen, disabled: disabled, mono: mono }"
       @click="toggleDropdown"
     >
       <span class="dropdown-value" :class="{ placeholder: !selectedLabel }">
@@ -20,12 +20,12 @@
       </svg>
     </div>
     <Transition name="dropdown">
-      <div v-if="isOpen" class="dropdown-menu">
+      <div v-if="isOpen && !disabled" class="dropdown-menu">
         <div
           v-for="opt in options"
           :key="opt.value"
           class="dropdown-option"
-          :class="{ selected: modelValue === opt.value }"
+          :class="{ selected: modelValue === opt.value, mono: mono, disabled: opt.disabled }"
           @click="selectOption(opt)"
         >
           {{ opt.label }}
@@ -41,7 +41,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
   options: { type: Array, default: () => [] },
-  placeholder: { type: String, default: '' }
+  placeholder: { type: String, default: '' },
+  disabled: { type: Boolean, default: false },
+  mono: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -55,10 +57,13 @@ const selectedLabel = computed(() => {
 })
 
 function toggleDropdown() {
-  isOpen.value = !isOpen.value
+  if (!props.disabled) {
+    isOpen.value = !isOpen.value
+  }
 }
 
 function selectOption(opt) {
+  if (opt.disabled) return
   emit('update:modelValue', opt.value)
   isOpen.value = false
 }
@@ -87,7 +92,7 @@ onUnmounted(() => {
 .dropdown-trigger {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
-  font-family: var(--font-mono);
+  font-family: var(--font-family);
   font-size: var(--font-size-sm);
   background: var(--control-fill);
   color: var(--text-primary);
@@ -114,6 +119,16 @@ onUnmounted(() => {
   background: var(--bg-tertiary);
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.dropdown-trigger.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dropdown-trigger.mono,
+.dropdown-option.mono {
+  font-family: var(--font-mono);
 }
 
 .dropdown-value {
@@ -152,7 +167,7 @@ onUnmounted(() => {
 
 .dropdown-option {
   padding: var(--space-sm) var(--space-md);
-  font-family: var(--font-mono);
+  font-family: var(--font-family);
   font-size: var(--font-size-sm);
   color: var(--text-primary);
   cursor: pointer;
@@ -167,6 +182,11 @@ onUnmounted(() => {
 .dropdown-option.selected {
   color: var(--accent);
   background: var(--accent-glow);
+}
+
+.dropdown-option.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .dropdown-enter-active,
