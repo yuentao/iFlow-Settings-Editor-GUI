@@ -9,13 +9,11 @@
         <!-- Command Name -->
         <div class="form-group" v-if="command">
           <label class="form-label">{{ $t('commands.editor.name') }}</label>
-          <input type="text" class="form-input" :value="command.name" disabled />
+          <custom-input :value="command.name" disabled />
         </div>
         <div class="form-group" v-else>
           <label class="form-label">{{ $t('commands.editor.name') }} *</label>
-          <input
-            type="text"
-            class="form-input"
+          <custom-input
             v-model="formData.name"
             :placeholder="$t('commands.editor.namePlaceholder')"
             @keyup.enter="save"
@@ -26,9 +24,7 @@
         <!-- Description -->
         <div class="form-group">
           <label class="form-label">{{ $t('commands.editor.description') }} *</label>
-          <input
-            type="text"
-            class="form-input"
+          <custom-input
             v-model="formData.description"
             :placeholder="$t('commands.editor.descriptionPlaceholder')"
             @keyup.enter="save"
@@ -44,9 +40,7 @@
         <!-- Version -->
         <div class="form-group">
           <label class="form-label">{{ $t('commands.editor.version') }}</label>
-          <input
-            type="text"
-            class="form-input"
+          <custom-input
             v-model="formData.version"
             placeholder="1"
             style="width: 100px"
@@ -56,9 +50,7 @@
         <!-- Author -->
         <div class="form-group">
           <label class="form-label">{{ $t('commands.editor.author') }}</label>
-          <input
-            type="text"
-            class="form-input"
+          <custom-input
             v-model="formData.author"
             :placeholder="$t('commands.editor.authorPlaceholder')"
           />
@@ -89,6 +81,7 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CustomDropdown from '../components/CustomDropdown.vue'
+import CustomInput from '../components/CustomInput.vue'
 
 const props = defineProps({
   show: {

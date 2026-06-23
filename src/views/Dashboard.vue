@@ -115,7 +115,7 @@
           <div class="dialog-title">{{ $t('cloudSync.enterPassword') }}</div>
           <div class="dialog-body">
             <div class="form-group">
-              <input type="password" class="form-input" v-model="syncPasswordDialog.password" :placeholder="$t('cloudSync.enterPassword')" @keyup.enter="handleSyncPasswordConfirm" autofocus />
+              <custom-input type="password" v-model="syncPasswordDialog.password" :placeholder="$t('cloudSync.enterPassword')" @keyup.enter="handleSyncPasswordConfirm" autofocus />
             </div>
             <div class="password-error" v-if="syncPasswordDialog.error">{{ syncPasswordDialog.error }}</div>
           </div>
@@ -135,6 +135,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Key, Server, Star, Command, Refresh, Loading, Puzzle } from '@icon-park/vue-next'
+import CustomInput from '../components/CustomInput.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import ModelUsageChart from '@/components/ModelUsageChart.vue'
 import { useModelUsageStats } from '@/composables/useModelUsageStats'

@@ -3,10 +3,9 @@
     <div class="dialog" @click.stop>
       <div class="dialog-title">{{ $t(dialog.title) }}</div>
       <div v-if="dialog.isConfirm" class="dialog-confirm-text">{{ $t(dialog.placeholder, { name: dialog.name, conflict: dialog.conflict }) }}</div>
-      <input
+      <custom-input
         v-else
         type="text"
-        class="form-input"
         v-model="inputValue"
         :placeholder="dialog.placeholder"
         @keyup.enter="$emit('confirm', dialog.isConfirm ? true : inputValue)"
@@ -24,6 +23,7 @@
 /**
  * InputDialog - 输入对话框组件
  */
+import CustomInput from './CustomInput.vue'
 import { ref, watch, nextTick, onMounted } from 'vue'
 
 interface DialogState {

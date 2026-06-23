@@ -17,9 +17,8 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
-          <input
+          <custom-input
             type="text"
-            class="form-input"
             :class="{ 'form-input--error': createNameError }"
             v-model="createData.name"
             :placeholder="$t('api.configNamePlaceholder')"
@@ -34,9 +33,8 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
-          <input
+          <custom-input
             type="text"
-            class="form-input"
             :class="{ 'form-input--error': createBaseUrlError }"
             v-model="createData.baseUrl"
             :placeholder="$t('api.baseUrlPlaceholder')"
@@ -48,9 +46,8 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
-            <input
+            <custom-input
               type="password"
-              class="form-input"
               v-model="createData.apiKey"
               :placeholder="$t('api.apiKeyPlaceholder')"
             />
@@ -58,9 +55,9 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
             <div class="model-input-wrapper">
-              <input
+              <custom-input
                 type="text"
-                class="form-input model-input"
+                class="model-input"
                 :class="{ 'form-input--error': createModelError }"
                 v-model="createData.modelName"
                 :placeholder="$t('api.modelNamePlaceholder')"
@@ -120,10 +117,10 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.expiryDays') }}</label>
             <div class="input-with-suffix">
-              <input
+              <custom-input
                 type="number"
-                class="form-input has-suffix"
-                v-model.number="createData.expiryDays"
+                class="has-suffix"
+                v-model="createData.expiryDays"
                 :placeholder="$t('api.expiryDaysPlaceholder')"
                 min="0"
               />
@@ -134,10 +131,10 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.tokensLimit') }}</label>
             <div class="input-with-suffix">
-              <input
+              <custom-input
                 type="number"
-                class="form-input has-suffix"
-                v-model.number="createTokensLimitK"
+                class="has-suffix"
+                v-model="createTokensLimitK"
                 :placeholder="$t('api.tokensLimitPlaceholder')"
                 min="0"
               />
@@ -178,9 +175,8 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
-          <input
+          <custom-input
             type="text"
-            class="form-input"
             :class="{ 'form-input--error': editNameError }"
             v-model="editData.name"
             :disabled="editData.name === currentProfileName"
@@ -195,9 +191,8 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
-          <input
+          <custom-input
             type="text"
-            class="form-input"
             :class="{ 'form-input--error': editBaseUrlError }"
             v-model="editData.baseUrl"
             :placeholder="$t('api.baseUrlPlaceholder')"
@@ -210,9 +205,8 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
-            <input
+            <custom-input
               type="password"
-              class="form-input"
               v-model="editData.apiKey"
               :placeholder="$t('api.apiKeyPlaceholder')"
               :disabled="isEditingActive"
@@ -221,9 +215,9 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
             <div class="model-input-wrapper">
-              <input
+              <custom-input
                 type="text"
-                class="form-input model-input"
+                class="model-input"
                 :class="{ 'form-input--error': editModelError }"
                 v-model="editData.modelName"
                 :placeholder="$t('api.modelNamePlaceholder')"
@@ -279,10 +273,10 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.expiryDays') }}</label>
             <div class="input-with-suffix">
-              <input
+              <custom-input
                 type="number"
-                class="form-input has-suffix"
-                v-model.number="editData.expiryDays"
+                class="has-suffix"
+                v-model="editData.expiryDays"
                 :placeholder="$t('api.expiryDaysPlaceholder')"
                 min="0"
                 :disabled="isEditingActive"
@@ -294,10 +288,10 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.tokensLimit') }}</label>
             <div class="input-with-suffix">
-              <input
+              <custom-input
                 type="number"
-                class="form-input has-suffix"
-                v-model.number="editTokensLimitK"
+                class="has-suffix"
+                v-model="editTokensLimitK"
                 :placeholder="$t('api.tokensLimitPlaceholder')"
                 min="0"
               />
@@ -331,6 +325,7 @@ import { useI18n } from 'vue-i18n'
 import { Key, Save, Refresh, Loading } from '@icon-park/vue-next'
 import type { AuthType, BalanceProviderRule } from '@/shared/types'
 import CustomDropdown from '../components/CustomDropdown.vue'
+import CustomInput from '../components/CustomInput.vue'
 
 interface ApiProfileData {
   name: string

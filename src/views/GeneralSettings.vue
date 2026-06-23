@@ -121,7 +121,7 @@
               <p class="setting-desc">{{ $t('general.connectivityPollIntervalDesc') }}</p>
             </div>
             <div class="input-with-suffix">
-              <input type="number" class="form-input setting-input-number has-suffix" v-model.number="localSettings.connectivityPollInterval" min="5" max="600" />
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.connectivityPollInterval" min="5" max="600" />
               <span class="input-suffix">{{ $t('general.connectivityPollIntervalUnit') }}</span>
             </div>
           </div>
@@ -131,7 +131,7 @@
               <p class="setting-desc">{{ $t('general.modelUsageRefreshIntervalDesc') }}</p>
             </div>
             <div class="input-with-suffix">
-              <input type="number" class="form-input setting-input-number has-suffix" v-model.number="localSettings.modelUsageRefreshInterval" min="1" max="60" />
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.modelUsageRefreshInterval" min="1" max="60" />
               <span class="input-suffix">{{ $t('general.modelUsageRefreshIntervalUnit') }}</span>
             </div>
           </div>
@@ -141,7 +141,7 @@
               <p class="setting-desc">{{ $t('general.balanceRefreshIntervalDesc') }}</p>
             </div>
             <div class="input-with-suffix">
-              <input type="number" class="form-input setting-input-number has-suffix" v-model.number="localSettings.balanceRefreshInterval" min="1" max="60" />
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.balanceRefreshInterval" min="1" max="60" />
               <span class="input-suffix">{{ $t('general.balanceRefreshIntervalUnit') }}</span>
             </div>
           </div>
@@ -164,18 +164,18 @@
                     <div class="rule-row">
                       <div class="field-group field-group-provider">
                         <span class="field-label">{{ $t('general.balanceSupplierName') }}</span>
-                        <input
+                        <custom-input
                           type="text"
-                          class="form-input field-provider"
+                          class="field-provider"
                           v-model="rule.provider"
                           :placeholder="$t('general.balanceSupplierNamePlaceholder')"
                         />
                       </div>
                       <div class="field-group">
                         <span class="field-label">{{ $t('general.balanceEndpoint') }}</span>
-                        <input
+                        <custom-input
                           type="text"
-                          class="form-input field-key"
+                          class="field-key"
                           v-model="rule.endpoint"
                           :placeholder="$t('general.balanceEndpointPlaceholder')"
                         />
@@ -187,27 +187,27 @@
                     <div class="rule-row rule-mapping-row">
                       <div class="field-group">
                         <span class="field-label">{{ $t('general.balanceField') }}</span>
-                        <input
+                        <custom-input
                           type="text"
-                          class="form-input field-key field-mapping"
+                          class="field-key field-mapping"
                           v-model="rule.balanceField"
                           :placeholder="$t('general.balanceFieldPlaceholder')"
                         />
                       </div>
                       <div class="field-group">
                         <span class="field-label">{{ $t('general.balanceUsedField') }}</span>
-                        <input
+                        <custom-input
                           type="text"
-                          class="form-input field-key field-mapping"
+                          class="field-key field-mapping"
                           v-model="rule.usedField"
                           :placeholder="$t('general.balanceUsedFieldPlaceholder')"
                         />
                       </div>
                       <div class="field-group">
                         <span class="field-label">{{ $t('general.balanceTotalField') }}</span>
-                        <input
+                        <custom-input
                           type="text"
-                          class="form-input field-key field-mapping"
+                          class="field-key field-mapping"
                           v-model="rule.totalField"
                           :placeholder="$t('general.balanceTotalFieldPlaceholder')"
                         />
@@ -318,7 +318,7 @@
               <p class="setting-desc">{{ $t('general.maxSessionTurnsDesc') }}</p>
             </div>
             <div class="input-with-suffix">
-              <input type="number" class="form-input setting-input-number has-suffix" v-model.number="localSettings.maxSessionTurns" />
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.maxSessionTurns" />
               <span class="input-suffix">{{ $t('general.maxSessionTurnsUnit') }}</span>
             </div>
           </div>
@@ -328,7 +328,7 @@
               <p class="setting-desc">{{ $t('general.shellTimeoutDesc') }}</p>
             </div>
             <div class="input-with-suffix">
-              <input type="number" class="form-input setting-input-number has-suffix" v-model.number="localSettings.shellTimeout" />
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.shellTimeout" />
               <span class="input-suffix">{{ $t('general.shellTimeoutUnit') }}</span>
             </div>
           </div>
@@ -337,7 +337,7 @@
               <label class="setting-label">{{ $t('general.compressionTokenThreshold') }}</label>
               <p class="setting-desc">{{ $t('general.compressionTokenThresholdDesc') }}</p>
             </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.compressionTokenThreshold" step="0.01" min="0" max="1" />
+            <custom-input type="number" class="setting-input-number" v-model="localSettings.compressionTokenThreshold" step="0.01" min="0" max="1" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
@@ -453,20 +453,20 @@
                   <div class="form-row">
                     <div class="form-group">
                       <label class="form-label">{{ $t('cloudSync.webdavServerUrl') }}</label>
-                      <input type="url" class="form-input" v-model="webdavConfig.serverUrl" :placeholder="$t('cloudSync.webdavServerUrlPlaceholder')" />
+                      <custom-input type="url" v-model="webdavConfig.serverUrl" :placeholder="$t('cloudSync.webdavServerUrlPlaceholder')" />
                     </div>
                   </div>
                   <div class="form-row">
                     <div class="form-group">
                       <label class="form-label">{{ $t('cloudSync.webdavUsername') }}</label>
-                      <input type="text" class="form-input" v-model="webdavConfig.username" :placeholder="$t('cloudSync.webdavUsernamePlaceholder')" />
+                      <custom-input type="text" v-model="webdavConfig.username" :placeholder="$t('cloudSync.webdavUsernamePlaceholder')" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">
                         {{ $t('cloudSync.webdavPassword') }}
                         <span class="form-label-hint">{{ $t('cloudSync.webdavPasswordHintTag') }}</span>
                       </label>
-                      <input type="password" class="form-input" v-model="webdavConfig.password" :placeholder="$t('cloudSync.webdavPasswordPlaceholder')" />
+                      <custom-input type="password" v-model="webdavConfig.password" :placeholder="$t('cloudSync.webdavPasswordPlaceholder')" />
                     </div>
                   </div>
                   <div class="webdav-actions">
@@ -549,7 +549,7 @@
                     <p class="setting-desc">{{ $t('cloudSync.tombstoneRetentionDaysDesc') }}</p>
                   </div>
                   <div class="input-with-suffix">
-                  <input type="number" class="form-input setting-input-number has-suffix" v-model.number="tombstoneRetentionDays" min="1" max="365" @blur="handleSetTombstoneRetentionDays" @change="handleSetTombstoneRetentionDays" />
+                  <custom-input type="number" class="setting-input-number has-suffix" v-model="tombstoneRetentionDays" min="1" max="365" @blur="handleSetTombstoneRetentionDays" @change="handleSetTombstoneRetentionDays" />
                   <span class="input-suffix">{{ $t('cloudSync.tombstoneRetentionDaysUnit') }}</span>
                 </div>
                 </div>
@@ -715,7 +715,7 @@
     <div v-if="renameDeviceDialog.show" class="dialog-overlay" @click.self="closeRenameDeviceDialog">
       <div class="dialog" @click.stop>
         <div class="dialog-title">{{ $t('cloudSync.renameDevice') }}</div>
-        <input type="text" class="form-input" v-model="renameDeviceDialog.name" :placeholder="$t('cloudSync.deviceNamePlaceholder')" maxlength="50" @keyup.enter="confirmRenameDevice" ref="renameDeviceInputRef" />
+        <custom-input type="text" v-model="renameDeviceDialog.name" :placeholder="$t('cloudSync.deviceNamePlaceholder')" maxlength="50" @keyup.enter="confirmRenameDevice" ref="renameDeviceInputRef" />
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="closeRenameDeviceDialog">{{ $t('dialog.cancel') }}</button>
           <button class="btn btn-primary" @click="confirmRenameDevice" :disabled="!renameDeviceDialog.name.trim()">{{ $t('dialog.confirm') }}</button>
@@ -730,15 +730,15 @@
         <div class="dialog-body">
           <div class="form-group" v-if="passwordDialog.showOldPassword">
             <label class="form-label">{{ $t('cloudSync.oldPassword') }}</label>
-            <input type="password" class="form-input" v-model="passwordDialog.oldPassword" :placeholder="$t('cloudSync.oldPassword')" />
+            <custom-input type="password" v-model="passwordDialog.oldPassword" :placeholder="$t('cloudSync.oldPassword')" />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t(passwordDialog.newPasswordLabel || 'cloudSync.newPassword') }}</label>
-            <input type="password" class="form-input" v-model="passwordDialog.password" :placeholder="$t('cloudSync.passwordMinLength')" />
+            <custom-input type="password" v-model="passwordDialog.password" :placeholder="$t('cloudSync.passwordMinLength')" />
           </div>
           <div class="form-group" v-if="passwordDialog.showConfirm">
             <label class="form-label">{{ $t('cloudSync.confirmPassword') }}</label>
-            <input type="password" class="form-input" v-model="passwordDialog.confirmPassword" :placeholder="$t('cloudSync.confirmPassword')" @keyup.enter="passwordDialog.onConfirm" />
+            <custom-input type="password" v-model="passwordDialog.confirmPassword" :placeholder="$t('cloudSync.confirmPassword')" @keyup.enter="passwordDialog.onConfirm" />
           </div>
           <div class="password-error" v-if="passwordDialog.error">{{ passwordDialog.error }}</div>
         </div>
@@ -757,9 +757,8 @@
         <div class="dialog-title">{{ $t('cloudSync.enterPassword') }}</div>
         <div class="dialog-body">
           <div class="form-group">
-            <input
+            <custom-input
               type="password"
-              class="form-input"
               v-model="syncPasswordDialog.password"
               :placeholder="$t('cloudSync.enterPassword')"
               @keyup.enter="syncPasswordDialog.show && syncPasswordDialog.onConfirm && syncPasswordDialog.onConfirm()"
@@ -795,6 +794,7 @@ import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, C
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import ToggleSwitch from '../components/ToggleSwitch.vue'
 import CustomDropdown from '../components/CustomDropdown.vue'
+import CustomInput from '../components/CustomInput.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import { useToast } from '@/composables/useToast'
 
