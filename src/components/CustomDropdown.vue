@@ -106,7 +106,7 @@ onUnmounted(() => {
   gap: 6px;
   box-sizing: border-box;
   transition: border-color var(--transition), background var(--transition);
-  line-height: 1.4;
+  line-height: normal;
   user-select: none;
 }
 
