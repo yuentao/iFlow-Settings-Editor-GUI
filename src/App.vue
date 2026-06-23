@@ -69,6 +69,7 @@
       :create-data="creatingApiData"
       :edit-data="editingApiData"
       :current-profile-name="currentApiProfile"
+      :balance-provider-rules="settings?.balanceProviderRules"
       @close-create="closeApiCreateDialog"
       @save-create="saveApiCreate"
       @close-edit="closeApiEditDialog"
@@ -311,6 +312,7 @@ const settings = ref({
   apiProfiles: { default: {} },
   acrylicEnabled: true,
   acrylicIntensity: 50,
+  zoomFactor: 1.0,
   connectivityPollInterval: 30,
   modelUsageRefreshInterval: 5,
 })
@@ -340,7 +342,7 @@ const showApiEditDialog = ref(false)
 const editingApiProfileName = ref('')
 const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 })
 const showApiCreateDialog = ref(false)
-const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 })
+const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, balanceProvider: 'auto' })
 
 const updateSettings = newSettings => {
   settings.value = newSettings
@@ -399,6 +401,7 @@ const saveApiCreate = async data => {
       tokensLimit: data.tokensLimit,
       expiryDays: data.expiryDays || 0,
       expiryStartDate: data.expiryDays > 0 ? new Date().toISOString() : undefined,
+      balanceProvider: data.balanceProvider || 'auto',
     }
     const loadResult = await window.electronAPI.loadSettings()
     if (loadResult.success) {
@@ -498,6 +501,7 @@ const openApiEditDialog = profileName => {
     modelName: profile?.modelName ?? '',
     tokensLimit: profile?.tokensLimit ?? 128000,
     expiryDays: profile?.expiryDays ?? 0,
+    balanceProvider: profile?.balanceProvider ?? 'auto',
     _originalExpiryDays: profile?.expiryDays ?? 0,
     _originalExpiryStartDate: profile?.expiryStartDate ?? null,
   }
@@ -545,6 +549,7 @@ const saveApiEdit = async data => {
     settings.value.apiProfiles[newName].baseUrl = data.baseUrl
     settings.value.apiProfiles[newName].modelName = data.modelName
     settings.value.apiProfiles[newName].tokensLimit = data.tokensLimit
+    settings.value.apiProfiles[newName].balanceProvider = data.balanceProvider || 'auto'
     settings.value.apiProfiles[newName].expiryDays = data.expiryDays || 0
 
     // 仅当 expiryDays 发生变更时，才写入/重置 expiryStartDate
@@ -565,6 +570,7 @@ const saveApiEdit = async data => {
       settings.value.baseUrl = data.baseUrl
       settings.value.modelName = data.modelName
       settings.value.tokensLimit = data.tokensLimit
+      settings.value.balanceProvider = data.balanceProvider || 'auto'
     }
 
     showApiEditDialog.value = false
@@ -605,6 +611,7 @@ const loadSettings = async () => {
       if (!data.currentApiProfile) data.currentApiProfile = 'default'
       if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
       if (data.acrylicEnabled === undefined) data.acrylicEnabled = true
+      if (data.zoomFactor === undefined) data.zoomFactor = 1.0
       if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
       if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
       applyDefaults(data)

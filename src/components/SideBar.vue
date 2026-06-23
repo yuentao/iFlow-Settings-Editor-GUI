@@ -489,4 +489,21 @@ const toggleCollapse = (): void => {
     flex-shrink: 0;
   }
 }
+
+// 小屏幕适配：窗口宽度不足时自动缩小侧边栏
+@media (max-width: 1000px) {
+  .sidebar {
+    width: 180px;
+  }
+}
+
+@media (max-width: 850px) {
+  .sidebar {
+    width: 48px;
+
+    .nav-content {
+      padding: 8px 0;
+    }
+  }
+}
 </style>

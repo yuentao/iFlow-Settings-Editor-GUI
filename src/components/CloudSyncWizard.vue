@@ -27,19 +27,19 @@
         <div class="webdav-form">
           <div class="form-group">
             <label class="form-label">{{ $t('cloudSync.webdavServerUrl') }}</label>
-            <input type="url" class="form-input" v-model="webdavConfig.serverUrl" :placeholder="$t('cloudSync.webdavServerUrlPlaceholder')" />
+            <custom-input type="url" v-model="webdavConfig.serverUrl" :placeholder="$t('cloudSync.webdavServerUrlPlaceholder')" />
           </div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">{{ $t('cloudSync.webdavUsername') }}</label>
-              <input type="text" class="form-input" v-model="webdavConfig.username" :placeholder="$t('cloudSync.webdavUsernamePlaceholder')" />
+              <custom-input type="text" v-model="webdavConfig.username" :placeholder="$t('cloudSync.webdavUsernamePlaceholder')" />
             </div>
             <div class="form-group">
               <label class="form-label">
                 {{ $t('cloudSync.webdavPassword') }}
                 <span class="form-label-hint">{{ $t('cloudSync.webdavPasswordHintTag') }}</span>
               </label>
-              <input type="password" class="form-input" v-model="webdavConfig.password" :placeholder="$t('cloudSync.webdavPasswordPlaceholder')" />
+              <custom-input type="password" v-model="webdavConfig.password" :placeholder="$t('cloudSync.webdavPasswordPlaceholder')" />
             </div>
           </div>
         </div>
@@ -75,11 +75,11 @@
         <div class="password-form">
           <div class="form-group">
             <label class="form-label">{{ $t('cloudSync.newPassword') }}</label>
-            <input type="password" class="form-input" v-model="password" :placeholder="$t('cloudSync.passwordMinLength')" />
+            <custom-input type="password" v-model="password" :placeholder="$t('cloudSync.passwordMinLength')" />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('cloudSync.confirmPassword') }}</label>
-            <input type="password" class="form-input" v-model="confirmPassword" :placeholder="$t('cloudSync.confirmPassword')" @keyup.enter="handleComplete" />
+            <custom-input type="password" v-model="confirmPassword" :placeholder="$t('cloudSync.confirmPassword')" @keyup.enter="handleComplete" />
           </div>
           <div class="password-error" v-if="passwordError">{{ passwordError }}</div>
           <p class="password-hint-tip">
@@ -105,6 +105,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CheckSmall, CloseSmall, Loading, Link } from '@icon-park/vue-next'
+import CustomInput from './CustomInput.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 
 const { t } = useI18n()

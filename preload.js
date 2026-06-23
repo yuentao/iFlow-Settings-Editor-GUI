@@ -24,6 +24,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 亚克力效果开关
   setAcrylicEnabled: (enabled) => ipcRenderer.invoke('set-acrylic-enabled', enabled),
 
+  // UI 缩放
+  getZoomFactor: () => ipcRenderer.invoke('get-zoom-factor'),
+  setZoomFactor: (factor) => ipcRenderer.invoke('set-zoom-factor', factor),
+
   // 开机自启动
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
   setAutoLaunch: (enabled) => ipcRenderer.invoke('set-auto-launch', enabled),
@@ -47,6 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   duplicateApiProfile: (sourceName, newName) => ipcRenderer.invoke('duplicate-api-profile', sourceName, newName),
   fetchModels: (baseUrl, apiKey) => ipcRenderer.invoke('fetch-models', baseUrl, apiKey),
   pingApiProfile: (baseUrl) => ipcRenderer.invoke('ping-api-profile', baseUrl),
+fetchTokenBalance: (params) => ipcRenderer.invoke('fetch-token-balance', params),
 
   // 托盘事件监听
   onApiProfileSwitched: (callback) => {

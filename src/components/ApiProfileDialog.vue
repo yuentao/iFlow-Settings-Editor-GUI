@@ -17,9 +17,8 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
-          <input
+          <custom-input
             type="text"
-            class="form-input"
             :class="{ 'form-input--error': createNameError }"
             v-model="createData.name"
             :placeholder="$t('api.configNamePlaceholder')"
@@ -30,17 +29,12 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
-          <select class="form-select" v-model="createData.selectedAuthType">
-            <option value="iflow">{{ $t('api.auth.iflow') }}</option>
-            <option value="api">{{ $t('api.auth.api') }}</option>
-            <option value="openai-compatible">{{ $t('api.auth.openaiCompatible') }}</option>
-          </select>
+          <custom-dropdown v-model="createData.selectedAuthType" :options="authTypeOptions" />
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
-          <input
+          <custom-input
             type="text"
-            class="form-input"
             :class="{ 'form-input--error': createBaseUrlError }"
             v-model="createData.baseUrl"
             :placeholder="$t('api.baseUrlPlaceholder')"
@@ -52,9 +46,8 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
-            <input
+            <custom-input
               type="password"
-              class="form-input"
               v-model="createData.apiKey"
               :placeholder="$t('api.apiKeyPlaceholder')"
             />
@@ -62,9 +55,9 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
             <div class="model-input-wrapper">
-              <input
+              <custom-input
                 type="text"
-                class="form-input model-input"
+                class="model-input"
                 :class="{ 'form-input--error': createModelError }"
                 v-model="createData.modelName"
                 :placeholder="$t('api.modelNamePlaceholder')"
@@ -124,10 +117,10 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.expiryDays') }}</label>
             <div class="input-with-suffix">
-              <input
+              <custom-input
                 type="number"
-                class="form-input has-suffix"
-                v-model.number="createData.expiryDays"
+                class="has-suffix"
+                v-model="createData.expiryDays"
                 :placeholder="$t('api.expiryDaysPlaceholder')"
                 min="0"
               />
@@ -138,16 +131,20 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.tokensLimit') }}</label>
             <div class="input-with-suffix">
-              <input
+              <custom-input
                 type="number"
-                class="form-input has-suffix"
-                v-model.number="createTokensLimitK"
+                class="has-suffix"
+                v-model="createTokensLimitK"
                 :placeholder="$t('api.tokensLimitPlaceholder')"
                 min="0"
               />
               <span class="input-suffix">{{ $t('api.tokensLimitUnit') }}</span>
             </div>
           </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ $t('api.balance.provider') }}</label>
+          <custom-dropdown v-model="createData.balanceProvider" :options="balanceProviderDropdownOptions" />
         </div>
       </div>
       <div class="dialog-actions">
@@ -178,9 +175,8 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
-          <input
+          <custom-input
             type="text"
-            class="form-input"
             :class="{ 'form-input--error': editNameError }"
             v-model="editData.name"
             :disabled="editData.name === currentProfileName"
@@ -191,17 +187,12 @@
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
-          <select class="form-select" v-model="editData.selectedAuthType" :disabled="isEditingActive">
-            <option value="iflow">{{ $t('api.auth.iflow') }}</option>
-            <option value="api">{{ $t('api.auth.api') }}</option>
-            <option value="openai-compatible">{{ $t('api.auth.openaiCompatible') }}</option>
-          </select>
+          <custom-dropdown v-model="editData.selectedAuthType" :options="authTypeOptions" :disabled="isEditingActive" />
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
-          <input
+          <custom-input
             type="text"
-            class="form-input"
             :class="{ 'form-input--error': editBaseUrlError }"
             v-model="editData.baseUrl"
             :placeholder="$t('api.baseUrlPlaceholder')"
@@ -214,9 +205,8 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
-            <input
+            <custom-input
               type="password"
-              class="form-input"
               v-model="editData.apiKey"
               :placeholder="$t('api.apiKeyPlaceholder')"
               :disabled="isEditingActive"
@@ -225,9 +215,9 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
             <div class="model-input-wrapper">
-              <input
+              <custom-input
                 type="text"
-                class="form-input model-input"
+                class="model-input"
                 :class="{ 'form-input--error': editModelError }"
                 v-model="editData.modelName"
                 :placeholder="$t('api.modelNamePlaceholder')"
@@ -283,10 +273,10 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.expiryDays') }}</label>
             <div class="input-with-suffix">
-              <input
+              <custom-input
                 type="number"
-                class="form-input has-suffix"
-                v-model.number="editData.expiryDays"
+                class="has-suffix"
+                v-model="editData.expiryDays"
                 :placeholder="$t('api.expiryDaysPlaceholder')"
                 min="0"
                 :disabled="isEditingActive"
@@ -298,16 +288,20 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.tokensLimit') }}</label>
             <div class="input-with-suffix">
-              <input
+              <custom-input
                 type="number"
-                class="form-input has-suffix"
-                v-model.number="editTokensLimitK"
+                class="has-suffix"
+                v-model="editTokensLimitK"
                 :placeholder="$t('api.tokensLimitPlaceholder')"
                 min="0"
               />
               <span class="input-suffix">{{ $t('api.tokensLimitUnit') }}</span>
             </div>
           </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ $t('api.balance.provider') }}</label>
+          <custom-dropdown v-model="editData.balanceProvider" :options="balanceProviderDropdownOptions" />
         </div>
       </div>
       <div class="dialog-actions">
@@ -327,8 +321,11 @@
  * 支持从 OpenAI 兼容 /models 接口自动获取模型列表
  */
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Key, Save, Refresh, Loading } from '@icon-park/vue-next'
-import type { AuthType } from '@/shared/types'
+import type { AuthType, BalanceProviderRule } from '@/shared/types'
+import CustomDropdown from '../components/CustomDropdown.vue'
+import CustomInput from '../components/CustomInput.vue'
 
 interface ApiProfileData {
   name: string
@@ -339,6 +336,7 @@ interface ApiProfileData {
   tokensLimit: number
   expiryDays: number
   createdAt: string
+  balanceProvider: string
 }
 
 interface ModelItem {
@@ -352,6 +350,7 @@ interface Props {
   createData: ApiProfileData
   editData: ApiProfileData
   currentProfileName?: string
+  balanceProviderRules?: BalanceProviderRule[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -366,6 +365,7 @@ const props = withDefaults(defineProps<Props>(), {
     tokensLimit: 128000,
     expiryDays: 0,
     createdAt: '',
+    balanceProvider: 'auto',
   }),
   editData: () => ({
     name: '',
@@ -376,9 +376,56 @@ const props = withDefaults(defineProps<Props>(), {
     tokensLimit: 128000,
     expiryDays: 0,
     createdAt: '',
+    balanceProvider: 'auto',
   }),
   currentProfileName: '',
+  balanceProviderRules: () => [],
 })
+
+const { t } = useI18n()
+
+// 认证类型选项
+const authTypeOptions = computed(() => [
+  { value: 'iflow', label: t('api.auth.iflow') },
+  { value: 'api', label: t('api.auth.api') },
+  { value: 'openai-compatible', label: t('api.auth.openaiCompatible') },
+])
+
+// 从 rules 和内置列表生成动态 provider 选项
+const providerOptions = computed(() => {
+  const options = [
+    { value: 'auto', label: 'api.balance.auto' },
+  ]
+  // 来自自定义规则的 provider
+  if (Array.isArray(props.balanceProviderRules)) {
+    for (const rule of props.balanceProviderRules) {
+      if (rule.provider && !options.some(o => o.value === rule.provider)) {
+        options.push({ value: rule.provider, label: rule.provider })
+      }
+    }
+  }
+  // 内置 provider
+  const builtin = [
+    { value: 'buzz', label: 'api.balance.buzz' },
+    { value: 'deepseek', label: 'api.balance.deepseek' },
+    { value: 'yunwu', label: 'api.balance.yunwu' },
+  ]
+  for (const b of builtin) {
+    if (!options.some(o => o.value === b.value)) {
+      options.push(b)
+    }
+  }
+  options.push({ value: 'disabled', label: 'api.balance.disabled' })
+  return options
+})
+
+// 解析标签后的余额 provider 选项（供 CustomDropdown 使用）
+const balanceProviderDropdownOptions = computed(() =>
+  providerOptions.value.map(opt => ({
+    value: opt.value,
+    label: opt.label.startsWith('api.') ? t(opt.label) : opt.label
+  }))
+)
 
 const emit = defineEmits<{
   'close-create': []
@@ -737,11 +784,15 @@ const handleSaveEdit = (): void => {
 .api-edit-dialog {
   width: 520px;
   padding: 0;
-  overflow: hidden;
   border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
 }
 
 .api-edit-dialog .dialog-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -765,8 +816,9 @@ const handleSaveEdit = (): void => {
 }
 
 .api-edit-dialog .dialog-body {
+  flex: 1;
+  min-height: 0;
   padding: var(--space-xl);
-  max-height: 80vh;
   overflow-y: auto;
 
   .form-group {
@@ -781,6 +833,7 @@ const handleSaveEdit = (): void => {
 }
 
 .api-edit-dialog .dialog-actions {
+  flex-shrink: 0;
   padding: var(--space-lg) var(--space-xl);
   border-top: 1px solid var(--border-light);
   background: var(--control-fill);

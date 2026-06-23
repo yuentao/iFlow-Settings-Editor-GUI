@@ -3,7 +3,7 @@
  * 负责创建和管理主窗口
  */
 
-const { BrowserWindow } = require('electron')
+const { BrowserWindow, screen } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { createLogger } = require('./utils/logger')
@@ -155,6 +155,20 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     logger.info('Window ready to show')
+
+    // 应用保存的 UI 缩放因子
+    try {
+      const { readSettings } = require('./services/configService')
+      const settings = readSettings() || {}
+      const zoomFactor = settings.zoomFactor ?? 1.0
+      if (zoomFactor !== 1.0) {
+        mainWindow.webContents.setZoomFactor(zoomFactor)
+        logger.info('Applied zoomFactor:', zoomFactor)
+      }
+    } catch (e) {
+      // 忽略错误，使用默认 1.0
+    }
+
     if (isSilentLaunch) {
       logger.info('Silent launch mode - hiding window')
     } else {

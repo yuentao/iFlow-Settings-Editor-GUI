@@ -58,11 +58,11 @@
         <div class="dialog-body">
           <div class="form-group">
             <label class="form-label">{{ $t('skills.url') }}</label>
-            <input v-model="onlineUrl" type="text" class="form-input" :placeholder="$t('skills.urlPlaceholder')" />
+            <custom-input v-model="onlineUrl" :placeholder="$t('skills.urlPlaceholder')" />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('skills.skillName') }}</label>
-            <input v-model="onlineName" type="text" class="form-input" :placeholder="$t('skills.namePlaceholder')" />
+            <custom-input v-model="onlineName" :placeholder="$t('skills.namePlaceholder')" />
           </div>
         </div>
         <div class="dialog-actions">
@@ -79,6 +79,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Star, FolderOpen, Download, Upload, Delete } from '@icon-park/vue-next'
 import GenericList from '@/components/GenericList.vue'
+import CustomInput from '@/components/CustomInput.vue'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()

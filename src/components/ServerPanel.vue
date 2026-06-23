@@ -19,9 +19,7 @@
         <!-- 服务器名称 -->
         <div class="form-group">
           <label class="form-label">{{ $t('mcp.serverName') }} <span class="form-required">*</span></label>
-          <input
-            type="text"
-            class="form-input"
+          <custom-input
             :class="{ 'form-input-error': errors.name }"
             v-model="localData.name"
             :placeholder="$t('mcp.serverNamePlaceholder')"
@@ -60,9 +58,7 @@
           <div class="form-group">
             <label class="form-label">{{ $t('mcp.command') }} <span class="form-required">*</span></label>
             <div class="input-with-action">
-              <input
-                type="text"
-                class="form-input"
+              <custom-input
                 :class="{ 'form-input-error': errors.command }"
                 v-model="localData.command"
                 :placeholder="$t('mcp.commandPlaceholder')"
@@ -79,9 +75,8 @@
             <label class="form-label">{{ $t('mcp.args') }}</label>
             <div class="array-editor">
               <div v-for="(arg, index) in localData.args" :key="index" class="array-editor-row">
-                <input
-                  type="text"
-                  class="form-input array-editor-input"
+                <custom-input
+                  class="array-editor-input"
                   v-model="localData.args[index]"
                   :placeholder="$t('mcp.argPlaceholder')"
                 />
@@ -101,9 +96,7 @@
         <template v-if="localData.transportType !== 'stdio'">
           <div class="form-group">
             <label class="form-label">{{ $t('mcp.url') }} <span class="form-required">*</span></label>
-            <input
-              type="text"
-              class="form-input"
+            <custom-input
               :class="{ 'form-input-error': errors.url }"
               v-model="localData.url"
               :placeholder="$t('mcp.urlPlaceholder')"
@@ -116,15 +109,13 @@
             <label class="form-label">{{ $t('mcp.headers') }}</label>
             <div class="kv-editor">
               <div v-for="(entry, index) in localData.headers" :key="index" class="kv-editor-row">
-                <input
-                  type="text"
-                  class="form-input kv-editor-key"
+                <custom-input
+                  class="kv-editor-key"
                   v-model="entry.key"
                   :placeholder="$t('mcp.headerKeyPlaceholder')"
                 />
-                <input
-                  type="text"
-                  class="form-input kv-editor-value"
+                <custom-input
+                  class="kv-editor-value"
                   v-model="entry.value"
                   :placeholder="$t('mcp.headerValuePlaceholder')"
                 />
@@ -150,16 +141,14 @@
               class="kv-editor-row"
               :class="{ 'kv-editor-row-error': isEnvKeyDuplicate(index) }"
             >
-              <input
-                type="text"
-                class="form-input kv-editor-key"
+              <custom-input
+                class="kv-editor-key"
                 :class="{ 'form-input-error': isEnvKeyDuplicate(index) }"
                 v-model="entry.key"
                 :placeholder="$t('mcp.envKeyPlaceholder')"
               />
-              <input
-                type="text"
-                class="form-input kv-editor-value"
+              <custom-input
+                class="kv-editor-value"
                 v-model="entry.value"
                 :placeholder="$t('mcp.envValuePlaceholder')"
               />
@@ -187,9 +176,8 @@
           <div v-if="advancedExpanded" class="advanced-config-body">
             <div class="custom-fields">
               <div v-for="(field, index) in localData.fields" :key="index" class="custom-field-row">
-                <input
-                  type="text"
-                  class="form-input field-key"
+                <custom-input
+                  class="field-key"
                   v-model="field.key"
                   :placeholder="$t('mcp.fieldKeyPlaceholder')"
                 />
@@ -235,6 +223,7 @@
 import { ref, watch, nextTick, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Server, Save, Delete, Add } from '@icon-park/vue-next'
+import CustomInput from '../components/CustomInput.vue'
 
 interface KvEntry {
   key: string
