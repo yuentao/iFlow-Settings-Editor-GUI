@@ -199,7 +199,7 @@ describe('SyncService', () => {
       expect(data.apiProfiles).toEqual(settings.apiProfiles)
       expect(data.currentApiProfile).toBeUndefined()
       expect(data.mcpServers).toEqual(settings.mcpServers)
-      expect(data.apiProfilesOrder).toEqual(['default'])
+      expect(data.apiProfilesOrder).toBeUndefined()
       // 不应包含设备偏好
       expect(data.language).toBeUndefined()
       expect(data.uiTheme).toBeUndefined()
@@ -210,7 +210,7 @@ describe('SyncService', () => {
       expect(data.apiProfiles).toEqual({})
       expect(data.currentApiProfile).toBeUndefined()
       expect(data.mcpServers).toEqual({})
-      expect(data.apiProfilesOrder).toEqual([])
+      expect(data.apiProfilesOrder).toBeUndefined()
     })
   })
 
@@ -308,24 +308,27 @@ describe('SyncService', () => {
       expect(local.apiProfiles.default.apiKey).toBe('sk-test-key') // 保留本地
     })
 
-    it('should merge apiProfilesOrder by deduplication', () => {
+    it('should keep apiProfilesOrder local and append newly synced profiles', () => {
       const local = createBaseSettings()
-      local.apiProfilesOrder = ['default', 'staging']
+      local.apiProfiles.staging = { apiKey: 'sk-staging', _lastModified: '2026-04-25T12:00:00Z' }
+      local.apiProfilesOrder = ['staging', 'default']
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
         timestamp: '2026-04-25T10:00:00Z',
         data: {
-          apiProfiles: {},
+          apiProfiles: {
+            production: { apiKey: 'sk-production', _lastModified: '2026-04-25T10:00:00Z' },
+          },
           mcpServers: {},
-          apiProfilesOrder: ['default', 'production'],
+          apiProfilesOrder: ['production', 'default'],
           currentApiProfile: 'default',
         },
       }]
 
       service._mergeConfigs(local, remoteConfigs)
-      expect(local.apiProfilesOrder).toEqual(['default', 'staging', 'production'])
+      expect(local.apiProfilesOrder).toEqual(['staging', 'default', 'production'])
     })
 
     it('should NOT sync currentApiProfile from remote (device-level preference)', () => {
