@@ -225,11 +225,11 @@
                       </div>
                       <div class="field-group field-group-unit">
                         <span class="field-label">{{ $t('general.balanceUnit') }}</span>
-                        <select class="form-input field-unit-select" v-model="rule.unit">
-                          <option value="">{{ $t('general.balanceUnitNotSet') }}</option>
-                          <option value="¥">¥</option>
-                          <option value="$">$</option>
-                        </select>
+                        <custom-dropdown
+                          v-model="rule.unit"
+                          :options="unitOptions"
+                          :placeholder="$t('general.balanceUnitNotSet')"
+                        />
                       </div>
                     </div>
                   </div>
@@ -828,6 +828,7 @@
 import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right, FileSearch, FolderOpen, ViewGridCard, ZoomIn } from '@icon-park/vue-next'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
 import ToggleSwitch from '../components/ToggleSwitch.vue'
+import CustomDropdown from '../components/CustomDropdown.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import { useToast } from '@/composables/useToast'
 
@@ -855,6 +856,11 @@ const localSettings = computed({
   get: () => props.settings,
   set: val => emit('update:settings', val),
 })
+
+const unitOptions = [
+  { value: '¥', label: '¥' },
+  { value: '$', label: '$' },
+]
 
 const autoLaunchEnabled = ref(false)
 const autoUpdateEnabled = ref(true)
@@ -2856,22 +2862,6 @@ function onWizardCancel() {
 
   .field-provider {
     width: 100%;
-  }
-
-  .field-unit-select {
-    width: 100%;
-    padding: calc(var(--space-sm) - 1px) var(--space-md);
-    font-family: var(--font-mono);
-    font-size: var(--font-size-sm);
-    line-height: 1.4;
-    background: var(--control-fill);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    cursor: pointer;
-    letter-spacing: -0.01em;
-    appearance: none;
-    -webkit-appearance: none;
   }
 
   .field-label {
