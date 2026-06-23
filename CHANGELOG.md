@@ -2,6 +2,32 @@
 
 所有重要的版本更新都会记录在此文件中。
 
+## [1.21.0] - 2026-06-23
+
+### 新增
+- **Token 余额查询与显示** - 支持 BUZZ/DeepSeek/云雾等服务的 API Token 余额自动检测、定时轮询和卡片显示
+- **自定义余额供应商** - 支持自定义供应商名称、查询接口和 JSON 字段映射（余额/用量/总量/单位）
+- **界面缩放功能** - 支持 75%-125% 界面缩放，适配不同分辨率和显示偏好
+- **统一 CustomDropdown 组件** - 全新自定义下拉选择器，统一全局下拉交互样式
+- **统一 CustomInput 组件** - 全新自定义输入框，统一全局输入控件样式
+
+### 修复
+- **修复 API 配置对话框布局溢出** - 对话框改用 Flexbox 布局，长内容可滚动
+- **修复网格布局拖拽手柄不可用** - 为 SortableJS 添加 forceFallback 支持，grid 模式下拖拽正常
+- **修复 Windows 托盘图标加载失败** - ICO 格式改用 createFromPath，兼容 Windows 平台
+- **修复云同步字段名不匹配** - hasPassword/rememberPassword 字段名修正
+- **修复创建/编辑 API 配置时未保存余额供应商设置** - saveApiCreate/saveApiEdit 补写 balanceProvider
+- **修复 Token 余额查询 IPC 序列化问题** - 添加 sanitize 深度清理确保 contextBridge 安全传输
+- **修复 BUZZ 接口响应格式解析** - 适配 BUZZ API 实际返回格式 {code, data, message}
+
+### 优化
+- **拖拽手柄悬停交互** - 卡片悬停时显示拖拽手柄，降低视觉干扰
+- **余额供应商规则编辑器** - 改为可折叠面板设计，保持设置页整洁
+- **余额查询范围** - 仅查询当前 API 配置，减少无效网络请求
+- **余额显示区分布局** - 网格简洁 + 列表明细，适配不同视图模式
+- **全局下拉选择器统一** - 替换 Settings/ApiProfile/CommandEditor 等页面所有原生 select
+- **全局输入控件统一** - 替换 Settings/Skills/ServerPanel/Dashboard 等页面所有原生 input
+
 ## [1.20.6] - 2026-06-19
 
 ### 修复
