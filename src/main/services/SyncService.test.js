@@ -59,6 +59,7 @@ function createBaseSettings(overrides = {}) {
       passwordSalt: 'c2FsdA==',
       lastSyncAt: '2026-04-25T08:00:00Z',
       lastSyncError: null,
+      tombstoneRetentionDays: 365,
     },
     ...overrides,
   }
@@ -193,7 +194,11 @@ describe('SyncService', () => {
 
   describe('_extractSyncData', () => {
     it('should extract only sync-relevant fields', () => {
-      const settings = createBaseSettings({ language: 'zh-CN', uiTheme: 'dark' })
+      const settings = createBaseSettings({
+        language: 'zh-CN',
+        uiTheme: 'dark',
+        balanceProviderRules: [{ provider: 'custom', endpoint: '/api/balance', balanceField: 'data.total' }],
+      })
       const data = service._extractSyncData(settings)
 
       expect(data.apiProfiles).toEqual(settings.apiProfiles)
@@ -203,6 +208,8 @@ describe('SyncService', () => {
       // 不应包含设备偏好
       expect(data.language).toBeUndefined()
       expect(data.uiTheme).toBeUndefined()
+      // balanceProviderRules 是本地配置，不参与云同步
+      expect(data.balanceProviderRules).toBeUndefined()
     })
 
     it('should handle missing fields with defaults', () => {

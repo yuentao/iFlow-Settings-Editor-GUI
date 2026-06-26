@@ -164,9 +164,11 @@ describe('ApiConfig.vue', () => {
       },
     });
 
-    const editButtons = wrapper.findAll('.action-btn');
-    // index 0 is duplicate for "default" (edit hidden for current profile)
-    await editButtons[1].trigger('click');
+    // Template button order: edit(0), duplicate(1), delete(2)
+    // 'dev' is profileItems[1]; its edit button is the first .action-btn
+    const profileItems = wrapper.findAll('.profile-item');
+    const devEditBtn = profileItems[1].findAll('.action-btn')[0];
+    await devEditBtn.trigger('click');
 
     expect(wrapper.emitted('edit-profile')).toBeTruthy();
     expect(wrapper.emitted('edit-profile')[0][0]).toBe('dev');
@@ -186,9 +188,11 @@ describe('ApiConfig.vue', () => {
       },
     });
 
-    const duplicateButtons = wrapper.findAll('.action-btn');
-    // index 0 is duplicate for "default"
-    await duplicateButtons[0].trigger('click');
+    // Template button order: edit(0), duplicate(1), delete(2)
+    // 'default' is profileItems[0]; duplicate button is at index 1
+    const profileItems = wrapper.findAll('.profile-item');
+    const defaultDuplicateBtn = profileItems[0].findAll('.action-btn')[1];
+    await defaultDuplicateBtn.trigger('click');
 
     expect(wrapper.emitted('duplicate-profile')).toBeTruthy();
     expect(wrapper.emitted('duplicate-profile')[0][0]).toBe('default');

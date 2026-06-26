@@ -6,6 +6,20 @@ import GeneralSettings from './GeneralSettings.vue';
 // Helper to wait for all pending promises to resolve
 const flushPromises = () => new Promise(resolve => setTimeout(resolve, 1));
 
+// Mock the toast composable
+const mockToastError = vi.fn();
+vi.mock('@/composables/useToast', () => ({
+  useToast: () => ({
+    show: vi.fn(),
+    success: vi.fn(),
+    error: mockToastError,
+    warning: vi.fn(),
+    info: vi.fn(),
+    removeToast: vi.fn(),
+    clearAll: vi.fn(),
+  }),
+}));
+
 // Mock the cloudSync store
 vi.mock('@/stores/cloudSync', () => ({
   useCloudSyncStore: vi.fn(() => ({
@@ -31,6 +45,7 @@ vi.mock('@/stores/cloudSync', () => ({
     autoSyncEnabled: { value: false },
     rememberPassword: false,
     loadStatus: vi.fn().mockResolvedValue({ success: true }),
+    loadSettings: vi.fn().mockResolvedValue({ success: true }),
     loadDevices: vi.fn().mockResolvedValue({ success: true }),
     getRememberPassword: vi.fn().mockResolvedValue({ success: true, remember: false }),
     setRememberPasswordValue: vi.fn().mockResolvedValue({ success: true, remember: false }),
@@ -324,10 +339,8 @@ describe('GeneralSettings.vue', () => {
     if (installButton) {
       await installButton.trigger('click');
       expect(window.electronAPI.installUpdate).toHaveBeenCalledOnce();
-      // The error is caught and a message dialog is shown
-      expect(wrapper.vm.messageDialog.show).toBe(true);
-      expect(wrapper.vm.messageDialog.type).toBe('error');
-      expect(wrapper.vm.messageDialog.message).toBe('update.installFailed');
+      // The error is caught and a toast error is shown
+      expect(mockToastError).toHaveBeenCalledWith('update.installFailed');
     }
   });
 
