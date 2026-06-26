@@ -18,8 +18,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('show-confirm-request', handler)
   },
 
+  // 平台信息
+  getPlatform: () => ipcRenderer.invoke('get-platform'),
+
   // 亚克力效果开关
   setAcrylicEnabled: (enabled) => ipcRenderer.invoke('set-acrylic-enabled', enabled),
+
+  // UI 缩放
+  getZoomFactor: () => ipcRenderer.invoke('get-zoom-factor'),
+  setZoomFactor: (factor) => ipcRenderer.invoke('set-zoom-factor', factor),
 
   // 开机自启动
   getAutoLaunch: () => ipcRenderer.invoke('get-auto-launch'),
@@ -44,6 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   duplicateApiProfile: (sourceName, newName) => ipcRenderer.invoke('duplicate-api-profile', sourceName, newName),
   fetchModels: (baseUrl, apiKey) => ipcRenderer.invoke('fetch-models', baseUrl, apiKey),
   pingApiProfile: (baseUrl) => ipcRenderer.invoke('ping-api-profile', baseUrl),
+fetchTokenBalance: (params) => ipcRenderer.invoke('fetch-token-balance', params),
 
   // 托盘事件监听
   onApiProfileSwitched: (callback) => {
@@ -109,9 +117,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update-background-complete', handler)
     return () => ipcRenderer.removeListener('update-background-complete', handler)
   },
-  removeUpdateListener: (channel, callback) => {
-    ipcRenderer.removeListener(channel, callback)
-  },
   onAutoCheckUpdate: (callback) => {
     const handler = (event) => callback()
     ipcRenderer.on('auto-check-update', handler)
@@ -132,17 +137,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getUpdateHistory: () => ipcRenderer.invoke('get-update-history'),
   saveUpdateHistory: (history) => ipcRenderer.invoke('save-update-history', history),
 
-  // 移除更新事件监听
-  removeAllUpdateListeners: () => {
-    ipcRenderer.removeAllListeners('update-status-changed')
-    ipcRenderer.removeAllListeners('update-available')
-    ipcRenderer.removeAllListeners('update-download-progress')
-    ipcRenderer.removeAllListeners('update-downloaded')
-    ipcRenderer.removeAllListeners('update-background-complete')
-    ipcRenderer.removeAllListeners('auto-check-update')
-    ipcRenderer.removeAllListeners('install-update')
-  },
-
   // 获取翻译文本（供主进程使用）
   getTranslation: (localeData) => {
     return localeData
@@ -155,7 +149,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 云同步
   cloudSyncGetStatus: () => ipcRenderer.invoke('cloud-sync:get-status'),
-  cloudSyncSetAutoSync: (enabled) => ipcRenderer.invoke('cloud-sync:set-auto-sync', enabled),
+  cloudSyncSetAutoSync: (enabled, interval) => ipcRenderer.invoke('cloud-sync:set-auto-sync', enabled, interval),
   cloudSyncConfigureProvider: (provider, config, testOnly) => ipcRenderer.invoke('cloud-sync:configure-provider', provider, config, testOnly),
   cloudSyncTestConnection: () => ipcRenderer.invoke('cloud-sync:test-connection'),
   cloudSyncRevokeAuth: () => ipcRenderer.invoke('cloud-sync:revoke-auth'),
@@ -173,6 +167,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cloudSyncGetDevices: () => ipcRenderer.invoke('cloud-sync:get-devices'),
   cloudSyncSetDeviceName: (name) => ipcRenderer.invoke('cloud-sync:set-device-name', name),
   cloudSyncSetTombstoneRetentionDays: (days) => ipcRenderer.invoke('cloud-sync:set-tombstone-retention-days', days),
+  cloudSyncSetSyncInterval: (minutes) => ipcRenderer.invoke('cloud-sync:set-sync-interval', minutes),
   cloudSyncRemoveDevice: (deviceId) => ipcRenderer.invoke('cloud-sync:remove-device', deviceId),
 
   // 外部链接
@@ -181,8 +176,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 日志管理
   getLogDir: () => ipcRenderer.invoke('get-log-dir'),
-  clearLogs: () => ipcRenderer.invoke('clear-logs'),
-  // 项目会话管理
+      clearLogs: () => ipcRenderer.invoke('clear-logs'),
+      getLogLevel: () => ipcRenderer.invoke('get-log-level'),
+      setLogLevel: (level) => ipcRenderer.invoke('set-log-level', level),  // 项目会话管理
   listProjects: () => ipcRenderer.invoke('projects:list'),
   getProjectSessions: (projectId, options) => ipcRenderer.invoke('projects:sessions:list', projectId, options),
   getSessionMessages: (projectId, sessionId, options) => ipcRenderer.invoke('projects:sessions:messages', projectId, sessionId, options),

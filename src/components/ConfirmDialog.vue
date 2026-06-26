@@ -1,5 +1,5 @@
 <template>
-  <div class="dialog-overlay dialog-overlay-top" @click.self="$emit('cancel')">
+  <div class="dialog-overlay dialog-overlay-top" @click.self="$emit('cancel')" @keyup.esc="$emit('cancel')" tabindex="-1" ref="overlayRef">
     <div class="dialog message-dialog" @click.stop>
       <div class="message-dialog-icon message-dialog-icon-warning">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -12,13 +12,18 @@
       <div class="message-dialog-message">{{ $t(messageKey, messageParams) }}</div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('cancel')">{{ $t('dialog.cancel') }}</button>
-        <button class="btn" :class="danger ? 'btn-danger' : 'btn-primary'" @click="$emit('confirm')">{{ $t('dialog.confirm') }}</button>
+        <button class="btn" :class="danger ? 'btn-danger' : 'btn-primary'" @click="$emit('confirm')" ref="confirmButtonRef">{{ $t('dialog.confirm') }}</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, onMounted, nextTick } from 'vue'
+
+const overlayRef = ref(null)
+const confirmButtonRef = ref(null)
+
 defineProps({
   titleKey: {
     type: String,
@@ -39,6 +44,12 @@ defineProps({
 })
 
 defineEmits(['confirm', 'cancel'])
+
+onMounted(() => {
+  nextTick(() => {
+    confirmButtonRef.value?.focus() || overlayRef.value?.focus()
+  })
+})
 </script>
 
 <style lang="less" scoped>

@@ -83,22 +83,19 @@
         </template>
 
         <template #item-actions="{ item: mod }">
-          <button v-if="!mod.enabled && !isApplying" class="action-btn action-btn-danger" @click.stop="deleteMod(mod.id)" :title="$t('iflow.mods.delete')">
+          <button v-if="!mod.enabled && !isApplying" class="action-btn action-btn-danger" @click.stop="deleteMod(mod.id)" :title="$t('iflow.mods.delete')" :aria-label="$t('iflow.mods.delete')">
             <Delete size="14" />
           </button>
         </template>
 
         <template #item-extra="{ item: mod }">
-          <label class="toggle-switch" @click.stop :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')">
-            <input type="checkbox" :checked="mod.enabled" @click.prevent="toggleMod(mod.id, !mod.enabled)" :disabled="isApplying" />
-            <span class="toggle-slider"></span>
-          </label>
+          <ToggleSwitch controlled :model-value="mod.enabled" @update:model-value="toggleMod(mod.id, !mod.enabled)" :disabled="isApplying" :title="mod.enabled ? $t('iflow.mods.disable') : $t('iflow.mods.enable')" />
         </template>
       </GenericList>
     </div>
 
     <!-- Mod Detail Modal -->
-    <div v-if="detailMod" class="dialog-overlay" @click.self="detailMod = null" @keyup.esc="detailMod = null" tabindex="-1">
+    <div v-if="detailMod" class="dialog-overlay" @click.self="detailMod = null" @keyup.esc="detailMod = null" tabindex="-1" ref="detailOverlayRef">
       <div class="dialog mod-detail-dialog" @click.stop>
         <div class="dialog-header">
           <div class="dialog-title">
@@ -107,7 +104,7 @@
             <Puzzle v-else size="18" />
             {{ detailMod.name }}
           </div>
-          <button class="side-panel-close" @click="detailMod = null">
+          <button class="side-panel-close" @click="detailMod = null" :aria-label="$t('dialog.close')">
             <svg viewBox="0 0 10 10">
               <line x1="0" y1="0" x2="10" y2="10" />
               <line x1="10" y1="0" x2="0" y2="10" />
@@ -229,11 +226,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Puzzle, FolderOpen, Download, Delete, Success, Caution, SwitchButton, FolderSettingsOne, FolderCodeOne } from '@icon-park/vue-next'
 import GenericList from '@/components/GenericList.vue'
 import ApplyingDialog from '@/components/ApplyingDialog.vue'
+import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
@@ -250,6 +248,15 @@ const applyingText = ref('')
 const applyingProgress = ref({ current: 0, total: 0, modName: '' })
 const selectedCategory = ref('all')
 const detailMod = ref(null)
+const detailOverlayRef = ref(null)
+
+watch(detailMod, (val) => {
+  if (val) {
+    nextTick(() => {
+      detailOverlayRef.value?.focus()
+    })
+  }
+})
 
 // 进度事件清理函数
 let cleanupApplyProgress = null
@@ -605,7 +612,7 @@ onUnmounted(() => {
 }
 
 .status-card-label {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-bottom: 2px;
 }
@@ -712,61 +719,6 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-// Toggle Switch
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-  cursor: pointer;
-  flex-shrink: 0;
-
-  input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-
-    &:checked + .toggle-slider {
-      background-color: var(--toggle-on, var(--accent));
-      box-shadow: 0 0 0 2px var(--toggle-on-border, rgba(0, 120, 212, 0.3));
-
-      &::before {
-        transform: translateX(16px);
-        background-color: white;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-      }
-    }
-
-    &:disabled + .toggle-slider {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  }
-}
-
-.toggle-slider {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--toggle-off, var(--border));
-  border-radius: 10px;
-  transition: 0.2s;
-
-  &::before {
-    content: '';
-    position: absolute;
-    height: 16px;
-    width: 16px;
-    left: 2px;
-    bottom: 2px;
-    background-color: var(--toggle-thumb, #fff);
-    border-radius: 50%;
-    transition: 0.2s;
-  }
-}
-
 // Mod Detail Modal
 .mod-detail-dialog {
   width: 420px;
@@ -850,7 +802,7 @@ onUnmounted(() => {
 
 .detail-tag {
   display: inline-block;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   padding: 1px 8px;
   border-radius: 10px;
   background: var(--control-fill);
@@ -866,6 +818,6 @@ onUnmounted(() => {
 
 .detail-include-map {
   color: var(--text-tertiary);
-  font-size: 11px;
+  font-size: var(--font-size-caption);
 }
 </style>

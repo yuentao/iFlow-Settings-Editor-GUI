@@ -4,16 +4,26 @@
  */
 
 const { app, BrowserWindow } = require('electron')
-const { logger } = require('./utils/logger')
+const path = require('path')
+const { logger, log } = require('./utils/logger')
 
 logger.info('src/main/index.js module loaded')
+
+/** 检测是否为便携模式（userData 位于 exe 同目录下） */
+function isPortableMode() {
+  try {
+    return app.isPackaged &&
+      path.dirname(app.getPath('userData')) === path.dirname(app.getPath('exe'))
+  } catch { return false }
+}
 
 // 导入各模块
 const { createWindow, getMainWindow, setIsQuitting } = require('./window')
 const { createTray, destroyTray } = require('./tray')
 const { registerIpcHandlers } = require('./ipc')
 const { initAutoLaunch } = require('./services/autoLaunchService')
-const { readSettings } = require('./services/configService')
+const { readSettings, stopWatching } = require('./services/configService')
+const { preloadIflowStatus } = require('./services/iflowService')
 const { t } = require('./utils/translations')
 const { initAutoUpdater, setMainWindowRef, cleanupTempFiles } = require('./autoUpdater')
 
@@ -45,6 +55,7 @@ function createMainWindow() {
   if (isDev) {
     win.webContents.openDevTools()
   }
+
 
   // 窗口准备好后显示（如果不是静默启动）
   win.once('ready-to-show', () => {
@@ -96,10 +107,32 @@ async function initializeApp() {
   // 初始化系统托盘（先设置翻译函数）
   const { setTranslator } = require('./tray')
   setTranslator(t)
-  createTray()
+  try {
+    createTray()
+  } catch (e) {
+    logger.error('Failed to create tray:', e)
+  }
 
   // 注册 IPC 处理器
   registerIpcHandlers(getMainWindow, t)
+
+  // 后台预加载 iFlow 状态（npm prefix + 版本号），结果缓存到内存
+  // 在 splash 阶段异步执行，不阻塞窗口显示
+  preloadIflowStatus()
+
+  // 根据设置初始化日志级别
+  try {
+    const initSettings = readSettings()
+    const initLogLevel = initSettings?.logLevel || 'info'
+    if (initLogLevel === 'silent') {
+      log.transports.file.level = false
+      log.transports.console.level = false
+    } else if (initLogLevel !== 'info') {
+      log.transports.file.level = initLogLevel
+      log.transports.console.level = initLogLevel
+    }
+    logger.info(`Log level initialized: ${initLogLevel}`)
+  } catch (_) {}
 
   // 初始化开机自启动
   initAutoLaunch()
@@ -149,8 +182,13 @@ function checkForUpdates() {
  * 应用准备就绪
  */
 app.whenReady().then(() => {
-  // 初始化 electron-log 渲染进程日志捕获
-  const { log } = require('./utils/logger')
+  // 便携模式：将日志路径重定向到用户主目录（避免 exe 所在受保护目录不可写）
+  if (isPortableMode()) {
+    const homeLogDir = path.join(app.getPath('home'), '.iflow', 'logs')
+    log.transports.file.resolvePathFn = () => path.join(homeLogDir, 'main.log')
+    logger.info('[Portable] Log path redirected to', homeLogDir)
+  }
+
   log.initialize({ spyRendererConsole: true })
 
   logger.info('App ready event fired')
@@ -208,6 +246,17 @@ app.on('will-quit', () => {
   cleanupTempFiles()
   // 销毁托盘
   destroyTray()
+  // 停止自动同步定时器，避免退出过程中触发同步
+  try {
+    const { syncService } = require('./ipc/cloud')
+    if (syncService) syncService.stopAutoSync()
+  } catch (_) { /* ignore */ }
+  // 停止文件监听
+  stopWatching()
+  try {
+    const { clearPendingDialogs } = require('./ipc/dialogs')
+    clearPendingDialogs()
+  } catch (_) { /* ignore */ }
 })
 
 /**

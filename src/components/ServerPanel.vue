@@ -1,6 +1,7 @@
 <template>
-  <div v-if="show" class="side-panel-overlay" @keyup.esc="$emit('close')" tabindex="-1" ref="overlay">
-    <div class="side-panel" @click.stop>
+  <div class="side-panel-wrapper" :class="{ visible: show }">
+    <div class="side-panel-overlay" @keyup.esc="$emit('close')" tabindex="-1" ref="overlay" @click="$emit('close')">
+      <div class="side-panel" @click.stop>
       <div class="side-panel-header">
         <div class="side-panel-title">
           <Server size="18" />
@@ -18,9 +19,7 @@
         <!-- 服务器名称 -->
         <div class="form-group">
           <label class="form-label">{{ $t('mcp.serverName') }} <span class="form-required">*</span></label>
-          <input
-            type="text"
-            class="form-input"
+          <custom-input
             :class="{ 'form-input-error': errors.name }"
             v-model="localData.name"
             :placeholder="$t('mcp.serverNamePlaceholder')"
@@ -59,9 +58,7 @@
           <div class="form-group">
             <label class="form-label">{{ $t('mcp.command') }} <span class="form-required">*</span></label>
             <div class="input-with-action">
-              <input
-                type="text"
-                class="form-input"
+              <custom-input
                 :class="{ 'form-input-error': errors.command }"
                 v-model="localData.command"
                 :placeholder="$t('mcp.commandPlaceholder')"
@@ -77,10 +74,9 @@
           <div class="form-group">
             <label class="form-label">{{ $t('mcp.args') }}</label>
             <div class="array-editor">
-              <div v-for="(arg, index) in localData.args" :key="index" class="array-editor-row">
-                <input
-                  type="text"
-                  class="form-input array-editor-input"
+              <div v-for="(_, index) in localData.args" :key="index" class="array-editor-row">
+                <custom-input
+                  class="array-editor-input"
                   v-model="localData.args[index]"
                   :placeholder="$t('mcp.argPlaceholder')"
                 />
@@ -100,9 +96,7 @@
         <template v-if="localData.transportType !== 'stdio'">
           <div class="form-group">
             <label class="form-label">{{ $t('mcp.url') }} <span class="form-required">*</span></label>
-            <input
-              type="text"
-              class="form-input"
+            <custom-input
               :class="{ 'form-input-error': errors.url }"
               v-model="localData.url"
               :placeholder="$t('mcp.urlPlaceholder')"
@@ -115,15 +109,13 @@
             <label class="form-label">{{ $t('mcp.headers') }}</label>
             <div class="kv-editor">
               <div v-for="(entry, index) in localData.headers" :key="index" class="kv-editor-row">
-                <input
-                  type="text"
-                  class="form-input kv-editor-key"
+                <custom-input
+                  class="kv-editor-key"
                   v-model="entry.key"
                   :placeholder="$t('mcp.headerKeyPlaceholder')"
                 />
-                <input
-                  type="text"
-                  class="form-input kv-editor-value"
+                <custom-input
+                  class="kv-editor-value"
                   v-model="entry.value"
                   :placeholder="$t('mcp.headerValuePlaceholder')"
                 />
@@ -149,16 +141,14 @@
               class="kv-editor-row"
               :class="{ 'kv-editor-row-error': isEnvKeyDuplicate(index) }"
             >
-              <input
-                type="text"
-                class="form-input kv-editor-key"
+              <custom-input
+                class="kv-editor-key"
                 :class="{ 'form-input-error': isEnvKeyDuplicate(index) }"
                 v-model="entry.key"
                 :placeholder="$t('mcp.envKeyPlaceholder')"
               />
-              <input
-                type="text"
-                class="form-input kv-editor-value"
+              <custom-input
+                class="kv-editor-value"
                 v-model="entry.value"
                 :placeholder="$t('mcp.envValuePlaceholder')"
               />
@@ -186,9 +176,8 @@
           <div v-if="advancedExpanded" class="advanced-config-body">
             <div class="custom-fields">
               <div v-for="(field, index) in localData.fields" :key="index" class="custom-field-row">
-                <input
-                  type="text"
-                  class="form-input field-key"
+                <custom-input
+                  class="field-key"
                   v-model="field.key"
                   :placeholder="$t('mcp.fieldKeyPlaceholder')"
                 />
@@ -226,13 +215,15 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from 'vue'
+import { ref, watch, nextTick, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Server, Save, Delete, Add } from '@icon-park/vue-next'
+import CustomInput from '../components/CustomInput.vue'
 
 interface KvEntry {
   key: string
@@ -443,6 +434,15 @@ function localToServerConfig(local: LocalServerData): Record<string, any> {
 
 // --- watchers ---
 
+onMounted(() => {
+  if (props.show && props.data) {
+    localData.value = serverConfigToLocal(props.data)
+    errors.value = {}
+    advancedExpanded.value = false
+    nextTick(() => overlay.value?.focus())
+  }
+})
+
 watch(() => props.show, (val: boolean) => {
   if (val && props.data) {
     localData.value = serverConfigToLocal(props.data)
@@ -584,16 +584,50 @@ const handleSave = (): void => {
 </script>
 
 <style lang="less" scoped>
-.side-panel-overlay {
+.side-panel-wrapper {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.32);
-  backdrop-filter: blur(4px);
   z-index: 1000;
-  animation: fadeIn 0.15s ease;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-out);
+
+  &.visible {
+    pointer-events: auto;
+    opacity: 1;
+
+    .side-panel-overlay {
+      animation: fadeIn var(--duration-fast) var(--ease-out);
+    }
+
+    .side-panel {
+      animation: slideInFromRight var(--duration-slow) var(--ease-emphasized);
+    }
+  }
+
+  &:not(.visible) {
+    .side-panel-overlay {
+      animation: fadeOut var(--duration-slow) var(--ease-out) forwards;
+    }
+
+    .side-panel {
+      animation: slideOutToRight var(--duration-slow) var(--ease-emphasized) forwards;
+    }
+  }
+}
+
+.side-panel-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.32);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .side-panel {
@@ -658,7 +692,7 @@ const handleSave = (): void => {
 }
 
 .form-error {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--danger);
   margin-top: 4px;
 }
@@ -679,7 +713,7 @@ const handleSave = (): void => {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast) var(--ease-out);
   background: var(--bg-primary);
 
   input[type="radio"] {
@@ -721,7 +755,7 @@ const handleSave = (): void => {
   }
 
   span {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     font-weight: 600;
     color: var(--text-tertiary);
     text-transform: uppercase;
@@ -811,7 +845,7 @@ const handleSave = (): void => {
   cursor: pointer;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
-  transition: all var(--transition);
+  transition: all var(--duration-normal) var(--ease-out);
 
   svg {
     width: 10px;
@@ -857,7 +891,7 @@ const handleSave = (): void => {
   padding: 10px 14px;
   cursor: pointer;
   background: var(--bg-secondary);
-  transition: background 0.15s ease;
+  transition: background var(--transition-fast) var(--ease-out);
   user-select: none;
 
   &:hover {
@@ -868,7 +902,7 @@ const handleSave = (): void => {
     width: 14px;
     height: 14px;
     color: var(--text-tertiary);
-    transition: transform 0.2s ease;
+    transition: transform var(--duration-slow) var(--ease-out);
 
     &.expanded {
       transform: rotate(90deg);

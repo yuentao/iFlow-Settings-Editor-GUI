@@ -3,7 +3,7 @@
  * 负责创建和管理主窗口
  */
 
-const { BrowserWindow } = require('electron')
+const { BrowserWindow, screen } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { createLogger } = require('./utils/logger')
@@ -93,11 +93,11 @@ function createWindow() {
     show: false,
     icon: getWindowIcon(),
     webPreferences: {
-      devTools: isDev,
+      devTools: true,
       preload: getPreloadPath(),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: process.env.NODE_ENV === 'production',
+      webSecurity: !isDev,
     },
     // 禁用双击标题栏最大化
     maximizable: false,
@@ -118,7 +118,11 @@ function createWindow() {
   }
 
   logger.info('Loading index.html...')
-  mainWindow.loadURL(getEntryHtmlPath())
+  if (isDev) {
+    mainWindow.loadURL(getEntryHtmlPath())
+  } else {
+    mainWindow.loadFile(getEntryHtmlPath())
+  }
 
   // 阻止渲染进程中的链接点击导致页面导航（防止跳转到仪表盘等问题）
   mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -151,6 +155,20 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     logger.info('Window ready to show')
+
+    // 应用保存的 UI 缩放因子
+    try {
+      const { readSettings } = require('./services/configService')
+      const settings = readSettings() || {}
+      const zoomFactor = settings.zoomFactor ?? 1.0
+      if (zoomFactor !== 1.0) {
+        mainWindow.webContents.setZoomFactor(zoomFactor)
+        logger.info('Applied zoomFactor:', zoomFactor)
+      }
+    } catch (e) {
+      // 忽略错误，使用默认 1.0
+    }
+
     if (isSilentLaunch) {
       logger.info('Silent launch mode - hiding window')
     } else {

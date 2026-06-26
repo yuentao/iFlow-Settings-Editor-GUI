@@ -54,7 +54,7 @@
 
           <DocsView v-if="currentSection === 'docs'" />
 
-          <IflowModsView v-if="currentSection === 'iflow'" @show-input-dialog="showInput" />
+          <IflowModsView v-show="currentSection === 'iflow'" @show-input-dialog="showInput" />
 
           <ProjectsView v-show="currentSection === 'projects' && !activeSession" @open-session="openSessionDetail" />
           <SessionDetailView v-if="currentSection === 'projects' && activeSession" :project="activeSession.project" :session="activeSession.session" @back="closeSessionDetail" />
@@ -69,6 +69,7 @@
       :create-data="creatingApiData"
       :edit-data="editingApiData"
       :current-profile-name="currentApiProfile"
+      :balance-provider-rules="settings?.balanceProviderRules"
       @close-create="closeApiCreateDialog"
       @save-create="saveApiCreate"
       @close-edit="closeApiEditDialog"
@@ -111,24 +112,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRaw } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { i18n } from './i18n'
-
-const localeLoaders = {
-  'zh-CN': () => import('./locales/index.js'),
-  'en-US': () => import('./locales/en-US.js'),
-  'ja-JP': () => import('./locales/ja-JP.js'),
-}
-
-// 缓存已加载的语言包
-const loadedLocales = {}
-
-// 动态加载语言包
-async function loadLocale(lang) {
-  if (loadedLocales[lang]) return loadedLocales[lang]
-  const loader = localeLoaders[lang] || localeLoaders['zh-CN']
-  loadedLocales[lang] = (await loader()).default
-  return loadedLocales[lang]
-}
 
 // 安全深拷贝：先解包 Vue reactive proxy，再用 JSON 序列化
 // structuredClone 无法处理 undefined 等值，改用 JSON 方式
@@ -172,6 +155,7 @@ import SkeletonLoader from './components/SkeletonLoader.vue'
 import ToastNotification from './components/ToastNotification.vue'
 import { useCloudSyncStore } from './stores/cloudSync'
 import { useToast } from './composables/useToast'
+import { applyDefaults } from './shared/defaults'
 
 // 视图组件懒加载
 import { defineAsyncComponent, h } from 'vue'
@@ -180,13 +164,22 @@ const loadingComponent = {
   render() {
     return h('div', { class: 'async-loading' }, [h('div', { class: 'skeleton-header-title' }), h('div', { class: 'skeleton-header-desc' })])
   },
+  emits: ['ready'],
+  mounted() {
+    // 即使在 loading 状态也通知 App.vue 移除 splash，避免无限等待
+    this.$emit('ready')
+  },
 }
 
 const errorComponent = {
   props: ['error'],
-  emits: ['retry'],
+  emits: ['retry', 'ready'],
   render() {
     return h('div', { class: 'async-error' }, [h('p', this.error), h('button', { onClick: () => this.$emit('retry') }, this.$t('app.retry'))])
+  },
+  mounted() {
+    // 异步组件加载失败时，也通知父组件移除 splash，避免用户卡在启动画面
+    this.$emit('ready')
   },
 }
 
@@ -195,6 +188,7 @@ const Dashboard = defineAsyncComponent({
   loadingComponent,
   errorComponent,
   delay: 200,
+  timeout: 15000,
 })
 const GeneralSettings = defineAsyncComponent({
   loader: () => import('./views/GeneralSettings.vue'),
@@ -236,7 +230,7 @@ const IflowModsView = defineAsyncComponent({
   loader: () => import('./views/IflowModsView.vue'),
   loadingComponent,
   errorComponent,
-  delay: 200,
+  delay: 0,
 })
 const ProjectsView = defineAsyncComponent({
   loader: () => import('./views/ProjectsView.vue'),
@@ -272,6 +266,7 @@ watch(
         _syncEndTimer = null
         // 确认防抖期间无新同步启动、同步成功（有 lastSyncAt）且无错误
         if (!cloudSyncStore.isSyncing && cloudSyncStore.status.lastSyncAt && !cloudSyncStore.status.lastSyncError) {
+          await loadSettings()
           await loadApiProfiles()
           if (!document.hidden) {
             toast.success(t('cloudSync.syncCompleted'))
@@ -317,21 +312,11 @@ const settings = ref({
   apiProfiles: { default: {} },
   acrylicEnabled: true,
   acrylicIntensity: 50,
-  // CLI 行为控制 - 新字段默认值
-  autoAccept: false,
-  hideBanner: false,
-  disableAutoUpdate: false,
-  autoConfigureMaxOldSpaceSize: undefined,
-  disableTelemetry: false,
-  tokensLimit: 128000,
-  compressionTokenThreshold: 0.8,
-  skipNextSpeakerCheck: true,
-  shellTimeout: 120000,
-  approvalMode: 'autoEdit',
-  thinkingModeEnabled: 'true',
+  zoomFactor: 1.0,
   connectivityPollInterval: 30,
   modelUsageRefreshInterval: 5,
 })
+// settings 初始值中的 CLI 默认值已在定义时填充，后续加载会由 loadSettings 统一覆盖
 
 const originalSettings = ref({})
 const modified = ref(false)
@@ -357,7 +342,7 @@ const showApiEditDialog = ref(false)
 const editingApiProfileName = ref('')
 const editingApiData = ref({ selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 })
 const showApiCreateDialog = ref(false)
-const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 })
+const creatingApiData = ref({ name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, balanceProvider: 'auto' })
 
 const updateSettings = newSettings => {
   settings.value = newSettings
@@ -374,18 +359,7 @@ const loadApiProfiles = async () => {
 const switchApiProfile = async () => {
   const result = await window.electronAPI.switchApiProfile(currentApiProfile.value)
   if (result.success) {
-    const data = structuredClone(result.data)
-    if (data.autoAccept === undefined) data.autoAccept = false
-    if (data.hideBanner === undefined) data.hideBanner = false
-    if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
-    if (data.autoConfigureMaxOldSpaceSize === undefined) data.autoConfigureMaxOldSpaceSize = undefined
-    if (data.disableTelemetry === undefined) data.disableTelemetry = false
-    if (data.tokensLimit === undefined) data.tokensLimit = 128000
-    if (data.compressionTokenThreshold === undefined) data.compressionTokenThreshold = 0.8
-    if (data.skipNextSpeakerCheck === undefined) data.skipNextSpeakerCheck = true
-    if (data.shellTimeout === undefined) data.shellTimeout = 120000
-    if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
-    if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
+    const data = applyDefaults(structuredClone(result.data))
     settings.value = data
     originalSettings.value = structuredClone(data)
     modified.value = false
@@ -395,7 +369,7 @@ const switchApiProfile = async () => {
 }
 
 const createNewApiProfile = () => {
-  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 }
+  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, balanceProvider: 'auto' }
   showApiCreateDialog.value = true
 }
 
@@ -427,6 +401,7 @@ const saveApiCreate = async data => {
       tokensLimit: data.tokensLimit,
       expiryDays: data.expiryDays || 0,
       expiryStartDate: data.expiryDays > 0 ? new Date().toISOString() : undefined,
+      balanceProvider: data.balanceProvider || 'auto',
     }
     const loadResult = await window.electronAPI.loadSettings()
     if (loadResult.success) {
@@ -436,8 +411,11 @@ const saveApiCreate = async data => {
       await window.electronAPI.saveSettings(loadedData)
       showApiCreateDialog.value = false
       skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
-      await loadSettings()
-      skipNextSaveSettings.value = false
+      try {
+        await loadSettings()
+      } finally {
+        skipNextSaveSettings.value = false
+      }
       await loadApiProfiles()
       toast.success(t('api.configCreated', { name }))
     }
@@ -455,19 +433,7 @@ const deleteApiProfile = async name => {
   if (!confirmed) return
   const result = await window.electronAPI.deleteApiProfile(profileName)
   if (result.success) {
-    const data = structuredClone(result.data)
-    // CLI 行为控制 - 新字段默认值
-    if (data.autoAccept === undefined) data.autoAccept = false
-    if (data.hideBanner === undefined) data.hideBanner = false
-    if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
-    if (data.autoConfigureMaxOldSpaceSize === undefined) data.autoConfigureMaxOldSpaceSize = undefined
-    if (data.disableTelemetry === undefined) data.disableTelemetry = false
-    if (data.tokensLimit === undefined) data.tokensLimit = 128000
-    if (data.compressionTokenThreshold === undefined) data.compressionTokenThreshold = 0.8
-    if (data.skipNextSpeakerCheck === undefined) data.skipNextSpeakerCheck = true
-    if (data.shellTimeout === undefined) data.shellTimeout = 120000
-    if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
-    if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
+    const data = applyDefaults(structuredClone(result.data))
     settings.value = data
     originalSettings.value = structuredClone(data)
     modified.value = false
@@ -484,10 +450,13 @@ const reorderApiProfiles = async newProfiles => {
   apiProfiles.value = newProfiles
   // 保存排序顺序到settings
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
-  settings.value.apiProfilesOrder = newProfiles.map(p => p.name)
-  const dataToSave = deepClone(settings.value)
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
+  try {
+    settings.value.apiProfilesOrder = newProfiles.map(p => p.name)
+    const dataToSave = deepClone(settings.value)
+    const result = await window.electronAPI.saveSettings(dataToSave)
+  } finally {
+    skipNextSaveSettings.value = false
+  }
   if (result.success) {
     originalSettings.value = structuredClone(dataToSave)
     modified.value = false
@@ -498,8 +467,11 @@ const selectApiProfile = async name => {
   if (name === currentApiProfile.value) return
   skipNextSaveSettings.value = true // 标记跳过下次 saveSettings，避免竞态覆盖
   currentApiProfile.value = name
-  await switchApiProfile()
-  skipNextSaveSettings.value = false
+  try {
+    await switchApiProfile()
+  } finally {
+    skipNextSaveSettings.value = false
+  }
 }
 
 const duplicateApiProfile = async name => {
@@ -523,14 +495,15 @@ const openApiEditDialog = profileName => {
   const profile = settings.value.apiProfiles && settings.value.apiProfiles[profileName]
   editingApiData.value = {
     name: profileName,
-    selectedAuthType: (profile && profile.selectedAuthType) || settings.value.selectedAuthType || 'openai-compatible',
-    apiKey: (profile && profile.apiKey) || settings.value.apiKey || '',
-    baseUrl: (profile && profile.baseUrl) || settings.value.baseUrl || '',
-    modelName: (profile && profile.modelName) || settings.value.modelName || '',
-    tokensLimit: (profile && profile.tokensLimit) || settings.value.tokensLimit || 128000,
-    expiryDays: (profile && profile.expiryDays) || 0,
-    _originalExpiryDays: (profile && profile.expiryDays) || 0,
-    _originalExpiryStartDate: (profile && profile.expiryStartDate) || null,
+    selectedAuthType: profile?.selectedAuthType || 'openai-compatible',
+    apiKey: profile?.apiKey ?? '',
+    baseUrl: profile?.baseUrl ?? '',
+    modelName: profile?.modelName ?? '',
+    tokensLimit: profile?.tokensLimit ?? 128000,
+    expiryDays: profile?.expiryDays ?? 0,
+    balanceProvider: profile?.balanceProvider ?? 'auto',
+    _originalExpiryDays: profile?.expiryDays ?? 0,
+    _originalExpiryStartDate: profile?.expiryStartDate ?? null,
   }
   showApiEditDialog.value = true
 }
@@ -569,86 +542,90 @@ const saveApiEdit = async data => {
 
   // 更新配置数据
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
-  if (!settings.value.apiProfiles[newName]) settings.value.apiProfiles[newName] = {}
-  settings.value.apiProfiles[newName].selectedAuthType = data.selectedAuthType
-  settings.value.apiProfiles[newName].apiKey = data.apiKey
-  settings.value.apiProfiles[newName].baseUrl = data.baseUrl
-  settings.value.apiProfiles[newName].modelName = data.modelName
-  settings.value.apiProfiles[newName].tokensLimit = data.tokensLimit
-  settings.value.apiProfiles[newName].expiryDays = data.expiryDays || 0
+  try {
+    if (!settings.value.apiProfiles[newName]) settings.value.apiProfiles[newName] = {}
+    settings.value.apiProfiles[newName].selectedAuthType = data.selectedAuthType
+    settings.value.apiProfiles[newName].apiKey = data.apiKey
+    settings.value.apiProfiles[newName].baseUrl = data.baseUrl
+    settings.value.apiProfiles[newName].modelName = data.modelName
+    settings.value.apiProfiles[newName].tokensLimit = data.tokensLimit
+    settings.value.apiProfiles[newName].balanceProvider = data.balanceProvider || 'auto'
+    settings.value.apiProfiles[newName].expiryDays = data.expiryDays || 0
 
-  // 仅当 expiryDays 发生变更时，才写入/重置 expiryStartDate
-  const newExpiryDays = data.expiryDays || 0
-  const oldExpiryDays = data._originalExpiryDays || 0
-  if (newExpiryDays !== oldExpiryDays) {
-    // expiryDays 被修改了：如果 >0 则重新开始倒计时，否则清除起始时间
-    settings.value.apiProfiles[newName].expiryStartDate = newExpiryDays > 0 ? new Date().toISOString() : undefined
-  } else {
-    // expiryDays 未变更：保留原始 expiryStartDate
-    settings.value.apiProfiles[newName].expiryStartDate = data._originalExpiryStartDate || undefined
-  }
+    // 仅当 expiryDays 发生变更时，才写入/重置 expiryStartDate
+    const newExpiryDays = data.expiryDays || 0
+    const oldExpiryDays = data._originalExpiryDays || 0
+    if (newExpiryDays !== oldExpiryDays) {
+      // expiryDays 被修改了：如果 >0 则重新开始倒计时，否则清除起始时间
+      settings.value.apiProfiles[newName].expiryStartDate = newExpiryDays > 0 ? new Date().toISOString() : undefined
+    } else {
+      // expiryDays 未变更：保留原始 expiryStartDate
+      settings.value.apiProfiles[newName].expiryStartDate = data._originalExpiryStartDate || undefined
+    }
 
-  // 如果编辑的是当前配置，需要同步到主设置对象
-  if (newName === currentApiProfile.value) {
-    settings.value.selectedAuthType = data.selectedAuthType
-    settings.value.apiKey = data.apiKey
-    settings.value.baseUrl = data.baseUrl
-    settings.value.modelName = data.modelName
-    settings.value.tokensLimit = data.tokensLimit
-  }
+    // 如果编辑的是当前配置，需要同步到主设置对象
+    if (newName === currentApiProfile.value) {
+      settings.value.selectedAuthType = data.selectedAuthType
+      settings.value.apiKey = data.apiKey
+      settings.value.baseUrl = data.baseUrl
+      settings.value.modelName = data.modelName
+      settings.value.tokensLimit = data.tokensLimit
+      settings.value.balanceProvider = data.balanceProvider || 'auto'
+    }
 
-  showApiEditDialog.value = false
-  const dataToSave = deepClone(settings.value)
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
-  if (result.success) {
-    skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
-    await loadSettings()
+    showApiEditDialog.value = false
+    const dataToSave = deepClone(settings.value)
+    const result = await window.electronAPI.saveSettings(dataToSave)
+    if (result.success) {
+      skipNextSaveSettings.value = true // 跳过 loadSettings 触发的 watch，避免重复 saveSettings
+      try {
+        await loadSettings()
+      } finally {
+        skipNextSaveSettings.value = false
+      }
+      toast.success(t('api.configSaved'))
+    }
+  } finally {
     skipNextSaveSettings.value = false
-    toast.success(t('api.configSaved'))
   }
 }
 
 const loadSettings = async () => {
-  const result = await window.electronAPI.loadSettings()
-  if (result.success) {
-    const data = structuredClone(result.data)
-    if (!data.checkpointing) data.checkpointing = { enabled: true }
-    if (!data.mcpServers) data.mcpServers = {}
-    if (data.language === undefined) data.language = 'zh-CN'
-    if (data.uiTheme === undefined) data.uiTheme = 'Light'
-    if (data.bootAnimationShown === undefined) data.bootAnimationShown = true
-    if (data.showMemoryUsage === undefined) data.showMemoryUsage = false
-    if (data.maxSessionTurns === undefined) data.maxSessionTurns = -1
-    if (data.excludeTools === undefined) data.excludeTools = []
-    if (!data.selectedAuthType) data.selectedAuthType = 'openai-compatible'
-    if (data.apiKey === undefined) data.apiKey = ''
-    if (data.baseUrl === undefined) data.baseUrl = ''
-    if (data.modelName === undefined) data.modelName = ''
-    if (!data.apiProfiles) data.apiProfiles = { default: {} }
-    if (!data.currentApiProfile) data.currentApiProfile = 'default'
-    if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
-    if (data.acrylicEnabled === undefined) data.acrylicEnabled = true
-
-    // CLI 行为控制 - 新字段默认值
-    if (data.autoAccept === undefined) data.autoAccept = false
-    if (data.hideBanner === undefined) data.hideBanner = false
-    if (data.disableAutoUpdate === undefined) data.disableAutoUpdate = false
-    if (data.autoConfigureMaxOldSpaceSize === undefined) data.autoConfigureMaxOldSpaceSize = undefined
-    if (data.disableTelemetry === undefined) data.disableTelemetry = false
-    if (data.tokensLimit === undefined) data.tokensLimit = 128000
-    if (data.compressionTokenThreshold === undefined) data.compressionTokenThreshold = 0.8
-    if (data.skipNextSpeakerCheck === undefined) data.skipNextSpeakerCheck = true
-    if (data.shellTimeout === undefined) data.shellTimeout = 120000
-    if (data.approvalMode === undefined) data.approvalMode = 'autoEdit'
-    if (data.thinkingModeEnabled === undefined) data.thinkingModeEnabled = 'true'
-    if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
-    if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
-    settings.value = data
-    originalSettings.value = structuredClone(data)
-    modified.value = false
+  try {
+    const result = await window.electronAPI.loadSettings()
+    if (result && result.success) {
+      const data = structuredClone(result.data)
+      if (!data.checkpointing) data.checkpointing = { enabled: true }
+      if (!data.mcpServers) data.mcpServers = {}
+      if (data.language === undefined) data.language = 'zh-CN'
+      if (data.uiTheme === undefined) data.uiTheme = 'Light'
+      if (data.bootAnimationShown === undefined) data.bootAnimationShown = true
+      if (data.showMemoryUsage === undefined) data.showMemoryUsage = false
+      if (data.maxSessionTurns === undefined) data.maxSessionTurns = -1
+      if (data.excludeTools === undefined) data.excludeTools = []
+      if (!data.selectedAuthType) data.selectedAuthType = 'openai-compatible'
+      if (data.apiKey === undefined) data.apiKey = ''
+      if (data.baseUrl === undefined) data.baseUrl = ''
+      if (data.modelName === undefined) data.modelName = ''
+      if (!data.apiProfiles) data.apiProfiles = { default: {} }
+      if (!data.currentApiProfile) data.currentApiProfile = 'default'
+      if (data.acrylicIntensity === undefined) data.acrylicIntensity = 50
+      if (data.acrylicEnabled === undefined) data.acrylicEnabled = true
+      if (data.zoomFactor === undefined) data.zoomFactor = 1.0
+      if (data.connectivityPollInterval === undefined) data.connectivityPollInterval = 30
+      if (data.modelUsageRefreshInterval === undefined) data.modelUsageRefreshInterval = 5
+      applyDefaults(data)
+      settings.value = data
+      originalSettings.value = structuredClone(data)
+      modified.value = false
+    }
+  } catch (err) {
+    // 兜底：IPC 异常、structuredClone 失败、applyDefaults 抛错等情况
+    // 必须保证 isLoading 被重置，否则 SkeletonLoader 永久占位导致 splash 卡死
+    console.error('[loadSettings] failed:', err)
+  } finally {
+    isLoading.value = false
   }
-  isLoading.value = false
 }
 
 watch(
@@ -671,11 +648,6 @@ watch(
   newLang => {
     locale.value = newLang
     window.electronAPI.notifyLanguageChanged()
-    // 动态加载并注册语言包到 vue-i18n
-    loadLocale(newLang).then(messages => {
-      i18n.global.setLocaleMessage(newLang, messages)
-      window.electronAPI.sendTranslation(messages)
-    })
   },
 )
 
@@ -693,6 +665,16 @@ const dismissSplash = () => {
     }
   })
 }
+
+// 全局兜底：无论初始化链路是否正常，10 秒后强制移除 splash
+// 防止 Dashboard/ModelUsageChart 因任何异常未触发 @ready 导致 splash 永久卡死
+const SPLASH_TIMEOUT_MS = 10000
+setTimeout(() => {
+  if (!splashDismissed) {
+    console.warn('[Splash] Force dismiss after timeout: chart rendered event was not triggered within ' + SPLASH_TIMEOUT_MS + 'ms')
+    dismissSplash()
+  }
+}, SPLASH_TIMEOUT_MS)
 
 const showSection = (section, subSection) => {
   currentSection.value = section
@@ -838,13 +820,16 @@ const handleQuickAddServers = async servers => {
     settings.value.mcpServers[name] = config
   }
   skipNextSaveSettings.value = true
-  const dataToSave = deepClone(settings.value)
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
-  if (result.success) {
-    originalSettings.value = structuredClone(dataToSave)
-    modified.value = false
-    toast.success(t('mcp.quickAddSuccess', { count: servers.length }))
+  try {
+    const dataToSave = deepClone(settings.value)
+    const result = await window.electronAPI.saveSettings(dataToSave)
+    if (result.success) {
+      originalSettings.value = structuredClone(dataToSave)
+      modified.value = false
+      toast.success(t('mcp.quickAddSuccess', { count: servers.length }))
+    }
+  } finally {
+    skipNextSaveSettings.value = false
   }
 }
 
@@ -867,12 +852,15 @@ const saveServerFromPanel = async data => {
   currentServerName.value = name
   showServerPanel.value = false
   skipNextSaveSettings.value = true // 跳过 watch，避免重复触发 onSettingsSaved
-  const dataToSave = deepClone(settings.value)
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
-  if (result.success) {
-    originalSettings.value = structuredClone(dataToSave)
-    modified.value = false
+  try {
+    const dataToSave = deepClone(settings.value)
+    const result = await window.electronAPI.saveSettings(dataToSave)
+    if (result.success) {
+      originalSettings.value = structuredClone(dataToSave)
+      modified.value = false
+    }
+  } finally {
+    skipNextSaveSettings.value = false
   }
 }
 
@@ -884,6 +872,7 @@ const deleteServer = async () => {
   const serverName = isEditingServer.value ? editingServerData.value.name : currentServerName.value
   if (!serverName) return
   await deleteServerByName(serverName)
+  showServerPanel.value = false
 }
 
 const deleteServerByName = async serverName => {
@@ -898,12 +887,15 @@ const deleteServerByName = async serverName => {
     showServerPanel.value = false
   }
   skipNextSaveSettings.value = true
-  const dataToSave = deepClone(settings.value)
-  const result = await window.electronAPI.saveSettings(dataToSave)
-  skipNextSaveSettings.value = false
-  if (result.success) {
-    originalSettings.value = structuredClone(dataToSave)
-    modified.value = false
+  try {
+    const dataToSave = deepClone(settings.value)
+    const result = await window.electronAPI.saveSettings(dataToSave)
+    if (result.success) {
+      originalSettings.value = structuredClone(dataToSave)
+      modified.value = false
+    }
+  } finally {
+    skipNextSaveSettings.value = false
   }
 }
 
@@ -1177,11 +1169,30 @@ const updateSystemTheme = () => {
 }
 
 onMounted(async () => {
+  // Fluent Reveal Highlight — mouse-following glow on buttons (event delegation)
+  const revealHandler = e => {
+    const btn = e.target.closest('.btn, .nav-item, .action-btn, .titlebar-btn, .collapse-btn')
+    if (!btn) return
+    const rect = btn.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1)
+    const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1)
+    btn.style.setProperty('--reveal-x', x + '%')
+    btn.style.setProperty('--reveal-y', y + '%')
+  }
+  document.addEventListener('mousemove', revealHandler, { passive: true })
+  cleanupFns.push(() => document.removeEventListener('mousemove', revealHandler))
+
   // 优先初始化更新监听，确保在主进程发送 auto-check-update 事件前注册好
   initUpdateListeners()
 
   // 关键数据并行加载（减少串行 IPC 等待）
-  await Promise.all([loadApiProfiles(), loadSettings()])
+  // 使用 allSettled 防止任一 IPC 失败时阻断整个启动流程
+  const results = await Promise.allSettled([loadApiProfiles(), loadSettings()])
+  for (const r of results) {
+    if (r.status === 'rejected') {
+      console.error('[App.onMounted] initial load failed:', r.reason)
+    }
+  }
 
   // 非关键计数数据延迟加载，不阻塞首次渲染
   loadSkillCount()
@@ -1191,12 +1202,6 @@ onMounted(async () => {
 
   // 初始化系统主题
   updateSystemTheme()
-
-  // 动态加载并注册语言包到 vue-i18n
-  loadLocale(settings.value.language).then(messages => {
-    i18n.global.setLocaleMessage(settings.value.language, messages)
-    window.electronAPI.sendTranslation(messages)
-  })
 
   // 监听系统主题变化
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -1234,16 +1239,25 @@ onMounted(async () => {
     window.electronAPI.onApiProfileSwitched(async profileName => {
       skipNextSaveSettings.value = true
       currentApiProfile.value = profileName
-      await loadSettings()
-      skipNextSaveSettings.value = false
+      try {
+        await loadSettings()
+      } finally {
+        skipNextSaveSettings.value = false
+      }
     }),
   )
 
   // 监听外部应用对 settings.json 的修改
+  // skipNextSaveSettings 防止文件监听触发的重载 → 深 watch → 再次 saveSettings 的回存循环
   cleanupFns.push(
     window.electronAPI.onSettingsFileChanged(async () => {
-      await loadSettings()
-      await loadApiProfiles()
+      skipNextSaveSettings.value = true
+      try {
+        await loadSettings()
+        await loadApiProfiles()
+      } finally {
+        skipNextSaveSettings.value = false
+      }
     }),
   )
 
@@ -1251,7 +1265,12 @@ onMounted(async () => {
   if (cloudSyncStore.autoSyncEnabled) {
     await cloudSyncStore.loadStatus()
     if (cloudSyncStore.isConfigured) {
-      await cloudSyncStore.setAutoSync(true)
+      const syncInterval = settings.value?.cloudSync?.syncInterval
+      const result = await cloudSyncStore.setAutoSync(true, syncInterval)
+      if (!result.success) {
+        // 无可用密码等原因导致启动失败，回滚 UI 状态
+        cloudSyncStore.setAutoSyncEnabled(false)
+      }
     }
   }
 })

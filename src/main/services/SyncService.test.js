@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SyncService 单元测试
  *
  * 通过依赖注入 mock readSettings/writeSettings/logger，
@@ -59,6 +59,7 @@ function createBaseSettings(overrides = {}) {
       passwordSalt: 'c2FsdA==',
       lastSyncAt: '2026-04-25T08:00:00Z',
       lastSyncError: null,
+      tombstoneRetentionDays: 365,
     },
     ...overrides,
   }
@@ -193,16 +194,22 @@ describe('SyncService', () => {
 
   describe('_extractSyncData', () => {
     it('should extract only sync-relevant fields', () => {
-      const settings = createBaseSettings({ language: 'zh-CN', uiTheme: 'dark' })
+      const settings = createBaseSettings({
+        language: 'zh-CN',
+        uiTheme: 'dark',
+        balanceProviderRules: [{ provider: 'custom', endpoint: '/api/balance', balanceField: 'data.total' }],
+      })
       const data = service._extractSyncData(settings)
 
       expect(data.apiProfiles).toEqual(settings.apiProfiles)
       expect(data.currentApiProfile).toBeUndefined()
       expect(data.mcpServers).toEqual(settings.mcpServers)
-      expect(data.apiProfilesOrder).toEqual(['default'])
+      expect(data.apiProfilesOrder).toBeUndefined()
       // 不应包含设备偏好
       expect(data.language).toBeUndefined()
       expect(data.uiTheme).toBeUndefined()
+      // balanceProviderRules 是本地配置，不参与云同步
+      expect(data.balanceProviderRules).toBeUndefined()
     })
 
     it('should handle missing fields with defaults', () => {
@@ -210,7 +217,7 @@ describe('SyncService', () => {
       expect(data.apiProfiles).toEqual({})
       expect(data.currentApiProfile).toBeUndefined()
       expect(data.mcpServers).toEqual({})
-      expect(data.apiProfilesOrder).toEqual([])
+      expect(data.apiProfilesOrder).toBeUndefined()
     })
   })
 
@@ -308,24 +315,27 @@ describe('SyncService', () => {
       expect(local.apiProfiles.default.apiKey).toBe('sk-test-key') // 保留本地
     })
 
-    it('should merge apiProfilesOrder by deduplication', () => {
+    it('should keep apiProfilesOrder local and append newly synced profiles', () => {
       const local = createBaseSettings()
-      local.apiProfilesOrder = ['default', 'staging']
+      local.apiProfiles.staging = { apiKey: 'sk-staging', _lastModified: '2026-04-25T12:00:00Z' }
+      local.apiProfilesOrder = ['staging', 'default']
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
         timestamp: '2026-04-25T10:00:00Z',
         data: {
-          apiProfiles: {},
+          apiProfiles: {
+            production: { apiKey: 'sk-production', _lastModified: '2026-04-25T10:00:00Z' },
+          },
           mcpServers: {},
-          apiProfilesOrder: ['default', 'production'],
+          apiProfilesOrder: ['production', 'default'],
           currentApiProfile: 'default',
         },
       }]
 
       service._mergeConfigs(local, remoteConfigs)
-      expect(local.apiProfilesOrder).toEqual(['default', 'staging', 'production'])
+      expect(local.apiProfilesOrder).toEqual(['staging', 'default', 'production'])
     })
 
     it('should NOT sync currentApiProfile from remote (device-level preference)', () => {
@@ -421,13 +431,13 @@ describe('SyncService', () => {
       const local = createBaseSettings()
       local.apiProfiles = { default: local.apiProfiles.default }
       local._deletedProfiles = {
-        staging: { deletedAt: '2026-04-26T12:00:00Z' },
+        staging: { deletedAt: '2026-05-26T12:00:00Z' },
       }
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -459,7 +469,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -468,7 +478,7 @@ describe('SyncService', () => {
           apiProfilesOrder: ['default'],
           currentApiProfile: 'default',
           _deletedProfiles: {
-            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+            staging: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         },
@@ -476,7 +486,7 @@ describe('SyncService', () => {
 
       service._mergeConfigs(local, remoteConfigs)
       expect(local.apiProfiles.staging).toBeUndefined()
-      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-04-26T12:00:00Z')
+      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-05-26T12:00:00Z')
     })
 
     it('local edit newer than remote tombstone should win (resurrects profile)', () => {
@@ -484,13 +494,13 @@ describe('SyncService', () => {
       local.apiProfiles = {
         default: local.apiProfiles.default,
         // 本地修改时间晚于远端 tombstone
-        staging: { apiKey: 'sk-staging-new', _lastModified: '2026-04-26T15:00:00Z' },
+        staging: { apiKey: 'sk-staging-new', _lastModified: '2026-05-26T15:00:00Z' },
       }
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -499,7 +509,7 @@ describe('SyncService', () => {
           apiProfilesOrder: ['default'],
           currentApiProfile: 'default',
           _deletedProfiles: {
-            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+            staging: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         },
@@ -513,13 +523,13 @@ describe('SyncService', () => {
     it('should keep newer tombstone deletedAt across both sides', () => {
       const local = createBaseSettings()
       local._deletedProfiles = {
-        staging: { deletedAt: '2026-04-26T12:00:00Z' },
+        staging: { deletedAt: '2026-05-26T12:00:00Z' },
       }
 
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -528,14 +538,14 @@ describe('SyncService', () => {
           apiProfilesOrder: [],
           currentApiProfile: 'default',
           _deletedProfiles: {
-            staging: { deletedAt: '2026-04-26T15:00:00Z' }, // 更新
+            staging: { deletedAt: '2026-05-26T15:00:00Z' }, // 更新
           },
           _deletedServers: {},
         },
       }]
 
       service._mergeConfigs(local, remoteConfigs)
-      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-04-26T15:00:00Z')
+      expect(local._deletedProfiles.staging.deletedAt).toBe('2026-05-26T15:00:00Z')
     })
 
     it('should apply tombstone to mcpServers as well', () => {
@@ -547,7 +557,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {},
           mcpServers: {},
@@ -555,7 +565,7 @@ describe('SyncService', () => {
           currentApiProfile: 'default',
           _deletedProfiles: {},
           _deletedServers: {
-            'my-server': { deletedAt: '2026-04-26T12:00:00Z' },
+            'my-server': { deletedAt: '2026-05-26T12:00:00Z' },
           },
         },
       }]
@@ -576,7 +586,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -585,7 +595,7 @@ describe('SyncService', () => {
           apiProfilesOrder: ['default'],
           currentApiProfile: 'production',
           _deletedProfiles: {
-            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+            staging: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         },
@@ -683,7 +693,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -692,7 +702,7 @@ describe('SyncService', () => {
           apiProfilesOrder: ['default'],
           currentApiProfile: 'default',
           _deletedProfiles: {
-            oldProfile: { deletedAt: '2026-04-26T12:00:00Z' },
+            oldProfile: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         },
@@ -715,7 +725,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {
             default: { apiKey: 'sk-test-key', _lastModified: '2026-04-25T09:00:00Z' },
@@ -724,7 +734,7 @@ describe('SyncService', () => {
           apiProfilesOrder: ['default'],
           currentApiProfile: 'default',
           _deletedProfiles: {
-            oldProfile: { deletedAt: '2026-04-26T12:00:00Z' },
+            oldProfile: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         },
@@ -745,7 +755,7 @@ describe('SyncService', () => {
       const remoteConfigs = [{
         deviceId: 'remote-1',
         deviceName: 'RemotePC',
-        timestamp: '2026-04-26T13:00:00Z',
+        timestamp: '2026-05-26T13:00:00Z',
         data: {
           apiProfiles: {},
           mcpServers: {},
@@ -753,7 +763,7 @@ describe('SyncService', () => {
           currentApiProfile: 'default',
           _deletedProfiles: {},
           _deletedServers: {
-            'my-server': { deletedAt: '2026-04-26T12:00:00Z' },
+            'my-server': { deletedAt: '2026-05-26T12:00:00Z' },
           },
         },
       }]
@@ -1650,20 +1660,34 @@ describe('SyncService', () => {
     })
 
     describe('startAutoSync / stopAutoSync', () => {
-      it('should start the auto-sync timer', () => {
+      it('should start the auto-sync timer when password is cached', () => {
+        service.cachePassword('pass')
         service.startAutoSync({ interval: 60000 })
         expect(service._autoSyncTimer).not.toBeNull()
+        expect(service._autoSyncEnabled).toBe(true)
         expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Auto-sync started'))
       })
 
+      it('should not start timer when no cached password (Bug 2 fix)', () => {
+        service.clearCachedPassword()
+        const result = service.startAutoSync({ interval: 60000 })
+        expect(service._autoSyncTimer).toBeNull()
+        expect(service._autoSyncEnabled).toBe(false)
+        expect(result).toEqual({ success: false, error: 'NO_CACHED_PASSWORD' })
+        expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('no cached password'))
+      })
+
       it('should stop the auto-sync timer', () => {
+        service.cachePassword('pass')
         service.startAutoSync({ interval: 60000 })
         service.stopAutoSync()
         expect(service._autoSyncTimer).toBeNull()
+        expect(service._autoSyncEnabled).toBe(false)
         expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Auto-sync stopped'))
       })
 
       it('should restart timer if startAutoSync called again', () => {
+        service.cachePassword('pass')
         service.startAutoSync({ interval: 60000 })
         const firstTimer = service._autoSyncTimer
         service.startAutoSync({ interval: 120000 })
@@ -1722,6 +1746,7 @@ describe('SyncService', () => {
       it('should not trigger when no provider is configured', () => {
         service.provider = null
         service.cachePassword('pass')
+        service._autoSyncEnabled = true
 
         service.onSettingsSaved()
         expect(service._settingsSaveDebounceTimer).toBeNull()
@@ -1729,6 +1754,7 @@ describe('SyncService', () => {
 
       it('should not trigger when no cached password', () => {
         // provider is set in beforeEach, but no password cached
+        service._autoSyncEnabled = true
 
         service.onSettingsSaved()
         expect(service._settingsSaveDebounceTimer).toBeNull()
@@ -1736,6 +1762,7 @@ describe('SyncService', () => {
 
       it('should not trigger when syncing is in progress (via _currentSyncPromise)', () => {
         service.cachePassword('pass')
+        service._autoSyncEnabled = true
         // Simulate real concurrent state: set _currentSyncPromise (which also implies isSyncing=true)
         const pendingPromise = new Promise(() => {}) // never resolves
         service._currentSyncPromise = pendingPromise
@@ -1749,8 +1776,17 @@ describe('SyncService', () => {
         service.isSyncing = false
       })
 
+      it('should not trigger when auto sync is not enabled (Bug 3 fix)', () => {
+        service.cachePassword('pass')
+        service._autoSyncEnabled = false
+
+        service.onSettingsSaved()
+        expect(service._settingsSaveDebounceTimer).toBeNull()
+      })
+
       it('should set debounce timer when conditions are met', () => {
         service.cachePassword('pass')
+        service._autoSyncEnabled = true
 
         service.onSettingsSaved()
         expect(service._settingsSaveDebounceTimer).not.toBeNull()
@@ -1758,6 +1794,7 @@ describe('SyncService', () => {
 
       it('should debounce multiple calls', () => {
         service.cachePassword('pass')
+        service._autoSyncEnabled = true
 
         service.onSettingsSaved()
         const firstTimer = service._settingsSaveDebounceTimer
@@ -1769,6 +1806,7 @@ describe('SyncService', () => {
 
       it('should trigger _doAutoSync after debounce delay', async () => {
         service.cachePassword('pass')
+        service._autoSyncEnabled = true
         mockProvider.list.mockResolvedValue([])
         mockProvider.upload.mockResolvedValue(undefined)
 
@@ -1812,7 +1850,7 @@ describe('SyncService', () => {
           mcpServers: {},
           apiProfilesOrder: ['default', 'production'],
           _deletedProfiles: {
-            staging: { deletedAt: '2026-04-26T12:00:00Z' },
+            staging: { deletedAt: '2026-05-26T12:00:00Z' },
           },
           _deletedServers: {},
         }
@@ -1832,7 +1870,7 @@ describe('SyncService', () => {
 
         const remoteBuffer = createRemoteConfigBuffer(deviceAData, password, crypto)
         mockProvider.list.mockResolvedValue([
-          { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-26T12:00:00Z', size: 1024 },
+          { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-05-26T12:00:00Z', size: 1024 },
         ])
         mockProvider.download.mockResolvedValue(remoteBuffer)
 
@@ -1855,7 +1893,7 @@ describe('SyncService', () => {
         // Even if somehow stale data without tombstone arrives, the local tombstone blocks it
         mockReadSettings.mockReturnValue(mergedSettings)
         mockProvider.list.mockResolvedValue([
-          { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-04-26T12:30:00Z', size: 1024 },
+          { name: 'config-remote-device-001.json', path: '/devices/config-remote-device-001.json', lastModified: '2026-05-26T12:30:00Z', size: 1024 },
         ])
         // Remote still has the same tombstone data
         mockProvider.download.mockResolvedValue(remoteBuffer)
@@ -1912,7 +1950,7 @@ describe('SyncService', () => {
 
         // Pull with new password — decryption should fail
         mockProvider.list.mockResolvedValue([
-          { name: 'config-remote-001.json', path: '/devices/config-remote-001.json', lastModified: '2026-04-26T12:00:00Z', size: 1024 },
+          { name: 'config-remote-001.json', path: '/devices/config-remote-001.json', lastModified: '2026-05-26T12:00:00Z', size: 1024 },
         ])
         mockProvider.download.mockResolvedValue(remoteBuffer)
 

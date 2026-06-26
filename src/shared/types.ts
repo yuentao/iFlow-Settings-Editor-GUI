@@ -60,6 +60,9 @@ export interface Settings {
   thinkingModeEnabled?: 'true' | 'false'
   connectivityPollInterval?: number  // API 连通性检测间隔（秒），默认 30
   modelUsageRefreshInterval?: number  // 模型使用统计刷新间隔（分钟），默认 5
+  logLevel?: 'info' | 'debug' | 'silent'  // 日志级别，默认 info
+  apiConfigLayout?: 'list' | 'grid'  // API 配置页面布局方式，默认 list
+  zoomFactor?: number  // UI 缩放因子，默认 1.0，范围 0.5~1.5
   customThemes?: Record<string, CustomThemeConfig>
   cloudSync?: {
     enabled?: boolean
@@ -100,6 +103,8 @@ export interface ApiProfileConfig {
   expiryDays?: number
   /** 过期倒计时起始时间（ISO 字符串），仅在设置/修改 expiryDays 时写入 */
   expiryStartDate?: string
+  /** Token 余额查询服务商，auto=自动检测 */
+  balanceProvider?: 'auto' | 'buzz' | 'deepseek' | 'yunwu' | 'disabled'
 }
 
 // ─── API Profile（列表展示用） ────────────────────────────
@@ -367,4 +372,37 @@ export interface ModCompatibilityResult extends IpcResult {
   modVersion?: string
   constraint?: string
   reason?: string
+}
+
+// ─── Token Balance ───────────────────────────────────────
+
+export interface TokenBalanceResult {
+  success: boolean
+  provider: 'buzz' | 'deepseek' | 'yunwu'
+  status?: 'ok' | 'unlimited' | 'expired'
+  total?: number
+  used?: number
+  remaining?: number
+  currency?: string
+  unit?: string
+  isAvailable?: boolean
+  unlimitedQuota?: boolean
+  expiresAt?: number
+  fetchedAt: string
+  raw?: unknown
+  error?: string
+}
+
+export interface BalanceProviderRule {
+  provider: string
+  /** 相对路径（如 /api/usage/token/，拼接到 baseUrl origin）或完整 URL（如 https://...，直接使用不拼接） */
+  endpoint: string
+  /** JSON 响应中余额字段的 dot-path，如 data.total_available */
+  balanceField?: string
+  /** JSON 响应中用量的 dot-path，如 data.total_used */
+  usedField?: string
+  /** JSON 响应中总量字段的 dot-path，如 data.total_granted */
+  totalField?: string
+  /** 显示前缀，如 $、¥ 或留空 */
+  unit?: string
 }

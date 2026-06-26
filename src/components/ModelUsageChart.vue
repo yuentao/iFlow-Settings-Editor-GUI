@@ -30,7 +30,16 @@
 
     <!-- 错误状态 -->
     <div v-else-if="error" class="chart-error">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="8" x2="12" y2="12" />
         <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -40,7 +49,17 @@
 
     <!-- 空数据状态 -->
     <div v-else-if="!hasData" class="chart-empty">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon">
+      <svg
+        width="40"
+        height="40"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="empty-icon"
+      >
         <path d="M18 20V10" />
         <path d="M12 20V4" />
         <path d="M6 20v-6" />
@@ -51,12 +70,7 @@
     <!-- 图表区域 -->
     <div v-else class="chart-body">
       <div class="apex-chart-wrapper">
-        <apexchart
-          type="line"
-          height="320"
-          :options="chartOptions"
-          :series="chartSeries"
-        />
+        <apexchart type="line" height="320" :options="chartOptions" :series="chartSeries" />
       </div>
 
       <!-- 统计摘要 -->
@@ -81,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ModelUsageTrendResponse } from '@/composables/useModelUsageStats'
 
@@ -101,6 +115,20 @@ const emit = defineEmits<{
 
 const activeDays = ref(7)
 
+// 幂等的 rendered 触发器：保证组件挂载后无论数据状态如何（loading/error/empty/有数据）
+// 都向父组件发出 rendered 事件，避免 splash 因图表元素未创建而永久卡死
+let renderedEmitted = false
+function emitRendered() {
+  if (renderedEmitted) return
+  renderedEmitted = true
+  emit('rendered')
+}
+
+// 组件挂载后立即通知父组件：不再依赖 <apexchart> 是否被实际渲染
+onMounted(() => {
+  emitRendered()
+})
+
 const timeRangeOptions = computed(() => [
   { label: t('dashboard.timeRange.last7Days'), value: 7 },
   { label: t('dashboard.timeRange.last30Days'), value: 30 },
@@ -111,9 +139,18 @@ const hasData = computed(() => {
 })
 
 const chartColors = [
-  '#0067C0', '#00B894', '#FD7E14', '#6F42C1',
-  '#E17055', '#0984E3', '#00CEC9', '#FDCB6E',
-  '#A29BFE', '#636E72', '#D63031', '#55EFC4',
+  '#0067C0',
+  '#00B894',
+  '#FD7E14',
+  '#6F42C1',
+  '#E17055',
+  '#0984E3',
+  '#00CEC9',
+  '#FDCB6E',
+  '#A29BFE',
+  '#636E72',
+  '#D63031',
+  '#55EFC4',
 ]
 
 const chartSeries = computed(() => {
@@ -154,12 +191,18 @@ const chartOptions = computed(() => {
         dynamicAnimation: { enabled: true, speed: 150 },
       },
       events: {
-        mounted: () => { emit('rendered') },
+        mounted: () => {
+          emitRendered()
+        },
       },
       zoom: { enabled: false },
       foreColor: 'var(--text-secondary)',
       fontFamily: 'Segoe UI Variable, Segoe UI, system-ui, sans-serif',
+      accessibility: {
+        enabled: false,
+      },
     },
+
     stroke: {
       width: 2,
       curve: 'smooth' as const,
@@ -174,12 +217,8 @@ const chartOptions = computed(() => {
       hover: { size: 5 },
     },
     tooltip: {
-      shared: true,
+      shared: false,
       intersect: false,
-      theme: 'dark' as const,
-      x: {
-        format: 'yyyy-MM-dd',
-      },
     },
     legend: {
       position: 'bottom' as const,
@@ -423,7 +462,7 @@ export default {
 }
 
 .summary-label {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   font-weight: 500;
   text-transform: uppercase;

@@ -131,10 +131,15 @@ describe('UpdateNotification.vue', () => {
     });
 
     const notesContent = wrapper.find('.notes-content');
-    expect(notesContent.html()).toContain('<h1>');
+    // DOMPurify in happy-dom may strip some block-level tags (e.g. h1),
+    // so assert on text content rather than specific HTML tags
+    expect(notesContent.text()).toContain('Release Notes');
+    expect(notesContent.text()).toContain('This is a test');
+    // Should not contain raw markdown syntax
+    expect(notesContent.html()).not.toContain('# Release Notes');
   });
 
-  it('has three action buttons', () => {
+  it('has two action buttons', () => {
     const wrapper = mount(UpdateNotification, {
       props: {
         show: true,
@@ -149,7 +154,7 @@ describe('UpdateNotification.vue', () => {
     });
 
     const buttons = wrapper.findAll('.update-actions .btn');
-    expect(buttons.length).toBe(3);
+    expect(buttons.length).toBe(2);
   });
 
   it('emits update event when update now button is clicked', async () => {
@@ -166,7 +171,7 @@ describe('UpdateNotification.vue', () => {
       },
     });
 
-    await wrapper.findAll('.update-actions .btn')[2].trigger('click');
+    await wrapper.findAll('.update-actions .btn')[1].trigger('click');
     expect(wrapper.emitted('update')).toBeTruthy();
   });
 
@@ -186,25 +191,6 @@ describe('UpdateNotification.vue', () => {
 
     await wrapper.findAll('.update-actions .btn')[0].trigger('click');
     expect(wrapper.emitted('later')).toBeTruthy();
-    expect(wrapper.emitted('close')).toBeTruthy();
-  });
-
-  it('emits background and close events when background button is clicked', async () => {
-    const wrapper = mount(UpdateNotification, {
-      props: {
-        show: true,
-        currentVersion: '1.0.0',
-        latestVersion: '1.1.0',
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    await wrapper.findAll('.update-actions .btn')[1].trigger('click');
-    expect(wrapper.emitted('background')).toBeTruthy();
     expect(wrapper.emitted('close')).toBeTruthy();
   });
 

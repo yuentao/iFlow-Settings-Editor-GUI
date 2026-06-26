@@ -27,7 +27,6 @@ describe('McpServers.vue', () => {
     const wrapper = mount(McpServers, {
       props: {
         servers: mockServers,
-        selectedServer: 'server1',
         serverCount: 3
       },
       global: {
@@ -39,14 +38,13 @@ describe('McpServers.vue', () => {
 
     expect(wrapper.exists()).toBe(true);
     expect(wrapper.find('.content-title').exists()).toBe(true);
-    expect(wrapper.find('.server-list').exists()).toBe(true);
+    expect(wrapper.find('.generic-list').exists()).toBe(true);
   });
 
   it('displays all servers', () => {
     const wrapper = mount(McpServers, {
       props: {
         servers: mockServers,
-        selectedServer: 'server1',
         serverCount: 3
       },
       global: {
@@ -56,35 +54,14 @@ describe('McpServers.vue', () => {
       },
     });
 
-    const serverItems = wrapper.findAll('.server-item');
+    const serverItems = wrapper.findAll('.generic-item');
     expect(serverItems.length).toBe(3);
-  });
-
-  it('highlights selected server', () => {
-    const wrapper = mount(McpServers, {
-      props: {
-        servers: mockServers,
-        selectedServer: 'server2',
-        serverCount: 3
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    const serverItems = wrapper.findAll('.server-item');
-    expect(serverItems[0].classes('selected')).toBe(false);
-    expect(serverItems[1].classes('selected')).toBe(true);
-    expect(serverItems[2].classes('selected')).toBe(false);
   });
 
   it('shows empty state when no servers', () => {
     const wrapper = mount(McpServers, {
       props: {
         servers: {},
-        selectedServer: null,
         serverCount: 0
       },
       global: {
@@ -97,14 +74,13 @@ describe('McpServers.vue', () => {
     expect(wrapper.find('.empty-state').exists()).toBe(true);
     expect(wrapper.find('.empty-state-title').exists()).toBe(true);
     expect(wrapper.find('.empty-state-desc').exists()).toBe(true);
-    expect(wrapper.findAll('.server-item').length).toBe(0);
+    expect(wrapper.findAll('.generic-item').length).toBe(0);
   });
 
   it('emits add-server event when add button is clicked', async () => {
     const wrapper = mount(McpServers, {
       props: {
         servers: mockServers,
-        selectedServer: 'server1',
         serverCount: 3
       },
       global: {
@@ -118,32 +94,10 @@ describe('McpServers.vue', () => {
     expect(wrapper.emitted('add-server')).toBeTruthy();
   });
 
-  it('emits select-server event when server is clicked', async () => {
-    const wrapper = mount(McpServers, {
-      props: {
-        servers: mockServers,
-        selectedServer: 'server1',
-        serverCount: 3
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    const serverItems = wrapper.findAll('.server-item');
-    await serverItems[1].trigger('click');
-
-    expect(wrapper.emitted('select-server')).toBeTruthy();
-    expect(wrapper.emitted('select-server')[0][0]).toBe('server2');
-  });
-
   it('displays correct server names', () => {
     const wrapper = mount(McpServers, {
       props: {
         servers: mockServers,
-        selectedServer: 'server1',
         serverCount: 3
       },
       global: {
@@ -163,7 +117,6 @@ describe('McpServers.vue', () => {
     const wrapper = mount(McpServers, {
       props: {
         servers: mockServers,
-        selectedServer: 'server1',
         serverCount: 3
       },
       global: {
@@ -179,50 +132,10 @@ describe('McpServers.vue', () => {
     expect(serverDescs[2].text()).toBe('mcp.noDescription');
   });
 
-  it('displays status indicators for all servers', () => {
-    const wrapper = mount(McpServers, {
-      props: {
-        servers: mockServers,
-        selectedServer: 'server1',
-        serverCount: 3
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    const statusIndicators = wrapper.findAll('.server-status');
-    expect(statusIndicators.length).toBe(3);
-  });
-
-  it('handles null selectedServer prop', () => {
-    const wrapper = mount(McpServers, {
-      props: {
-        servers: mockServers,
-        selectedServer: null,
-        serverCount: 3
-      },
-      global: {
-        mocks: {
-          $t: (key) => key,
-        },
-      },
-    });
-
-    const serverItems = wrapper.findAll('.server-item');
-    expect(serverItems.length).toBe(3);
-    expect(serverItems[0].classes('selected')).toBe(false);
-    expect(serverItems[1].classes('selected')).toBe(false);
-    expect(serverItems[2].classes('selected')).toBe(false);
-  });
-
   it('handles zero serverCount with empty servers object', () => {
     const wrapper = mount(McpServers, {
       props: {
         servers: {},
-        selectedServer: null,
         serverCount: 0
       },
       global: {
@@ -233,14 +146,13 @@ describe('McpServers.vue', () => {
     });
 
     expect(wrapper.find('.empty-state').exists()).toBe(true);
-    expect(wrapper.findAll('.server-item').length).toBe(0);
+    expect(wrapper.findAll('.generic-item').length).toBe(0);
   });
 
   it('displays empty state title correctly', () => {
     const wrapper = mount(McpServers, {
       props: {
         servers: {},
-        selectedServer: null,
         serverCount: 0
       },
       global: {
@@ -252,5 +164,25 @@ describe('McpServers.vue', () => {
 
     expect(wrapper.find('.empty-state-title').text()).toBe('mcp.noServers');
     expect(wrapper.find('.empty-state-desc').text()).toBe('mcp.addFirstServer');
+  });
+
+  it('emits edit-server event when edit action is clicked', async () => {
+    const wrapper = mount(McpServers, {
+      props: {
+        servers: mockServers,
+        serverCount: 3
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+      },
+    });
+
+    // server1 的 edit 按钮（每个 item 有 3 个 action-btn：share, edit, delete）
+    const actionBtns = wrapper.findAll('.generic-item')[0].findAll('.action-btn');
+    await actionBtns[1].trigger('click');
+    expect(wrapper.emitted('edit-server')).toBeTruthy();
+    expect(wrapper.emitted('edit-server')[0][0]).toBe('server1');
   });
 });

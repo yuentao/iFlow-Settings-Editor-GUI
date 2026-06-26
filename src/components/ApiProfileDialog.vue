@@ -1,6 +1,6 @@
 <template>
   <!-- API Create Dialog -->
-  <div v-if="showCreate" class="dialog-overlay dialog-overlay-top" @keyup.esc="$emit('close-create')" tabindex="-1">
+  <div v-if="showCreate" class="dialog-overlay dialog-overlay-top" @keyup.esc="$emit('close-create')" tabindex="-1" ref="createOverlayRef">
     <div class="dialog api-edit-dialog" @click.stop>
       <div class="dialog-header">
         <div class="dialog-title">
@@ -17,40 +17,85 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" :class="{ 'form-input--error': createNameError }" v-model="createData.name" :placeholder="$t('api.configNamePlaceholder')" />
-          <div class="form-error" :class="{ 'form-error--invisible': !createNameError }">{{ createNameError ? $t(createNameError) : '' }}</div>
+          <custom-input
+            type="text"
+            :class="{ 'form-input--error': createNameError }"
+            v-model="createData.name"
+            :placeholder="$t('api.configNamePlaceholder')"
+          />
+          <div class="form-error" :class="{ 'form-error--invisible': !createNameError }">
+            {{ createNameError ? $t(createNameError) : '' }}
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
-          <select class="form-select" v-model="createData.selectedAuthType">
-            <option value="iflow">{{ $t('api.auth.iflow') }}</option>
-            <option value="api">{{ $t('api.auth.api') }}</option>
-            <option value="openai-compatible">{{ $t('api.auth.openaiCompatible') }}</option>
-          </select>
+          <custom-dropdown v-model="createData.selectedAuthType" :options="authTypeOptions" />
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" :class="{ 'form-input--error': createBaseUrlError }" v-model="createData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
-          <div class="form-error" :class="{ 'form-error--invisible': !createBaseUrlError }">{{ createBaseUrlError ? $t(createBaseUrlError) : '' }}</div>
+          <custom-input
+            type="text"
+            :class="{ 'form-input--error': createBaseUrlError }"
+            v-model="createData.baseUrl"
+            :placeholder="$t('api.baseUrlPlaceholder')"
+          />
+          <div class="form-error" :class="{ 'form-error--invisible': !createBaseUrlError }">
+            {{ createBaseUrlError ? $t(createBaseUrlError) : '' }}
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
-            <input type="password" class="form-input" v-model="createData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
+            <custom-input
+              type="password"
+              v-model="createData.apiKey"
+              :placeholder="$t('api.apiKeyPlaceholder')"
+            />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
             <div class="model-input-wrapper">
-              <input type="text" class="form-input model-input" :class="{ 'form-input--error': createModelError }" v-model="createData.modelName" :placeholder="$t('api.modelNamePlaceholder')" @focus="onModelInputFocus('create')" @input="onModelSearch('create')" />
-              <button type="button" class="model-fetch-btn" :class="{ 'is-loading': createModelsLoading }" :disabled="!canFetchCreate" @click="handleFetchModels('create')" :title="$t('api.fetchModelsBtn')">
+              <custom-input
+                type="text"
+                class="model-input"
+                :class="{ 'form-input--error': createModelError }"
+                v-model="createData.modelName"
+                :placeholder="$t('api.modelNamePlaceholder')"
+                @focus="onModelInputFocus('create')"
+                @input="onModelSearch('create')"
+              />
+              <button
+                type="button"
+                class="model-fetch-btn"
+                :class="{ 'is-loading': createModelsLoading }"
+                :disabled="!canFetchCreate"
+                @click="handleFetchModels('create')"
+                :title="$t('api.fetchModelsBtn')"
+              >
                 <Loading v-if="createModelsLoading" size="14" class="spin-icon" />
                 <Refresh v-else size="14" />
               </button>
             </div>
-            <div class="form-error" :class="{ 'form-error--invisible': !createModelsError && !createModelError }">{{ createModelsError ? $t(createModelsError, createModelsErrorParams) : (createModelError ? $t(createModelError) : '') }}</div>
+            <div class="form-error" :class="{ 'form-error--invisible': !createModelsError && !createModelError }">
+              {{
+                createModelsError
+                  ? $t(createModelsError, createModelsErrorParams)
+                  : createModelError
+                    ? $t(createModelError)
+                    : ''
+              }}
+            </div>
             <!-- Model dropdown (teleported to body to avoid scrollbar) -->
             <Teleport to="body">
-              <div v-if="showCreateDropdown" class="model-dropdown model-dropdown--fixed" :style="{ top: createDropdownPos.top + 'px', left: createDropdownPos.left + 'px', width: createDropdownPos.width + 'px' }">
+              <div
+                v-if="showCreateDropdown"
+                class="model-dropdown model-dropdown--fixed"
+                :style="{
+                  top: createDropdownPos.top + 'px',
+                  left: createDropdownPos.left + 'px',
+                  width: createDropdownPos.width + 'px',
+                }"
+              >
                 <div v-if="filteredCreateModels.length === 0" class="model-dropdown-empty">
                   {{ $t('api.noModelsFound') }}
                 </div>
@@ -72,15 +117,34 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.expiryDays') }}</label>
             <div class="input-with-suffix">
-              <input type="number" class="form-input has-suffix" v-model.number="createData.expiryDays" :placeholder="$t('api.expiryDaysPlaceholder')" min="0" />
+              <custom-input
+                type="number"
+                class="has-suffix"
+                v-model="createData.expiryDays"
+                :placeholder="$t('api.expiryDaysPlaceholder')"
+                min="0"
+              />
               <span class="input-suffix">{{ $t('api.expiryDaysUnit') }}</span>
             </div>
             <div class="form-hint">{{ $t('api.expiryDaysHint') }}</div>
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.tokensLimit') }}</label>
-            <input type="number" class="form-input" v-model.number="createData.tokensLimit" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+            <div class="input-with-suffix">
+              <custom-input
+                type="number"
+                class="has-suffix"
+                v-model="createTokensLimitK"
+                :placeholder="$t('api.tokensLimitPlaceholder')"
+                min="0"
+              />
+              <span class="input-suffix">{{ $t('api.tokensLimitUnit') }}</span>
+            </div>
           </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ $t('api.balance.provider') }}</label>
+          <custom-dropdown v-model="createData.balanceProvider" :options="balanceProviderDropdownOptions" />
         </div>
       </div>
       <div class="dialog-actions">
@@ -94,7 +158,7 @@
   </div>
 
   <!-- API Edit Dialog -->
-  <div v-if="showEdit" class="dialog-overlay dialog-overlay-top" @keyup.esc="$emit('close-edit')" tabindex="-1">
+  <div v-if="showEdit" class="dialog-overlay dialog-overlay-top" @keyup.esc="$emit('close-edit')" tabindex="-1" ref="editOverlayRef">
     <div class="dialog api-edit-dialog" @click.stop>
       <div class="dialog-header">
         <div class="dialog-title">
@@ -111,40 +175,83 @@
       <div class="dialog-body">
         <div class="form-group">
           <label class="form-label">{{ $t('api.configName') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" :class="{ 'form-input--error': editNameError }" v-model="editData.name" :disabled="editData.name === currentProfileName" />
-          <div class="form-error" :class="{ 'form-error--invisible': !editNameError }">{{ editNameError ? $t(editNameError) : '' }}</div>
+          <custom-input
+            type="text"
+            :class="{ 'form-input--error': editNameError }"
+            v-model="editData.name"
+            :disabled="editData.name === currentProfileName"
+          />
+          <div class="form-error" :class="{ 'form-error--invisible': !editNameError }">
+            {{ editNameError ? $t(editNameError) : '' }}
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.authType') }}</label>
-          <select class="form-select" v-model="editData.selectedAuthType">
-            <option value="iflow">{{ $t('api.auth.iflow') }}</option>
-            <option value="api">{{ $t('api.auth.api') }}</option>
-            <option value="openai-compatible">{{ $t('api.auth.openaiCompatible') }}</option>
-          </select>
+          <custom-dropdown v-model="editData.selectedAuthType" :options="authTypeOptions" :disabled="isEditingActive" />
         </div>
         <div class="form-group">
           <label class="form-label">{{ $t('api.baseUrl') }} <span class="form-required">*</span></label>
-          <input type="text" class="form-input" :class="{ 'form-input--error': editBaseUrlError }" v-model="editData.baseUrl" :placeholder="$t('api.baseUrlPlaceholder')" />
-          <div class="form-error" :class="{ 'form-error--invisible': !editBaseUrlError }">{{ editBaseUrlError ? $t(editBaseUrlError) : '' }}</div>
+          <custom-input
+            type="text"
+            :class="{ 'form-input--error': editBaseUrlError }"
+            v-model="editData.baseUrl"
+            :placeholder="$t('api.baseUrlPlaceholder')"
+            :disabled="isEditingActive"
+          />
+          <div class="form-error" :class="{ 'form-error--invisible': !editBaseUrlError }">
+            {{ editBaseUrlError ? $t(editBaseUrlError) : '' }}
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">{{ $t('api.apiKey') }} <span class="form-required">*</span></label>
-            <input type="password" class="form-input" v-model="editData.apiKey" :placeholder="$t('api.apiKeyPlaceholder')" />
+            <custom-input
+              type="password"
+              v-model="editData.apiKey"
+              :placeholder="$t('api.apiKeyPlaceholder')"
+              :disabled="isEditingActive"
+            />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.modelName') }} <span class="form-required">*</span></label>
             <div class="model-input-wrapper">
-              <input type="text" class="form-input model-input" :class="{ 'form-input--error': editModelError }" v-model="editData.modelName" :placeholder="$t('api.modelNamePlaceholder')" @focus="onModelInputFocus('edit')" @input="onModelSearch('edit')" />
-              <button type="button" class="model-fetch-btn" :class="{ 'is-loading': editModelsLoading }" :disabled="!canFetchEdit" @click="handleFetchModels('edit')" :title="$t('api.fetchModelsBtn')">
+              <custom-input
+                type="text"
+                class="model-input"
+                :class="{ 'form-input--error': editModelError }"
+                v-model="editData.modelName"
+                :placeholder="$t('api.modelNamePlaceholder')"
+                @focus="onModelInputFocus('edit')"
+                @input="onModelSearch('edit')"
+              />
+              <button
+                type="button"
+                class="model-fetch-btn"
+                :class="{ 'is-loading': editModelsLoading }"
+                :disabled="!canFetchEdit"
+                @click="handleFetchModels('edit')"
+                :title="$t('api.fetchModelsBtn')"
+              >
                 <Loading v-if="editModelsLoading" size="14" class="spin-icon" />
                 <Refresh v-else size="14" />
               </button>
             </div>
-            <div class="form-error" :class="{ 'form-error--invisible': !editModelsError && !editModelError }">{{ editModelsError ? $t(editModelsError, editModelsErrorParams) : (editModelError ? $t(editModelError) : '') }}</div>
+            <div class="form-error" :class="{ 'form-error--invisible': !editModelsError && !editModelError }">
+              {{
+                editModelsError ? $t(editModelsError, editModelsErrorParams) : editModelError ? $t(editModelError) : ''
+              }}
+            </div>
             <!-- Model dropdown (teleported to body to avoid scrollbar) -->
             <Teleport to="body">
-              <div v-if="showEditDropdown" class="model-dropdown model-dropdown--fixed" :style="{ top: editDropdownPos.top + 'px', left: editDropdownPos.left + 'px', width: editDropdownPos.width + 'px' }">
+              <div
+                v-if="showEditDropdown"
+                class="model-dropdown model-dropdown--fixed"
+                :style="{
+                  top: editDropdownPos.top + 'px',
+                  left: editDropdownPos.left + 'px',
+                  width: editDropdownPos.width + 'px',
+                }"
+              >
                 <div v-if="filteredEditModels.length === 0" class="model-dropdown-empty">
                   {{ $t('api.noModelsFound') }}
                 </div>
@@ -166,15 +273,35 @@
           <div class="form-group">
             <label class="form-label">{{ $t('api.expiryDays') }}</label>
             <div class="input-with-suffix">
-              <input type="number" class="form-input has-suffix" v-model.number="editData.expiryDays" :placeholder="$t('api.expiryDaysPlaceholder')" min="0" />
+              <custom-input
+                type="number"
+                class="has-suffix"
+                v-model="editData.expiryDays"
+                :placeholder="$t('api.expiryDaysPlaceholder')"
+                min="0"
+                :disabled="isEditingActive"
+              />
               <span class="input-suffix">{{ $t('api.expiryDaysUnit') }}</span>
             </div>
             <div class="form-hint">{{ $t('api.expiryDaysHint') }}</div>
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t('api.tokensLimit') }}</label>
-            <input type="number" class="form-input" v-model.number="editData.tokensLimit" :placeholder="$t('api.tokensLimitPlaceholder')" min="0" />
+            <div class="input-with-suffix">
+              <custom-input
+                type="number"
+                class="has-suffix"
+                v-model="editTokensLimitK"
+                :placeholder="$t('api.tokensLimitPlaceholder')"
+                min="0"
+              />
+              <span class="input-suffix">{{ $t('api.tokensLimitUnit') }}</span>
+            </div>
           </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ $t('api.balance.provider') }}</label>
+          <custom-dropdown v-model="editData.balanceProvider" :options="balanceProviderDropdownOptions" />
         </div>
       </div>
       <div class="dialog-actions">
@@ -193,9 +320,12 @@
  * ApiProfileDialog - API 配置编辑对话框组件
  * 支持从 OpenAI 兼容 /models 接口自动获取模型列表
  */
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Key, Save, Refresh, Loading } from '@icon-park/vue-next'
-import type { AuthType } from '@/shared/types'
+import type { AuthType, BalanceProviderRule } from '@/shared/types'
+import CustomDropdown from '../components/CustomDropdown.vue'
+import CustomInput from '../components/CustomInput.vue'
 
 interface ApiProfileData {
   name: string
@@ -206,6 +336,7 @@ interface ApiProfileData {
   tokensLimit: number
   expiryDays: number
   createdAt: string
+  balanceProvider: string
 }
 
 interface ModelItem {
@@ -219,15 +350,82 @@ interface Props {
   createData: ApiProfileData
   editData: ApiProfileData
   currentProfileName?: string
+  balanceProviderRules?: BalanceProviderRule[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showCreate: false,
   showEdit: false,
-  createData: () => ({ name: '', selectedAuthType: 'openai-compatible' as AuthType, apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, createdAt: '' }),
-  editData: () => ({ name: '', selectedAuthType: 'openai-compatible' as AuthType, apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, createdAt: '' }),
+  createData: () => ({
+    name: '',
+    selectedAuthType: 'openai-compatible' as AuthType,
+    apiKey: '',
+    baseUrl: '',
+    modelName: '',
+    tokensLimit: 128000,
+    expiryDays: 0,
+    createdAt: '',
+    balanceProvider: 'auto',
+  }),
+  editData: () => ({
+    name: '',
+    selectedAuthType: 'openai-compatible' as AuthType,
+    apiKey: '',
+    baseUrl: '',
+    modelName: '',
+    tokensLimit: 128000,
+    expiryDays: 0,
+    createdAt: '',
+    balanceProvider: 'auto',
+  }),
   currentProfileName: '',
+  balanceProviderRules: () => [],
 })
+
+const { t } = useI18n()
+
+// 认证类型选项
+const authTypeOptions = computed(() => [
+  { value: 'iflow', label: t('api.auth.iflow') },
+  { value: 'api', label: t('api.auth.api') },
+  { value: 'openai-compatible', label: t('api.auth.openaiCompatible') },
+])
+
+// 从 rules 和内置列表生成动态 provider 选项
+const providerOptions = computed(() => {
+  const options = [
+    { value: 'auto', label: 'api.balance.auto' },
+  ]
+  // 来自自定义规则的 provider
+  if (Array.isArray(props.balanceProviderRules)) {
+    for (const rule of props.balanceProviderRules) {
+      if (rule.provider && !options.some(o => o.value === rule.provider)) {
+        options.push({ value: rule.provider, label: rule.provider })
+      }
+    }
+  }
+  // 内置 provider
+  const builtin = [
+    { value: 'buzz', label: 'api.balance.buzz' },
+    { value: 'deepseek', label: 'api.balance.deepseek' },
+    { value: 'yunwu', label: 'api.balance.yunwu' },
+  ]
+  for (const b of builtin) {
+    if (!options.some(o => o.value === b.value)) {
+      options.push(b)
+    }
+  }
+  options.push({ value: 'disabled', label: 'api.balance.disabled' })
+  return options
+})
+
+// 解析标签后的余额 provider 选项（供 CustomDropdown 使用）
+const balanceProviderDropdownOptions = computed(() =>
+  providerOptions.value.map(opt => ({
+    value: opt.value,
+    label: opt.label.startsWith('api.') ? t(opt.label) : opt.label
+  }))
+)
 
 const emit = defineEmits<{
   'close-create': []
@@ -243,12 +441,14 @@ const createModelsLoading = ref(false)
 const createModelsError = ref('')
 const createModelsErrorParams = ref<Record<string, any>>({})
 const showCreateDropdown = ref(false)
+const createOverlayRef = ref<HTMLElement | null>(null)
 
 const editModels = ref<ModelItem[]>([])
 const editModelsLoading = ref(false)
 const editModelsError = ref('')
 const editModelsErrorParams = ref<Record<string, any>>({})
 const showEditDropdown = ref(false)
+const editOverlayRef = ref<HTMLElement | null>(null)
 
 // Dropdown position (fixed, for Teleport)
 const createDropdownPos = ref({ top: 0, left: 0, width: 0 })
@@ -257,14 +457,28 @@ const editDropdownPos = ref({ top: 0, left: 0, width: 0 })
 // ---- Can fetch computed ----
 const canFetchCreate = computed((): boolean => {
   const d = props.createData
-  return !!(d && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
-    && d.apiKey && d.apiKey.trim() && !createModelsLoading.value)
+  return !!(
+    d &&
+    d.baseUrl &&
+    d.baseUrl.trim() &&
+    isUrlValid(d.baseUrl) &&
+    d.apiKey &&
+    d.apiKey.trim() &&
+    !createModelsLoading.value
+  )
 })
 
 const canFetchEdit = computed((): boolean => {
   const d = props.editData
-  return !!(d && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
-    && d.apiKey && d.apiKey.trim() && !editModelsLoading.value)
+  return !!(
+    d &&
+    d.baseUrl &&
+    d.baseUrl.trim() &&
+    isUrlValid(d.baseUrl) &&
+    d.apiKey &&
+    d.apiKey.trim() &&
+    !editModelsLoading.value
+  )
 })
 
 // ---- Filtered models for dropdown ----
@@ -322,7 +536,9 @@ async function handleFetchModels(mode: 'create' | 'edit'): Promise<void> {
 // ---- Dropdown interactions ----
 function updateDropdownPosition(mode: 'create' | 'edit'): void {
   const wrapper = document.querySelector(
-    mode === 'create' ? '.dialog-overlay-top .model-input-wrapper' : '.dialog-overlay-top:last-child .model-input-wrapper'
+    mode === 'create'
+      ? '.dialog-overlay-top .model-input-wrapper'
+      : '.dialog-overlay-top:last-child .model-input-wrapper',
   ) as HTMLElement | null
   const posRef = mode === 'create' ? createDropdownPos : editDropdownPos
   if (wrapper) {
@@ -372,29 +588,56 @@ function handleGlobalClick(e: MouseEvent): void {
   showEditDropdown.value = false
 }
 
-watch(() => props.showCreate, (val) => {
-  if (val) {
-    document.addEventListener('mousedown', handleGlobalClick)
-  } else {
-    document.removeEventListener('mousedown', handleGlobalClick)
-    createModels.value = []
-    createModelsError.value = ''
-    createModelsErrorParams.value = {}
-    showCreateDropdown.value = false
+onMounted(() => {
+  // 挂载时弹窗已打开则自动获取焦点（watch 无 immediate，不触发初始值）
+  if (props.showCreate) {
+    nextTick(() => createOverlayRef.value?.focus())
+  }
+  if (props.showEdit) {
+    nextTick(() => editOverlayRef.value?.focus())
   }
 })
 
-watch(() => props.showEdit, (val) => {
-  if (val) {
-    document.addEventListener('mousedown', handleGlobalClick)
-  } else {
-    document.removeEventListener('mousedown', handleGlobalClick)
-    editModels.value = []
-    editModelsError.value = ''
-    editModelsErrorParams.value = {}
-    showEditDropdown.value = false
-  }
+onUnmounted(() => {
+  // 安全网：确保组件卸载时移除所有全局监听器
+  document.removeEventListener('mousedown', handleGlobalClick)
 })
+
+watch(
+  () => props.showCreate,
+  val => {
+    if (val) {
+      document.addEventListener('mousedown', handleGlobalClick)
+      nextTick(() => {
+        createOverlayRef.value?.focus()
+      })
+    } else {
+      document.removeEventListener('mousedown', handleGlobalClick)
+      createModels.value = []
+      createModelsError.value = ''
+      createModelsErrorParams.value = {}
+      showCreateDropdown.value = false
+    }
+  },
+)
+
+watch(
+  () => props.showEdit,
+  val => {
+    if (val) {
+      document.addEventListener('mousedown', handleGlobalClick)
+      nextTick(() => {
+        editOverlayRef.value?.focus()
+      })
+    } else {
+      document.removeEventListener('mousedown', handleGlobalClick)
+      editModels.value = []
+      editModelsError.value = ''
+      editModelsErrorParams.value = {}
+      showEditDropdown.value = false
+    }
+  },
+)
 
 // Validation helper functions
 const isNameValid = (name: string): boolean => {
@@ -404,7 +647,12 @@ const isNameValid = (name: string): boolean => {
 
 const isUrlValid = (url: string): boolean => {
   if (!url || !url.trim()) return false
-  try { new URL(url.trim()); return true } catch { return false }
+  try {
+    new URL(url.trim())
+    return true
+  } catch {
+    return false
+  }
 }
 
 const isModelNameValid = (name: string): boolean => {
@@ -461,20 +709,61 @@ const editModelError = computed((): string => {
 
 const isCreateValid = computed((): boolean => {
   const d = props.createData
-  return !!(d && d.name && d.name.trim() && isNameValid(d.name)
-    && d.apiKey && d.apiKey.trim()
-    && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
-    && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName))
+  return !!(
+    d &&
+    d.name &&
+    d.name.trim() &&
+    isNameValid(d.name) &&
+    d.apiKey &&
+    d.apiKey.trim() &&
+    d.baseUrl &&
+    d.baseUrl.trim() &&
+    isUrlValid(d.baseUrl) &&
+    d.modelName &&
+    d.modelName.trim() &&
+    isModelNameValid(d.modelName)
+  )
 })
 
 const isEditValid = computed((): boolean => {
   const d = props.editData
   if (!d) return false
   const nameOk = d.name === props.currentProfileName || (d.name && d.name.trim() && isNameValid(d.name))
-  return !!(nameOk
-    && d.apiKey && d.apiKey.trim()
-    && d.baseUrl && d.baseUrl.trim() && isUrlValid(d.baseUrl)
-    && d.modelName && d.modelName.trim() && isModelNameValid(d.modelName))
+  return !!(
+    nameOk &&
+    d.apiKey &&
+    d.apiKey.trim() &&
+    d.baseUrl &&
+    d.baseUrl.trim() &&
+    isUrlValid(d.baseUrl) &&
+    d.modelName &&
+    d.modelName.trim() &&
+    isModelNameValid(d.modelName)
+  )
+})
+
+// Display tokensLimit in K tokens (e.g., 128000 → 128)
+const createTokensLimitK = computed({
+  get: () => Math.round((props.createData?.tokensLimit ?? 0) / 1000),
+  set: (val: number) => {
+    if (props.createData) {
+      props.createData.tokensLimit = Math.round(val * 1000)
+    }
+  },
+})
+
+const editTokensLimitK = computed({
+  get: () => Math.round((props.editData?.tokensLimit ?? 0) / 1000),
+  set: (val: number) => {
+    if (props.editData) {
+      props.editData.tokensLimit = Math.round(val * 1000)
+    }
+  },
+})
+
+// 是否正在编辑当前使用中的配置（仅允许修改模型名称和上下文窗口长度）
+const isEditingActive = computed((): boolean => {
+  return !!(props.currentProfileName && props.editData?.name === props.currentProfileName)
 })
 
 const handleSaveCreate = (): void => {
@@ -495,11 +784,15 @@ const handleSaveEdit = (): void => {
 .api-edit-dialog {
   width: 520px;
   padding: 0;
-  overflow: hidden;
   border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
 }
 
 .api-edit-dialog .dialog-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -516,22 +809,23 @@ const handleSaveEdit = (): void => {
   gap: var(--space-sm);
   color: var(--text-primary);
   margin-bottom: 0;
-  
+
   .iconpark-icon {
     color: var(--accent);
   }
 }
 
 .api-edit-dialog .dialog-body {
+  flex: 1;
+  min-height: 0;
   padding: var(--space-xl);
-  max-height: 60vh;
   overflow-y: auto;
-  
+
   .form-group {
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-sm);
     min-width: 0;
     position: relative;
-    
+
     &:last-child {
       margin-bottom: 0;
     }
@@ -539,6 +833,7 @@ const handleSaveEdit = (): void => {
 }
 
 .api-edit-dialog .dialog-actions {
+  flex-shrink: 0;
   padding: var(--space-lg) var(--space-xl);
   border-top: 1px solid var(--border-light);
   background: var(--control-fill);
@@ -546,7 +841,7 @@ const handleSaveEdit = (): void => {
 }
 
 .form-error {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--danger);
   margin-top: 4px;
   word-break: break-all;
@@ -557,7 +852,7 @@ const handleSaveEdit = (): void => {
 }
 
 .form-hint {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-top: 4px;
 }
@@ -570,6 +865,16 @@ const handleSaveEdit = (): void => {
 
   .has-suffix {
     padding-right: 32px;
+
+    // Hide native number input spinner buttons so they don't cover the suffix
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    // Firefox
+    -moz-appearance: textfield;
   }
 }
 

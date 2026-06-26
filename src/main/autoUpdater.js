@@ -93,6 +93,12 @@ function getCurrentVersion() {
  * 初始化 autoUpdater 配置
  */
 function initAutoUpdater() {
+  // 便携模式下跳过自动更新（exe 路径不固定，且 userData 可能位于受保护目录）
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    logger.info('[AutoUpdater] Portable mode detected, skipping auto-update initialization')
+    return
+  }
+
   // 配置 electron-updater 的日志输出，使用 electron-log 替代 console
   const { log: electronLog } = require('./utils/logger')
   autoUpdater.logger = {
@@ -482,7 +488,10 @@ function getAppVersion() {
  */
 function cleanupTempFiles() {
   try {
-    const userDataPath = app.getPath('userData')
+    // 便携模式：使用用户主目录下的临时目录
+    const userDataPath = process.env.PORTABLE_EXECUTABLE_DIR
+      ? path.join(app.getPath('home'), '.iflow')
+      : app.getPath('userData')
     const tempDir = path.join(userDataPath, 'temp-updates')
 
     if (fs.existsSync(tempDir)) {

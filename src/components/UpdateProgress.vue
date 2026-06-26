@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="dialog-overlay dialog-overlay-top" @click="handleCancel">
+  <div v-if="show" class="dialog-overlay dialog-overlay-top" @click="handleCancel" @keyup.esc="handleCancel" tabindex="-1" ref="overlayRef">
     <div class="update-progress" @click.stop>
       <div class="progress-header">
         <div class="progress-icon">
@@ -65,7 +65,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 
 const props = defineProps({
   show: {
@@ -96,15 +96,27 @@ const props = defineProps({
 
 const emit = defineEmits(['cancel', 'install', 'later', 'background'])
 
-import { marked } from 'marked'
+const overlayRef = ref(null)
 
-// 格式化 Markdown 格式的更新日志
+watch(() => props.show, (val) => {
+  if (val) {
+    nextTick(() => {
+      overlayRef.value?.focus()
+    })
+  }
+})
+
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
+
+// 格式化 Markdown 格式的更新日志（消毒后渲染，防止 XSS）
 const formattedReleaseNotes = computed(() => {
   if (!props.releaseNotes) return ''
-  return marked.parse(props.releaseNotes, {
+  const html = marked.parse(props.releaseNotes, {
     breaks: true,
     gfm: true,
   })
+  return DOMPurify.sanitize(html)
 })
 
 const handleCancel = () => {

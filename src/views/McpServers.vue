@@ -31,10 +31,13 @@
         </template>
 
         <template #item-actions="{ item }">
-          <button class="action-btn" @click.stop="$emit('edit-server', item.name)" :title="$t('mcp.edit')">
+          <button class="action-btn" @click.stop="copyServerConfig(item.name)" :title="$t('mcp.share')" :aria-label="$t('mcp.share')">
+            <Share size="14" />
+          </button>
+          <button class="action-btn" @click.stop="$emit('edit-server', item.name)" :title="$t('mcp.edit')" :aria-label="$t('mcp.edit')">
             <Edit size="14" />
           </button>
-          <button class="action-btn action-btn-danger" @click.stop="$emit('delete-server', item.name)" :title="$t('mcp.delete')">
+          <button class="action-btn action-btn-danger" @click.stop="$emit('delete-server', item.name)" :title="$t('mcp.delete')" :aria-label="$t('mcp.delete')">
             <Delete size="14" />
           </button>
         </template>
@@ -45,8 +48,10 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Server, Plus, Lightning, Delete, Edit } from '@icon-park/vue-next'
+import { useI18n } from 'vue-i18n'
+import { Server, Plus, Lightning, Delete, Edit, Share } from '@icon-park/vue-next'
 import GenericList from '@/components/GenericList.vue'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   servers: {
@@ -60,6 +65,19 @@ const props = defineProps({
 })
 
 defineEmits(['add-server', 'quick-add', 'edit-server', 'delete-server'])
+
+const { t } = useI18n()
+const toast = useToast()
+
+const copyServerConfig = async (name) => {
+  const config = props.servers[name]
+  if (config) {
+    const { _lastModified, ...cleanConfig } = config
+    const json = JSON.stringify({ mcpServers: { [name]: cleanConfig } }, null, 2)
+    await navigator.clipboard.writeText(json)
+    toast.success(t('mcp.copied'))
+  }
+}
 
 const serverList = computed(() =>
   Object.entries(props.servers).map(([name, config]) => ({
@@ -84,7 +102,7 @@ const serverList = computed(() =>
 }
 
 .server-desc {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-top: 2px;
   overflow: hidden;

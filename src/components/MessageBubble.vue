@@ -248,6 +248,7 @@ function formatTokens(count: number): string {
   align-items: flex-start;
   padding-top: 8px;
   flex-shrink: 0;
+  margin-right: 10px;
 
   input[type='checkbox'] {
     width: 16px;
@@ -440,7 +441,7 @@ function formatTokens(count: number): string {
   align-items: center;
   gap: 6px;
   margin-bottom: 4px;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   padding-right: 28px;
 }
 
@@ -611,7 +612,7 @@ function formatTokens(count: number): string {
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   transition: all 0.15s ease;
 
   &:hover {

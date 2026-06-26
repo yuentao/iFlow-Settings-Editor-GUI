@@ -35,6 +35,9 @@ class SyncService {
     // L-10：订阅 isSyncing 变化，IPC 层据此推送 cloud-sync:status-changed
     // 让渲染端不再依赖各处轮询 / 自行 set isSyncing，消除 desync。
     this._syncingChangedListeners = []
+    // Bug 7 修复：同步进度和冲突检测监听器
+    this._syncProgressListeners = []
+    this._conflictDetectedListeners = []
 
     // 依赖注入：测试时传入 mock，生产时按需加载真实模块
     this._readSettings = deps.readSettings || null
@@ -47,6 +50,7 @@ class SyncService {
     // 自动同步相关
     this._autoSyncTimer = null
     this._autoSyncInterval = 5 * 60 * 1000 // 默认 5 分钟
+    this._autoSyncEnabled = false // 自动同步是否开启（与定时器状态同步）
     this._cachedPassword = null // 缓存同步密码（仅内存）
     this._settingsSaveDebounceTimer = null
     this._settingsSaveDebounceDelay = 3000 // 设置保存后 3 秒触发自动推送
@@ -138,6 +142,26 @@ class SyncService {
     }
   }
 
+  /** Bug 7 修复：注册同步进度监听器 */
+  onSyncProgress(callback) {
+    if (typeof callback !== 'function') return () => {}
+    this._syncProgressListeners.push(callback)
+    return () => {
+      const idx = this._syncProgressListeners.indexOf(callback)
+      if (idx >= 0) this._syncProgressListeners.splice(idx, 1)
+    }
+  }
+
+  /** Bug 7 修复：注册冲突检测监听器 */
+  onConflictDetected(callback) {
+    if (typeof callback !== 'function') return () => {}
+    this._conflictDetectedListeners.push(callback)
+    return () => {
+      const idx = this._conflictDetectedListeners.indexOf(callback)
+      if (idx >= 0) this._conflictDetectedListeners.splice(idx, 1)
+    }
+  }
+
   /** L-10：触发 isSyncing 监听器，单个监听器异常不影响其他 */
   _emitSyncingChanged(isSyncing) {
     for (const cb of this._syncingChangedListeners) {
@@ -145,6 +169,28 @@ class SyncService {
         cb(isSyncing)
       } catch (err) {
         this.logger.warn('syncing-changed listener threw:', err && err.message ? err.message : err)
+      }
+    }
+  }
+
+  /** Bug 7 修复：触发同步进度监听器 */
+  _emitSyncProgress(progress) {
+    for (const cb of this._syncProgressListeners) {
+      try {
+        cb(progress)
+      } catch (err) {
+        this.logger.warn('sync-progress listener threw:', err && err.message ? err.message : err)
+      }
+    }
+  }
+
+  /** Bug 7 修复：触发冲突检测监听器 */
+  _emitConflictDetected(conflictInfo) {
+    for (const cb of this._conflictDetectedListeners) {
+      try {
+        cb(conflictInfo)
+      } catch (err) {
+        this.logger.warn('conflict-detected listener threw:', err && err.message ? err.message : err)
       }
     }
   }
@@ -286,6 +332,15 @@ class SyncService {
       this.restorePersistedPassword()
     }
 
+    // Bug 2 修复：若无可用密码，不启动定时器（避免空转）
+    if (!this._cachedPassword) {
+      this.logger.warn('Auto-sync not started: no cached password available')
+      this._autoSyncEnabled = false
+      return { success: false, error: 'NO_CACHED_PASSWORD' }
+    }
+
+    this._autoSyncEnabled = true
+
     this._autoSyncTimer = setInterval(() => {
       this._doAutoSync()
     }, this._autoSyncInterval)
@@ -306,10 +361,12 @@ class SyncService {
     }
 
     this.logger.info(`Auto-sync started (interval: ${this._autoSyncInterval / 1000}s, grace: ${gracePeriod / 1000}s)`)
+    return { success: true }
   }
 
   /** 停止自动同步定时器 */
   stopAutoSync() {
+    this._autoSyncEnabled = false
     if (this._autoSyncTimer) {
       clearInterval(this._autoSyncTimer)
       this._autoSyncTimer = null
@@ -317,6 +374,10 @@ class SyncService {
     if (this._gracePeriodTimer) {
       clearTimeout(this._gracePeriodTimer)
       this._gracePeriodTimer = null
+    }
+    if (this._settingsSaveDebounceTimer) {
+      clearTimeout(this._settingsSaveDebounceTimer)
+      this._settingsSaveDebounceTimer = null
     }
     this.logger.info('Auto-sync stopped')
   }
@@ -326,8 +387,8 @@ class SyncService {
    * auto-sync 状态由渲染进程通过 localStorage 管理，主进程只负责在设置保存时触发同步
    */
   onSettingsSaved() {
-    // 不再检查 cs.enabled/cs.autoSyncEnabled（这些值已不在 settings.json 中）
-    // _doAutoSync() 已检查 provider 和 password，确保已配置才会同步
+    // Bug 3 修复：检查自动同步是否开启，未开启则不触发
+    if (!this._autoSyncEnabled) return
     if (!this.provider || !this._cachedPassword) {
       return
     }
@@ -412,6 +473,7 @@ class SyncService {
       isSyncing: this.isSyncing,
       rememberSyncPassword: cs.rememberSyncPassword === true,
       tombstoneRetentionDays: cs.tombstoneRetentionDays || 30,
+      syncInterval: cs.syncInterval || 5, // 分钟，默认 5 分钟
     }
   }
 
@@ -565,9 +627,19 @@ class SyncService {
    * @returns {Promise<{success: boolean, error?: string, mergedFrom?: string[]}>}
    */
   async sync(password) {
+    this._emitSyncProgress({ phase: 'start', progress: 0 })
     const pullResult = await this.pull(password)
-    if (!pullResult.success) return pullResult
+    if (!pullResult.success) {
+      this._emitSyncProgress({ phase: 'error', progress: 0, error: pullResult.error })
+      return pullResult
+    }
+    this._emitSyncProgress({ phase: 'pull-complete', progress: 50 })
     const pushResult = await this.push(password)
+    if (!pushResult.success) {
+      this._emitSyncProgress({ phase: 'error', progress: 50, error: pushResult.error })
+    } else {
+      this._emitSyncProgress({ phase: 'complete', progress: 100 })
+    }
     return {
       success: pushResult.success,
       error: pushResult.error,
@@ -665,11 +737,10 @@ class SyncService {
    */
   _extractSyncData(settings) {
     // 不再在这里为 item 添加 _lastModified，避免影响合并比较
-    // currentApiProfile 是设备级偏好（每台设备可能使用不同配置），不参与同步
+    // currentApiProfile 和 apiProfilesOrder 是设备级偏好，不参与同步
     return {
       apiProfiles: settings.apiProfiles || {},
       mcpServers: settings.mcpServers || {},
-      apiProfilesOrder: settings.apiProfilesOrder || [],
       // tombstone 一并上传，让其他设备据此物理删除已删条目
       _deletedProfiles: settings._deletedProfiles || {},
       _deletedServers: settings._deletedServers || {},
@@ -727,20 +798,30 @@ class SyncService {
         typeof localVal === 'object' && !Array.isArray(localVal) &&
         typeof remoteVal === 'object' && !Array.isArray(remoteVal)
       ) {
-        // env 对象：逐键合并
+        // env 对象：逐键合并，检测冲突键
         const mergedEnv = { ...localVal }
+        const conflictKeys = []
         for (const [ek, ev] of Object.entries(remoteVal)) {
           if (ek in mergedEnv) {
-            // 冲突键取更新一方的值
+            // 冲突键：两方都修改了同一个 env 键
+            if (mergedEnv[ek] !== ev) {
+              conflictKeys.push(ek)
+            }
             mergedEnv[ek] = remoteIsNewer ? ev : mergedEnv[ek]
           } else {
             // 仅远端有的键，保留
             mergedEnv[ek] = ev
           }
         }
+        if (conflictKeys.length > 0) {
+          this._emitConflictDetected({ type: 'env-key', keys: conflictKeys, resolvedBy: remoteIsNewer ? 'remote' : 'local' })
+        }
         result[key] = mergedEnv
       } else {
         // 其他字段：冲突时取更新一方的值
+        if (localVal !== remoteVal) {
+          this._emitConflictDetected({ type: 'field', field: key, resolvedBy: remoteIsNewer ? 'remote' : 'local' })
+        }
         result[key] = newer[key]
       }
     }
@@ -888,19 +969,18 @@ class SyncService {
       }
     }
 
-    // 合并 apiProfilesOrder：去重保序，并剔除已被 tombstone 显式删除的条目
+    // apiProfilesOrder 是本机偏好，不参与云同步；仅清理不存在项并追加新同步到的配置
     const mergedOrder = []
     const _seenOrder = new Set()
     const _pushOrder = (name) => {
       if (_seenOrder.has(name)) return
+      if (!mergedProfiles[name]) return
       if (_profileTombT(name) > 0) return // 被 tombstone 显式删除
       _seenOrder.add(name)
       mergedOrder.push(name)
     }
-    for (const name of (local.apiProfilesOrder || [])) _pushOrder(name)
-    for (const remote of remoteConfigs) {
-      for (const name of (remote.data.apiProfilesOrder || [])) _pushOrder(name)
-    }
+    for (const name of (localSettings.apiProfilesOrder || [])) _pushOrder(name)
+    for (const name of Object.keys(mergedProfiles)) _pushOrder(name)
 
     // currentApiProfile 是设备级偏好，不参与同步，保留本地值
 

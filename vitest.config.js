@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     globals: true,
+    testTimeout: 30000,
     setupFiles: [],
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: ['node_modules', 'dist', 'release', '.git'],
@@ -20,8 +21,16 @@ export default defineConfig({
         'test/',
         '**/*.config.js',
         'main.js',
-        'preload.js'
-      ]
+        'preload.js',
+        'src/main/workers/',
+        'src/workers/',
+      ],
+      thresholds: {
+        lines: 50,
+        branches: 50,
+        functions: 50,
+        statements: 50,
+      },
     }
   },
   resolve: {

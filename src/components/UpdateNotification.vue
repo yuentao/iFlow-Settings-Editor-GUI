@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="dialog-overlay dialog-overlay-top" @click="handleCancel">
+  <div v-if="show" class="dialog-overlay dialog-overlay-top" @click="handleLater" @keyup.esc="handleLater" tabindex="-1" ref="overlayRef">
     <div class="update-notification" @click.stop>
       <div class="update-header">
         <div class="update-icon">
@@ -46,8 +46,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 const props = defineProps({
   show: {
@@ -70,14 +71,24 @@ const props = defineProps({
 
 const emit = defineEmits(['update', 'later', 'close'])
 
-// 格式化 Markdown 格式的更新日志
+const overlayRef = ref(null)
+
+watch(() => props.show, (val) => {
+  if (val) {
+    nextTick(() => {
+      overlayRef.value?.focus()
+    })
+  }
+})
+
+// 格式化 Markdown 格式的更新日志（消毒后渲染，防止 XSS）
 const formattedReleaseNotes = computed(() => {
   if (!props.releaseNotes) return ''
-  // 使用 marked.use 代替弃用的 setOptions，避免全局配置冲突
-  return marked.parse(props.releaseNotes, {
+  const html = marked.parse(props.releaseNotes, {
     breaks: true,
     gfm: true,
   })
+  return DOMPurify.sanitize(html)
 })
 
 const handleUpdate = () => {

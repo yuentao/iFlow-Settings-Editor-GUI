@@ -115,7 +115,7 @@
           <div class="dialog-title">{{ $t('cloudSync.enterPassword') }}</div>
           <div class="dialog-body">
             <div class="form-group">
-              <input type="password" class="form-input" v-model="syncPasswordDialog.password" :placeholder="$t('cloudSync.enterPassword')" @keyup.enter="handleSyncPasswordConfirm" autofocus />
+              <custom-input type="password" v-model="syncPasswordDialog.password" :placeholder="$t('cloudSync.enterPassword')" @keyup.enter="handleSyncPasswordConfirm" autofocus />
             </div>
             <div class="password-error" v-if="syncPasswordDialog.error">{{ syncPasswordDialog.error }}</div>
           </div>
@@ -135,6 +135,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Key, Server, Star, Command, Refresh, Loading, Puzzle } from '@icon-park/vue-next'
+import CustomInput from '../components/CustomInput.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import ModelUsageChart from '@/components/ModelUsageChart.vue'
 import { useModelUsageStats } from '@/composables/useModelUsageStats'
@@ -279,6 +280,8 @@ function handleVisibilityChange() {
 
 // 图表渲染完成后，通知 App.vue 移除启动画面
 let readyEmitted = false
+let chartMountTimer = 0
+let statsLoadTimer = 0
 function handleChartRendered() {
   if (!readyEmitted) {
     readyEmitted = true
@@ -287,22 +290,27 @@ function handleChartRendered() {
 }
 
 onMounted(async () => {
-  await cloudStore.loadStatus()
+  // 云同步状态加载不阻塞图表挂载关键路径（避免 WebDAV 网络请求阻塞导致 splash 卡死）
+  cloudStore.loadStatus().catch(err => {
+    console.error('[Dashboard] cloudStore.loadStatus failed:', err)
+  })
   // 延迟挂载图表组件：先让仪表盘卡片渲染完成，再挂载 apexcharts
-  setTimeout(() => {
+  chartMountTimer = window.setTimeout(() => {
     chartMounted.value = true
   }, 0)
   // 延迟加载模型统计：避免 IPC 数据传输阻塞首帧渲染
-  setTimeout(() => {
+  statsLoadTimer = window.setTimeout(() => {
     const days = selectedModelStatsDays.value
     const interval = props.settings?.modelUsageRefreshInterval ?? 5
-    fetchStats({ days, silent: true })
+    fetchStats({ days })
     startAutoRefresh(days, interval)
   }, 50)
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onUnmounted(() => {
+  if (chartMountTimer) window.clearTimeout(chartMountTimer)
+  if (statsLoadTimer) window.clearTimeout(statsLoadTimer)
   stopAutoRefresh()
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
@@ -311,7 +319,7 @@ onUnmounted(() => {
 <style lang="less" scoped>
 // Card animation
 .card-appear {
-  animation: fadeInUp 0.3s ease backwards;
+  animation: fadeInUp var(--duration-slow) var(--ease-out) backwards;
   animation-name: fadeInUp, subtleFloat;
 }
 
@@ -322,7 +330,7 @@ onUnmounted(() => {
   gap: var(--space-lg);
   align-content: center;
   margin-top: var(--space-lg);
-  @media (max-width: 768px) {
+  @media (max-width: 900px) {
     grid-template-columns: 1fr;
   }
 }
@@ -337,7 +345,7 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--space-lg);
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all var(--duration-slow) var(--ease-out);
   position: relative;
   overflow: hidden;
   min-height: 120px;
@@ -351,7 +359,7 @@ onUnmounted(() => {
     height: 4px;
     background: var(--accent);
     opacity: 0;
-    transition: opacity 0.25s ease;
+    transition: opacity var(--duration-slow) var(--ease-out);
   }
 
   &:hover {

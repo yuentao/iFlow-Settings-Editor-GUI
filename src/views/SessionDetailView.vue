@@ -10,145 +10,150 @@
           </button>
         </div>
       </div>
-      <EmptyState
-        :title="$t('projects.sessionNotFound')"
-        :icon="Folder"
-      />
+      <EmptyState :title="$t('projects.sessionNotFound')" :icon="Folder" />
     </template>
 
     <template v-else>
-    <!-- 顶部导航栏 -->
-    <div class="detail-header">
-      <div class="header-left">
-        <button class="back-btn" @click="goBack">
-          <Left size="16" />
-          <span>{{ $t('projects.backToList') }}</span>
-        </button>
+      <!-- 顶部导航栏 -->
+      <div class="detail-header">
+        <div class="header-left">
+          <button class="back-btn" @click="goBack">
+            <Left size="16" />
+            <span>{{ $t('projects.backToList') }}</span>
+          </button>
+        </div>
+        <div class="header-center">
+          <span class="session-title">{{ sessionTitle }}</span>
+          <span v-if="session?.gitBranch" class="git-branch">
+            <GeneralBranch size="10" />
+            {{ session.gitBranch }}
+          </span>
+        </div>
+        <div class="header-right">
+          <template v-if="!isSelectionMode">
+            <button class="icon-action-btn" :title="$t('projects.multiSelect')" @click="enterSelectionMode">
+              <FullSelection size="16" />
+            </button>
+            <button class="icon-action-btn" :title="$t('projects.export')" @click="handleExport">
+              <Export size="16" />
+            </button>
+            <button class="icon-action-btn danger" :title="$t('projects.delete')" @click="handleDeleteSession">
+              <Delete size="16" />
+            </button>
+          </template>
+          <template v-else>
+            <span class="select-count">{{ $t('projects.selectedCount', { count: selectedCount }) }}</span>
+            <button class="icon-action-btn" :title="$t('projects.selectAll')" @click="handleSelectAll">
+              <FullSelection size="16" />
+            </button>
+            <button
+              class="icon-action-btn danger"
+              :disabled="selectedCount === 0"
+              :title="$t('projects.delete')"
+              @click="handleDeleteMessages"
+            >
+              <Delete size="16" />
+            </button>
+            <button class="icon-action-btn" :title="$t('projects.cancelSelect')" @click="exitSelectionMode">
+              <Close size="16" />
+            </button>
+          </template>
+        </div>
       </div>
-      <div class="header-center">
-        <span class="session-title">{{ sessionTitle }}</span>
-        <span v-if="session?.gitBranch" class="git-branch">
-          <GeneralBranch size="10" />
-          {{ session.gitBranch }}
-        </span>
-      </div>
-      <div class="header-right">
-        <template v-if="!isSelectionMode">
-          <button class="icon-action-btn" :title="$t('projects.multiSelect')" @click="enterSelectionMode">
-            <FullSelection size="16" />
-          </button>
-          <button class="icon-action-btn" :title="$t('projects.export')" @click="handleExport">
-            <Export size="16" />
-          </button>
-          <button class="icon-action-btn danger" :title="$t('projects.delete')" @click="handleDeleteSession">
-            <Delete size="16" />
-          </button>
-        </template>
-        <template v-else>
-          <span class="select-count">{{ $t('projects.selectedCount', { count: selectedCount }) }}</span>
-          <button class="icon-action-btn" :title="$t('projects.selectAll')" @click="handleSelectAll">
-            <FullSelection size="16" />
-          </button>
-          <button class="icon-action-btn danger" :disabled="selectedCount === 0" :title="$t('projects.delete')" @click="handleDeleteMessages">
-            <Delete size="16" />
-          </button>
-          <button class="icon-action-btn" :title="$t('projects.cancelSelect')" @click="exitSelectionMode">
-            <Close size="16" />
-          </button>
-        </template>
-      </div>
-    </div>
 
-    <!-- 项目信息 + 消息统计 -->
-    <div v-if="project" class="project-info-bar">
-      <span class="project-name-row">
-        <Folder size="12" />
-        <span>{{ project.name }}</span>
-      </span>
-      <span class="stat-separator"></span>
-      <span v-if="stats" class="stats-row">
-        <span class="stat-item">{{ $t('projects.totalMessages') }}: {{ stats.totalMessages }}</span>
-        <span class="stat-divider">|</span>
-        <span class="stat-item">{{ $t('projects.user') }}: {{ stats.userMessages }}</span>
-        <span class="stat-divider">|</span>
-        <span class="stat-item">{{ $t('projects.assistant') }}: {{ stats.assistantMessages }}</span>
-        <span class="stat-divider">|</span>
-        <span class="stat-item">{{ $t('projects.toolCalls') }}: {{ stats.toolCalls }}</span>
-        <span v-if="stats.toolCalls > 0" class="stat-item success-rate">
-          ({{ (stats.toolCallSuccess / stats.toolCalls * 100).toFixed(0) }}%)
+      <!-- 项目信息 + 消息统计 -->
+      <div v-if="project" class="project-info-bar">        
+        <span v-if="stats" class="stats-row">
+          <span class="stat-item">{{ $t('projects.totalMessages') }}: {{ stats.totalMessages }}</span>
+          <span class="stat-divider">|</span>
+          <span class="stat-item">{{ $t('projects.user') }}: {{ stats.userMessages }}</span>
+          <span class="stat-divider">|</span>
+          <span class="stat-item">{{ $t('projects.assistant') }}: {{ stats.assistantMessages }}</span>
+          <span class="stat-divider">|</span>
+          <span class="stat-item">{{ $t('projects.toolCalls') }}: {{ stats.toolCalls }}</span>
+          <template v-if="stats.totalTokens > 0">
+            <span class="stat-divider">|</span>
+            <span class="stat-item" :class="{ estimated: stats.isEstimated }">
+              {{ $t('projects.inputTokens') }}: {{ formatTokens(stats.totalInputTokens) }}
+            </span>
+            <span class="stat-divider">|</span>
+            <span class="stat-item" :class="{ estimated: stats.isEstimated }">
+              {{ $t('projects.outputTokens') }}: {{ formatTokens(stats.totalOutputTokens) }}
+            </span>
+            <span class="stat-divider">|</span>
+            <span class="stat-item" :class="{ estimated: stats.isEstimated }">
+              {{ $t('projects.totalTokens') }}: {{ formatTokens(stats.totalTokens) }}
+            </span>
+          </template>
         </span>
-      </span>
-    </div>
-
-    <!-- 消息列表 -->
-    <div class="messages-container" ref="messagesContainer">
-      <!-- 加载中 -->
-      <div v-if="isLoadingMessages && messages.length === 0" class="loading-state">
-        <SkeletonLoader type="list" :count="5" />
       </div>
 
       <!-- 消息列表 -->
-      <div v-else class="messages-list">
-        <!-- 顶部滚动提示（有更早消息时提示向上滚动） -->
-        <Transition name="hint-fade">
-          <div v-if="showScrollHint" class="scroll-hint scroll-hint-top" key="scroll-hint">
-            <ArrowUp size="14" />
-            <span>{{ $t('projects.scrollForMore') }}</span>
-            <ArrowUp size="14" />
-          </div>
-        </Transition>
-        <MessageBubble
-          v-for="msg in visibleMessages"
-          :key="msg.uuid"
-          :message="msg"
-          :selection-mode="isSelectionMode"
-          :is-selected="selectedMessageUuids.has(msg.uuid)"
-          @toggle-select="toggleMessageSelect"
+      <div class="messages-container" ref="messagesContainer">
+        <!-- 加载中 -->
+        <div v-if="isLoadingMessages && messages.length === 0" class="loading-state">
+          <SkeletonLoader type="list" :count="5" />
+        </div>
+
+        <!-- 消息列表 -->
+        <div v-else class="messages-list">
+          <!-- 顶部滚动提示（有更早消息时提示向上滚动） -->
+          <Transition name="hint-fade">
+            <div v-if="showScrollHint" class="scroll-hint scroll-hint-top" key="scroll-hint">
+              <ArrowUp size="14" />
+              <span>{{ $t('projects.scrollForMore') }}</span>
+              <ArrowUp size="14" />
+            </div>
+          </Transition>
+          <MessageBubble
+            v-for="msg in visibleMessages"
+            :key="msg.uuid"
+            :message="msg"
+            :selection-mode="isSelectionMode"
+            :is-selected="selectedMessageUuids.has(msg.uuid)"
+            @toggle-select="toggleMessageSelect"
+          />
+        </div>
+
+        <!-- 滚动加载更多（触顶自动触发） -->
+        <div v-if="isLoadingMessages && messages.length > 0" class="load-more-scroll">
+          <span>{{ $t('projects.loading') }}</span>
+        </div>
+
+        <!-- 空状态 -->
+        <EmptyState
+          v-if="!isLoadingMessages && messages.length === 0"
+          :title="$t('projects.noMessages')"
+          :icon="Message"
         />
+
+        <!-- 前往顶部按钮 -->
+        <button v-if="showBackToTop" class="back-to-top" @click="scrollToTop" :title="$t('projects.backToTop')">
+          <ArrowUp size="16" />
+        </button>
+
+        <!-- 手动刷新按钮 -->
+        <button
+          class="manual-refresh-btn"
+          :class="{ 'is-refreshing': isRefreshing }"
+          @click="handleManualRefresh"
+          :title="$t('projects.refresh')"
+        >
+          <Refresh size="16" />
+        </button>
       </div>
 
-      <!-- 滚动加载更多（触顶自动触发） -->
-      <div v-if="isLoadingMessages && messages.length > 0" class="load-more-scroll">
-        <span>{{ $t('projects.loading') }}</span>
-      </div>
-
-      <!-- 空状态 -->
-      <EmptyState
-        v-if="!isLoadingMessages && messages.length === 0"
-        :title="$t('projects.noMessages')"
-        :icon="Message"
+      <!-- 确认对话框 -->
+      <ConfirmDialog
+        v-if="confirmState.show"
+        :title-key="confirmState.titleKey"
+        :message-key="confirmState.messageKey"
+        :message-params="confirmState.messageParams"
+        :danger="confirmState.danger"
+        @confirm="handleConfirm"
+        @cancel="closeConfirm"
       />
-
-      <!-- 前往顶部按钮 -->
-      <button
-        v-if="showBackToTop"
-        class="back-to-top"
-        @click="scrollToTop"
-        :title="$t('projects.backToTop')">
-        <ArrowUp size="16" />
-      </button>
-
-      <!-- 手动刷新按钮 -->
-      <button
-        class="manual-refresh-btn"
-        :class="{ 'is-refreshing': isRefreshing }"
-        @click="handleManualRefresh"
-        :title="$t('projects.refresh')">
-        <Refresh size="16" />
-      </button>
-    </div>
-
-    <!-- 确认对话框 -->
-    <ConfirmDialog
-      v-if="confirmState.show"
-      :title-key="confirmState.titleKey"
-      :message-key="confirmState.messageKey"
-      :message-params="confirmState.messageParams"
-      :danger="confirmState.danger"
-      @confirm="handleConfirm"
-      @cancel="closeConfirm"
-    />
-  </template>
+    </template>
   </div>
 </template>
 
@@ -163,8 +168,16 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import MessageBubble from '@/components/MessageBubble.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import {
-  Left, Folder, GeneralBranch, Export, Delete,
-  FullSelection, Close, Message, ArrowUp, Refresh,
+  Left,
+  Folder,
+  GeneralBranch,
+  Export,
+  Delete,
+  FullSelection,
+  Close,
+  Message,
+  ArrowUp,
+  Refresh,
 } from '@icon-park/vue-next'
 
 const { t } = useI18n()
@@ -216,9 +229,16 @@ const visibleMessages = computed(() =>
     if (typeof content === 'string') return content.trim().length > 0
     // content 为数组/对象/null 时，不是用户文本消息，过滤掉
     return false
-  })
+  }),
 )
 const stats = computed(() => store.currentStats)
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
+  if (n >= 10_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K'
+  return n.toLocaleString()
+}
+
 const isLoadingMessages = computed(() => store.isLoadingMessages)
 const isSelectionMode = computed(() => store.isSelectionMode)
 const selectedMessageUuids = computed(() => store.selectedMessageUuids)
@@ -236,11 +256,10 @@ function goBack() {
 async function loadMoreMessages() {
   if (currentTopOffset.value <= 0 || !props.project || !props.session) return
   const newOffset = Math.max(0, currentTopOffset.value - 50)
-  const result = await window.electronAPI.getSessionMessages(
-    props.project.id,
-    props.session.id,
-    { offset: newOffset, limit: 50 },
-  )
+  const result = await window.electronAPI.getSessionMessages(props.project.id, props.session.id, {
+    offset: newOffset,
+    limit: 50,
+  })
   if (result.success) {
     const el = messagesContainer.value
     const prevScrollHeight = el?.scrollHeight || 0
@@ -290,12 +309,8 @@ async function handleManualRefresh() {
   try {
     store.resetMessages()
     currentTopOffset.value = 0
-    const countResult = await window.electronAPI.getSessionMessages(
-      props.project.id,
-      props.session.id,
-      { limit: 1 },
-    )
-    const total = countResult?.success ? ((countResult as any)?.total || 0) : 0
+    const countResult = await window.electronAPI.getSessionMessages(props.project.id, props.session.id, { limit: 1 })
+    const total = countResult?.success ? (countResult as any)?.total || 0 : 0
     const startOffset = Math.max(0, total - 50)
     currentTopOffset.value = startOffset
 
@@ -404,12 +419,8 @@ onMounted(async () => {
   currentTopOffset.value = 0
 
   // 先获取总消息数，计算从末尾加载的偏移量
-  const countResult = await window.electronAPI.getSessionMessages(
-    props.project!.id,
-    props.session!.id,
-    { limit: 1 },
-  )
-  const total = countResult?.success ? ((countResult as any)?.total || 0) : 0
+  const countResult = await window.electronAPI.getSessionMessages(props.project!.id, props.session!.id, { limit: 1 })
+  const total = countResult?.success ? (countResult as any)?.total || 0 : 0
   const startOffset = Math.max(0, total - 50)
   currentTopOffset.value = startOffset
 
@@ -454,7 +465,7 @@ onUnmounted(() => {
 .detail-header {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-light);
   gap: 12px;
   flex-shrink: 0;
@@ -551,7 +562,7 @@ onUnmounted(() => {
 
   &.danger:hover:not(:disabled) {
     background: rgba(196, 49, 49, 0.1);
-    color: var(--danger, #C43131);
+    color: var(--danger, #c43131);
   }
 }
 
@@ -560,7 +571,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 5px 20px;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-secondary);
@@ -596,7 +607,12 @@ onUnmounted(() => {
   }
 
   .success-rate {
-    color: #00B894;
+    color: #00b894;
+  }
+
+  .estimated {
+    font-style: italic;
+    opacity: 0.75;
   }
 }
 
@@ -642,13 +658,22 @@ onUnmounted(() => {
 }
 
 @keyframes hint-bounce {
-  0%, 100% { opacity: 0.5; transform: translateY(0); }
-  50% { opacity: 1; transform: translateY(-2px); }
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
 }
 
 // hint-fade 退出动画
 .hint-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 .hint-fade-leave-to {
   opacity: 0;
@@ -657,10 +682,9 @@ onUnmounted(() => {
 
 // ── 返回顶部悬浮按钮 ──────────────────────────────
 .back-to-top {
-  position: sticky;
-  bottom: 20px;
-  float: right;
-  margin-right: 16px;
+  position: fixed;
+  bottom: 40px;
+  right: 46px;
   width: 36px;
   height: 36px;
   display: flex;
@@ -689,10 +713,9 @@ onUnmounted(() => {
 
 // ── 手动刷新悬浮按钮 ──────────────────────────────
 .manual-refresh-btn {
-  position: sticky;
-  bottom: 20px;
-  float: right;
-  margin-right: 16px;
+  position: fixed;
+  bottom: 40px;
+  right: 90px;
   width: 36px;
   height: 36px;
   display: flex;
@@ -729,7 +752,11 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

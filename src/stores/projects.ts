@@ -68,6 +68,7 @@ export interface SessionStats {
   totalInputTokens: number
   totalOutputTokens: number
   totalTokens: number
+  isEstimated?: boolean
 }
 
 export const useProjectsStore = defineStore('projects', () => {

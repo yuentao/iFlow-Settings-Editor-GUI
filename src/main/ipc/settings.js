@@ -8,6 +8,23 @@ const { readSettings, writeSettings, API_FIELDS, extractApiConfig, stampModified
 const { handleIpcError, wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 const { t } = require('../utils/translations')
 
+function stripLastModified(value) {
+  if (Array.isArray(value)) return value.map(stripLastModified)
+  if (!value || typeof value !== 'object') return value
+  const result = {}
+  for (const [key, child] of Object.entries(value)) {
+    if (key === '_lastModified') continue
+    result[key] = stripLastModified(child)
+  }
+  return result
+}
+
+function isSyncFieldChanged(oldVal, newVal) {
+  if (oldVal === undefined && newVal === undefined) return false
+  if (oldVal === undefined || newVal === undefined) return true
+  return JSON.stringify(stripLastModified(oldVal)) !== JSON.stringify(stripLastModified(newVal))
+}
+
 /**
  * 注册设置相关的 IPC 处理器
  */
@@ -82,6 +99,11 @@ function registerSettingsIpcHandlers() {
       }
     }
 
+    // 通知云同步服务：仅在同步相关字段内容实际发生变化时才触发自动同步
+    // 避免修改语言、主题、亚克力、API 配置排序等本机设置时也错误触发 auto-sync
+    const syncFields = ['apiProfiles', 'mcpServers']
+    const hasSyncRelevantChange = syncFields.some(field => isSyncFieldChanged(existing[field], merged[field]))
+
     // 为内容变化的 apiProfiles/mcpServers 条目打上 _lastModified 时间戳
     // 这是云同步增量合并策略能正确工作的前提
     stampModifiedItems(existing, merged)
@@ -98,12 +120,18 @@ function registerSettingsIpcHandlers() {
     const { updateTrayMenu } = require('../tray')
     updateTrayMenu()
 
-    // 通知云同步服务：设置已保存，可能需要自动同步
-    const { syncService } = require('./cloud')
-    syncService.onSettingsSaved()
+    if (hasSyncRelevantChange) {
+      const { syncService } = require('./cloud')
+      syncService.onSettingsSaved()
+    }
 
     return successResult()
   }, 'save-settings'))
+
+  // 获取当前平台
+  ipcMain.handle('get-platform', wrapIpcHandler(async () => {
+    return successResult(process.platform)
+  }, 'get-platform'))
 
   // 运行时切换亚克力效果
   ipcMain.handle('set-acrylic-enabled', wrapIpcHandler(async (_event, enabled) => {
@@ -114,7 +142,29 @@ function registerSettingsIpcHandlers() {
     await writeSettings(settings)
     return successResult()
   }, 'set-acrylic-enabled'))
-// 监听外部对 settings.json 文件的修改
+
+  // UI 缩放因子
+  ipcMain.handle('get-zoom-factor', wrapIpcHandler(async () => {
+    const settings = readSettings() || {}
+    return successResult(settings.zoomFactor ?? 1.0)
+  }, 'get-zoom-factor'))
+
+  ipcMain.handle('set-zoom-factor', wrapIpcHandler(async (event, factor) => {
+    const num = Number(factor)
+    if (isNaN(num) || num < 0.5 || num > 1.5) {
+      return { success: false, error: 'zoomFactor must be between 0.5 and 1.5' }
+    }
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (win && !win.isDestroyed()) {
+      win.webContents.setZoomFactor(num)
+    }
+    const settings = readSettings() || {}
+    settings.zoomFactor = num
+    await writeSettings(settings)
+    return successResult()
+  }, 'set-zoom-factor'))
+
+  // 监听外部对 settings.json 文件的修改
   startWatching(() => {
     const wins = BrowserWindow.getAllWindows()
     for (const win of wins) {

@@ -12,6 +12,7 @@ const API_FIELDS = Object.freeze([
   'tokensLimit',
   'expiryDays',
   'expiryStartDate',
+  'balanceProvider',
 ])
 
 // API 配置默认值
@@ -21,6 +22,7 @@ const PROFILE_DEFAULTS = Object.freeze({
   baseUrl: '',
   modelName: '',
   tokensLimit: 128000,
+  balanceProvider: 'auto',
 })
 
 module.exports = {

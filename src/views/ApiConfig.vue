@@ -13,7 +13,16 @@
       </div>
     </div>
     <div class="card" v-if="profiles.length > 0">
-      <VueDraggable v-model="localProfiles" class="profile-list" handle=".drag-handle" :animation="250" ghostClass="sortable-ghost" @start="onDragStart" @end="onDragEnd">
+      <VueDraggable
+        v-model="localProfiles"
+        :class="['profile-list', `layout-${layoutMode}`]"
+        handle=".drag-handle"
+        :animation="250"
+        ghostClass="sortable-ghost"
+        :forceFallback="layoutMode === 'grid'"
+        @start="onDragStart"
+        @end="onDragEnd"
+      >
         <div
           v-for="(profile, index) in localProfiles"
           :key="profile.name"
@@ -23,35 +32,61 @@
             expired: isProfileExpired(profile.name),
           }"
           :title="isProfileExpired(profile.name) ? t('api.expiry.cannotSwitch') : ''"
-          @click="isProfileExpired(profile.name) ? null : $emit('select-profile', profile.name)">
-          <div class="drag-handle" :title="$t('api.dragToSort')"> ⋮⋮ </div>
+          @click="isProfileExpired(profile.name) ? null : $emit('select-profile', profile.name)"
+        >
+          <div class="drag-handle" :title="$t('api.dragToSort')">⋮⋮</div>
           <div class="profile-icon" :style="getProfileIconStyle(profile.name)">
             <span class="profile-icon-text">{{ getProfileInitial(profile.name) }}</span>
           </div>
-                    <div class="profile-info">
-                      <div class="profile-name-row">
-                        <div class="profile-name">{{ profile.name }}</div>
-                        <div
-                          class="connectivity-indicator"
-                          :class="'connectivity-' + getConnectivityLevel(profile.name)"
-                          :title="getConnectivityTooltip(profile.name)"
-                        >
-                          <span class="connectivity-dot" :class="{ animated: getConnectivityLevel(profile.name) === 'checking' }"></span>
-                          <span class="connectivity-label" v-if="getConnectivityLevel(profile.name) !== 'checking'">
-                            {{ getConnectivityLabel(profile.name) }}
-                          </span>
-                        </div>
-                      </div>
-                      <div class="profile-model-row">
-                        <div class="profile-model" :class="{ active: currentProfile === profile.name }" v-if="getProfileModel(profile.name)">
-                          {{ getProfileModel(profile.name) }}
-                        </div>
-                        <div class="profile-expiry" v-if="getExpiryText(profile.name)" :class="getExpiryClass(profile.name)">
-                          {{ getExpiryText(profile.name) }}
-                        </div>
-                      </div>
-                    </div>
-          <div class="profile-status" v-if="currentProfile === profile.name">
+          <div class="profile-info">
+            <div class="profile-name-row">
+              <div class="profile-name">{{ profile.name }}</div>
+              <div
+                class="connectivity-indicator"
+                :class="'connectivity-' + getConnectivityLevel(profile.name)"
+                :title="getConnectivityTooltip(profile.name)"
+              >
+                <span
+                  class="connectivity-dot"
+                  :class="{ animated: getConnectivityLevel(profile.name) === 'checking' }"
+                ></span>
+                <span class="connectivity-label" v-if="getConnectivityLevel(profile.name) !== 'checking' && layoutMode !== 'grid'">
+                  {{ getConnectivityLabel(profile.name) }}
+                </span>
+              </div>
+            </div>
+            <div class="profile-model-row">
+              <div
+                class="profile-model"
+                :class="{ active: currentProfile === profile.name }"
+                v-if="getProfileModel(profile.name)"
+              >
+                {{ getProfileModel(profile.name) }}
+              </div>
+              <div class="profile-expiry" v-if="getExpiryText(profile.name)" :class="getExpiryClass(profile.name)">
+                <span v-if="layoutMode !== 'grid'">{{ getExpiryText(profile.name) }}</span>
+              </div>
+              <!-- 网格布局：简洁版，仅显示余额/状态 -->
+              <span
+                v-if="layoutMode === 'grid' && getBalanceSimple(profile.name)"
+                class="balance-badge"
+                :class="getBalanceClass(profile.name)"
+                :title="getBalanceTooltip(profile.name)"
+              >
+                {{ getBalanceSimple(profile.name) }}
+              </span>
+              <!-- 列表布局：直接显示 title 明细文本 -->
+              <span
+                v-if="layoutMode !== 'grid' && getBalanceTooltip(profile.name)"
+                class="balance-detail-text"
+                :class="getBalanceClass(profile.name)"
+                :title="getBalanceTooltip(profile.name)"
+              >
+                {{ getBalanceTooltip(profile.name) }}
+              </span>
+            </div>
+          </div>
+          <div class="profile-status" v-if="currentProfile === profile.name && layoutMode !== 'grid'">
             <span class="status-badge">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3,8 6,11 13,4"></polyline>
@@ -60,20 +95,39 @@
             </span>
           </div>
           <div class="profile-actions">
-            <button class="action-btn" v-if="currentProfile !== profile.name" @click.stop="$emit('edit-profile', profile.name)" :title="$t('api.edit')">
+            <button class="action-btn" @click.stop="$emit('edit-profile', profile.name)" :title="$t('api.edit')" :aria-label="$t('api.edit')">
               <Edit size="14" />
             </button>
-            <button class="action-btn" @click.stop="$emit('duplicate-profile', profile.name)" :title="$t('api.duplicate')">
+            <button
+              class="action-btn"
+              @click.stop="$emit('duplicate-profile', profile.name)"
+              :title="$t('api.duplicate')"
+              :aria-label="$t('api.duplicate')"
+            >
               <Copy size="14" />
             </button>
-            <button class="action-btn action-btn-danger" v-if="index !== 0 && currentProfile !== profile.name" @click.stop="$emit('delete-profile', profile.name)" :title="$t('api.delete')">
+            <button
+              class="action-btn action-btn-danger"
+              v-if="index !== 0 && currentProfile !== profile.name"
+              @click.stop="$emit('delete-profile', profile.name)"
+              :title="$t('api.delete')"
+              :aria-label="$t('api.delete')"
+            >
               <Delete size="14" />
             </button>
           </div>
         </div>
       </VueDraggable>
     </div>
-    <EmptyState v-else :icon="Exchange" :title="$t('api.noProfiles')" :description="$t('api.addFirstProfile')" :actionText="$t('api.newProfile')" embedded @action="$emit('create-profile')" />
+    <EmptyState
+      v-else
+      :icon="Exchange"
+      :title="$t('api.noProfiles')"
+      :description="$t('api.addFirstProfile')"
+      :actionText="$t('api.newProfile')"
+      embedded
+      @action="$emit('create-profile')"
+    />
   </section>
 </template>
 
@@ -102,22 +156,47 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['create-profile', 'select-profile', 'edit-profile', 'duplicate-profile', 'delete-profile', 'reorder-profiles'])
+const emit = defineEmits([
+  'create-profile',
+  'select-profile',
+  'edit-profile',
+  'duplicate-profile',
+  'delete-profile',
+  'reorder-profiles',
+])
+
+// --- 布局模式 ---
+const layoutMode = computed(() => props.settings?.apiConfigLayout || 'list')
 
 // Local copy of profiles for VueDraggable v-model sync
 const localProfiles = ref([...props.profiles])
-watch(() => props.profiles, (val) => { localProfiles.value = [...val] }, { deep: true })
-watch(localProfiles, (val) => {
-  // Emit reorder only when order actually differs from prop
-  const sameOrder = val.length === props.profiles.length && val.every((p, i) => p.name === props.profiles[i].name)
-  if (!sameOrder) {
-    emit('reorder-profiles', [...val])
-  }
-}, { deep: true })
+watch(
+  () => props.profiles.map(p => p.name).join('::'),
+  () => {
+    localProfiles.value = [...props.profiles]
+  },
+)
+watch(
+  () => localProfiles.value.map(p => p.name).join('::'),
+  () => {
+    const val = localProfiles.value
+    // Emit reorder only when order actually differs from prop
+    const sameOrder = val.length === props.profiles.length && val.every((p, i) => p.name === props.profiles[i].name)
+    if (!sameOrder) {
+      emit('reorder-profiles', [...val])
+    }
+  },
+)
 
 let isDragging = false
-const onDragStart = () => { isDragging = true; document.body.style.userSelect = 'none' }
-const onDragEnd = () => { isDragging = false; document.body.style.userSelect = '' }
+const onDragStart = () => {
+  isDragging = true
+  document.body.style.userSelect = 'none'
+}
+const onDragEnd = () => {
+  isDragging = false
+  document.body.style.userSelect = ''
+}
 
 // --- 连通性监控 ---
 const connectivityMap = reactive({}) // { profileName: { level: 'excellent'|'good'|'slow'|'unreachable'|'checking', latency: number } }
@@ -203,21 +282,21 @@ let prevProfileNames = new Set()
 // profiles 变化时重新初始化连通性状态
 watch(
   () => props.profiles,
-  (newProfiles) => {
+  newProfiles => {
     const newNames = new Set(newProfiles.map(p => p.name))
-    
+
     // 判断是否只是顺序变化（集合相同但顺序不同）
-    const isOnlyReorder = prevProfileNames.size === newNames.size &&
-      [...prevProfileNames].every(name => newNames.has(name))
-    
+    const isOnlyReorder =
+      prevProfileNames.size === newNames.size && [...prevProfileNames].every(name => newNames.has(name))
+
     // 更新记录
     prevProfileNames = newNames
-    
+
     // 清理已不存在的 profile 的连通性数据
     for (const key of Object.keys(connectivityMap)) {
       if (!newNames.has(key)) delete connectivityMap[key]
     }
-    
+
     // 仅当有新增配置时才触发连通性检测（跳过纯顺序变化）
     if (!isOnlyReorder) {
       pingAll()
@@ -233,33 +312,262 @@ watch(pollIntervalMs, () => {
   }
 })
 
-// 窗口可见性监听清理函数
-let visibilityHandler = null
-
 onMounted(() => {
   // 初始化配置名集合
   prevProfileNames = new Set(props.profiles.map(p => p.name))
   startPolling()
-
-  // 窗口隐藏到托盘时暂停连通性轮询，恢复时重启
-  visibilityHandler = () => {
-    if (document.hidden) {
-      stopPolling()
-    } else {
-      startPolling()
-    }
-  }
-  document.addEventListener('visibilitychange', visibilityHandler)
+  startBalancePolling()
 })
 
 onUnmounted(() => {
   stopPolling()
-  // 移除窗口可见性监听
-  if (visibilityHandler) {
-    document.removeEventListener('visibilitychange', visibilityHandler)
-    visibilityHandler = null
+  stopBalancePolling()
+})
+
+// --- 余额查询 ---
+const balanceMap = reactive({})
+// value: { loading: boolean, result: TokenBalanceResult | null, lastError: string | null }
+
+let balanceTimer = null
+let balanceRefreshTimer = null
+let balancePollCancelled = false
+
+const balancePollIntervalMs = computed(() => {
+  const minutes = props.settings?.balanceRefreshInterval ?? 5
+  return Math.max(1, minutes) * 60 * 1000
+})
+
+async function fetchBalance(name) {
+  const profile = props.settings.apiProfiles?.[name]
+  console.log(`[余额] fetchBalance(${name})`, {
+    hasBaseUrl: !!profile?.baseUrl,
+    hasApiKey: !!profile?.apiKey,
+    balanceProvider: profile?.balanceProvider,
+    expired: isProfileExpired(name),
+    disabled: profile?.balanceProvider === 'disabled',
+  })
+  if (!profile?.baseUrl || !profile?.apiKey) return
+  if (isProfileExpired(name)) return
+  if (profile.balanceProvider === 'disabled') return
+
+  balanceMap[name] = { ...balanceMap[name], loading: true }
+
+  try {
+    const params = {
+      baseUrl: profile.baseUrl,
+      apiKey: profile.apiKey,
+      provider: profile.balanceProvider || 'auto',
+      detectionRules: props.settings?.balanceProviderRules ?? [],
+    }
+    console.log(`[余额] 发起查询:`, { name, baseUrl: params.baseUrl, provider: params.provider, apiKeyMask: params.apiKey ? params.apiKey.substring(0, 8) + '...' : '', rulesCount: (params.detectionRules || []).length })
+    // JSON round-trip 剥离 Vue reactive proxy，确保 contextBridge 可序列化
+    const safeParams = JSON.parse(JSON.stringify(params))
+    const ipcResult = await window.electronAPI.fetchTokenBalance(safeParams)
+    const result = ipcResult.success ? ipcResult.data : null
+    console.log(`[余额] 查询结果:`, {
+      name,
+      success: result?.success,
+      provider: result?.provider,
+      status: result?.status,
+      remaining: result?.remaining,
+      unit: result?.unit,
+      used: result?.used,
+      total: result?.total,
+      error: result?.error || ipcResult.error,
+      raw: result?.raw,
+    })
+    if (balancePollCancelled) return
+    balanceMap[name] = {
+      loading: false,
+      result,
+      lastError: result?.success ? null : (result?.error || ipcResult.error || null),
+    }
+  } catch (e) {
+    console.log(`[余额] 查询异常:`, {
+      name,
+      msg: e?.message || String(e),
+      stack: e?.stack?.substring(0, 300),
+    })
+    if (balancePollCancelled) return
+    balanceMap[name] = { loading: false, result: null, lastError: 'api.balance.fetchFailed' }
+  }
+}
+
+function scheduleFetchAllBalances() {
+  if (balancePollCancelled) return
+  if (balanceRefreshTimer) clearTimeout(balanceRefreshTimer)
+  balanceRefreshTimer = setTimeout(() => {
+    balanceRefreshTimer = null
+    fetchAllBalances()
+  }, 250)
+}
+
+async function fetchAllBalances() {
+  if (balancePollCancelled) return
+  // 仅查询当前使用中的 API 配置
+  const currentName = props.currentProfile
+  if (!currentName) return
+  const prof = props.settings.apiProfiles?.[currentName]
+  const valid = prof?.baseUrl && prof?.apiKey && !isProfileExpired(currentName) && prof.balanceProvider !== 'disabled'
+  console.log(`[余额] fetchAllBalances: current=${currentName}, valid=${valid}`)
+  if (valid) {
+    await fetchBalance(currentName)
+  }
+}
+
+function startBalancePolling() {
+  stopBalancePolling()
+  balancePollCancelled = false
+  // 首屏延迟 2s 再查询
+  setTimeout(() => { if (!balancePollCancelled) fetchAllBalances() }, 2000)
+  balanceTimer = setInterval(() => { if (!balancePollCancelled) fetchAllBalances() }, balancePollIntervalMs.value)
+}
+
+function stopBalancePolling() {
+  balancePollCancelled = true
+  if (balanceTimer) {
+    clearInterval(balanceTimer)
+    balanceTimer = null
+  }
+  if (balanceRefreshTimer) {
+    clearTimeout(balanceRefreshTimer)
+    balanceRefreshTimer = null
+  }
+}
+
+// 余额检测间隔变化时重启轮询
+watch(balancePollIntervalMs, () => {
+  if (balanceTimer) {
+    startBalancePolling()
   }
 })
+
+// Profile 列表变化时重新查询余额
+watch(
+  () => props.profiles,
+  (newProfiles) => {
+    const newNames = new Set(newProfiles.map(p => p.name))
+    for (const key of Object.keys(balanceMap)) {
+      if (!newNames.has(key)) delete balanceMap[key]
+    }
+    // 非纯顺序变化才触发重新查询
+    const isOnlyReorder = prevProfileNames.size === newNames.size && [...prevProfileNames].every(n => newNames.has(n))
+    if (!isOnlyReorder) {
+      scheduleFetchAllBalances()
+    }
+  },
+  { deep: true },
+)
+
+// Profile 数据变化时（如 balanceProvider 修改）重新触发余额查询
+watch(
+  () => props.settings?.apiProfiles,
+  (newVal, oldVal) => {
+    console.log(`[余额] apiProfiles watch fired: new=${Object.keys(newVal || {}).length}, old=${Object.keys(oldVal || {}).length}`)
+    scheduleFetchAllBalances()
+  },
+  { deep: true },
+)
+
+// 供应商检测规则变化时重新查询余额（可能影响 auto 检测结果）
+watch(
+  () => props.settings?.balanceProviderRules,
+  (newVal, oldVal) => {
+    const newLen = Array.isArray(newVal) ? newVal.length : 0
+    const oldLen = Array.isArray(oldVal) ? oldVal.length : 0
+    console.log(`[余额] balanceProviderRules watch fired: new=${newLen}, old=${oldLen}`)
+    scheduleFetchAllBalances()
+  },
+  { deep: true },
+)
+
+function formatTokenCount(n) {
+  if (n == null || isNaN(n)) return ''
+  if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M'
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K'
+  return n.toLocaleString()
+}
+
+function getBalanceText(name) {
+  const info = balanceMap[name]
+  if (!info) return ''
+  if (info.loading) return t('api.balance.loading')
+  if (!info.result) return ''
+  if (!info.result.success) return ''
+  const r = info.result
+  if (r.status === 'unlimited') {
+    if (r.used != null) {
+      return `${t('api.balance.unlimited')} · ↑${formatTokenCount(r.used)}`
+    }
+    return t('api.balance.unlimited')
+  }
+  if (r.remaining !== undefined && r.remaining >= 0) {
+    const bal = r.unit
+      ? r.remaining < 0.01 ? r.remaining.toFixed(4) : r.remaining.toFixed(2)
+      : formatTokenCount(r.remaining)
+    const displayRemaining = r.unit ? `${r.unit}${bal}` : bal
+    if (r.used != null) {
+      return `${displayRemaining} · ↑${formatTokenCount(r.used)}`
+    }
+    return displayRemaining
+  }
+  if (r.status === 'ok') return t('api.balance.available')
+  return ''
+}
+
+function getBalanceClass(name) {
+  const info = balanceMap[name]
+  if (!info || !info.result || !info.result.success) return 'balance-error'
+  const r = info.result
+  if (r.status === 'unlimited') return 'balance-unlimited'
+  if (r.status === 'expired') return 'balance-low'
+  // 余额低于 10% 视为低余额
+  if (r.total && r.total > 0 && r.remaining !== undefined && r.remaining / r.total < 0.1) {
+    return 'balance-low'
+  }
+  return 'balance-ok'
+}
+
+function getBalanceTooltip(name) {
+  const info = balanceMap[name]
+  if (!info || !info.result) return ''
+  const r = info.result
+  const parts = []
+  if (r.total !== undefined) {
+    const val = r.unit ? r.unit + r.total.toFixed(2) : formatTokenCount(r.total)
+    parts.push(`${t('api.balance.total')}: ${val}`)
+  }
+  if (r.used !== undefined) {
+    const val = r.unit ? r.unit + r.used.toFixed(2) : formatTokenCount(r.used)
+    parts.push(`${t('api.balance.used')}: ${val}`)
+  }
+  if (r.remaining !== undefined) {
+    const val = r.unit ? r.unit + r.remaining.toFixed(2) : formatTokenCount(r.remaining)
+    parts.push(`${t('api.balance.remaining')}: ${val}`)
+  }
+  if (r.unlimitedQuota) parts.push(t('api.balance.unlimited'))
+  if (r.isAvailable === false) parts.push(t('api.balance.notAvailable'))
+  return parts.join(' | ')
+}
+
+/** 网格布局：简洁版，仅显示余额状态/金额 */
+function getBalanceSimple(name) {
+  const info = balanceMap[name]
+  if (!info) return ''
+  if (info.loading) return t('api.balance.loading')
+  if (!info.result) return ''
+  if (!info.result.success) return ''
+  const r = info.result
+  if (r.status === 'unlimited') return t('api.balance.unlimited')
+  if (r.remaining !== undefined && r.remaining >= 0) {
+    if (r.unit) {
+      return r.remaining < 0.01 ? `${r.unit}${r.remaining.toFixed(4)}` : `${r.unit}${r.remaining.toFixed(2)}`
+    }
+    return formatTokenCount(r.remaining)
+  }
+  if (r.status === 'ok') return t('api.balance.available')
+  return ''
+}
 
 const profileColors = [
   'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
@@ -379,6 +687,144 @@ function getExpiryClass(name) {
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  // 网格布局模式
+  &.layout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+
+    .profile-item {
+      flex-direction: row;
+      align-items: center;
+      padding: 12px 14px;
+      gap: 0;
+      position: relative;
+      overflow: hidden;
+
+      // 悬浮遮罩层
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--bg-elevated);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      &:hover {
+        transform: scale(1.02);
+
+        &::before {
+          opacity: 0.9;
+          pointer-events: auto;
+        }
+
+        .profile-actions {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+
+      // 内容层（不受遮罩影响）
+      .profile-icon,
+      .profile-info,
+      .profile-status {
+        position: relative;
+        z-index: 0;
+      }
+
+      .drag-handle {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        margin: 0;
+        z-index: 3;
+      }
+
+      .profile-icon {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+
+        .profile-icon-text {
+          font-size: 14px;
+        }
+      }
+
+      .profile-info {
+        margin-left: 12px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .profile-name-row {
+        flex-wrap: nowrap;
+        gap: 8px;
+      }
+
+      .profile-model-row {
+        flex-wrap: nowrap;
+        margin-top: 4px;
+      }
+
+      .profile-status {
+        margin-left: 10px;
+        flex-shrink: 0;
+      }
+
+      // 操作按钮在遮罩层中绝对定位，不挤压内容
+      .profile-actions {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        margin: 0;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+        z-index: 3;
+        display: flex;
+        gap: 4px;
+        background: var(--bg-elevated);
+        padding: 4px 8px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+      }
+
+      // 网格模式下过期标签简化为纯圆点
+      .profile-expiry {
+        padding: 0;
+        width: 8px;
+        height: 8px;
+        min-width: 8px;
+        border-radius: 50%;
+        font-size: 0;
+        gap: 0;
+        border: none;
+        background: transparent;
+
+        &::before {
+          width: 8px;
+          height: 8px;
+          margin: 0;
+        }
+      }
+
+      // 网格模式下连通性指示器更紧凑
+      .connectivity-indicator {
+        margin-left: 6px;
+        gap: 0;
+      }
+
+      .connectivity-dot {
+        width: 6px;
+        height: 6px;
+      }
+    }
+  }
 }
 
 .profile-item {
@@ -439,7 +885,12 @@ function getExpiryClass(name) {
   color: var(--text-tertiary);
   cursor: grab;
   border-radius: var(--radius);
+  opacity: 0;
   transition: all 0.15s ease;
+
+  .profile-item:hover & {
+    opacity: 1;
+  }
 
   &:hover {
     color: var(--text-secondary);
@@ -494,7 +945,7 @@ function getExpiryClass(name) {
 }
 
 .profile-model {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   display: inline-block;
   padding: 2px 8px;
@@ -549,7 +1000,7 @@ function getExpiryClass(name) {
 }
 
 .connectivity-label {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   white-space: nowrap;
 }
@@ -592,6 +1043,52 @@ function getExpiryClass(name) {
   }
 }
 
+// Balance badge
+.balance-badge {
+  font-size: var(--font-size-caption);
+  font-weight: 500;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: default;
+
+  &.balance-ok {
+    color: var(--success);
+    background: color-mix(in srgb, var(--success) 12%, transparent);
+  }
+
+  &.balance-low {
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+  }
+
+  &.balance-unlimited {
+    color: var(--info);
+    background: color-mix(in srgb, var(--info) 12%, transparent);
+  }
+
+  &.balance-error {
+    color: var(--text-tertiary);
+  }
+}
+
+/* 列表布局余额明细文本：默认灰色（过期/错误），可用时绿色 */
+.balance-detail-text {
+  font-size: var(--font-size-caption);
+  color: var(--text-tertiary);
+  margin-left: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.balance-detail-text.balance-ok {
+  color: var(--success);
+}
+
 // Disabled / expired state — only block profile selection, keep actions/sort active
 .profile-item.expired {
   cursor: not-allowed;
@@ -623,7 +1120,7 @@ function getExpiryClass(name) {
   background: var(--accent);
   color: white;
   border-radius: var(--radius);
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   font-weight: 500;
 
   svg {
@@ -677,7 +1174,9 @@ function getExpiryClass(name) {
   color: #10b981;
   border: 1px solid rgba(16, 185, 129, 0.2);
 
-  &::before { background: #10b981; }
+  &::before {
+    background: #10b981;
+  }
 }
 
 .expiry-warning {
@@ -685,7 +1184,9 @@ function getExpiryClass(name) {
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.2);
 
-  &::before { background: #f59e0b; }
+  &::before {
+    background: #f59e0b;
+  }
 }
 
 .expiry-urgent {
@@ -693,7 +1194,9 @@ function getExpiryClass(name) {
   color: #ef4444;
   border: 1px solid rgba(239, 68, 68, 0.2);
 
-  &::before { background: #ef4444; }
+  &::before {
+    background: #ef4444;
+  }
 }
 
 .expiry-expired {
@@ -702,6 +1205,8 @@ function getExpiryClass(name) {
   border: 1px solid rgba(128, 128, 128, 0.2);
   font-weight: 500;
 
-  &::before { background: var(--text-tertiary); }
+  &::before {
+    background: var(--text-tertiary);
+  }
 }
 </style>

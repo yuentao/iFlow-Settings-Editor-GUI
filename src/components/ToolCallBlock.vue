@@ -213,7 +213,7 @@ const parsedDisplay = computed(() => {
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
   overflow-x: auto;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   line-height: 1.5;
 
   code {
@@ -226,7 +226,7 @@ const parsedDisplay = computed(() => {
   margin: 6px 0 0;
   padding: 8px;
   font-family: 'Cascadia Code', Consolas, monospace;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   line-height: 1.5;
   color: var(--text-primary);
   white-space: pre-wrap;

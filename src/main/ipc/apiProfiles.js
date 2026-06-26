@@ -8,6 +8,7 @@ const { readSettings, writeSettings, API_FIELDS, extractApiConfig, applyApiConfi
 const { updateTrayMenu } = require('../tray')
 const { wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 const { t } = require('../utils/translations')
+const { fetchTokenBalance } = require('../services/balanceService')
 
 /**
  * 注册 API 配置相关的 IPC 处理器
@@ -366,6 +367,38 @@ function registerApiProfilesIpcHandlers() {
       })
     }, 'ping-api-profile'),
   )
+
+  // Token 余额查询
+  ipcMain.handle('fetch-token-balance', async (_event, params) => {
+    try {
+      const { baseUrl, apiKey, provider, detectionRules } = params || {}
+      const result = await fetchTokenBalance({ baseUrl, apiKey, provider, detectionRules })
+      return { success: true, data: sanitize(result) }
+    } catch (e) {
+      const msg = (e && e.message) ? e.message : String(e || 'unknown')
+      return { success: false, error: msg }
+    }
+  })
+}
+
+/**
+ * 深度清理对象确保可被 contextBridge 序列化（structuredClone）
+ */
+function sanitize(val) {
+  try {
+    return JSON.parse(JSON.stringify(val))
+  } catch {
+    if (val === null || val === undefined || typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return val
+    if (Array.isArray(val)) return val.map(sanitize)
+    if (typeof val === 'object') {
+      const obj = {}
+      for (const k of Object.keys(val)) {
+        obj[k] = sanitize(val[k])
+      }
+      return obj
+    }
+    return String(val)
+  }
 }
 
 module.exports = {

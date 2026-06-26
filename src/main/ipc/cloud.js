@@ -25,6 +25,27 @@ function getSyncService() {
     _syncService = new SyncService()
     // 每次 isSyncing 翻转都广播一次最新状态
     _syncService.onSyncingChanged(() => broadcastSyncStatus())
+    // Bug 7 修复：转发同步进度和冲突检测事件到渲染进程
+    _syncService.onSyncProgress((progress) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win.isDestroyed()) continue
+        try {
+          win.webContents.send('cloud-sync:sync-progress', progress)
+        } catch (err) {
+          logger.warn('Failed to send cloud-sync:sync-progress:', err && err.message ? err.message : err)
+        }
+      }
+    })
+    _syncService.onConflictDetected((conflictInfo) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (win.isDestroyed()) continue
+        try {
+          win.webContents.send('cloud-sync:conflict-detected', conflictInfo)
+        } catch (err) {
+          logger.warn('Failed to send cloud-sync:conflict-detected:', err && err.message ? err.message : err)
+        }
+      }
+    })
   }
   if (!_syncServiceInitialized) {
     _syncServiceInitialized = true
@@ -35,6 +56,25 @@ function getSyncService() {
 }
 
 const cryptoMgr = new CryptoManager()
+const PASSWORD_MAX_DELAY_MS = 60_000
+let passwordAttempts = 0
+let passwordLockUntil = 0
+
+function getPasswordLockRemainingMs() {
+  return Math.max(0, passwordLockUntil - Date.now())
+}
+
+function recordPasswordCheck(valid) {
+  if (valid) {
+    passwordAttempts = 0
+    passwordLockUntil = 0
+    return
+  }
+
+  passwordAttempts += 1
+  const delay = Math.min(1000 * Math.pow(2, passwordAttempts - 1), PASSWORD_MAX_DELAY_MS)
+  passwordLockUntil = Date.now() + delay
+}
 
 // ── 机器级加密密钥 ──────────────────────────────────────
 // 首次使用时在 ~/.iflow/.enc_key 生成随机 32 字节密钥，
@@ -184,13 +224,20 @@ function registerCloudSyncIpcHandlers() {
     return { success: true, ...status }
   }, 'cloud-sync:get-status'))
 
-  ipcMain.handle('cloud-sync:set-auto-sync', wrapIpcHandler(async (_event, enabled) => {
+  ipcMain.handle('cloud-sync:set-auto-sync', wrapIpcHandler(async (_event, enabled, interval) => {
     // autoSyncEnabled 由渲染进程通过 localStorage 持久化
     if (!enabled) {
       getSyncService().stopAutoSync()
       getSyncService().clearCachedPassword()
     } else {
-      getSyncService().startAutoSync()
+      // Bug 1 修复：从 settings 读取 syncInterval，或使用调用方传入的 interval
+      // settings 中 syncInterval 单位为分钟，需转换为毫秒
+      const syncInterval = interval || (readSettings() || {}).cloudSync?.syncInterval
+      const options = {}
+      if (syncInterval) options.interval = syncInterval * 60 * 1000
+      // Bug 2 修复：检查 startAutoSync 返回值
+      const result = getSyncService().startAutoSync(options)
+      if (result && !result.success) return result
     }
     return { success: true }
   }, 'cloud-sync:set-auto-sync'))
@@ -261,6 +308,11 @@ function registerCloudSyncIpcHandlers() {
   }, 'cloud-sync:set-password'))
 
   ipcMain.handle('cloud-sync:verify-password', wrapIpcHandler(async (_event, password) => {
+    const retryAfterMs = getPasswordLockRemainingMs()
+    if (retryAfterMs > 0) {
+      return { success: false, error: 'TOO_MANY_ATTEMPTS', retryAfterMs }
+    }
+
     const settings = readSettings() || {}
     const cs = settings.cloudSync || {}
     if (!cs.passwordHash || !cs.passwordSalt) {
@@ -271,6 +323,7 @@ function registerCloudSyncIpcHandlers() {
     const key = cryptoMgr.deriveKey(password, salt)
     const hash = cryptoMgr.hashKey(key)
     const valid = cryptoMgr.verifyHash(hash, cs.passwordHash)
+    recordPasswordCheck(valid)
 
     // 验证成功仅缓存密码；不更新 lastSyncAt（仅验证不等于完成同步，
     // 错误地推进时间线会让后续 pull 的兜底比较把远端实际更新当成"旧"，造成数据丢失）
@@ -281,6 +334,11 @@ function registerCloudSyncIpcHandlers() {
   }, 'cloud-sync:verify-password'))
 
   ipcMain.handle('cloud-sync:change-password', wrapIpcHandler(async (_event, oldPassword, newPassword) => {
+    const retryAfterMs = getPasswordLockRemainingMs()
+    if (retryAfterMs > 0) {
+      return { success: false, error: 'TOO_MANY_ATTEMPTS', retryAfterMs }
+    }
+
     if (!newPassword || newPassword.length < 8) {
       return { success: false, error: 'SYNC_PASSWORD_TOO_SHORT' }
     }
@@ -295,7 +353,9 @@ function registerCloudSyncIpcHandlers() {
     const salt = Buffer.from(cs.passwordSalt, 'base64')
     const key = cryptoMgr.deriveKey(oldPassword, salt)
     const hash = cryptoMgr.hashKey(key)
-    if (!cryptoMgr.verifyHash(hash, cs.passwordHash)) {
+    const oldPasswordValid = cryptoMgr.verifyHash(hash, cs.passwordHash)
+    recordPasswordCheck(oldPasswordValid)
+    if (!oldPasswordValid) {
       return { success: false, error: 'SYNC_PASSWORD_INCORRECT' }
     }
 
@@ -426,6 +486,20 @@ function registerCloudSyncIpcHandlers() {
     await writeSettings(settings)
     return { success: true, tombstoneRetentionDays: clamped }
   }, 'cloud-sync:set-tombstone-retention-days'))
+
+  ipcMain.handle('cloud-sync:set-sync-interval', wrapIpcHandler(async (_event, minutes) => {
+    const clamped = Math.max(1, Math.min(1440, Number(minutes) || 5))
+    const settings = readSettings() || {}
+    settings.cloudSync = settings.cloudSync || {}
+    settings.cloudSync.syncInterval = clamped
+    await writeSettings(settings)
+    // 如果自动同步正在运行，重启定时器以应用新间隔
+    const syncService = getSyncService()
+    if (syncService._autoSyncEnabled) {
+      syncService.startAutoSync({ interval: clamped * 60 * 1000 })
+    }
+    return { success: true, syncInterval: clamped }
+  }, 'cloud-sync:set-sync-interval'))
 
   ipcMain.handle('cloud-sync:remove-device', wrapIpcHandler(async (_event, deviceId) => {
     await getSyncService().removeDevice(deviceId)

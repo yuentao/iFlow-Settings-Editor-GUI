@@ -22,34 +22,23 @@
               <label class="setting-label">{{ $t('general.language') }}</label>
               <p class="setting-desc">{{ $t('general.languageDesc') || '' }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.language">
-              <option value="zh-CN">{{ $t('languages.zh-CN') }}</option>
-              <option value="en-US">{{ $t('languages.en-US') }}</option>
-              <option value="ja-JP">{{ $t('languages.ja-JP') }}</option>
-            </select>
+            <custom-dropdown class="setting-select" v-model="localSettings.language" :options="languageOptions" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.theme') }}</label>
               <p class="setting-desc">{{ $t('general.themeDesc') || '' }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.uiTheme">
-              <option value="Light">{{ $t('theme.light') }}</option>
-              <option value="Dark">{{ $t('theme.dark') }}</option>
-              <option value="System">{{ $t('theme.system') }}</option>
-            </select>
+            <custom-dropdown class="setting-select" v-model="localSettings.uiTheme" :options="themeOptions" />
           </div>
         </div>
-        <div class="setting-divider"></div>
+        <div class="setting-divider" v-if="supportsAcrylic"></div>
         <div class="setting-item" v-if="supportsAcrylic">
           <div class="setting-info">
             <label class="setting-label">{{ $t('general.acrylicEffect') }}</label>
             <p class="setting-desc">{{ $t('general.acrylicEffectDesc') }}</p>
           </div>
-          <label class="switch">
-            <input type="checkbox" v-model="localSettings.acrylicEnabled" />
-            <span class="slider"></span>
-          </label>
+          <ToggleSwitch v-model="localSettings.acrylicEnabled" />
         </div>
         <div class="setting-item setting-item-full" v-if="supportsAcrylic && localSettings.acrylicEnabled">
           <div class="setting-info">
@@ -65,6 +54,47 @@
         </div>
       </div>
 
+      <div class="card card-appear" style="animation-delay: 0.03s">
+        <div class="card-title">
+          <ZoomIn size="16" />
+          {{ $t('general.displayScaling') }}
+        </div>
+        <div class="setting-item setting-item-full">
+          <div class="setting-info">
+            <label class="setting-label">{{ $t('general.zoomFactor') }}</label>
+            <p class="setting-desc">{{ Math.round(localSettings.zoomFactor * 100) }}% — {{ $t('general.zoomMin') }} — {{ $t('general.zoomMax') }}</p>
+          </div>
+          <div class="slider-container">
+            <div class="slider-track">
+              <div class="slider-fill" :style="{ width: ((localSettings.zoomFactor - 0.5) / 1.0 * 100) + '%' }"></div>
+            </div>
+            <input type="range" class="form-slider" min="0.5" max="1.5" step="0.05" :value="localSettings.zoomFactor" @input="onZoomFactorChange" />
+          </div>
+        </div>
+        <div class="zoom-presets">
+          <button v-for="p in zoomPresets" :key="p.value"
+            class="btn btn-sm"
+            :class="Math.abs(localSettings.zoomFactor - p.value) < 0.001 ? 'btn-primary' : 'btn-secondary'"
+            @click="setZoomPreset(p.value)">
+            {{ p.label }}
+          </button>
+        </div>
+      </div>
+
+      <div class="card card-appear" style="animation-delay: 0.04s">
+        <div class="card-title">
+          <ViewGridCard size="16" />
+          {{ $t('general.apiConfigLayout') }}
+        </div>
+        <div class="setting-item setting-item-main">
+          <div class="setting-info">
+            <label class="setting-label">{{ $t('general.layoutMode') }}</label>
+            <p class="setting-desc">{{ $t('general.layoutModeDesc') }}</p>
+          </div>
+          <custom-dropdown class="setting-select" v-model="localSettings.apiConfigLayout" :options="layoutOptions" />
+        </div>
+      </div>
+
       <div class="card card-appear" style="animation-delay: 0.05s">
         <div class="card-title">
           <Rocket size="16" />
@@ -75,10 +105,7 @@
             <label class="setting-label">{{ $t('general.autoLaunch') }}</label>
             <p class="setting-desc">{{ $t('general.autoLaunchHint') }}</p>
           </div>
-          <label class="switch">
-            <input type="checkbox" v-model="autoLaunchEnabled" @change="onAutoLaunchChange" />
-            <span class="slider"></span>
-          </label>
+          <ToggleSwitch v-model="autoLaunchEnabled" @change="onAutoLaunchChange" />
         </div>
       </div>
 
@@ -93,14 +120,114 @@
               <label class="setting-label">{{ $t('general.connectivityPollInterval') }}</label>
               <p class="setting-desc">{{ $t('general.connectivityPollIntervalDesc') }}</p>
             </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.connectivityPollInterval" min="5" max="600" />
+            <div class="input-with-suffix">
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.connectivityPollInterval" min="5" max="600" />
+              <span class="input-suffix">{{ $t('general.connectivityPollIntervalUnit') }}</span>
+            </div>
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.modelUsageRefreshInterval') }}</label>
               <p class="setting-desc">{{ $t('general.modelUsageRefreshIntervalDesc') }}</p>
             </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.modelUsageRefreshInterval" min="1" max="60" />
+            <div class="input-with-suffix">
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.modelUsageRefreshInterval" min="1" max="60" />
+              <span class="input-suffix">{{ $t('general.modelUsageRefreshIntervalUnit') }}</span>
+            </div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.balanceRefreshInterval') }}</label>
+              <p class="setting-desc">{{ $t('general.balanceRefreshIntervalDesc') }}</p>
+            </div>
+            <div class="input-with-suffix">
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.balanceRefreshInterval" min="1" max="60" />
+              <span class="input-suffix">{{ $t('general.balanceRefreshIntervalUnit') }}</span>
+            </div>
+          </div>
+          <div class="setting-item" style="flex-wrap: wrap;">
+            <div class="setting-info" style="width: 100%;">
+              <label class="setting-label">{{ $t('general.balanceProviderRules') }}</label>
+              <p class="setting-desc">{{ $t('general.balanceProviderRulesDesc') }}</p>
+            </div>
+            <div class="advanced-config" style="width: 100%; margin-top: 8px;">
+              <div class="advanced-config-header" @click="balanceRulesExpanded = !balanceRulesExpanded">
+                <svg class="chevron" :class="{ expanded: balanceRulesExpanded }" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 4l4 4-4 4" />
+                </svg>
+                {{ $t('general.balanceEndpoint') }}
+                <span v-if="localSettings.balanceProviderRules?.length > 0" class="advanced-badge">{{ localSettings.balanceProviderRules.length }}</span>
+              </div>
+              <div v-if="balanceRulesExpanded" class="advanced-config-body">
+                <div class="custom-fields">
+                  <div v-for="(rule, idx) in localSettings.balanceProviderRules" :key="idx" class="rule-card">
+                    <div class="rule-row">
+                      <div class="field-group field-group-provider">
+                        <span class="field-label">{{ $t('general.balanceSupplierName') }}</span>
+                        <custom-input
+                          type="text"
+                          class="field-provider"
+                          v-model="rule.provider"
+                          :placeholder="$t('general.balanceSupplierNamePlaceholder')"
+                        />
+                      </div>
+                      <div class="field-group">
+                        <span class="field-label">{{ $t('general.balanceEndpoint') }}</span>
+                        <custom-input
+                          type="text"
+                          class="field-key"
+                          v-model="rule.endpoint"
+                          :placeholder="$t('general.balanceEndpointPlaceholder')"
+                        />
+                      </div>
+                      <button class="btn-icon btn-remove" @click="removeBalanceRule(idx)" :title="$t('general.delete')">
+                        <CloseSmall size="12" />
+                      </button>
+                    </div>
+                    <div class="rule-row rule-mapping-row">
+                      <div class="field-group">
+                        <span class="field-label">{{ $t('general.balanceField') }}</span>
+                        <custom-input
+                          type="text"
+                          class="field-key field-mapping"
+                          v-model="rule.balanceField"
+                          :placeholder="$t('general.balanceFieldPlaceholder')"
+                        />
+                      </div>
+                      <div class="field-group">
+                        <span class="field-label">{{ $t('general.balanceUsedField') }}</span>
+                        <custom-input
+                          type="text"
+                          class="field-key field-mapping"
+                          v-model="rule.usedField"
+                          :placeholder="$t('general.balanceUsedFieldPlaceholder')"
+                        />
+                      </div>
+                      <div class="field-group">
+                        <span class="field-label">{{ $t('general.balanceTotalField') }}</span>
+                        <custom-input
+                          type="text"
+                          class="field-key field-mapping"
+                          v-model="rule.totalField"
+                          :placeholder="$t('general.balanceTotalFieldPlaceholder')"
+                        />
+                      </div>
+                      <div class="field-group field-group-unit">
+                        <span class="field-label">{{ $t('general.balanceUnit') }}</span>
+                        <custom-dropdown
+                          v-model="rule.unit"
+                          :options="unitOptions"
+                          :placeholder="$t('general.balanceUnitNotSet')"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <button class="btn btn-secondary btn-add-field" @click="addBalanceRule">
+                    + {{ $t('general.balanceProviderRulesAdd') }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -123,32 +250,21 @@
               <label class="setting-label">{{ $t('general.skipNextSpeakerCheck') }}</label>
               <p class="setting-desc">{{ $t('general.skipNextSpeakerCheckDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.skipNextSpeakerCheck" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.skipNextSpeakerCheck" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.thinkingModeEnabled') }}</label>
               <p class="setting-desc">{{ $t('general.thinkingModeEnabledDesc') }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.thinkingModeEnabled">
-              <option value="true">{{ $t('general.enabled') }}</option>
-              <option value="false">{{ $t('general.disabled') }}</option>
-            </select>
+            <custom-dropdown class="setting-select" v-model="localSettings.thinkingModeEnabled" :options="thinkingModeOptions" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.approvalMode') }}</label>
               <p class="setting-desc">{{ $t('general.approvalModeDesc') }}</p>
             </div>
-            <select class="form-select setting-select" v-model="localSettings.approvalMode">
-              <option value="yolo">{{ $t('general.approvalModeYolo') }}</option>
-              <option value="plan">{{ $t('general.approvalModePlan') }}</option>
-              <option value="autoEdit">{{ $t('general.approvalModeAutoEdit') }}</option>
-              <option value="default">{{ $t('general.approvalModeDefault') }}</option>
-            </select>
+            <custom-dropdown class="setting-select" v-model="localSettings.approvalMode" :options="approvalModeOptions" />
           </div>
         </div>
       </div>
@@ -164,40 +280,28 @@
               <label class="setting-label">{{ $t('general.showMemoryUsage') }}</label>
               <p class="setting-desc">{{ $t('general.showMemoryUsageDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.showMemoryUsage" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.showMemoryUsage" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.hideBanner') }}</label>
               <p class="setting-desc">{{ $t('general.hideBannerDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.hideBanner" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.hideBanner" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.disableAutoUpdate') }}</label>
               <p class="setting-desc">{{ $t('general.disableAutoUpdateDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.disableAutoUpdate" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.disableAutoUpdate" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.disableTelemetry') }}</label>
               <p class="setting-desc">{{ $t('general.disableTelemetryDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.disableTelemetry" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.disableTelemetry" />
           </div>
         </div>
       </div>
@@ -213,31 +317,34 @@
               <label class="setting-label">{{ $t('general.maxSessionTurns') }}</label>
               <p class="setting-desc">{{ $t('general.maxSessionTurnsDesc') }}</p>
             </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.maxSessionTurns" />
+            <div class="input-with-suffix">
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.maxSessionTurns" />
+              <span class="input-suffix">{{ $t('general.maxSessionTurnsUnit') }}</span>
+            </div>
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.shellTimeout') }}</label>
               <p class="setting-desc">{{ $t('general.shellTimeoutDesc') }}</p>
             </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.shellTimeout" />
+            <div class="input-with-suffix">
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.shellTimeout" />
+              <span class="input-suffix">{{ $t('general.shellTimeoutUnit') }}</span>
+            </div>
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.compressionTokenThreshold') }}</label>
               <p class="setting-desc">{{ $t('general.compressionTokenThresholdDesc') }}</p>
             </div>
-            <input type="number" class="form-input setting-input-number" v-model.number="localSettings.compressionTokenThreshold" step="0.01" min="0" max="1" />
+            <custom-input type="number" class="setting-input-number" v-model="localSettings.compressionTokenThreshold" step="0.01" min="0" max="1" />
           </div>
           <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">{{ $t('general.autoConfigureMaxOldSpaceSize') }}</label>
               <p class="setting-desc">{{ $t('general.autoConfigureMaxOldSpaceSizeDesc') }}</p>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="localSettings.autoConfigureMaxOldSpaceSize" />
-              <span class="slider"></span>
-            </label>
+            <ToggleSwitch v-model="localSettings.autoConfigureMaxOldSpaceSize" />
           </div>
         </div>
       </div>
@@ -267,10 +374,7 @@
           <h2 class="section-title">{{ $t('general.sectionCloudSync') }}</h2>
         </div>
         <div class="section-header-right">
-          <label class="switch" @click.stop>
-            <input type="checkbox" :checked="syncEnabled" @click.stop="onToggleSyncEnabled" />
-            <span class="slider"></span>
-          </label>
+          <ToggleSwitch :model-value="syncEnabled" @update:model-value="onToggleSyncEnabled" />
         </div>
       </div>
 
@@ -293,10 +397,7 @@
                   <span class="status-time" v-else-if="cloudStore.isConfigured">{{ $t('cloudSync.neverSynced') }}</span>
                 </div>
                 <div class="cloud-status-right">
-                  <label class="switch switch-sm" @click.stop>
-                    <input type="checkbox" :checked="autoSyncEnabled" @click.prevent.stop="onToggleAutoSync" />
-                    <span class="slider"></span>
-                  </label>
+                  <ToggleSwitch small controlled :model-value="autoSyncEnabled" @update:model-value="onToggleAutoSync" />
                   <span class="auto-sync-label">{{ $t('cloudSync.autoSync') }}</span>
                   <button class="btn btn-primary btn-sm" :disabled="!cloudStore.isConfigured || cloudStore.isSyncing" @click="handleSyncNow">
                     <Loading v-if="cloudStore.isSyncing" size="14" class="spin" />
@@ -337,11 +438,7 @@
                 <div class="setting-info">
                   <label class="setting-label">{{ $t('cloudSync.providerType') }}</label>
                 </div>
-                <select class="form-select setting-select" v-model="selectedProvider" @change="onProviderChange">
-                  <option value="webdav">{{ $t('cloudSync.webdav') }}</option>
-                  <option value="onedrive" disabled>{{ $t('cloudSync.onedrive') }}</option>
-                  <option value="dropbox" disabled>{{ $t('cloudSync.dropbox') }}</option>
-                </select>
+                <custom-dropdown class="setting-select" v-model="selectedProvider" :options="cloudProviderOptions" @update:modelValue="onProviderChange" />
               </div>
 
               <template v-if="selectedProvider === 'webdav'">
@@ -356,20 +453,20 @@
                   <div class="form-row">
                     <div class="form-group">
                       <label class="form-label">{{ $t('cloudSync.webdavServerUrl') }}</label>
-                      <input type="url" class="form-input" v-model="webdavConfig.serverUrl" :placeholder="$t('cloudSync.webdavServerUrlPlaceholder')" />
+                      <custom-input type="url" v-model="webdavConfig.serverUrl" :placeholder="$t('cloudSync.webdavServerUrlPlaceholder')" />
                     </div>
                   </div>
                   <div class="form-row">
                     <div class="form-group">
                       <label class="form-label">{{ $t('cloudSync.webdavUsername') }}</label>
-                      <input type="text" class="form-input" v-model="webdavConfig.username" :placeholder="$t('cloudSync.webdavUsernamePlaceholder')" />
+                      <custom-input type="text" v-model="webdavConfig.username" :placeholder="$t('cloudSync.webdavUsernamePlaceholder')" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">
                         {{ $t('cloudSync.webdavPassword') }}
                         <span class="form-label-hint">{{ $t('cloudSync.webdavPasswordHintTag') }}</span>
                       </label>
-                      <input type="password" class="form-input" v-model="webdavConfig.password" :placeholder="$t('cloudSync.webdavPasswordPlaceholder')" />
+                      <custom-input type="password" v-model="webdavConfig.password" :placeholder="$t('cloudSync.webdavPasswordPlaceholder')" />
                     </div>
                   </div>
                   <div class="webdav-actions">
@@ -435,10 +532,7 @@
                     <label class="setting-label">{{ $t('cloudSync.rememberPassword') }}</label>
                     <p class="setting-desc">{{ $t('cloudSync.rememberPasswordDesc') }}</p>
                   </div>
-                  <label class="switch">
-                    <input type="checkbox" :checked="cloudStore.rememberSyncPassword" @change="onToggleRememberPassword" />
-                    <span class="slider"></span>
-                  </label>
+                  <ToggleSwitch controlled :model-value="cloudStore.rememberSyncPassword" @update:model-value="onToggleRememberPassword" />
                 </div>
               </template>
 
@@ -454,7 +548,20 @@
                     <label class="setting-label">{{ $t('cloudSync.tombstoneRetentionDays') }}</label>
                     <p class="setting-desc">{{ $t('cloudSync.tombstoneRetentionDaysDesc') }}</p>
                   </div>
-                  <input type="number" class="form-input setting-input-number" v-model.number="tombstoneRetentionDays" min="1" max="365" @blur="handleSetTombstoneRetentionDays" @change="handleSetTombstoneRetentionDays" />
+                  <div class="input-with-suffix">
+                  <custom-input type="number" class="setting-input-number has-suffix" v-model="tombstoneRetentionDays" min="1" max="365" @blur="handleSetTombstoneRetentionDays" @change="handleSetTombstoneRetentionDays" />
+                  <span class="input-suffix">{{ $t('cloudSync.tombstoneRetentionDaysUnit') }}</span>
+                </div>
+                </div>
+
+                <div class="setting-item" v-if="cloudStore.autoSyncEnabled">
+                  <div class="setting-info">
+                    <label class="setting-label">{{ $t('cloudSync.syncInterval') }}</label>
+                    <p class="setting-desc">{{ $t('cloudSync.syncIntervalDesc') }}</p>
+                  </div>
+                  <div class="input-with-suffix">
+                    <custom-dropdown v-model="syncIntervalMinutes" :options="syncIntervalOptions" @update:modelValue="handleSetSyncInterval" />
+                  </div>
                 </div>
               </template>
 
@@ -519,10 +626,7 @@
           </div>
           <div class="about-actions-col">
             <div class="auto-update-toggle">
-              <label class="switch switch-sm">
-                <input type="checkbox" v-model="autoUpdateEnabled" @change="onAutoUpdateChange" />
-                <span class="slider"></span>
-              </label>
+              <ToggleSwitch small v-model="autoUpdateEnabled" @change="onAutoUpdateChange" />
               <span class="auto-update-label">{{ $t('update.menu.autoUpdate') }}</span>
             </div>
             <div class="about-btn-group">
@@ -574,6 +678,14 @@
           {{ $t('general.logManagement') }}
         </div>
         <div class="log-management">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.logLevel') }}</label>
+              <p class="setting-desc">{{ $t('general.logLevelDesc') }}</p>
+            </div>
+            <custom-dropdown class="setting-select" v-model="currentLogLevel" :options="logLevelOptions" @update:modelValue="handleLogLevelChange" />
+          </div>
+          <div class="setting-divider"></div>
           <div class="log-info-row">
             <div class="log-info-item">
               <span class="log-info-label">{{ $t('general.logDir') }}</span>
@@ -603,7 +715,7 @@
     <div v-if="renameDeviceDialog.show" class="dialog-overlay" @click.self="closeRenameDeviceDialog">
       <div class="dialog" @click.stop>
         <div class="dialog-title">{{ $t('cloudSync.renameDevice') }}</div>
-        <input type="text" class="form-input" v-model="renameDeviceDialog.name" :placeholder="$t('cloudSync.deviceNamePlaceholder')" maxlength="50" @keyup.enter="confirmRenameDevice" ref="renameDeviceInputRef" />
+        <custom-input type="text" v-model="renameDeviceDialog.name" :placeholder="$t('cloudSync.deviceNamePlaceholder')" maxlength="50" @keyup.enter="confirmRenameDevice" ref="renameDeviceInputRef" />
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="closeRenameDeviceDialog">{{ $t('dialog.cancel') }}</button>
           <button class="btn btn-primary" @click="confirmRenameDevice" :disabled="!renameDeviceDialog.name.trim()">{{ $t('dialog.confirm') }}</button>
@@ -618,15 +730,15 @@
         <div class="dialog-body">
           <div class="form-group" v-if="passwordDialog.showOldPassword">
             <label class="form-label">{{ $t('cloudSync.oldPassword') }}</label>
-            <input type="password" class="form-input" v-model="passwordDialog.oldPassword" :placeholder="$t('cloudSync.oldPassword')" />
+            <custom-input type="password" v-model="passwordDialog.oldPassword" :placeholder="$t('cloudSync.oldPassword')" />
           </div>
           <div class="form-group">
             <label class="form-label">{{ $t(passwordDialog.newPasswordLabel || 'cloudSync.newPassword') }}</label>
-            <input type="password" class="form-input" v-model="passwordDialog.password" :placeholder="$t('cloudSync.passwordMinLength')" />
+            <custom-input type="password" v-model="passwordDialog.password" :placeholder="$t('cloudSync.passwordMinLength')" />
           </div>
           <div class="form-group" v-if="passwordDialog.showConfirm">
             <label class="form-label">{{ $t('cloudSync.confirmPassword') }}</label>
-            <input type="password" class="form-input" v-model="passwordDialog.confirmPassword" :placeholder="$t('cloudSync.confirmPassword')" @keyup.enter="passwordDialog.onConfirm" />
+            <custom-input type="password" v-model="passwordDialog.confirmPassword" :placeholder="$t('cloudSync.confirmPassword')" @keyup.enter="passwordDialog.onConfirm" />
           </div>
           <div class="password-error" v-if="passwordDialog.error">{{ passwordDialog.error }}</div>
         </div>
@@ -645,9 +757,8 @@
         <div class="dialog-title">{{ $t('cloudSync.enterPassword') }}</div>
         <div class="dialog-body">
           <div class="form-group">
-            <input
+            <custom-input
               type="password"
-              class="form-input"
               v-model="syncPasswordDialog.password"
               :placeholder="$t('cloudSync.enterPassword')"
               @keyup.enter="syncPasswordDialog.show && syncPasswordDialog.onConfirm && syncPasswordDialog.onConfirm()"
@@ -679,8 +790,11 @@
 </template>
 
 <script setup>
-import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right, FileSearch, FolderOpen } from '@icon-park/vue-next'
+import { Globe, Rocket, Refresh, Loading, LinkCloud, Delete, Link, CheckSmall, CloseSmall, Edit, Communication, DataScreen, Time, DataDisplay, FilterOne, TopicDiscussion, GithubOne, Right, FileSearch, FolderOpen, ViewGridCard, ZoomIn } from '@icon-park/vue-next'
 import CloudSyncWizard from '../components/CloudSyncWizard.vue'
+import ToggleSwitch from '../components/ToggleSwitch.vue'
+import CustomDropdown from '../components/CustomDropdown.vue'
+import CustomInput from '../components/CustomInput.vue'
 import { useCloudSyncStore } from '@/stores/cloudSync'
 import { useToast } from '@/composables/useToast'
 
@@ -709,6 +823,57 @@ const localSettings = computed({
   set: val => emit('update:settings', val),
 })
 
+const unitOptions = [
+  { value: '¥', label: '¥' },
+  { value: '$', label: '$' },
+]
+
+const languageOptions = computed(() => [
+  { value: 'zh-CN', label: t('languages.zh-CN') },
+  { value: 'en-US', label: t('languages.en-US') },
+  { value: 'ja-JP', label: t('languages.ja-JP') },
+])
+
+const themeOptions = computed(() => [
+  { value: 'Light', label: t('theme.light') },
+  { value: 'Dark', label: t('theme.dark') },
+  { value: 'System', label: t('theme.system') },
+])
+
+const layoutOptions = computed(() => [
+  { value: 'list', label: t('general.layoutList') },
+  { value: 'grid', label: t('general.layoutGrid') },
+])
+
+const thinkingModeOptions = computed(() => [
+  { value: 'true', label: t('general.enabled') },
+  { value: 'false', label: t('general.disabled') },
+])
+
+const approvalModeOptions = computed(() => [
+  { value: 'yolo', label: t('general.approvalModeYolo') },
+  { value: 'plan', label: t('general.approvalModePlan') },
+  { value: 'autoEdit', label: t('general.approvalModeAutoEdit') },
+  { value: 'default', label: t('general.approvalModeDefault') },
+])
+
+const cloudProviderOptions = computed(() => [
+  { value: 'webdav', label: t('cloudSync.webdav') },
+  { value: 'onedrive', label: t('cloudSync.onedrive'), disabled: true },
+  { value: 'dropbox', label: t('cloudSync.dropbox'), disabled: true },
+])
+
+const syncIntervalOptions = computed(() => {
+  const unit = t('cloudSync.syncIntervalUnit')
+  return [1, 5, 10, 15, 30, 60].map(n => ({ value: n, label: `${n} ${unit}` }))
+})
+
+const logLevelOptions = computed(() => [
+  { value: 'info', label: t('general.logLevelInfo') },
+  { value: 'debug', label: t('general.logLevelDebug') },
+  { value: 'silent', label: t('general.logLevelSilent') },
+])
+
 const autoLaunchEnabled = ref(false)
 const autoUpdateEnabled = ref(true)
 const appVersion = ref('1.0.0')
@@ -720,6 +885,7 @@ let checkUpdateTimer = null
 const selectedProvider = ref('webdav')
 const deviceName = ref('')
 const tombstoneRetentionDays = ref(30)
+const syncIntervalMinutes = ref(5)
 const webdavConfig = ref({
   serverUrl: '',
   username: '',
@@ -756,11 +922,18 @@ const cloudConfirmDialog = ref({
 const updateReady = ref(false)
 const updateVersion = ref('')
 
+const platform = ref('')
+
 const supportsAcrylic = computed(() => {
+  // 亚克力效果仅 Windows 平台支持
+  if (platform.value !== 'win32') return false
   if (typeof document === 'undefined' || !('backdropFilter' in document.documentElement.style)) return false
   const effectiveTheme = props.settings.uiTheme === 'System' ? systemTheme.value : props.settings.uiTheme
   return effectiveTheme !== 'Dark'
 })
+
+// IPC 事件取消订阅函数（preload 返回的 wrapper handler 必须用返回函数移除）
+let unsubscribeUpdateStatus = null
 
 // 更新状态变化处理
 const handleStatusChanged = state => {
@@ -773,11 +946,31 @@ const handleStatusChanged = state => {
 }
 
 onMounted(async () => {
+  // 获取当前平台
+  try {
+    if (window.electronAPI?.getPlatform) {
+      const result = await window.electronAPI.getPlatform()
+      if (result.success) {
+        platform.value = result.data
+      }
+    }
+  } catch (_) {}
+
   // 加载云同步设置（确保默认值正确显示）
   await cloudStore.loadSettings()
 
   // 加载日志信息
   loadLogInfo()
+
+  // 加载日志级别
+  try {
+    if (window.electronAPI?.getLogLevel) {
+      const result = await window.electronAPI.getLogLevel()
+      if (result.success) {
+        currentLogLevel.value = result.level
+      }
+    }
+  } catch (_) {}
 
   // 加载系统主题
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -839,7 +1032,7 @@ onMounted(async () => {
   await checkUpdateState()
 
   // 监听更新状态变化
-  window.electronAPI.onUpdateStatusChanged(handleStatusChanged)
+  unsubscribeUpdateStatus = window.electronAPI.onUpdateStatusChanged(handleStatusChanged)
 
   // 初始化云同步状态（开关状态由 localStorage 持久化，不从 settings.json 加载）
   await cloudStore.loadStatus()
@@ -847,20 +1040,16 @@ onMounted(async () => {
   deviceName.value = cloudStore.status.deviceName || ''
   selectedProvider.value = cloudStore.status.provider || 'webdav'
   tombstoneRetentionDays.value = cloudStore.status.tombstoneRetentionDays || 30
+  syncIntervalMinutes.value = cloudStore.status.syncInterval || 5
   if (cloudStore.syncEnabled && cloudStore.isConfigured) {
     await cloudStore.loadDevices()
-  }
-  if (window.electronAPI?.onCloudSyncStatusChanged) {
-    window.electronAPI.onCloudSyncStatusChanged(handleCloudSyncStatusChanged)
   }
 })
 
 onUnmounted(() => {
-  if (window.electronAPI && window.electronAPI.removeUpdateListener) {
-    window.electronAPI.removeUpdateListener('update-status-changed', handleStatusChanged)
-  }
-  if (window.electronAPI?.removeListener) {
-    window.electronAPI.removeListener('cloud-sync:status-changed', handleCloudSyncStatusChanged)
+  if (unsubscribeUpdateStatus) {
+    unsubscribeUpdateStatus()
+    unsubscribeUpdateStatus = null
   }
 })
 
@@ -886,6 +1075,20 @@ const logDir = ref('')
 const logTotalSize = ref(0)
 const logFileCount = ref(0)
 const isClearingLogs = ref(false)
+const currentLogLevel = ref('info')
+
+const handleLogLevelChange = async () => {
+  try {
+    const result = await window.electronAPI.setLogLevel(currentLogLevel.value)
+    if (!result.success) {
+      toast.error(result.error || t('general.logClearFailed'))
+      currentLogLevel.value = 'info'
+    }
+  } catch (e) {
+    toast.error(t('general.logClearFailed'))
+    currentLogLevel.value = 'info'
+  }
+}
 
 const formatLogSize = (bytes) => {
   if (bytes === 0) return '0 B'
@@ -1016,6 +1219,49 @@ const updateSliderValue = e => {
   emit('update:settings', { ...props.settings, acrylicIntensity: value })
 }
 
+// === UI 缩放 ===
+const zoomPresets = [
+  { label: '80%', value: 0.8 },
+  { label: '90%', value: 0.9 },
+  { label: '100%', value: 1.0 },
+  { label: '110%', value: 1.1 },
+  { label: '120%', value: 1.2 },
+]
+
+const onZoomFactorChange = e => {
+  const value = Number(e.target.value)
+  emit('update:settings', { ...props.settings, zoomFactor: value })
+  if (window.electronAPI?.setZoomFactor) {
+    window.electronAPI.setZoomFactor(value)
+  }
+}
+
+const balanceRulesExpanded = ref(false)
+
+// 余额 Provider 检测规则管理
+const addBalanceRule = () => {
+  if (!localSettings.value.balanceProviderRules) {
+    localSettings.value.balanceProviderRules = []
+  }
+  localSettings.value.balanceProviderRules.push({ provider: '', endpoint: '', balanceField: '', usedField: '', totalField: '', unit: '' })
+  // 触发更新通知
+  emit('update:settings', { ...props.settings })
+}
+
+const removeBalanceRule = (idx) => {
+  if (localSettings.value.balanceProviderRules && Array.isArray(localSettings.value.balanceProviderRules)) {
+    localSettings.value.balanceProviderRules.splice(idx, 1)
+    emit('update:settings', { ...props.settings })
+  }
+}
+
+const setZoomPreset = value => {
+  emit('update:settings', { ...props.settings, zoomFactor: value })
+  if (window.electronAPI?.setZoomFactor) {
+    window.electronAPI.setZoomFactor(value)
+  }
+}
+
 // === 云同步 Computed ===
 const canTestConnection = computed(() => {
   return webdavConfig.value.serverUrl.trim() && webdavConfig.value.username.trim() && webdavConfig.value.password.trim() && !cloudStore.isTestingConnection
@@ -1104,11 +1350,10 @@ function showCloudMessage({ type = 'info', title, message }) {
 
 // 待处理的云同步启用标记（密码设置完成后继续）
 const pendingSyncEnable = ref(false)
+// Bug 6: 记住关闭同步总开关前的自动同步状态，重新开启时恢复
+const _prevAutoSyncEnabled = ref(false)
 
-async function onToggleSyncEnabled(event) {
-  // event.target.checked tells us the intended new state (what the user is clicking TO)
-  // We use @click.stop with :checked instead of v-model, so the ref isn't toggled before this handler runs
-  const targetChecked = event.target.checked
+async function onToggleSyncEnabled(targetChecked) {
   if (targetChecked) {
     // 开启云同步：检查是否已完成配置（WebDAV 连接 + 同步密码）
     if (!cloudStore.isConfigured) {
@@ -1120,20 +1365,25 @@ async function onToggleSyncEnabled(event) {
       // 已完成配置，直接启用
       cloudStore.setSyncEnabled(true)
       await cloudStore.loadStatus()
+      // Bug 6: 恢复之前的自动同步状态
+      if (_prevAutoSyncEnabled.value) {
+        _prevAutoSyncEnabled.value = false
+        // 恢复自动同步（需要密码，走 onToggleAutoSync 流程）
+        await onToggleAutoSync(true)
+      }
     }
   } else {
     // 关闭云同步
     cloudStore.setSyncEnabled(false)
+    // Bug 6: 保存当前自动同步状态，以便重新开启时恢复
+    _prevAutoSyncEnabled.value = cloudStore.autoSyncEnabled
     // 同步关闭时，同时关闭自动同步，保持状态一致
     cloudStore.setAutoSyncEnabled(false)
     await cloudStore.setAutoSync(false)
   }
 }
 
-async function onToggleAutoSync() {
-  // 使用 !cloudStore.autoSyncEnabled 判断目标状态，而不是 event.target.checked
-  // 因为 Vue 的 :checked 绑定在 @change 触发前就已经覆盖了 DOM 的 checked 属性
-  const enabled = !cloudStore.autoSyncEnabled
+async function onToggleAutoSync(enabled) {
   if (enabled) {
     // 开启自动同步：如果有缓存密码直接使用，跳过弹框
     if (cloudStore.cachedPassword) {
@@ -1244,6 +1494,11 @@ async function confirmRenameDevice() {
   if (trimmed !== cloudStore.status.deviceName) {
     await cloudStore.setDeviceName(trimmed)
     deviceName.value = trimmed
+    // 同步更新 devices 数组中本机设备的名称，确保 UI 实时刷新
+    const selfDevice = cloudStore.devices.find(d => d.isSelf)
+    if (selfDevice) {
+      selfDevice.deviceName = trimmed
+    }
   }
 }
 
@@ -1259,6 +1514,13 @@ async function handleSetTombstoneRetentionDays() {
   const result = await window.electronAPI.cloudSyncSetTombstoneRetentionDays(days)
   if (result.success && result.tombstoneRetentionDays) {
     tombstoneRetentionDays.value = result.tombstoneRetentionDays
+  }
+}
+
+async function handleSetSyncInterval() {
+  const result = await cloudStore.setSyncInterval(syncIntervalMinutes.value)
+  if (result.success && result.syncInterval) {
+    syncIntervalMinutes.value = result.syncInterval
   }
 }
 
@@ -1390,8 +1652,7 @@ function closePasswordDialog() {
   if (cancel) cancel()
 }
 
-async function onToggleRememberPassword(event) {
-  const enabled = event.target.checked
+async function onToggleRememberPassword(enabled) {
   await cloudStore.setRememberPasswordValue(enabled)
 }
 
@@ -1477,11 +1738,6 @@ function onWizardCancel() {
   cloudStore.setSyncEnabled(false)
 }
 
-const handleCloudSyncStatusChanged = state => {
-  if (state) {
-    Object.assign(cloudStore.status, state)
-  }
-}
 </script>
 
 <style lang="less" scoped>
@@ -1628,6 +1884,45 @@ const handleCloudSyncStatusChanged = state => {
   width: 100px;
   flex-shrink: 0;
   text-align: center;
+
+  &.has-suffix {
+    padding-right: 32px;
+    // Hide number spinners for suffix inputs
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    -moz-appearance: textfield;
+  }
+}
+
+.setting-input-select {
+  width: 120px;
+  flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%23666' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+  cursor: pointer;
+}
+
+.input-with-suffix {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.input-suffix {
+  position: absolute;
+  right: 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  user-select: none;
 }
 
 .core-tools-textarea {
@@ -1644,19 +1939,21 @@ const handleCloudSyncStatusChanged = state => {
 }
 
 // ============================================
-// Slider
+// Slider — Windows 11 Fluent 2 Slider
+// Track: 4px pill, inactive=neutral, active=accent
+// Thumb: 20px circle, 1.5px stroke, hover grows to 24px
 // ============================================
 .slider-container {
   position: relative;
   width: 100%;
-  height: 20px;
+  height: 28px;
 }
 
 .slider-track {
   position: absolute;
   width: 100%;
   height: 4px;
-  background: var(--border);
+  background: var(--control-fill);
   border-radius: 2px;
   top: 50%;
   transform: translateY(-50%);
@@ -1674,7 +1971,7 @@ const handleCloudSyncStatusChanged = state => {
 .form-slider {
   position: absolute;
   width: 100%;
-  height: 20px;
+  height: 28px;
   background: transparent;
   outline: none;
   cursor: pointer;
@@ -1684,103 +1981,89 @@ const handleCloudSyncStatusChanged = state => {
   top: 0;
   left: 0;
 
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    background: transparent;
+    border-radius: 2px;
+  }
+
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-strong);
+    box-shadow: var(--shadow-2);
     cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-    transition: transform 0.1s ease;
+    margin-top: -8px;
+    transition:
+      transform var(--duration-normal) var(--ease-emphasized),
+      border-color var(--duration-normal) var(--ease-out),
+      box-shadow var(--duration-normal) var(--ease-out);
   }
 
   &::-webkit-slider-thumb:hover {
-    transform: scale(1.1);
+    transform: scale(1.2);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-4);
   }
 
   &::-webkit-slider-thumb:active {
-    transform: scale(0.95);
+    transform: scale(1.1);
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+
+  &:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--text-primary);
+    outline-offset: 1px;
+  }
+
+  &::-moz-range-track {
+    height: 4px;
+    background: transparent;
+    border-radius: 2px;
   }
 
   &::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--bg-elevated);
+    border: 1.5px solid var(--border-strong);
+    box-shadow: var(--shadow-2);
     cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    transition:
+      transform var(--duration-normal) var(--ease-emphasized),
+      border-color var(--duration-normal) var(--ease-out);
+  }
+
+  &::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    border-color: var(--accent);
+  }
+
+  &::-moz-range-thumb:active {
+    transform: scale(1.1);
+    background: var(--accent);
+    border-color: var(--accent);
   }
 }
 
-// ============================================
-// Switch
-// ============================================
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 40px;
-  height: 22px;
-  flex-shrink: 0;
+// Zoom presets
+.zoom-presets {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  flex-wrap: wrap;
 
-  input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--border);
-  transition: 0.2s;
-  border-radius: 22px;
-
-  &:before {
-    position: absolute;
-    content: '';
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: 0.2s;
-    border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  }
-}
-
-input:checked + .slider {
-  background-color: var(--accent);
-}
-
-input:checked + .slider:before {
-  transform: translateX(18px);
-}
-
-.switch-sm {
-  width: 32px;
-  height: 18px;
-
-  .slider {
-    &:before {
-      height: 12px;
-      width: 12px;
-      left: 3px;
-      bottom: 3px;
-    }
-  }
-
-  input:checked + .slider:before {
-    transform: translateX(14px);
+  .btn-sm {
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: var(--radius-sm);
   }
 }
 
@@ -2409,7 +2692,7 @@ input:checked + .slider:before {
 // ============================================
 // Responsive
 // ============================================
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .setting-item {
     flex-direction: column;
     align-items: flex-start;
@@ -2440,6 +2723,164 @@ input:checked + .slider:before {
 
   .sync-content-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+// Advanced config (collapsible rule editor)
+.advanced-config {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+
+  .advanced-config-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    background: var(--bg-secondary);
+    transition: background var(--transition-fast) var(--ease-out);
+    user-select: none;
+
+    &:hover {
+      background: var(--control-fill);
+    }
+
+    .chevron {
+      width: 14px;
+      height: 14px;
+      color: var(--text-tertiary);
+      transition: transform var(--duration-slow) var(--ease-out);
+
+      &.expanded {
+        transform: rotate(90deg);
+      }
+    }
+
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .advanced-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .advanced-config-body {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-primary);
+  }
+
+  .custom-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .custom-field-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    animation: fadeIn 0.15s ease;
+  }
+
+  .field-key {
+    flex: 1;
+  }
+
+  .btn-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all var(--transition-fast) var(--ease-out);
+
+    &:hover {
+      background: color-mix(in srgb, var(--danger) 15%, transparent);
+      color: var(--danger);
+    }
+  }
+
+  .btn-add-field {
+    align-self: flex-start;
+    margin-top: 4px;
+  }
+
+  .rule-card {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    margin-bottom: 8px;
+    animation: fadeIn 0.15s ease;
+  }
+
+  .rule-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .rule-mapping-row {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border-light);
+  }
+
+  .field-mapping {
+    flex: 1;
+  }
+
+  .field-unit {
+    width: 64px;
+    flex-shrink: 0;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .field-group-unit {
+    flex: 0 0 auto;
+    width: 100px;
+  }
+
+  .field-group-provider {
+    flex: 0 0 auto;
+    width: 140px;
+  }
+
+  .field-provider {
+    width: 100%;
+  }
+
+  .field-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    padding-left: 2px;
+    line-height: 1.4;
   }
 }
 

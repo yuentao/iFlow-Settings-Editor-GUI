@@ -10,16 +10,11 @@ const { t } = require('../utils/translations')
 const { readSettings } = require('../services/configService')
 const { wrapIpcHandler, successResult, ErrorCodes } = require('../utils/errors')
 const { createLogger } = require('../utils/logger')
+const { isPathInside } = require('../utils/pathSafety')
 const logger = createLogger('Skills')
 
 // 技能文件夹路径
 const SKILLS_FOLDER = path.join(app.getPath('home'), '.iflow', 'skills')
-
-// P0-04：防止路径遍历攻击，确保用户输入的名称不会逃逸出目标目录
-function isPathSafe(baseDir, userInput) {
-  const resolved = path.resolve(baseDir, userInput)
-  return resolved.startsWith(baseDir + path.sep) || resolved === baseDir
-}
 
 // 确保技能文件夹存在
 function ensureSkillsFolder() {
@@ -245,7 +240,7 @@ function registerSkillsIpcHandlers() {
 
     ensureSkillsFolder()
     // P0-04：防止路径遍历
-    if (!isPathSafe(SKILLS_FOLDER, name)) {
+    if (!isPathInside(SKILLS_FOLDER, name)) {
       return { success: false, error: t('messages.skillNotFound', { name }), code: ErrorCodes.SKILL_NOT_FOUND }
     }
     const destPath = path.join(SKILLS_FOLDER, name)
@@ -291,7 +286,7 @@ function registerSkillsIpcHandlers() {
 
 
     // P0-04：防止路径遍历
-    if (!isPathSafe(SKILLS_FOLDER, folderName)) {
+    if (!isPathInside(SKILLS_FOLDER, folderName)) {
       return { success: false, error: t('messages.skillNotFound', { name }), code: ErrorCodes.SKILL_NOT_FOUND }
     }
     const skillPath = path.join(SKILLS_FOLDER, folderName)
@@ -321,7 +316,7 @@ function registerSkillsIpcHandlers() {
   // 删除技能
   ipcMain.handle('delete-skill', wrapIpcHandler(async (event, name) => {
     // P0-04：防止路径遍历
-    if (!isPathSafe(SKILLS_FOLDER, name)) {
+    if (!isPathInside(SKILLS_FOLDER, name)) {
       return { success: false, error: t('messages.skillNotFound', { name }), code: ErrorCodes.SKILL_NOT_FOUND }
     }
     const skillPath = path.join(SKILLS_FOLDER, name)

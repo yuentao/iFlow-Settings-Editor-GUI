@@ -95,8 +95,8 @@ describe('UpdateProgress.vue', () => {
       },
     });
 
-    expect(wrapper.find('.progress-bar').exists()).toBe(true);
-    expect(wrapper.find('.progress-fill').attributes('style')).toContain('width: 75%');
+    expect(wrapper.find('.progress-bar-track').exists()).toBe(true);
+    expect(wrapper.find('.progress-bar-fill').attributes('style')).toContain('width: 75%');
   });
 
   it('displays progress percentage', () => {
@@ -185,8 +185,9 @@ describe('UpdateProgress.vue', () => {
     });
 
     const buttons = wrapper.findAll('.progress-actions .btn');
-    expect(buttons.length).toBe(1);
-    expect(buttons[0].text()).toBe('update.cancel');
+    expect(buttons.length).toBe(2);
+    expect(buttons[0].text()).toBe('update.background');
+    expect(buttons[1].text()).toBe('update.cancel');
   });
 
   it('shows install and later buttons when downloaded', () => {
@@ -223,7 +224,7 @@ describe('UpdateProgress.vue', () => {
       },
     });
 
-    await wrapper.find('.progress-actions .btn').trigger('click');
+    await wrapper.findAll('.progress-actions .btn')[1].trigger('click');
     expect(wrapper.emitted('cancel')).toBeTruthy();
   });
 
