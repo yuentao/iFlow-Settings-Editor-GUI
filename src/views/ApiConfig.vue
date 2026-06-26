@@ -478,7 +478,7 @@ function getBalanceText(name) {
   if (!info) return ''
   if (info.loading) return t('api.balance.loading')
   if (!info.result) return ''
-  if (!info.result.success) return '—'
+  if (!info.result.success) return ''
   const r = info.result
   if (r.status === 'unlimited') {
     if (r.used != null) {
@@ -541,7 +541,7 @@ function getBalanceSimple(name) {
   if (!info) return ''
   if (info.loading) return t('api.balance.loading')
   if (!info.result) return ''
-  if (!info.result.success) return '—'
+  if (!info.result.success) return ''
   const r = info.result
   if (r.status === 'unlimited') return t('api.balance.unlimited')
   if (r.remaining !== undefined && r.remaining >= 0) {

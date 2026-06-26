@@ -111,7 +111,7 @@ export default {
     balanceSupplierName: 'Supplier Name',
     balanceSupplierNamePlaceholder: 'e.g. buzz',
     balanceEndpoint: 'Balance Endpoint',
-    balanceEndpointPlaceholder: 'e.g. /api/usage/token/',
+    balanceEndpointPlaceholder: 'e.g. /api/usage/token/ or https://...',
     balanceField: 'Balance Field',
     balanceFieldPlaceholder: 'e.g. data.total_available',
     balanceUsedField: 'Used Field',
