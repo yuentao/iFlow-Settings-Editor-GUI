@@ -111,7 +111,7 @@ export default {
     balanceSupplierName: 'サプライヤー名',
     balanceSupplierNamePlaceholder: '例：buzz',
     balanceEndpoint: '残高照会エンドポイント',
-    balanceEndpointPlaceholder: '例：/api/usage/token/',
+    balanceEndpointPlaceholder: '例：/api/usage/token/ または https://...',
     balanceField: '残高フィールド',
     balanceFieldPlaceholder: '例：data.total_available',
     balanceUsedField: '使用量フィールド',

@@ -31,8 +31,9 @@
         </template>
 
         <template #item-actions="{ item: project }">
-          <button class="action-btn danger" :title="$t('projects.deleteProject')" @click.stop="handleDeleteProject(project)">
-            <Delete size="14" />
+          <button class="action-btn danger" :title="$t('projects.deleteProject')" :aria-label="$t('projects.deleteProject')" @click.stop="handleDeleteProject(project)" :disabled="deletingProjectId === project.id">
+            <span v-if="deletingProjectId === project.id" class="spinner spinner-sm"></span>
+            <Delete v-else size="14" />
           </button>
         </template>
 
@@ -82,6 +83,9 @@ const emit = defineEmits<{
 }>()
 
 const expandedProjectId = ref<string | null>(null)
+const exportingSessionId = ref<string | null>(null)
+const deletingSessionId = ref<string | null>(null)
+const deletingProjectId = ref<string | null>(null)
 
 const confirmState = ref<{
   show: boolean
@@ -141,12 +145,17 @@ async function loadMoreSessions() {
 }
 
 async function handleExport(session: SessionSummary) {
-  if (!expandedProjectId.value) return
-  const result = await store.exportSessionAction(expandedProjectId.value, session.id, 'markdown')
-  if (result.success) {
-    toast.success(t('projects.exportSuccess'))
-  } else if (!result.cancelled) {
-    toast.error(t('projects.exportFailed') + ': ' + (result.error || ''))
+  if (!expandedProjectId.value || exportingSessionId.value) return
+  exportingSessionId.value = session.id
+  try {
+    const result = await store.exportSessionAction(expandedProjectId.value, session.id, 'markdown')
+    if (result.success) {
+      toast.success(t('projects.exportSuccess'))
+    } else if (!result.cancelled) {
+      toast.error(t('projects.exportFailed') + ': ' + (result.error || ''))
+    }
+  } finally {
+    exportingSessionId.value = null
   }
 }
 
@@ -159,7 +168,10 @@ async function handleDeleteSession(session: SessionSummary) {
     messageParams: {},
     danger: true,
     onConfirm: async () => {
+      if (deletingSessionId.value) return
+      deletingSessionId.value = session.id
       const result = await store.deleteSessionAction(expandedProjectId.value!, session.id)
+      deletingSessionId.value = null
       if (result.success) {
         toast.success(t('projects.deleteSuccess'))
         // 从 store 的 sessions 数组重新计算实际数量
@@ -182,7 +194,10 @@ async function handleDeleteProject(project: Project) {
     messageParams: { name: project.name, count: project.sessionCount },
     danger: true,
     onConfirm: async () => {
+      if (deletingProjectId.value) return
+      deletingProjectId.value = project.id
       const result = await store.deleteProjectAction(project.id)
+      deletingProjectId.value = null
       if (result.success) {
         toast.success(t('projects.deleteProjectSuccess'))
       } else {
@@ -234,6 +249,9 @@ onMounted(async () => {
 onUnmounted(() => {
   store.resetSessions()
   expandedProjectId.value = null
+  exportingSessionId.value = null
+  deletingSessionId.value = null
+  deletingProjectId.value = null
 })
 </script>
 
@@ -283,7 +301,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
 }
 

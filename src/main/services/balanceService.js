@@ -298,9 +298,11 @@ function getValueByPath(obj, path) {
  * @returns {Promise<import('../../shared/types').TokenBalanceResult>}
  */
 async function fetchCustomBalance({ baseUrl, apiKey, rule }) {
-  const origin = getOrigin(baseUrl)
-  const ep = rule.endpoint.startsWith('/') ? rule.endpoint : `/${rule.endpoint}`
-  const result = await httpGetJson(`${origin}${ep}`, apiKey)
+  const isAbsoluteUrl = /^https?:\/\//i.test(rule.endpoint)
+  const requestUrl = isAbsoluteUrl
+    ? rule.endpoint
+    : `${getOrigin(baseUrl)}${rule.endpoint.startsWith('/') ? rule.endpoint : `/${rule.endpoint}`}`
+  const result = await httpGetJson(requestUrl, apiKey)
 
   if (!result.success) {
     return { ...result, provider: rule.provider, fetchedAt: new Date().toISOString() }

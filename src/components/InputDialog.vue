@@ -13,7 +13,8 @@
       />
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="handleCancel">{{ $t('dialog.cancel') }}</button>
-        <button class="btn btn-primary" @click="handleConfirm">{{ $t('dialog.confirm') }}</button>
+        <button v-if="dialog.isConfirm" class="btn btn-primary" @click="handleConfirm" ref="confirmButtonRef">{{ $t('dialog.confirm') }}</button>
+        <button v-else class="btn btn-primary" @click="handleConfirm">{{ $t('dialog.confirm') }}</button>
       </div>
     </div>
   </div>
@@ -56,12 +57,13 @@ const emit = defineEmits<{
 
 const inputValue = ref('')
 const overlayRef = ref<HTMLElement | null>(null)
+const confirmButtonRef = ref<HTMLButtonElement | null>(null)
 
 onMounted(() => {
   if (props.dialog.show) {
     inputValue.value = props.dialog.defaultValue || ''
     nextTick(() => {
-      overlayRef.value?.focus()
+      confirmButtonRef.value?.focus() || overlayRef.value?.focus()
     })
   }
 })
@@ -70,7 +72,7 @@ watch(() => props.dialog.show, (show: boolean) => {
   if (show) {
     inputValue.value = props.dialog.defaultValue || ''
     nextTick(() => {
-      overlayRef.value?.focus()
+      confirmButtonRef.value?.focus() || overlayRef.value?.focus()
     })
   }
 })

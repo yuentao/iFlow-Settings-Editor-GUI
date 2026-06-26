@@ -737,11 +737,10 @@ class SyncService {
    */
   _extractSyncData(settings) {
     // 不再在这里为 item 添加 _lastModified，避免影响合并比较
-    // currentApiProfile 是设备级偏好（每台设备可能使用不同配置），不参与同步
+    // currentApiProfile 和 apiProfilesOrder 是设备级偏好，不参与同步
     return {
       apiProfiles: settings.apiProfiles || {},
       mcpServers: settings.mcpServers || {},
-      apiProfilesOrder: settings.apiProfilesOrder || [],
       // tombstone 一并上传，让其他设备据此物理删除已删条目
       _deletedProfiles: settings._deletedProfiles || {},
       _deletedServers: settings._deletedServers || {},
@@ -970,19 +969,18 @@ class SyncService {
       }
     }
 
-    // 合并 apiProfilesOrder：去重保序，并剔除已被 tombstone 显式删除的条目
+    // apiProfilesOrder 是本机偏好，不参与云同步；仅清理不存在项并追加新同步到的配置
     const mergedOrder = []
     const _seenOrder = new Set()
     const _pushOrder = (name) => {
       if (_seenOrder.has(name)) return
+      if (!mergedProfiles[name]) return
       if (_profileTombT(name) > 0) return // 被 tombstone 显式删除
       _seenOrder.add(name)
       mergedOrder.push(name)
     }
-    for (const name of (local.apiProfilesOrder || [])) _pushOrder(name)
-    for (const remote of remoteConfigs) {
-      for (const name of (remote.data.apiProfilesOrder || [])) _pushOrder(name)
-    }
+    for (const name of (localSettings.apiProfilesOrder || [])) _pushOrder(name)
+    for (const name of Object.keys(mergedProfiles)) _pushOrder(name)
 
     // currentApiProfile 是设备级偏好，不参与同步，保留本地值
 

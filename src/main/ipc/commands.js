@@ -9,16 +9,11 @@ const fs = require('fs')
 const { t } = require('../utils/translations')
 const { wrapIpcHandler, successResult, errorResult, ErrorCodes } = require('../utils/errors')
 const { createLogger } = require('../utils/logger')
+const { isPathInside } = require('../utils/pathSafety')
 const logger = createLogger('Commands')
 
 // 命令文件夹路径
 const COMMANDS_FOLDER = path.join(app.getPath('home'), '.iflow', 'commands')
-
-// P0-04：防止路径遍历攻击，确保用户输入的名称不会逃逸出目标目录
-function isPathSafe(baseDir, userInput) {
-  const resolved = path.resolve(baseDir, userInput)
-  return resolved.startsWith(baseDir + path.sep) || resolved === baseDir
-}
 
 // 确保 commands 文件夹存在
 function ensureCommandsFolder() {
@@ -123,7 +118,7 @@ function registerCommandsIpcHandlers() {
   // 读取单个命令
   ipcMain.handle('read-command', wrapIpcHandler(async (event, name) => {
     // P0-04：防止路径遍历
-    if (!isPathSafe(COMMANDS_FOLDER, `${name}.toml`)) {
+    if (!isPathInside(COMMANDS_FOLDER, `${name}.toml`)) {
       return { success: false, error: t('errors.commandNotFound'), code: ErrorCodes.COMMAND_NOT_FOUND }
     }
     const filePath = path.join(COMMANDS_FOLDER, `${name}.toml`)
@@ -152,7 +147,7 @@ function registerCommandsIpcHandlers() {
   // 更新命令
   ipcMain.handle('update-command', wrapIpcHandler(async (event, name, data) => {
     // P0-04：防止路径遍历
-    if (!isPathSafe(COMMANDS_FOLDER, `${name}.toml`)) {
+    if (!isPathInside(COMMANDS_FOLDER, `${name}.toml`)) {
       return { success: false, error: t('errors.commandNotFound'), code: ErrorCodes.COMMAND_NOT_FOUND }
     }
     const filePath = path.join(COMMANDS_FOLDER, `${name}.toml`)
@@ -167,7 +162,7 @@ function registerCommandsIpcHandlers() {
   // 删除命令
   ipcMain.handle('delete-command', wrapIpcHandler(async (event, name) => {
     // P0-04：防止路径遍历
-    if (!isPathSafe(COMMANDS_FOLDER, `${name}.toml`)) {
+    if (!isPathInside(COMMANDS_FOLDER, `${name}.toml`)) {
       return { success: false, error: t('errors.commandNotFound'), code: ErrorCodes.COMMAND_NOT_FOUND }
     }
     const filePath = path.join(COMMANDS_FOLDER, `${name}.toml`)
@@ -184,7 +179,7 @@ function registerCommandsIpcHandlers() {
     const mainWindow = getMainWindow()
 
     // P0-04：防止路径遍历
-    if (!isPathSafe(COMMANDS_FOLDER, `${name}.toml`)) {
+    if (!isPathInside(COMMANDS_FOLDER, `${name}.toml`)) {
       return { success: false, error: t('errors.commandNotFound'), code: ErrorCodes.COMMAND_NOT_FOUND }
     }
     const filePath = path.join(COMMANDS_FOLDER, `${name}.toml`)

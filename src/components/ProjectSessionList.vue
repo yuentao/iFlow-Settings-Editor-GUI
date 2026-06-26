@@ -28,10 +28,10 @@
       </template>
 
       <template #item-actions="{ item: session }">
-        <button class="action-btn" :title="$t('projects.export')" @click.stop="$emit('exportSession', session)">
+        <button class="action-btn" :title="$t('projects.export')" :aria-label="$t('projects.export')" @click.stop="$emit('exportSession', session)">
           <Export size="14" />
         </button>
-        <button class="action-btn danger" :title="$t('projects.delete')" @click.stop="$emit('deleteSession', session)">
+        <button class="action-btn danger" :title="$t('projects.delete')" :aria-label="$t('projects.delete')" @click.stop="$emit('deleteSession', session)">
           <Delete size="14" />
         </button>
       </template>
@@ -90,7 +90,7 @@ function formatTokenCount(count: number): string {
 
 .sessions-header {
   padding: 6px 16px;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   font-weight: 500;
 }
@@ -131,7 +131,7 @@ function formatTokenCount(count: number): string {
   margin-top: 3px;
 
   .meta-item {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     color: var(--text-tertiary);
   }
 

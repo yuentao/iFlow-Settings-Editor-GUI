@@ -4,7 +4,6 @@
  */
 
 import { ref } from 'vue'
-import type { IpcResult } from '@/shared/types'
 
 export type SupportedLocale = 'zh-CN' | 'en-US' | 'ja-JP'
 

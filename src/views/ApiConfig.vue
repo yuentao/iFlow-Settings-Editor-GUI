@@ -95,13 +95,14 @@
             </span>
           </div>
           <div class="profile-actions">
-            <button class="action-btn" @click.stop="$emit('edit-profile', profile.name)" :title="$t('api.edit')">
+            <button class="action-btn" @click.stop="$emit('edit-profile', profile.name)" :title="$t('api.edit')" :aria-label="$t('api.edit')">
               <Edit size="14" />
             </button>
             <button
               class="action-btn"
               @click.stop="$emit('duplicate-profile', profile.name)"
               :title="$t('api.duplicate')"
+              :aria-label="$t('api.duplicate')"
             >
               <Copy size="14" />
             </button>
@@ -110,6 +111,7 @@
               v-if="index !== 0 && currentProfile !== profile.name"
               @click.stop="$emit('delete-profile', profile.name)"
               :title="$t('api.delete')"
+              :aria-label="$t('api.delete')"
             >
               <Delete size="14" />
             </button>
@@ -169,22 +171,21 @@ const layoutMode = computed(() => props.settings?.apiConfigLayout || 'list')
 // Local copy of profiles for VueDraggable v-model sync
 const localProfiles = ref([...props.profiles])
 watch(
-  () => props.profiles,
-  val => {
-    localProfiles.value = [...val]
+  () => props.profiles.map(p => p.name).join('::'),
+  () => {
+    localProfiles.value = [...props.profiles]
   },
-  { deep: true },
 )
 watch(
-  localProfiles,
-  val => {
+  () => localProfiles.value.map(p => p.name).join('::'),
+  () => {
+    const val = localProfiles.value
     // Emit reorder only when order actually differs from prop
     const sameOrder = val.length === props.profiles.length && val.every((p, i) => p.name === props.profiles[i].name)
     if (!sameOrder) {
       emit('reorder-profiles', [...val])
     }
   },
-  { deep: true },
 )
 
 let isDragging = false
@@ -328,6 +329,7 @@ const balanceMap = reactive({})
 // value: { loading: boolean, result: TokenBalanceResult | null, lastError: string | null }
 
 let balanceTimer = null
+let balanceRefreshTimer = null
 let balancePollCancelled = false
 
 const balancePollIntervalMs = computed(() => {
@@ -391,6 +393,15 @@ async function fetchBalance(name) {
   }
 }
 
+function scheduleFetchAllBalances() {
+  if (balancePollCancelled) return
+  if (balanceRefreshTimer) clearTimeout(balanceRefreshTimer)
+  balanceRefreshTimer = setTimeout(() => {
+    balanceRefreshTimer = null
+    fetchAllBalances()
+  }, 250)
+}
+
 async function fetchAllBalances() {
   if (balancePollCancelled) return
   // 仅查询当前使用中的 API 配置
@@ -418,6 +429,10 @@ function stopBalancePolling() {
     clearInterval(balanceTimer)
     balanceTimer = null
   }
+  if (balanceRefreshTimer) {
+    clearTimeout(balanceRefreshTimer)
+    balanceRefreshTimer = null
+  }
 }
 
 // 余额检测间隔变化时重启轮询
@@ -438,7 +453,7 @@ watch(
     // 非纯顺序变化才触发重新查询
     const isOnlyReorder = prevProfileNames.size === newNames.size && [...prevProfileNames].every(n => newNames.has(n))
     if (!isOnlyReorder) {
-      fetchAllBalances()
+      scheduleFetchAllBalances()
     }
   },
   { deep: true },
@@ -449,7 +464,7 @@ watch(
   () => props.settings?.apiProfiles,
   (newVal, oldVal) => {
     console.log(`[余额] apiProfiles watch fired: new=${Object.keys(newVal || {}).length}, old=${Object.keys(oldVal || {}).length}`)
-    fetchAllBalances()
+    scheduleFetchAllBalances()
   },
   { deep: true },
 )
@@ -461,7 +476,7 @@ watch(
     const newLen = Array.isArray(newVal) ? newVal.length : 0
     const oldLen = Array.isArray(oldVal) ? oldVal.length : 0
     console.log(`[余额] balanceProviderRules watch fired: new=${newLen}, old=${oldLen}`)
-    fetchAllBalances()
+    scheduleFetchAllBalances()
   },
   { deep: true },
 )
@@ -478,7 +493,7 @@ function getBalanceText(name) {
   if (!info) return ''
   if (info.loading) return t('api.balance.loading')
   if (!info.result) return ''
-  if (!info.result.success) return '—'
+  if (!info.result.success) return ''
   const r = info.result
   if (r.status === 'unlimited') {
     if (r.used != null) {
@@ -541,7 +556,7 @@ function getBalanceSimple(name) {
   if (!info) return ''
   if (info.loading) return t('api.balance.loading')
   if (!info.result) return ''
-  if (!info.result.success) return '—'
+  if (!info.result.success) return ''
   const r = info.result
   if (r.status === 'unlimited') return t('api.balance.unlimited')
   if (r.remaining !== undefined && r.remaining >= 0) {
@@ -930,7 +945,7 @@ function getExpiryClass(name) {
 }
 
 .profile-model {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   display: inline-block;
   padding: 2px 8px;
@@ -985,7 +1000,7 @@ function getExpiryClass(name) {
 }
 
 .connectivity-label {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   white-space: nowrap;
 }
@@ -1030,7 +1045,7 @@ function getExpiryClass(name) {
 
 // Balance badge
 .balance-badge {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   font-weight: 500;
   margin-left: 8px;
   padding: 1px 6px;
@@ -1061,7 +1076,7 @@ function getExpiryClass(name) {
 
 /* 列表布局余额明细文本：默认灰色（过期/错误），可用时绿色 */
 .balance-detail-text {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-left: 8px;
   white-space: nowrap;
@@ -1105,7 +1120,7 @@ function getExpiryClass(name) {
   background: var(--accent);
   color: white;
   border-radius: var(--radius);
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   font-weight: 500;
 
   svg {

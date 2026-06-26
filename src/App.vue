@@ -369,7 +369,7 @@ const switchApiProfile = async () => {
 }
 
 const createNewApiProfile = () => {
-  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0 }
+  creatingApiData.value = { name: '', selectedAuthType: 'openai-compatible', apiKey: '', baseUrl: '', modelName: '', tokensLimit: 128000, expiryDays: 0, balanceProvider: 'auto' }
   showApiCreateDialog.value = true
 }
 

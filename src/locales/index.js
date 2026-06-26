@@ -142,7 +142,7 @@ export default {
     balanceSupplierName: '供应商名称',
     balanceSupplierNamePlaceholder: '如 buzz',
     balanceEndpoint: '余额查询接口',
-    balanceEndpointPlaceholder: '如 /api/usage/token/',
+    balanceEndpointPlaceholder: '如 /api/usage/token/ 或 https://...',
     balanceField: '余额字段',
     balanceFieldPlaceholder: '如 data.total_available',
     balanceUsedField: '用量字段',

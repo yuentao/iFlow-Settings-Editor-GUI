@@ -5,10 +5,10 @@
       <span class="titlebar-title">{{ $t('app.title') }}</span>
     </div>
     <div class="titlebar-controls">
-      <button class="titlebar-btn" @click="minimize" :title="$t('window.minimize')">
+      <button class="titlebar-btn" @click="minimize" :title="$t('window.minimize')" :aria-label="$t('window.minimize')">
         <svg viewBox="0 0 10 1"><line x1="0" y1="0.5" x2="10" y2="0.5" /></svg>
       </button>
-      <button class="titlebar-btn close" @click="close" :title="$t('window.close')">
+      <button class="titlebar-btn close" @click="close" :title="$t('window.close')" :aria-label="$t('window.close')">
         <svg viewBox="0 0 10 10">
           <line x1="0" y1="0" x2="10" y2="10" />
           <line x1="10" y1="0" x2="0" y2="10" />

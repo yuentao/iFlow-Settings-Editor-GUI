@@ -32,6 +32,26 @@ function getSettingsFile() {
 // 链式 Promise：每个新写入追加到队列尾部，保证任意时刻只有一个写入在执行。
 let _writeQueue = Promise.resolve()
 
+function _readJsonFile(filePath) {
+  const data = fs.readFileSync(filePath, 'utf-8')
+  return JSON.parse(data)
+}
+
+function _tryRestoreFromBackup(settingsFile, originalError) {
+  const backupPath = settingsFile + '.bak'
+  if (!fs.existsSync(backupPath)) return null
+
+  try {
+    const backupSettings = _readJsonFile(backupPath)
+    fs.copyFileSync(backupPath, settingsFile)
+    logger.warn('Settings file was corrupted and has been restored from backup:', originalError.message)
+    return backupSettings
+  } catch (backupError) {
+    logger.error('Failed to restore settings from backup:', backupError)
+    return null
+  }
+}
+
 /**
  * 读取设置文件
  * @returns {Object|null} 设置数据，如果文件不存在则返回 null
@@ -42,11 +62,10 @@ function readSettings() {
     return null
   }
   try {
-    const data = fs.readFileSync(SETTINGS_FILE, 'utf-8')
-    return JSON.parse(data)
+    return _readJsonFile(SETTINGS_FILE)
   } catch (error) {
     logger.error('Failed to read settings:', error)
-    return null
+    return _tryRestoreFromBackup(SETTINGS_FILE, error)
   }
 }
 

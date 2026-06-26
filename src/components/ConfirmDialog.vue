@@ -12,7 +12,7 @@
       <div class="message-dialog-message">{{ $t(messageKey, messageParams) }}</div>
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('cancel')">{{ $t('dialog.cancel') }}</button>
-        <button class="btn" :class="danger ? 'btn-danger' : 'btn-primary'" @click="$emit('confirm')">{{ $t('dialog.confirm') }}</button>
+        <button class="btn" :class="danger ? 'btn-danger' : 'btn-primary'" @click="$emit('confirm')" ref="confirmButtonRef">{{ $t('dialog.confirm') }}</button>
       </div>
     </div>
   </div>
@@ -22,6 +22,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 
 const overlayRef = ref(null)
+const confirmButtonRef = ref(null)
 
 defineProps({
   titleKey: {
@@ -46,7 +47,7 @@ defineEmits(['confirm', 'cancel'])
 
 onMounted(() => {
   nextTick(() => {
-    overlayRef.value?.focus()
+    confirmButtonRef.value?.focus() || overlayRef.value?.focus()
   })
 })
 </script>

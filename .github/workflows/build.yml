@@ -109,8 +109,9 @@ jobs:
           name: mac-zip-${{ matrix.arch }}
           path: |
             release/*-${{ matrix.arch }}.zip
-            release/*-${{ matrix.arch }}.blockmap
+            release/*-${{ matrix.arch }}*.blockmap
             release/latest-mac.yml
+          if-no-files-found: error
           retention-days: 30
 
       - name: Upload dmg artifacts
@@ -118,6 +119,7 @@ jobs:
         with:
           name: mac-dmg-${{ matrix.arch }}
           path: release/*-${{ matrix.arch }}.dmg
+          if-no-files-found: error
           retention-days: 30
 
   build-windows:
@@ -198,7 +200,7 @@ jobs:
           echo "更新日志:"
           echo "$CHANGELOG_CONTENT"
 
-      - name: Collect all files
+      - name: Collect and validate release files
         run: |
           mkdir -p release-files
           cp artifacts/windows-artifacts/*.exe release-files/ 2>/dev/null || true
@@ -208,10 +210,77 @@ jobs:
           cp artifacts/mac-zip-*/*.zip release-files/ 2>/dev/null || true
           cp artifacts/mac-dmg-*/*.dmg release-files/ 2>/dev/null || true
           cp artifacts/mac-zip-*/*.blockmap release-files/ 2>/dev/null || true
-          cp artifacts/mac-dmg-*/*.blockmap release-files/ 2>/dev/null || true
-          cp artifacts/mac-zip-*/*.yml release-files/ 2>/dev/null || true
-          cp artifacts/mac-dmg-*/*.yml release-files/ 2>/dev/null || true
+
+          for arch in x64 arm64; do
+            if [ ! -f "artifacts/mac-zip-${arch}/latest-mac.yml" ]; then
+              echo "缺少 macOS ${arch} 自动更新元数据 latest-mac.yml"
+              exit 1
+            fi
+            if ! ls release-files/*-${arch}.zip >/dev/null 2>&1; then
+              echo "缺少 macOS ${arch} zip 更新包"
+              exit 1
+            fi
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          metadata_files = [Path('artifacts/mac-zip-x64/latest-mac.yml'), Path('artifacts/mac-zip-arm64/latest-mac.yml')]
+          entries = []
+          common = {}
+          seen_arches = set()
+
+          for metadata_file in metadata_files:
+              text = metadata_file.read_text(encoding='utf-8')
+              if not re.search(r'^files:\n\s*-\s+url:', text, re.MULTILINE):
+                  print(f'{metadata_file} 缺少有效 files 条目')
+                  sys.exit(1)
+
+              current = None
+              for line in text.splitlines():
+                  if line.startswith('version:'):
+                      common['version'] = line
+                  elif line.startswith('releaseDate:'):
+                      common['releaseDate'] = line
+                  elif line.startswith('- url:') or line.startswith('  - url:'):
+                      if current:
+                          entries.append(current)
+                      current = [line if line.startswith('  - ') else f'  {line}']
+                      if '-x64.zip' in line:
+                          seen_arches.add('x64')
+                      if '-arm64.zip' in line:
+                          seen_arches.add('arm64')
+                  elif current and (line.startswith('    ') or line.startswith('  sha') or line.startswith('  size')):
+                      current.append(line if line.startswith('    ') else f'  {line}')
+              if current:
+                  entries.append(current)
+
+          missing_arches = {'x64', 'arm64'} - seen_arches
+          if missing_arches:
+              print(f'合并后的 latest-mac.yml 缺少架构条目: {", ".join(sorted(missing_arches))}')
+              sys.exit(1)
+
+          output = []
+          if 'version' in common:
+              output.append(common['version'])
+          output.append('files:')
+          for entry in entries:
+              output.extend(entry)
+          if 'releaseDate' in common:
+              output.append(common['releaseDate'])
+          output.append('')
+
+          Path('release-files/latest-mac.yml').write_text('\n'.join(output), encoding='utf-8')
+          PY
+
+          grep -q '^files:' release-files/latest-mac.yml
+          grep -q '^  - url:.*-x64.zip' release-files/latest-mac.yml
+          grep -q '^  - url:.*-arm64.zip' release-files/latest-mac.yml
           ls -la release-files/
+          echo "latest-mac.yml:"
+          cat release-files/latest-mac.yml
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

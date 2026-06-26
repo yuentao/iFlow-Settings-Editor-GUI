@@ -103,16 +103,16 @@ interface Window {
 
     // ─── 云同步 ───────────────────────────────────────────
     cloudSyncGetStatus: () => Promise<import('./shared/types').IpcResult>
-    cloudSyncSetAutoSync: (enabled: boolean) => Promise<import('./shared/types').IpcResult>
+    cloudSyncSetAutoSync: (enabled: boolean, interval?: number) => Promise<import('./shared/types').IpcResult>
     cloudSyncConfigureProvider: (provider: string, config: any, testOnly?: boolean) => Promise<import('./shared/types').IpcResult>
     cloudSyncTestConnection: () => Promise<import('./shared/types').IpcResult>
     cloudSyncRevokeAuth: () => Promise<import('./shared/types').IpcResult>
     cloudSyncSetPassword: (password: string) => Promise<import('./shared/types').IpcResult>
-    cloudSyncVerifyPassword: (password: string) => Promise<import('./shared/types').IpcResult<boolean>>
-    cloudSyncChangePassword: (oldPassword: string, newPassword: string) => Promise<import('./shared/types').IpcResult>
-    cloudSyncHasPassword: () => Promise<import('./shared/types').IpcResult<boolean>>
-    cloudSyncHasCachedPassword: () => Promise<import('./shared/types').IpcResult<boolean>>
-    cloudSyncGetRememberPassword: () => Promise<import('./shared/types').IpcResult<boolean>>
+    cloudSyncVerifyPassword: (password: string) => Promise<import('./shared/types').IpcResult & { valid?: boolean; retryAfterMs?: number }>
+    cloudSyncChangePassword: (oldPassword: string, newPassword: string) => Promise<import('./shared/types').IpcResult & { retryAfterMs?: number }>
+    cloudSyncHasPassword: () => Promise<import('./shared/types').IpcResult & { hasPassword?: boolean }>
+    cloudSyncHasCachedPassword: () => Promise<import('./shared/types').IpcResult & { hasCachedPassword?: boolean }>
+    cloudSyncGetRememberPassword: () => Promise<import('./shared/types').IpcResult & { remember?: boolean }>
     cloudSyncSetRememberPassword: (remember: boolean) => Promise<import('./shared/types').IpcResult>
     cloudSyncSyncNow: (password?: string) => Promise<import('./shared/types').IpcResult>
     cloudSyncPull: (password?: string) => Promise<import('./shared/types').IpcResult>
@@ -121,6 +121,7 @@ interface Window {
     cloudSyncGetDevices: () => Promise<import('./shared/types').IpcResult>
     cloudSyncSetDeviceName: (name: string) => Promise<import('./shared/types').IpcResult>
     cloudSyncSetTombstoneRetentionDays: (days: number) => Promise<import('./shared/types').IpcResult>
+    cloudSyncSetSyncInterval: (minutes: number) => Promise<import('./shared/types').IpcResult & { syncInterval: number }>
     cloudSyncRemoveDevice: (deviceId: string) => Promise<import('./shared/types').IpcResult>
 
     // ─── 云同步事件监听 ───────────────────────────────────
@@ -153,6 +154,8 @@ interface Window {
     iflowImportMod: (filePath: string) => Promise<import('./shared/types').ImportModResult>
     iflowOpenImportDialog: () => Promise<import('./shared/types').IpcResult<{ canceled: boolean; filePaths: string[] }>>
     iflowCheckIflowStatus: () => Promise<import('./shared/types').IpcResult<{ exists: boolean; path: string | null; version: string | null }>>
+    onIflowApplyProgress: (callback: (progress: any) => void) => void
+    onIflowDetectConflictsProgress: (callback: (progress: any) => void) => void
 
     // ─── 翻译 ─────────────────────────────────────────────
     getTranslation: (localeData: any) => any

@@ -462,7 +462,7 @@ export default {
 }
 
 .summary-label {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   font-weight: 500;
   text-transform: uppercase;

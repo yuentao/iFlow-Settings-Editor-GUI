@@ -74,7 +74,7 @@
           <div class="form-group">
             <label class="form-label">{{ $t('mcp.args') }}</label>
             <div class="array-editor">
-              <div v-for="(arg, index) in localData.args" :key="index" class="array-editor-row">
+              <div v-for="(_, index) in localData.args" :key="index" class="array-editor-row">
                 <custom-input
                   class="array-editor-input"
                   v-model="localData.args[index]"
@@ -692,7 +692,7 @@ const handleSave = (): void => {
 }
 
 .form-error {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--danger);
   margin-top: 4px;
 }
@@ -755,7 +755,7 @@ const handleSave = (): void => {
   }
 
   span {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     font-weight: 600;
     color: var(--text-tertiary);
     text-transform: uppercase;

@@ -395,6 +395,7 @@ export interface TokenBalanceResult {
 
 export interface BalanceProviderRule {
   provider: string
+  /** 相对路径（如 /api/usage/token/，拼接到 baseUrl origin）或完整 URL（如 https://...，直接使用不拼接） */
   endpoint: string
   /** JSON 响应中余额字段的 dot-path，如 data.total_available */
   balanceField?: string

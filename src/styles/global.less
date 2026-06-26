@@ -131,8 +131,10 @@ span.i-icon {
   // =============================================================================
 
   // Font families
-  --font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-mono: 'Cascadia Code', 'Cascadia Mono', 'Consolas', monospace;
+  --font-family: 'Segoe UI Variable', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC',
+    system-ui, -apple-system, sans-serif;
+  --font-mono: 'Cascadia Code', 'Cascadia Mono', 'Consolas', 'Noto Sans Mono CJK SC', 'Source Han Mono SC',
+    monospace;
 
   // Font weights
   --font-weight-regular: 400;
@@ -171,7 +173,7 @@ span.i-icon {
   --font-line-height-display: 92px;
 
   // Legacy font size aliases
-  --font-size-xs: 11px;
+  --font-size-xs: var(--font-size-caption);
   --font-size-sm: var(--font-size-caption);
   --font-size-base: var(--font-size-body);
   --font-size-lg: var(--font-size-subtitle);
@@ -227,7 +229,7 @@ span.i-icon {
   // Text colors - refined contrast ratios
   --text-primary: #ffffff;
   --text-secondary: #b3b3b3;
-  --text-tertiary: #808080;
+  --text-tertiary: #999999;
   --text-disabled: #4d4d4d;
   --text-inverse: #0d0d0d;
 
@@ -429,6 +431,28 @@ span.i-icon {
   to {
     opacity: 1;
   }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner-sm {
+  width: 14px;
+  height: 14px;
+  border-width: 1.5px;
 }
 
 @keyframes fadeOut {
@@ -829,6 +853,10 @@ body {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-lg);
+
+  @media (max-width: 800px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-select {
@@ -949,6 +977,8 @@ body {
 }
 
 .btn {
+  --reveal-x: 50%;
+  --reveal-y: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
