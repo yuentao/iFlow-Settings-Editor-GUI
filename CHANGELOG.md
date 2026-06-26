@@ -2,6 +2,28 @@
 
 所有重要的版本更新都会记录在此文件中。
 
+## [1.21.1] - 2026-06-26
+
+### 新增
+- **余额查询接口支持完整 URL** - 自定义余额供应商规则的 endpoint 字段现支持填写完整 URL（如 https://...），不再仅限于相对路径
+
+### 修复
+- **修复云同步中 apiProfilesOrder 错误参与同步** - 配置列表排序信息不再被纳入云同步数据，避免多设备间排序冲突
+- **修复新建 API 配置对话框默认值缺少余额供应商字段** - 新建配置时余额供应商选项不再丢失
+- **修复测试用例选择器与断言** - 修复 DOMPurify 在 happy-dom 中剥离标签导致的断言失败，修复 ApiConfig 编辑/复制按钮的测试选择器
+
+### 优化
+- **可访问性提升** - 为所有操作按钮（编辑/复制/删除/导出等）添加 aria-label；对话框聚焦确认按钮而非 overlay
+- **安全性增强** - DocsView 引入 DOMPurify 对 Markdown 渲染内容进行 XSS 过滤；云同步密码验证增加频率限制（指数退避）；main.js 添加全局错误和未捕获 Promise 拒绝处理器
+- **稳定性提升** - configService 配置文件损坏时自动从 .bak 备份恢复；CommandsView / SkillsView 添加 isCancelled 标志防止组件卸载后内存泄漏；Dashboard onUnmounted 中清理 setTimeout 定时器
+- **加载状态优化** - CommandEditorDialog / CommandsView / SkillsView / ProjectsView 添加 spinner 和 disabled 状态，防止重复提交
+- **路径安全重构** - isPathSafe 从 commands.js / skills.js / iflowService.js 提取到共享的 isPathInside（pathSafety.js）
+- **样式一致性** - 11 个组件的 font-size: 11px 统一改为 var(--font-size-caption)；global.less 新增 spinner 动画、按钮 reveal 效果、响应式 grid
+- **中文字体支持** - global.less 字体栈添加苹方、微软雅黑、思源黑体等中文字体
+- **开发模式兼容** - main.js 新增 electronAPI polyfill，支持浏览器开发模式；新增 v-reveal 指令
+- **余额轮询优化** - ApiConfig.vue 余额轮询添加防抖调度 + watch 优化（字符串拼接替代 deep watch）
+- **类型定义完善** - env.d.ts 更新云同步 API 类型定义（cloudSyncSetSyncInterval 等）
+
 ## [1.21.0] - 2026-06-23
 
 ### 新增
