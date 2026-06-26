@@ -14,44 +14,45 @@ window.addEventListener('unhandledrejection', event => {
 
 const createNoopUnsubscribe = () => () => {}
 
+// contextBridge.exposeInMainWorld() exposes a frozen (read-only) object.
+// Object.assign on it throws "Cannot assign to read only property".
+// Only install mock fallbacks when running outside Electron (browser dev mode).
 if (!window.electronAPI) {
-  window.electronAPI = {}
+  window.electronAPI = {
+    getAppVersion: () => Promise.resolve({ success: true, version: '1.21.0' }),
+    onUpdateStatusChanged: () => createNoopUnsubscribe(),
+    onUpdateAvailable: () => createNoopUnsubscribe(),
+    onUpdateDownloadProgress: () => createNoopUnsubscribe(),
+    onUpdateDownloaded: () => createNoopUnsubscribe(),
+    onAutoCheckUpdate: () => createNoopUnsubscribe(),
+    onInstallUpdate: () => createNoopUnsubscribe(),
+    onUpdateBackgroundComplete: () => createNoopUnsubscribe(),
+    onShowConfirmRequest: () => createNoopUnsubscribe(),
+    onApiProfileSwitched: () => createNoopUnsubscribe(),
+    onSettingsFileChanged: () => createNoopUnsubscribe(),
+    confirmDialogResult: () => {},
+    restorePendingUpdate: () => Promise.resolve({ success: true, hasPending: false }),
+    loadSettings: () => Promise.resolve({ apiProfiles: { default: {} }, currentApiProfile: 'default', mcpServers: {} }),
+    saveSettings: () => Promise.resolve({ success: true }),
+    listApiProfiles: () => Promise.resolve({ success: true, profiles: [{ name: 'default' }], current: 'default' }),
+    switchApiProfile: () => Promise.resolve({ success: true }),
+    createApiProfile: () => Promise.resolve({ success: true }),
+    deleteApiProfile: () => Promise.resolve({ success: true }),
+    duplicateApiProfile: () => Promise.resolve({ success: true }),
+    renameApiProfile: () => Promise.resolve({ success: true }),
+    listSkills: () => Promise.resolve({ success: true, skills: [] }),
+    listCommands: () => Promise.resolve({ success: true, commands: [] }),
+    iflowListMods: () => Promise.resolve({ success: true, mods: [] }),
+    iflowCheckIflowStatus: () => Promise.resolve({ success: true, exists: false, path: '', version: null }),
+    onIflowApplyProgress: () => createNoopUnsubscribe(),
+    onIflowDetectConflictsProgress: () => createNoopUnsubscribe(),
+    listProjects: () => Promise.resolve({ success: true, projects: [] }),
+    getProjectSessions: () => Promise.resolve({ success: true, sessions: [], hasMore: false }),
+    getAllSessionMessagesForStats: () => Promise.resolve({ success: true, messages: [] }),
+    cloudSyncGetStatus: () => Promise.resolve({ success: true, configured: false, enabled: false }),
+    notifyLanguageChanged: () => {},
+  }
 }
-
-Object.assign(window.electronAPI, {
-  getAppVersion: window.electronAPI.getAppVersion || (() => Promise.resolve({ success: true, version: '1.21.0' })),
-  onUpdateStatusChanged: window.electronAPI.onUpdateStatusChanged || (() => createNoopUnsubscribe()),
-  onUpdateAvailable: window.electronAPI.onUpdateAvailable || (() => createNoopUnsubscribe()),
-  onUpdateDownloadProgress: window.electronAPI.onUpdateDownloadProgress || (() => createNoopUnsubscribe()),
-  onUpdateDownloaded: window.electronAPI.onUpdateDownloaded || (() => createNoopUnsubscribe()),
-  onAutoCheckUpdate: window.electronAPI.onAutoCheckUpdate || (() => createNoopUnsubscribe()),
-  onInstallUpdate: window.electronAPI.onInstallUpdate || (() => createNoopUnsubscribe()),
-  onUpdateBackgroundComplete: window.electronAPI.onUpdateBackgroundComplete || (() => createNoopUnsubscribe()),
-  onShowConfirmRequest: window.electronAPI.onShowConfirmRequest || (() => createNoopUnsubscribe()),
-  onApiProfileSwitched: window.electronAPI.onApiProfileSwitched || (() => createNoopUnsubscribe()),
-  onSettingsFileChanged: window.electronAPI.onSettingsFileChanged || (() => createNoopUnsubscribe()),
-  confirmDialogResult: window.electronAPI.confirmDialogResult || (() => {}),
-  restorePendingUpdate: window.electronAPI.restorePendingUpdate || (() => Promise.resolve({ success: true, hasPending: false })),
-  loadSettings: window.electronAPI.loadSettings || (() => Promise.resolve({ apiProfiles: { default: {} }, currentApiProfile: 'default', mcpServers: {} })),
-  saveSettings: window.electronAPI.saveSettings || (() => Promise.resolve({ success: true })),
-  listApiProfiles: window.electronAPI.listApiProfiles || (() => Promise.resolve({ success: true, profiles: [{ name: 'default' }], current: 'default' })),
-  switchApiProfile: window.electronAPI.switchApiProfile || (() => Promise.resolve({ success: true })),
-  createApiProfile: window.electronAPI.createApiProfile || (() => Promise.resolve({ success: true })),
-  deleteApiProfile: window.electronAPI.deleteApiProfile || (() => Promise.resolve({ success: true })),
-  duplicateApiProfile: window.electronAPI.duplicateApiProfile || (() => Promise.resolve({ success: true })),
-  renameApiProfile: window.electronAPI.renameApiProfile || (() => Promise.resolve({ success: true })),
-  listSkills: window.electronAPI.listSkills || (() => Promise.resolve({ success: true, skills: [] })),
-  listCommands: window.electronAPI.listCommands || (() => Promise.resolve({ success: true, commands: [] })),
-  iflowListMods: window.electronAPI.iflowListMods || (() => Promise.resolve({ success: true, mods: [] })),
-  iflowCheckIflowStatus: window.electronAPI.iflowCheckIflowStatus || (() => Promise.resolve({ success: true, exists: false, path: '', version: null })),
-  onIflowApplyProgress: window.electronAPI.onIflowApplyProgress || (() => createNoopUnsubscribe()),
-  onIflowDetectConflictsProgress: window.electronAPI.onIflowDetectConflictsProgress || (() => createNoopUnsubscribe()),
-  listProjects: window.electronAPI.listProjects || (() => Promise.resolve({ success: true, projects: [] })),
-  getProjectSessions: window.electronAPI.getProjectSessions || (() => Promise.resolve({ success: true, sessions: [], hasMore: false })),
-  getAllSessionMessagesForStats: window.electronAPI.getAllSessionMessagesForStats || (() => Promise.resolve({ success: true, messages: [] })),
-  cloudSyncGetStatus: window.electronAPI.cloudSyncGetStatus || (() => Promise.resolve({ success: true, configured: false, enabled: false })),
-  notifyLanguageChanged: window.electronAPI.notifyLanguageChanged || (() => {}),
-})
 
 const pinia = createPinia()
 
