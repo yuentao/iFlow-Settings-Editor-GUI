@@ -74,6 +74,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 const { t } = useI18n()
 
@@ -225,7 +226,7 @@ const loadDoc = async (docName: string) => {
   headingFallbackIndex = 0
 
   try {
-    const html = marked(markdown) as string
+    const html = DOMPurify.sanitize(marked(markdown) as string)
     renderedContent.value = html
 
     // 从 DOM 中提取 TOC 数据

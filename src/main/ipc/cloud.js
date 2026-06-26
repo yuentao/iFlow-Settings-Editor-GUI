@@ -56,6 +56,25 @@ function getSyncService() {
 }
 
 const cryptoMgr = new CryptoManager()
+const PASSWORD_MAX_DELAY_MS = 60_000
+let passwordAttempts = 0
+let passwordLockUntil = 0
+
+function getPasswordLockRemainingMs() {
+  return Math.max(0, passwordLockUntil - Date.now())
+}
+
+function recordPasswordCheck(valid) {
+  if (valid) {
+    passwordAttempts = 0
+    passwordLockUntil = 0
+    return
+  }
+
+  passwordAttempts += 1
+  const delay = Math.min(1000 * Math.pow(2, passwordAttempts - 1), PASSWORD_MAX_DELAY_MS)
+  passwordLockUntil = Date.now() + delay
+}
 
 // ── 机器级加密密钥 ──────────────────────────────────────
 // 首次使用时在 ~/.iflow/.enc_key 生成随机 32 字节密钥，
@@ -289,6 +308,11 @@ function registerCloudSyncIpcHandlers() {
   }, 'cloud-sync:set-password'))
 
   ipcMain.handle('cloud-sync:verify-password', wrapIpcHandler(async (_event, password) => {
+    const retryAfterMs = getPasswordLockRemainingMs()
+    if (retryAfterMs > 0) {
+      return { success: false, error: 'TOO_MANY_ATTEMPTS', retryAfterMs }
+    }
+
     const settings = readSettings() || {}
     const cs = settings.cloudSync || {}
     if (!cs.passwordHash || !cs.passwordSalt) {
@@ -299,6 +323,7 @@ function registerCloudSyncIpcHandlers() {
     const key = cryptoMgr.deriveKey(password, salt)
     const hash = cryptoMgr.hashKey(key)
     const valid = cryptoMgr.verifyHash(hash, cs.passwordHash)
+    recordPasswordCheck(valid)
 
     // 验证成功仅缓存密码；不更新 lastSyncAt（仅验证不等于完成同步，
     // 错误地推进时间线会让后续 pull 的兜底比较把远端实际更新当成"旧"，造成数据丢失）
@@ -309,6 +334,11 @@ function registerCloudSyncIpcHandlers() {
   }, 'cloud-sync:verify-password'))
 
   ipcMain.handle('cloud-sync:change-password', wrapIpcHandler(async (_event, oldPassword, newPassword) => {
+    const retryAfterMs = getPasswordLockRemainingMs()
+    if (retryAfterMs > 0) {
+      return { success: false, error: 'TOO_MANY_ATTEMPTS', retryAfterMs }
+    }
+
     if (!newPassword || newPassword.length < 8) {
       return { success: false, error: 'SYNC_PASSWORD_TOO_SHORT' }
     }
@@ -323,7 +353,9 @@ function registerCloudSyncIpcHandlers() {
     const salt = Buffer.from(cs.passwordSalt, 'base64')
     const key = cryptoMgr.deriveKey(oldPassword, salt)
     const hash = cryptoMgr.hashKey(key)
-    if (!cryptoMgr.verifyHash(hash, cs.passwordHash)) {
+    const oldPasswordValid = cryptoMgr.verifyHash(hash, cs.passwordHash)
+    recordPasswordCheck(oldPasswordValid)
+    if (!oldPasswordValid) {
       return { success: false, error: 'SYNC_PASSWORD_INCORRECT' }
     }
 

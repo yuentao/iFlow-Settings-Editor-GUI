@@ -31,7 +31,7 @@
         </template>
 
         <template #item-actions="{ item: project }">
-          <button class="action-btn danger" :title="$t('projects.deleteProject')" @click.stop="handleDeleteProject(project)">
+          <button class="action-btn danger" :title="$t('projects.deleteProject')" :aria-label="$t('projects.deleteProject')" @click.stop="handleDeleteProject(project)">
             <Delete size="14" />
           </button>
         </template>

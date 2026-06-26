@@ -74,7 +74,7 @@
           <div class="form-group">
             <label class="form-label">{{ $t('mcp.args') }}</label>
             <div class="array-editor">
-              <div v-for="(arg, index) in localData.args" :key="index" class="array-editor-row">
+              <div v-for="(_, index) in localData.args" :key="index" class="array-editor-row">
                 <custom-input
                   class="array-editor-input"
                   v-model="localData.args[index]"

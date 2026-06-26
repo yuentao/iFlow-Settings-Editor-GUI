@@ -95,13 +95,14 @@
             </span>
           </div>
           <div class="profile-actions">
-            <button class="action-btn" @click.stop="$emit('edit-profile', profile.name)" :title="$t('api.edit')">
+            <button class="action-btn" @click.stop="$emit('edit-profile', profile.name)" :title="$t('api.edit')" :aria-label="$t('api.edit')">
               <Edit size="14" />
             </button>
             <button
               class="action-btn"
               @click.stop="$emit('duplicate-profile', profile.name)"
               :title="$t('api.duplicate')"
+              :aria-label="$t('api.duplicate')"
             >
               <Copy size="14" />
             </button>
@@ -110,6 +111,7 @@
               v-if="index !== 0 && currentProfile !== profile.name"
               @click.stop="$emit('delete-profile', profile.name)"
               :title="$t('api.delete')"
+              :aria-label="$t('api.delete')"
             >
               <Delete size="14" />
             </button>

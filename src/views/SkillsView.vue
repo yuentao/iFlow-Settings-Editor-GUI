@@ -41,10 +41,10 @@
         </template>
 
         <template #item-actions="{ item: skill }">
-          <button class="action-btn" @click.stop="exportSkill(skill)" :title="$t('skills.export')">
+          <button class="action-btn" @click.stop="exportSkill(skill)" :title="$t('skills.export')" :aria-label="$t('skills.export')">
             <Upload size="14" />
           </button>
-          <button class="action-btn action-btn-danger" @click.stop="deleteSkill(skill)" :title="$t('skills.delete')">
+          <button class="action-btn action-btn-danger" @click.stop="deleteSkill(skill)" :title="$t('skills.delete')" :aria-label="$t('skills.delete')">
             <Delete size="14" />
           </button>
         </template>
@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Star, FolderOpen, Download, Upload, Delete } from '@icon-park/vue-next'
 import GenericList from '@/components/GenericList.vue'
@@ -92,11 +92,14 @@ const showOnlineDialog = ref(false)
 const onlineUrl = ref('')
 const onlineName = ref('')
 const isLoading = ref(true)
+let isCancelled = false
 
 const loadSkills = async () => {
+  if (isCancelled) return
   isLoading.value = true
   try {
     const result = await window.electronAPI.listSkills()
+    if (isCancelled) return
     if (result.success) {
       skills.value = result.skills || []
       emit('skills-changed', skills.value.length)
@@ -104,9 +107,9 @@ const loadSkills = async () => {
       toast.error(result.error)
     }
   } catch (error) {
-    console.error('Failed to load skills:', error)
+    if (!isCancelled) console.error('Failed to load skills:', error)
   } finally {
-    isLoading.value = false
+    if (!isCancelled) isLoading.value = false
   }
 }
 
@@ -207,6 +210,10 @@ const deleteSkill = async skill => {
 
 onMounted(() => {
   loadSkills()
+})
+
+onUnmounted(() => {
+  isCancelled = true
 })
 </script>
 

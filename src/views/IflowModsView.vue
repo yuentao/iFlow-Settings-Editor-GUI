@@ -83,7 +83,7 @@
         </template>
 
         <template #item-actions="{ item: mod }">
-          <button v-if="!mod.enabled && !isApplying" class="action-btn action-btn-danger" @click.stop="deleteMod(mod.id)" :title="$t('iflow.mods.delete')">
+          <button v-if="!mod.enabled && !isApplying" class="action-btn action-btn-danger" @click.stop="deleteMod(mod.id)" :title="$t('iflow.mods.delete')" :aria-label="$t('iflow.mods.delete')">
             <Delete size="14" />
           </button>
         </template>
@@ -104,7 +104,7 @@
             <Puzzle v-else size="18" />
             {{ detailMod.name }}
           </div>
-          <button class="side-panel-close" @click="detailMod = null">
+          <button class="side-panel-close" @click="detailMod = null" :aria-label="$t('dialog.close')">
             <svg viewBox="0 0 10 10">
               <line x1="0" y1="0" x2="10" y2="10" />
               <line x1="10" y1="0" x2="0" y2="10" />

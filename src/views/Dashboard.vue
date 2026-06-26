@@ -280,6 +280,8 @@ function handleVisibilityChange() {
 
 // 图表渲染完成后，通知 App.vue 移除启动画面
 let readyEmitted = false
+let chartMountTimer = 0
+let statsLoadTimer = 0
 function handleChartRendered() {
   if (!readyEmitted) {
     readyEmitted = true
@@ -293,11 +295,11 @@ onMounted(async () => {
     console.error('[Dashboard] cloudStore.loadStatus failed:', err)
   })
   // 延迟挂载图表组件：先让仪表盘卡片渲染完成，再挂载 apexcharts
-  setTimeout(() => {
+  chartMountTimer = window.setTimeout(() => {
     chartMounted.value = true
   }, 0)
   // 延迟加载模型统计：避免 IPC 数据传输阻塞首帧渲染
-  setTimeout(() => {
+  statsLoadTimer = window.setTimeout(() => {
     const days = selectedModelStatsDays.value
     const interval = props.settings?.modelUsageRefreshInterval ?? 5
     fetchStats({ days })
@@ -307,6 +309,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (chartMountTimer) window.clearTimeout(chartMountTimer)
+  if (statsLoadTimer) window.clearTimeout(statsLoadTimer)
   stopAutoRefresh()
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })

@@ -31,13 +31,13 @@
         </template>
 
         <template #item-actions="{ item }">
-          <button class="action-btn" @click.stop="copyServerConfig(item.name)" :title="$t('mcp.share')">
+          <button class="action-btn" @click.stop="copyServerConfig(item.name)" :title="$t('mcp.share')" :aria-label="$t('mcp.share')">
             <Share size="14" />
           </button>
-          <button class="action-btn" @click.stop="$emit('edit-server', item.name)" :title="$t('mcp.edit')">
+          <button class="action-btn" @click.stop="$emit('edit-server', item.name)" :title="$t('mcp.edit')" :aria-label="$t('mcp.edit')">
             <Edit size="14" />
           </button>
-          <button class="action-btn action-btn-danger" @click.stop="$emit('delete-server', item.name)" :title="$t('mcp.delete')">
+          <button class="action-btn action-btn-danger" @click.stop="$emit('delete-server', item.name)" :title="$t('mcp.delete')" :aria-label="$t('mcp.delete')">
             <Delete size="14" />
           </button>
         </template>

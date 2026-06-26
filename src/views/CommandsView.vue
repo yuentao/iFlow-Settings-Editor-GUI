@@ -50,13 +50,13 @@
         </template>
 
         <template #item-actions="{ item: cmd }">
-          <button class="action-btn" @click.stop="editCommand(cmd)" :title="$t('commands.edit')">
+          <button class="action-btn" @click.stop="editCommand(cmd)" :title="$t('commands.edit')" :aria-label="$t('commands.edit')">
             <Edit size="14" />
           </button>
-          <button class="action-btn" @click.stop="exportCommand(cmd)" :title="$t('commands.export')">
+          <button class="action-btn" @click.stop="exportCommand(cmd)" :title="$t('commands.export')" :aria-label="$t('commands.export')">
             <Upload size="14" />
           </button>
-          <button class="action-btn action-btn-danger" @click.stop="deleteCommand(cmd)" :title="$t('commands.delete')">
+          <button class="action-btn action-btn-danger" @click.stop="deleteCommand(cmd)" :title="$t('commands.delete')" :aria-label="$t('commands.delete')">
             <Delete size="14" />
           </button>
         </template>
@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Command, Plus, FolderOpen, Edit, Upload, Delete, Tag } from '@icon-park/vue-next'
 import GenericList from '@/components/GenericList.vue'
@@ -91,6 +91,7 @@ const selectedCategory = ref('all')
 const showEditor = ref(false)
 const editingCommand = ref(null)
 const isLoading = ref(true)
+let isCancelled = false
 
 const categories = computed(() => [
   { value: 'all', label: t('commands.category.all'), count: commands.value.length },
@@ -121,9 +122,11 @@ const displayAuthor = (author) => {
 }
 
 const loadCommands = async () => {
+  if (isCancelled) return
   isLoading.value = true
   try {
     const result = await window.electronAPI.listCommands()
+    if (isCancelled) return
     if (result.success) {
       commands.value = result.commands || []
       emit('commands-changed', commands.value.length)
@@ -131,9 +134,9 @@ const loadCommands = async () => {
       toast.error(result.error)
     }
   } catch (error) {
-    console.error('Failed to load commands:', error)
+    if (!isCancelled) console.error('Failed to load commands:', error)
   } finally {
-    isLoading.value = false
+    if (!isCancelled) isLoading.value = false
   }
 }
 
@@ -243,6 +246,10 @@ const importCommand = async () => {
 
 onMounted(() => {
   loadCommands()
+})
+
+onUnmounted(() => {
+  isCancelled = true
 })
 </script>
 
