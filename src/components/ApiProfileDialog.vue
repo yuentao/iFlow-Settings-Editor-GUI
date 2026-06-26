@@ -841,7 +841,7 @@ const handleSaveEdit = (): void => {
 }
 
 .form-error {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--danger);
   margin-top: 4px;
   word-break: break-all;
@@ -852,7 +852,7 @@ const handleSaveEdit = (): void => {
 }
 
 .form-hint {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-top: 4px;
 }

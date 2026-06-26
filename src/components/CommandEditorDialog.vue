@@ -71,7 +71,10 @@
 
       <div class="dialog-actions">
         <button class="btn btn-secondary" @click="$emit('close')">{{ $t('commands.editor.cancel') }}</button>
-        <button class="btn btn-primary" @click="save" :disabled="!isValid">{{ $t('commands.editor.save') }}</button>
+        <button class="btn btn-primary" @click="save" :disabled="!isValid || saving">
+          <span v-if="saving" class="spinner spinner-sm"></span>
+          {{ $t('commands.editor.save') }}
+        </button>
       </div>
     </div>
   </div>
@@ -91,6 +94,10 @@ const props = defineProps({
   command: {
     type: Object,
     default: null
+  },
+  saving: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -164,7 +171,7 @@ watch(() => props.show, (show) => {
 })
 
 const save = () => {
-  if (!isValid.value) return
+  if (!isValid.value || props.saving) return
   emit('save', { ...formData.value })
 }
 </script>
@@ -235,7 +242,7 @@ const save = () => {
 }
 
 .form-hint {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-top: 4px;
 }

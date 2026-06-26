@@ -24,7 +24,7 @@
       <div class="message-dialog-title">{{ $t(dialog.title) }}</div>
       <div class="message-dialog-message">{{ $t(dialog.message, dialog.messageParams || {}) }}</div>
       <div class="dialog-actions">
-        <button class="btn btn-primary" @click="handleConfirm">{{ $t('dialog.confirm') }}</button>
+        <button class="btn btn-primary" @click="handleConfirm" ref="confirmButtonRef">{{ $t('dialog.confirm') }}</button>
       </div>
     </div>
   </div>
@@ -62,11 +62,12 @@ const emit = defineEmits<{
 }>()
 
 const overlayRef = ref<HTMLElement | null>(null)
+const confirmButtonRef = ref<HTMLButtonElement | null>(null)
 
 watch(() => props.dialog.show, (show: boolean) => {
   if (show) {
     nextTick(() => {
-      overlayRef.value?.focus()
+      confirmButtonRef.value?.focus() || overlayRef.value?.focus()
     })
   }
 })

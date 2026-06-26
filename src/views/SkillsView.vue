@@ -7,12 +7,14 @@
 
     <div class="form-group">
       <div class="skills-actions">
-        <button class="btn btn-primary" @click="importLocal">
-          <FolderOpen size="14" />
+        <button class="btn btn-primary" @click="importLocal" :disabled="isImportingLocal">
+          <span v-if="isImportingLocal" class="spinner spinner-sm"></span>
+          <FolderOpen v-else size="14" />
           {{ $t('skills.importLocal') }}
         </button>
-        <button class="btn btn-secondary" @click="importOnline">
-          <Download size="14" />
+        <button class="btn btn-secondary" @click="importOnline" :disabled="isImportingOnline">
+          <span v-if="isImportingOnline" class="spinner spinner-sm"></span>
+          <Download v-else size="14" />
           {{ $t('skills.importOnline') }}
         </button>
       </div>
@@ -41,11 +43,13 @@
         </template>
 
         <template #item-actions="{ item: skill }">
-          <button class="action-btn" @click.stop="exportSkill(skill)" :title="$t('skills.export')" :aria-label="$t('skills.export')">
-            <Upload size="14" />
+          <button class="action-btn" @click.stop="exportSkill(skill)" :title="$t('skills.export')" :aria-label="$t('skills.export')" :disabled="exportingSkill === skill.folderName">
+            <span v-if="exportingSkill === skill.folderName" class="spinner spinner-sm"></span>
+            <Upload v-else size="14" />
           </button>
-          <button class="action-btn action-btn-danger" @click.stop="deleteSkill(skill)" :title="$t('skills.delete')" :aria-label="$t('skills.delete')">
-            <Delete size="14" />
+          <button class="action-btn action-btn-danger" @click.stop="deleteSkill(skill)" :title="$t('skills.delete')" :aria-label="$t('skills.delete')" :disabled="deletingSkill === (skill.folderName || skill.name)">
+            <span v-if="deletingSkill === (skill.folderName || skill.name)" class="spinner spinner-sm"></span>
+            <Delete v-else size="14" />
           </button>
         </template>
       </GenericList>
@@ -67,7 +71,10 @@
         </div>
         <div class="dialog-actions">
           <button class="btn btn-secondary" @click="closeOnlineDialog">{{ $t('skills.cancel') }}</button>
-          <button class="btn btn-primary" @click="confirmOnlineImport" :disabled="!onlineUrl || !onlineName">{{ $t('skills.import') }}</button>
+          <button class="btn btn-primary" @click="confirmOnlineImport" :disabled="!onlineUrl || !onlineName || isImportingOnline">
+            <span v-if="isImportingOnline" class="spinner spinner-sm"></span>
+            {{ $t('skills.import') }}
+          </button>
         </div>
       </div>
     </div>
@@ -92,6 +99,10 @@ const showOnlineDialog = ref(false)
 const onlineUrl = ref('')
 const onlineName = ref('')
 const isLoading = ref(true)
+const isImportingLocal = ref(false)
+const isImportingOnline = ref(false)
+const exportingSkill = ref('')
+const deletingSkill = ref('')
 let isCancelled = false
 
 const loadSkills = async () => {
@@ -121,6 +132,8 @@ const formatFileSize = bytes => {
 }
 
 const importLocal = async () => {
+  if (isImportingLocal.value) return
+  isImportingLocal.value = true
   try {
     const result = await window.electronAPI.importSkillLocal()
     if (result.success) {
@@ -133,6 +146,8 @@ const importLocal = async () => {
     }
   } catch (error) {
     toast.error(error?.message || String(error))
+  } finally {
+    isImportingLocal.value = false
   }
 }
 
@@ -147,8 +162,9 @@ const closeOnlineDialog = () => {
 }
 
 const confirmOnlineImport = async () => {
-  if (!onlineUrl.value || !onlineName.value) return
+  if (!onlineUrl.value || !onlineName.value || isImportingOnline.value) return
 
+  isImportingOnline.value = true
   try {
     const result = await window.electronAPI.importSkillOnline(onlineUrl.value, onlineName.value)
     if (result.success) {
@@ -160,12 +176,15 @@ const confirmOnlineImport = async () => {
     }
   } catch (error) {
     toast.error(error?.message || String(error))
+  } finally {
+    isImportingOnline.value = false
   }
 }
 
 const exportSkill = async skill => {
-  if (!skill) return
+  if (!skill || exportingSkill.value) return
 
+  exportingSkill.value = skill.folderName
   try {
     const result = await window.electronAPI.exportSkill(skill.name, skill.folderName)
     if (result.success) {
@@ -177,6 +196,8 @@ const exportSkill = async skill => {
     }
   } catch (error) {
     toast.error(error?.message || String(error))
+  } finally {
+    exportingSkill.value = ''
   }
 }
 
@@ -196,6 +217,7 @@ const deleteSkill = async skill => {
     })
     if (!confirmed) return
 
+    deletingSkill.value = folderToDelete
     const result = await window.electronAPI.deleteSkill(folderToDelete)
     if (result.success) {
       await loadSkills()
@@ -205,6 +227,8 @@ const deleteSkill = async skill => {
     }
   } catch (error) {
     toast.error(error?.message || String(error))
+  } finally {
+    deletingSkill.value = ''
   }
 }
 
@@ -244,7 +268,7 @@ onUnmounted(() => {
 .skill-meta {
   display: flex;
   gap: 12px;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
 }
 

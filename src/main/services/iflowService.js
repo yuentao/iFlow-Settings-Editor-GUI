@@ -12,19 +12,12 @@ const diff = require('diff')
 
 const { t } = require('../utils/translations')
 const { logger } = require('../utils/logger')
+const { isPathInside } = require('../utils/pathSafety')
 
 // 路径常量
 const IFLOW_BASE_DIR = path.join(app.getPath('home'), '.iflow')
 const MODS_DIR = path.join(IFLOW_BASE_DIR, 'mods', 'iflow')
 const MODS_JSON_PATH = path.join(MODS_DIR, 'mods.json')
-
-/**
- * 防止路径遍历攻击
- */
-function isPathSafe(baseDir, userInput) {
-  const resolved = path.resolve(baseDir, userInput)
-  return resolved.startsWith(baseDir + path.sep) || resolved === baseDir
-}
 
 /**
  * 确保 Mod 目录结构存在
@@ -1312,7 +1305,7 @@ async function preloadIflowStatus() {
 }
 
 module.exports = {
-  isPathSafe,
+  isPathSafe: isPathInside,
   ensureModsDir,
   generateId,
   readModsMetadata,

@@ -571,7 +571,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 5px 20px;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-secondary);

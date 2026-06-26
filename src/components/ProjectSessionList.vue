@@ -90,7 +90,7 @@ function formatTokenCount(count: number): string {
 
 .sessions-header {
   padding: 6px 16px;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   font-weight: 500;
 }
@@ -131,7 +131,7 @@ function formatTokenCount(count: number): string {
   margin-top: 3px;
 
   .meta-item {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     color: var(--text-tertiary);
   }
 

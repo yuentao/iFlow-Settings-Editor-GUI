@@ -7,12 +7,14 @@
 
     <div class="form-group">
       <div class="commands-actions">
-        <button class="btn btn-primary" @click="createCommand">
-          <Plus size="14" />
+        <button class="btn btn-primary" @click="createCommand" :disabled="isSavingCommand">
+          <span v-if="isSavingCommand" class="spinner spinner-sm"></span>
+          <Plus v-else size="14" />
           {{ $t('commands.create') }}
         </button>
-        <button class="btn btn-secondary" @click="importCommand">
-          <FolderOpen size="14" />
+        <button class="btn btn-secondary" @click="importCommand" :disabled="isImportingCommand">
+          <span v-if="isImportingCommand" class="spinner spinner-sm"></span>
+          <FolderOpen v-else size="14" />
           {{ $t('commands.importLocal') }}
         </button>
       </div>
@@ -50,14 +52,16 @@
         </template>
 
         <template #item-actions="{ item: cmd }">
-          <button class="action-btn" @click.stop="editCommand(cmd)" :title="$t('commands.edit')" :aria-label="$t('commands.edit')">
+          <button class="action-btn" @click.stop="editCommand(cmd)" :title="$t('commands.edit')" :aria-label="$t('commands.edit')" :disabled="isSavingCommand">
             <Edit size="14" />
           </button>
-          <button class="action-btn" @click.stop="exportCommand(cmd)" :title="$t('commands.export')" :aria-label="$t('commands.export')">
-            <Upload size="14" />
+          <button class="action-btn" @click.stop="exportCommand(cmd)" :title="$t('commands.export')" :aria-label="$t('commands.export')" :disabled="exportingCommand === cmd.name">
+            <span v-if="exportingCommand === cmd.name" class="spinner spinner-sm"></span>
+            <Upload v-else size="14" />
           </button>
-          <button class="action-btn action-btn-danger" @click.stop="deleteCommand(cmd)" :title="$t('commands.delete')" :aria-label="$t('commands.delete')">
-            <Delete size="14" />
+          <button class="action-btn action-btn-danger" @click.stop="deleteCommand(cmd)" :title="$t('commands.delete')" :aria-label="$t('commands.delete')" :disabled="deletingCommand === cmd.name">
+            <span v-if="deletingCommand === cmd.name" class="spinner spinner-sm"></span>
+            <Delete v-else size="14" />
           </button>
         </template>
       </GenericList>
@@ -67,6 +71,7 @@
     <CommandEditorDialog
       :show="showEditor"
       :command="editingCommand"
+      :saving="isSavingCommand"
       @close="closeEditor"
       @save="saveCommand"
     />
@@ -91,6 +96,10 @@ const selectedCategory = ref('all')
 const showEditor = ref(false)
 const editingCommand = ref(null)
 const isLoading = ref(true)
+const isSavingCommand = ref(false)
+const isImportingCommand = ref(false)
+const exportingCommand = ref('')
+const deletingCommand = ref('')
 let isCancelled = false
 
 const categories = computed(() => [
@@ -156,6 +165,8 @@ const closeEditor = () => {
 }
 
 const saveCommand = async (data) => {
+  if (isSavingCommand.value) return
+  isSavingCommand.value = true
   try {
     const commandData = { ...data }
     if (!commandData.author) {
@@ -184,12 +195,15 @@ const saveCommand = async (data) => {
     await loadCommands()
   } catch (error) {
     toast.error(error?.message || String(error))
+  } finally {
+    isSavingCommand.value = false
   }
 }
 
 const exportCommand = async (cmd) => {
-  if (!cmd) return
+  if (!cmd || exportingCommand.value) return
 
+  exportingCommand.value = cmd.name
   try {
     const result = await window.electronAPI.exportCommand(cmd.name)
     if (result.success) {
@@ -199,6 +213,8 @@ const exportCommand = async (cmd) => {
     }
   } catch (error) {
     toast.error(error?.message || String(error))
+  } finally {
+    exportingCommand.value = ''
   }
 }
 
@@ -216,6 +232,7 @@ const deleteCommand = async (cmd) => {
     })
     if (!confirmed) return
 
+    deletingCommand.value = cmd.name
     const result = await window.electronAPI.deleteCommand(cmd.name)
     if (result.success) {
       await loadCommands()
@@ -225,10 +242,14 @@ const deleteCommand = async (cmd) => {
     }
   } catch (error) {
     toast.error(error?.message || String(error))
+  } finally {
+    deletingCommand.value = ''
   }
 }
 
 const importCommand = async () => {
+  if (isImportingCommand.value) return
+  isImportingCommand.value = true
   try {
     const result = await window.electronAPI.importCommand()
     if (result.success) {
@@ -241,6 +262,8 @@ const importCommand = async () => {
     }
   } catch (error) {
     toast.error(error?.message || String(error))
+  } finally {
+    isImportingCommand.value = false
   }
 }
 
@@ -281,7 +304,7 @@ onUnmounted(() => {
 .command-meta {
   display: flex;
   gap: 12px;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
 }
 

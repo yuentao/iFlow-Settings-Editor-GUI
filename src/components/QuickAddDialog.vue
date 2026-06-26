@@ -274,7 +274,7 @@ const handleBatchAdd = () => {
 }
 
 .quick-add-help-label {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   font-weight: 600;
   color: var(--text-tertiary);
   text-transform: uppercase;
@@ -307,7 +307,7 @@ const handleBatchAdd = () => {
 }
 
 .quick-add-hint {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-top: 8px;
   line-height: 1.5;
@@ -383,7 +383,7 @@ const handleBatchAdd = () => {
 }
 
 .quick-add-server-detail {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-top: 2px;
   overflow: hidden;
@@ -393,7 +393,7 @@ const handleBatchAdd = () => {
 }
 
 .quick-add-exist-hint {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-top: 8px;
 }

@@ -612,7 +612,7 @@ onUnmounted(() => {
 }
 
 .status-card-label {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-bottom: 2px;
 }
@@ -802,7 +802,7 @@ onUnmounted(() => {
 
 .detail-tag {
   display: inline-block;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   padding: 1px 8px;
   border-radius: 10px;
   background: var(--control-fill);
@@ -818,6 +818,6 @@ onUnmounted(() => {
 
 .detail-include-map {
   color: var(--text-tertiary);
-  font-size: 11px;
+  font-size: var(--font-size-caption);
 }
 </style>

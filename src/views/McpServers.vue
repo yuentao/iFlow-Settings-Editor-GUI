@@ -102,7 +102,7 @@ const serverList = computed(() =>
 }
 
 .server-desc {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-top: 2px;
   overflow: hidden;

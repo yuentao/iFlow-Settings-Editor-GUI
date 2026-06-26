@@ -220,7 +220,7 @@ const toggleCollapse = (): void => {
 }
 
 .global-download-text {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   font-weight: 500;
   color: var(--text-secondary);
   flex: 1;

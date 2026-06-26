@@ -692,7 +692,7 @@ const handleSave = (): void => {
 }
 
 .form-error {
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   color: var(--danger);
   margin-top: 4px;
 }
@@ -755,7 +755,7 @@ const handleSave = (): void => {
   }
 
   span {
-    font-size: 11px;
+    font-size: var(--font-size-caption);
     font-weight: 600;
     color: var(--text-tertiary);
     text-transform: uppercase;
