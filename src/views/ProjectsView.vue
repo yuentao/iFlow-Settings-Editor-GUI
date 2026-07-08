@@ -18,7 +18,7 @@
 
     <!-- 项目列表 -->
     <div class="projects-content">
-      <GenericList :items="store.projects" item-key="id" :loading="isLoadingProjects" :empty-icon="TopicDiscussion" :empty-title="$t('projects.noProjects')" :highlight-fn="projectHighlightFn">
+      <GenericList :items="store.projects" item-key="id" :loading="isLoadingProjects && !isRefreshing" :empty-icon="TopicDiscussion" :empty-title="$t('projects.noProjects')" :highlight-fn="projectHighlightFn">
         <template #item-icon>
           <TopicDiscussion size="20" />
         </template>
@@ -58,7 +58,7 @@
           <ProjectSessionList
             v-if="expandedProjectId === project.id"
             :sessions="store.sessions"
-            :loading="isLoadingSessions && store.sessions.length === 0"
+            :loading="isLoadingSessions && (store.sessions.length === 0 || isRefreshing)"
             :has-more="sessionsHasMore"
             :loading-more="isLoadingSessions"
             @open-session="openSession"
