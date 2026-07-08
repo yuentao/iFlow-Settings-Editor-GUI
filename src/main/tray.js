@@ -215,10 +215,7 @@ function updateTrayMenu() {
       },
     },
     { type: 'separator' },
-    {
-      label: t('tray.switchApiConfig'),
-      submenu: profileMenuItems,
-    },
+    ...profileMenuItems,
     { type: 'separator' },
     {
       label: t('tray.exit'),
