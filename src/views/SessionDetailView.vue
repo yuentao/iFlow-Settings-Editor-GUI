@@ -302,6 +302,7 @@ function scrollToTop() {
 }
 
 const isRefreshing = ref(false)
+let autoRefreshTimer: ReturnType<typeof setInterval> | null = null
 
 async function handleManualRefresh() {
   if (isRefreshing.value || !props.project || !props.session) return
@@ -331,6 +332,29 @@ async function handleManualRefresh() {
     console.error('Failed to refresh session:', e)
   } finally {
     isRefreshing.value = false
+  }
+}
+
+function clearAutoRefreshTimer() {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer)
+    autoRefreshTimer = null
+  }
+}
+
+async function setupAutoRefresh() {
+  clearAutoRefreshTimer()
+
+  try {
+    const result = await window.electronAPI.loadSettings()
+    const intervalMinutes = Number(result?.data?.projectSessionRefreshInterval ?? 10)
+    if (!Number.isFinite(intervalMinutes) || intervalMinutes <= 0) return
+
+    autoRefreshTimer = setInterval(() => {
+      void handleManualRefresh()
+    }, intervalMinutes * 60 * 1000)
+  } catch (error) {
+    console.error('Failed to setup session auto refresh:', error)
   }
 }
 
@@ -447,9 +471,12 @@ onMounted(async () => {
       showScrollHint.value = true
     }
   }
+
+  await setupAutoRefresh()
 })
 
 onUnmounted(() => {
+  clearAutoRefreshTimer()
   store.resetMessages()
   messagesContainer.value?.removeEventListener('scroll', handleScroll)
 })

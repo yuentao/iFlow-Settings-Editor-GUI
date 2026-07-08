@@ -1,8 +1,19 @@
 <template>
   <section class="projects-view">
     <div class="content-header">
-      <h1 class="content-title">{{ $t('projects.title') }}</h1>
-      <p class="content-desc">{{ $t('projects.description') }}</p>
+      <div>
+        <h1 class="content-title">{{ $t('projects.title') }}</h1>
+        <p class="content-desc">{{ $t('projects.description') }}</p>
+      </div>
+      <button
+        class="header-refresh-btn"
+        :class="{ 'is-refreshing': isRefreshing }"
+        :title="$t('general.projectSessionRefreshInterval')"
+        :aria-label="$t('general.projectSessionRefreshInterval')"
+        @click="handleManualRefresh"
+      >
+        <Refresh size="16" />
+      </button>
     </div>
 
     <!-- 项目列表 -->
@@ -72,7 +83,7 @@ import { useToast } from '@/composables/useToast'
 import GenericList from '@/components/GenericList.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ProjectSessionList from '@/components/ProjectSessionList.vue'
-import { TopicDiscussion,Communication, AlarmClock, Right, Delete } from '@icon-park/vue-next'
+import { TopicDiscussion,Communication, AlarmClock, Right, Delete, Refresh } from '@icon-park/vue-next'
 
 const { t } = useI18n()
 const store = useProjectsStore()
@@ -86,6 +97,8 @@ const expandedProjectId = ref<string | null>(null)
 const exportingSessionId = ref<string | null>(null)
 const deletingSessionId = ref<string | null>(null)
 const deletingProjectId = ref<string | null>(null)
+const isRefreshing = ref(false)
+let autoRefreshTimer: ReturnType<typeof setInterval> | null = null
 
 const confirmState = ref<{
   show: boolean
@@ -108,6 +121,58 @@ const sessionsHasMore = computed(() => store.sessionsHasMore)
 
 function projectHighlightFn(project: Project) {
   return { highlighted: expandedProjectId.value === project.id }
+}
+
+async function refreshProjectsAndSessions() {
+  await store.loadProjects()
+
+  if (!expandedProjectId.value) {
+    return
+  }
+
+  const activeProject = store.projects.find(project => project.id === expandedProjectId.value)
+  if (!activeProject) {
+    expandedProjectId.value = null
+    store.currentProject = null
+    store.resetSessions()
+    return
+  }
+
+  store.currentProject = activeProject
+  await store.loadSessions(activeProject.id, { limit: 20, sortBy: 'lastActive', sortOrder: 'desc' })
+}
+
+async function handleManualRefresh() {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  try {
+    await refreshProjectsAndSessions()
+  } finally {
+    isRefreshing.value = false
+  }
+}
+
+function clearAutoRefreshTimer() {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer)
+    autoRefreshTimer = null
+  }
+}
+
+async function setupAutoRefresh() {
+  clearAutoRefreshTimer()
+
+  try {
+    const result = await window.electronAPI.loadSettings()
+    const intervalMinutes = Number(result?.data?.projectSessionRefreshInterval ?? 10)
+    if (!Number.isFinite(intervalMinutes) || intervalMinutes <= 0) return
+
+    autoRefreshTimer = setInterval(() => {
+      void refreshProjectsAndSessions()
+    }, intervalMinutes * 60 * 1000)
+  } catch (error) {
+    console.error('Failed to setup project auto refresh:', error)
+  }
 }
 
 async function toggleProject(project: Project) {
@@ -243,10 +308,12 @@ function formatDateTime(dateStr: string): string {
 }
 
 onMounted(async () => {
-  await store.loadProjects()
+  await refreshProjectsAndSessions()
+  await setupAutoRefresh()
 })
 
 onUnmounted(() => {
+  clearAutoRefreshTimer()
   store.resetSessions()
   expandedProjectId.value = null
   exportingSessionId.value = null
@@ -265,6 +332,44 @@ onUnmounted(() => {
 .projects-content {
   flex: 1;
   padding: 0 0 16px;
+}
+
+.content-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header-refresh-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-light);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--control-fill-hover);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-md);
+  }
+
+  &.is-refreshing {
+    pointer-events: none;
+    opacity: 0.6;
+
+    :deep(svg) {
+      animation: spin 0.8s linear infinite;
+    }
+  }
 }
 
 // 项目列表项内容
@@ -341,6 +446,15 @@ onUnmounted(() => {
   &.danger:hover {
     background: rgba(196, 49, 49, 0.1);
     color: var(--danger, #c43131);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

@@ -145,6 +145,16 @@
               <span class="input-suffix">{{ $t('general.balanceRefreshIntervalUnit') }}</span>
             </div>
           </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">{{ $t('general.projectSessionRefreshInterval') }}</label>
+              <p class="setting-desc">{{ $t('general.projectSessionRefreshIntervalDesc') }}</p>
+            </div>
+            <div class="input-with-suffix">
+              <custom-input type="number" class="setting-input-number has-suffix" v-model="localSettings.projectSessionRefreshInterval" min="1" max="60" />
+              <span class="input-suffix">{{ $t('general.projectSessionRefreshIntervalUnit') }}</span>
+            </div>
+          </div>
           <div class="setting-item" style="flex-wrap: wrap;">
             <div class="setting-info" style="width: 100%;">
               <label class="setting-label">{{ $t('general.balanceProviderRules') }}</label>
