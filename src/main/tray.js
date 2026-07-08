@@ -34,15 +34,54 @@ function getTrayIconPath() {
   if (app.isPackaged) {
     const iconDir = path.join(process.resourcesPath, 'icon')
     if (isMac) {
-      return path.join(iconDir, 'icon.png')
+      const macTrayIcon = path.join(iconDir, 'tray-mac.png')
+      return fs.existsSync(macTrayIcon) ? macTrayIcon : path.join(iconDir, 'icon.png')
     }
     return path.join(iconDir, 'icon.ico')
   } else {
     if (isMac) {
-      return path.join(__dirname, '..', '..', 'build', 'icon.png')
+      const macTrayIcon = path.join(__dirname, '..', '..', 'build', 'tray-mac.png')
+      return fs.existsSync(macTrayIcon)
+        ? macTrayIcon
+        : path.join(__dirname, '..', '..', 'build', 'icon.png')
     }
     return path.join(__dirname, '..', '..', 'build', 'icon.ico')
   }
+}
+
+/**
+ * 创建系统托盘图标
+ * @param {string} iconPath
+ * @param {boolean} isMac
+ * @returns {nativeImage}
+ */
+function createTrayImage(iconPath, isMac) {
+  const exists = fs.existsSync(iconPath)
+  logger.info('[Tray] Icon exists:', exists, '| path:', iconPath)
+  if (!exists) {
+    logger.warn('[Tray] Icon not found at:', iconPath)
+    return nativeImage.createEmpty()
+  }
+
+  let trayIcon
+  if (isMac) {
+    trayIcon = nativeImage.createFromPath(iconPath)
+    logger.info('[Tray] macOS raw icon loaded, isEmpty:', trayIcon.isEmpty(), '| size:', trayIcon.getSize())
+    if (!trayIcon.isEmpty()) {
+      trayIcon = trayIcon.resize({ width: 18, height: 18 })
+      logger.info('[Tray] macOS icon resized to:', trayIcon.getSize())
+    }
+  } else {
+    trayIcon = nativeImage.createFromPath(iconPath)
+    logger.info('[Tray] Windows raw icon loaded, isEmpty:', trayIcon.isEmpty(), '| size:', trayIcon.getSize())
+    if (!trayIcon.isEmpty()) {
+      trayIcon = trayIcon.resize({ width: 16, height: 16 })
+      logger.info('[Tray] Windows icon resized to:', trayIcon.getSize())
+    }
+  }
+
+  logger.info('[Tray] Icon loaded, isEmpty:', trayIcon.isEmpty(), '| size:', trayIcon.getSize())
+  return trayIcon
 }
 
 /**
@@ -52,30 +91,14 @@ function getTrayIconPath() {
 function createTrayIcon() {
   const iconPath = getTrayIconPath()
   logger.info('[Tray] Platform:', process.platform, '| Packaged:', app.isPackaged, '| Icon path:', iconPath)
-  let trayIcon
 
   const isMac = process.platform === 'darwin'
+  const trayIcon = createTrayImage(iconPath, isMac)
 
-  if (fs.existsSync(iconPath)) {
-    if (isMac) {
-      // macOS 上 createFromPath 对某些 PNG 有兼容问题，改用 createFromBuffer
-      const iconBuffer = fs.readFileSync(iconPath)
-      trayIcon = nativeImage.createFromBuffer(iconBuffer)
-    } else {
-      // Windows 上 createFromBuffer 不支持 ICO 格式，使用 createFromPath
-      trayIcon = nativeImage.createFromPath(iconPath)
-    }
-    logger.info('[Tray] Icon loaded, isEmpty:', trayIcon.isEmpty(), '| size:', trayIcon.getSize())
-  } else {
-    logger.warn('[Tray] Icon not found at:', iconPath)
-    trayIcon = nativeImage.createEmpty()
-  }
   if (isMac) {
-    // macOS 菜单栏图标不手动 resize，让 Electron 自动适配
-    logger.info('[Tray] macOS tray icon (no manual resize), isEmpty:', trayIcon.isEmpty())
-  } else {
-    trayIcon = trayIcon.resize({ width: 16, height: 16 })
+    logger.info('[Tray] macOS tray icon prepared from PNG without template mode, isEmpty:', trayIcon.isEmpty(), '| size:', trayIcon.getSize())
   }
+
   return trayIcon
 }
 
@@ -92,16 +115,39 @@ function getMainWindowRef() {
  */
 function createTray() {
   if (tray) {
+    logger.info('[Tray] Reusing existing tray instance')
     return tray
   }
 
   const trayIcon = createTrayIcon()
   logger.info('[Tray] Creating tray, icon isEmpty:', trayIcon.isEmpty(), '| size:', trayIcon.getSize())
   tray = new Tray(trayIcon)
+
+  if (process.platform === 'darwin') {
+    tray.setIgnoreDoubleClickEvents(true)
+    tray.setTitle('')
+    tray.setImage(trayIcon)
+    logger.info('[Tray] Applied macOS tray configuration (title/image)')
+  }
+
   tray.setToolTip(t('tray.tooltip'))
   logger.info('[Tray] Tray created successfully')
+  try {
+    logger.info('[Tray] Tray bounds after creation:', tray.getBounds())
+  } catch (error) {
+    logger.warn('[Tray] Failed to read tray bounds:', error?.message || error)
+  }
 
   updateTrayMenu()
+
+  if (process.platform === 'darwin') {
+    try {
+      tray.setImage(trayIcon)
+      logger.info('[Tray] Reapplied macOS tray image after menu setup')
+    } catch (error) {
+      logger.warn('[Tray] Failed to reapply macOS tray image:', error?.message || error)
+    }
+  }
 
   tray.on('double-click', () => {
     const mainWindow = getMainWindowRef()

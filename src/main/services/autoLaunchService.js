@@ -32,10 +32,10 @@ async function setAutoLaunchEnabled(enabled) {
     const loginSettings = {
       openAtLogin: enabled,
       openAsHidden: true,
+      args: ['--hidden'],
     }
     if (process.platform !== 'darwin') {
       loginSettings.path = app.getPath('exe')
-      loginSettings.args = ['--hidden']
     }
     app.setLoginItemSettings(loginSettings)
   }
@@ -53,10 +53,10 @@ function initAutoLaunch() {
     const loginSettings = {
       openAtLogin: true,
       openAsHidden: true,
+      args: ['--hidden'],
     }
     if (process.platform !== 'darwin') {
       loginSettings.path = app.getPath('exe')
-      loginSettings.args = ['--hidden']
     }
     app.setLoginItemSettings(loginSettings)
   }
