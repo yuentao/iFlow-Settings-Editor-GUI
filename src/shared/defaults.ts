@@ -20,6 +20,7 @@ export const CLI_DEFAULTS = {
   apiConfigLayout: 'list',
   zoomFactor: 1.0,
   balanceRefreshInterval: 5,
+  projectSessionRefreshInterval: 10,
   balanceProviderRules: [],
 } as const
 

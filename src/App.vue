@@ -17,7 +17,7 @@
           <SkeletonLoader v-else-if="currentSection === 'skills'" type="list" :count="3" />
           <SkeletonLoader v-else-if="currentSection === 'commands'" type="command" :count="3" />
           <SkeletonLoader v-else-if="currentSection === 'iflow'" type="list" :count="4" />
-          <SkeletonLoader v-else-if="currentSection === 'projects'" type="card" :count="3" />
+          <SkeletonLoader v-else-if="currentSection === 'projects'" type="list" :count="4" />
           <SkeletonLoader v-else type="form" :count="4" />
         </template>
         <template v-else>

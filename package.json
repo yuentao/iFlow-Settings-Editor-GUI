@@ -1,6 +1,6 @@
 {
   "name": "iflow-settings-editor",
-  "version": "1.21.1",
+  "version": "1.21.3",
   "description": "一个用于编辑 iFlow CLI 配置文件的桌面应用程序。",
   "main": "src/main/index.js",
   "author": "上海潘哆呐科技有限公司",
@@ -72,6 +72,10 @@
       {
         "from": "build/icon.png",
         "to": "icon/icon.png"
+      },
+      {
+        "from": "build/tray-mac.png",
+        "to": "icon/tray-mac.png"
       }
     ],
     "files": [
@@ -174,6 +178,7 @@
     "electron-log": "^5.4.3",
     "electron-updater": "^6.8.3",
     "fast-xml-parser": "^5.7.2",
+    "jimp": "^1.6.1",
     "marked": "^18.0.2",
     "moment": "^2.30.1",
     "pinia": "^3.0.4",

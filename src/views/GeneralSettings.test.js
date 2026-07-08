@@ -106,6 +106,7 @@ describe('GeneralSettings.vue', () => {
     acrylicIntensity: 50,
     zoomFactor: 1.0,
     apiConfigLayout: 'list',
+    projectSessionRefreshInterval: 10,
   };
 
   const defaultMountOptions = () => ({
@@ -247,16 +248,15 @@ describe('GeneralSettings.vue', () => {
     // Zoom card: 1 setting-item-full = 1
     // ApiConfigLayout card: 1 setting-item-main = 1
     // AutoLaunch card: 1 setting-item-main = 1
-    // Monitoring card: 2 items = 2
+    // Monitoring card: 4 items = 4
     // ConversationMode card: 3 items = 3
     // DisplayUpdates card: 4 items = 4
     // SessionTimeout card: 4 items = 4
     // ToolFiltering card: 1 setting-item-main = 1
-    // BalanceRefresh card: 1 item = 1
     // BalanceProviderRules card: 1 item = 1
-    // Total: 3 + 1 + 1 + 1 + 2 + 3 + 4 + 4 + 1 + 1 + 1 = 22
-    expect(wrapper.findAll('.setting-item').length).toBe(22);
-    expect(wrapper.findAll('.setting-label').length).toBe(22);
+    // Total: 3 + 1 + 1 + 1 + 4 + 3 + 4 + 4 + 1 + 1 = 23
+    expect(wrapper.findAll('.setting-item').length).toBe(23);
+    expect(wrapper.findAll('.setting-label').length).toBe(23);
     expect(wrapper.findAll('custom-dropdown-stub').length).toBeGreaterThan(5);
     expect(wrapper.find('.toggle-switch').exists()).toBe(true);
   });
@@ -353,6 +353,15 @@ describe('GeneralSettings.vue', () => {
     // Verify the callback correctly sets updateReady when status is downloaded
     wrapper.vm.handleStatusChanged({ status: 'downloaded', info: { version: '2.0.0' } });
     expect(wrapper.vm.updateReady).toBe(true);
+  });
+
+  it('shows project session refresh interval input', async () => {
+    const wrapper = mount(GeneralSettings, defaultMountOptions());
+
+    await nextTick();
+    expect(wrapper.text()).toContain('general.projectSessionRefreshInterval');
+    expect(wrapper.text()).toContain('general.projectSessionRefreshIntervalDesc');
+    expect(wrapper.text()).toContain('general.projectSessionRefreshIntervalUnit');
   });
 
   it('has cloud sync section with toggle switch', () => {
