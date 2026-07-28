@@ -175,9 +175,7 @@ function registerUpdatesIpcHandlers() {
   ipcMain.handle('install-update', async () => {
     logger.info('install-update invoked')
     try {
-      // 清除持久化的待安装更新
-      await clearPendingUpdate()
-      
+      // 安装触发后保留 pending，下一次启动确认版本升级成功后再清理
       return await autoUpdater.installUpdate()
     } catch (error) {
       logger.error('install-update error:', error)
@@ -238,30 +236,50 @@ function registerUpdatesIpcHandlers() {
     if (!pending) {
       return { success: true, restored: false }
     }
-    
-    // 检查下载文件是否还存在
-    if (pending.downloadPath && !fs.existsSync(pending.downloadPath)) {
+
+    const currentVersion = autoUpdater.getAppVersion().version
+    if (pending.version && pending.version === currentVersion) {
       await clearPendingUpdate()
-      return { success: true, restored: false }
+      return { success: true, restored: false, installed: true }
     }
-    
-    // 恢复更新状态
+
+    // 由 electron-updater 重新校验并准备当前实例的安装状态
+    const restored = await autoUpdater.restoreDownloadedUpdate(pending)
+    if (!restored.success) {
+      if (restored.reason === 'missing-file' || restored.reason === 'already-installed') {
+        await clearPendingUpdate()
+      }
+      return restored
+    }
+
+    const restoredPending = {
+      ...pending,
+      downloadPath: restored.downloadPath,
+      downloadName: path.basename(restored.downloadPath),
+      version: restored.version || pending.version,
+    }
+    await savePendingUpdate(restoredPending)
+
     const mainWindow = getMainWindowRef()
     if (mainWindow && mainWindow.webContents) {
       mainWindow.webContents.send('update-status-changed', {
         status: 'downloaded',
         info: {
-          version: pending.version,
-          downloadName: pending.downloadName || 'update.exe',
+          version: restoredPending.version,
+          downloadName: restoredPending.downloadName,
         },
         progress: 100,
         error: null,
-        downloadPath: pending.downloadPath,
+        downloadPath: restoredPending.downloadPath,
         isBackground: false,
       })
     }
-    
-    return { success: true, restored: true, pending }
+
+    return {
+      success: true,
+      restored: true,
+      pending: restoredPending,
+    }
   })
 
   // 获取更新历史

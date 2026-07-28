@@ -49,6 +49,12 @@ let isDownloading = false
 // 下载会话代数（用于 cancelDownload 后使旧下载的 finally 块不干扰新下载）
 let downloadGeneration = 0
 
+// 当前下载是否已经交给平台更新器，可在重启恢复后重新绑定
+let updaterPrepared = false
+
+// 当前更新是否正在安装
+let installInProgress = false
+
 // 主窗口引用
 let mainWindowRef = null
 
@@ -121,7 +127,8 @@ function initAutoUpdater() {
   // 启用差分更新（blockMap 算法）
   // electron-updater 会自动查找 .blockmap 文件并计算差量
   autoUpdater.autoDownload = false
-  autoUpdater.autoInstallOnAppQuit = true
+  // macOS 由设置页显式触发安装，避免自动退出安装与手动安装竞态。
+  autoUpdater.autoInstallOnAppQuit = process.platform !== 'darwin'
 
   // 差分更新：electron-updater 默认启用 blockMap 差分下载
   // 控制属性为 disableDifferentialDownload（默认 false，即启用差分）
@@ -203,6 +210,7 @@ function initAutoUpdater() {
 
     logger.info('Update downloaded:', info.version)
     logger.info('Download path:', info.filePath)
+    updaterPrepared = true
 
     // 保留当前 isBackground 状态，以便渲染进程正确区分前台/后台下载完成
     setUpdateState({
@@ -377,12 +385,14 @@ async function downloadUpdate(options = {}) {
 
     // 下载完成：update-downloaded 事件已触发，状态已被更新
     if (updateState.status === 'downloaded' && updateState.downloadPath) {
+      updaterPrepared = true
       return { success: true, downloadPath: updateState.downloadPath }
     }
 
     // 兜底：如果事件未触发但返回了路径，手动设置状态
     if (downloadPaths && downloadPaths.length > 0) {
       const downloadPath = downloadPaths[0]
+      updaterPrepared = true
       setUpdateState({
         status: 'downloaded',
         downloadPath,
@@ -395,12 +405,14 @@ async function downloadUpdate(options = {}) {
     throw new Error(t('update.error.downloadFailed'))
   } catch (error) {
     if (error.message === 'Cancelled' || currentDownloadOptions?.cancelled) {
-      setUpdateState({ status: 'idle', error: null, isBackground: false })
+      updaterPrepared = false
+      setUpdateState({ status: 'idle', downloadPath: null, error: null, isBackground: false })
       return { success: false, cancelled: true }
     }
 
     logger.error('Download failed:', error)
-    setUpdateState({ status: 'error', error: error.message, isBackground: false })
+    updaterPrepared = false
+    setUpdateState({ status: 'error', downloadPath: null, error: error.message, isBackground: false })
     return { success: false, error: error.message }
   } finally {
     // 仅当前下载的 generation 仍是最新的才重置，防止取消后旧 Promise 结算时干扰新下载
@@ -440,11 +452,70 @@ async function cancelDownload() {
     // 递增 generation，使旧下载的 finally 块不再重置 isDownloading
     downloadGeneration++
 
-    setUpdateState({ status: 'idle', isBackground: false })
+    updaterPrepared = false
+    setUpdateState({ status: 'idle', downloadPath: null, isBackground: false })
     return { success: true }
   } catch (error) {
     logger.error('Cancel failed:', error)
     return { success: false, error: error.message }
+  }
+}
+
+/**
+ * 恢复重启前已下载的更新，并重新准备平台安装状态。
+ * electron-updater 没有公开接口把持久化路径直接注入当前实例，
+ * 因此恢复时重新检查并复用其缓存校验/下载流程。
+ * @param {Object} pending - 持久化的待安装更新信息
+ * @returns {Promise<Object>} 恢复结果
+ */
+async function restoreDownloadedUpdate(pending) {
+  try {
+    if (!pending?.downloadPath || !fs.existsSync(pending.downloadPath)) {
+      return { success: false, restored: false, reason: 'missing-file' }
+    }
+
+    const fileStat = fs.statSync(pending.downloadPath)
+    if (!fileStat.isFile()) {
+      return { success: false, restored: false, reason: 'missing-file' }
+    }
+
+    if (pending.version && pending.version === getCurrentVersion()) {
+      return { success: false, restored: false, reason: 'already-installed' }
+    }
+
+    const checkResult = await checkForUpdates()
+    if (!checkResult.success) {
+      return { success: false, restored: false, reason: 'check-failed', error: checkResult.error }
+    }
+
+    if (!checkResult.hasUpdate || (pending.version && checkResult.version !== pending.version)) {
+      logger.warn(
+        `[AutoUpdater] Pending update ${pending.version || 'unknown'} is not currently available`,
+      )
+      return { success: false, restored: false, reason: 'update-unavailable' }
+    }
+
+    const downloadResult = await downloadUpdate()
+    if (!downloadResult.success || !downloadResult.downloadPath) {
+      return {
+        success: false,
+        restored: false,
+        reason: 'download-failed',
+        error: downloadResult.error,
+      }
+    }
+
+    return {
+      success: true,
+      restored: true,
+      redownloaded: downloadResult.downloadPath !== pending.downloadPath,
+      downloadPath: downloadResult.downloadPath,
+      version: checkResult.version,
+    }
+  } catch (error) {
+    logger.error('Failed to restore downloaded update:', error)
+    setUpdateState({ status: 'error', error: error.message })
+    return { success: false, restored: false, reason: 'restore-failed', error: error.message }
   }
 }
 
@@ -454,14 +525,24 @@ async function cancelDownload() {
  */
 async function installUpdate() {
   try {
-    if (!updateState.downloadPath) {
+    if (installInProgress) {
+      return { success: false, error: 'Update installation is already in progress' }
+    }
+
+    if (!updateState.downloadPath || !updaterPrepared) {
       throw new Error(t('update.error.noDownloadedUpdate'))
     }
 
-    // 使用 autoUpdater 安装更新
-    autoUpdater.quitAndInstall(false, true)
+    installInProgress = true
+    // macOS 使用 Squirrel.Mac 的无参数安装入口；Windows 参数仅对 NSIS 生效。
+    if (process.platform === 'darwin') {
+      autoUpdater.quitAndInstall()
+    } else {
+      autoUpdater.quitAndInstall(false, true)
+    }
     return { success: true }
   } catch (error) {
+    installInProgress = false
     logger.error('Install failed:', error)
     return { success: false, error: error.message }
   }
@@ -533,6 +614,7 @@ module.exports = {
   downloadUpdateBackground,
   cancelDownload,
   installUpdate,
+  restoreDownloadedUpdate,
   getUpdateState,
   getAppVersion,
   getVersionInfo,
