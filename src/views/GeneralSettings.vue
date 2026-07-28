@@ -645,7 +645,12 @@
                 <Refresh v-else size="14" />
                 {{ isCheckingUpdate ? $t('update.checking') : $t('update.menu.checkUpdate') }}
               </button>
-              <button v-if="updateReady" class="btn btn-primary btn-sm" @click="handleInstallUpdate">
+              <button
+                v-if="updateReady"
+                class="btn btn-primary btn-sm"
+                :disabled="isInstalling"
+                @click="handleInstallUpdate"
+              >
                 {{ $t('update.installNow') }}
               </button>
             </div>
@@ -931,6 +936,7 @@ const cloudConfirmDialog = ref({
 // 更新相关状态
 const updateReady = ref(false)
 const updateVersion = ref('')
+const isInstalling = ref(false)
 
 const platform = ref('')
 
@@ -950,7 +956,7 @@ const handleStatusChanged = state => {
   if (state.status === 'downloaded') {
     updateReady.value = true
     updateVersion.value = state.info?.version || ''
-  } else {
+  } else if (state.status !== 'error' && !isInstalling.value) {
     updateReady.value = false
   }
 }
@@ -1064,13 +1070,26 @@ onUnmounted(() => {
 })
 
 const handleInstallUpdate = async () => {
+  if (isInstalling.value) return
+
+  isInstalling.value = true
   try {
-    if (window.electronAPI && window.electronAPI.installUpdate) {
-      await window.electronAPI.installUpdate()
+    if (!window.electronAPI?.installUpdate) {
+      throw new Error('Update installation API is unavailable')
     }
+
+    const result = await window.electronAPI.installUpdate()
+    if (!result?.success) {
+      throw new Error(result?.error || 'Update installation failed')
+    }
+
+    updateReady.value = false
   } catch (error) {
     console.error('Failed to install update:', error)
+    updateReady.value = true
     toast.error(t('update.installFailed'))
+  } finally {
+    isInstalling.value = false
   }
 }
 

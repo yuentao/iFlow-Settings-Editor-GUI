@@ -139,7 +139,7 @@ describe('GeneralSettings.vue', () => {
       onUpdateStatusChanged: vi.fn(),
       onUpdateDownloadProgress: vi.fn(),
       onUpdateBackgroundComplete: vi.fn(),
-      installUpdate: vi.fn().mockResolvedValue({}),
+      installUpdate: vi.fn().mockResolvedValue({ success: true }),
       checkForUpdates: vi.fn().mockResolvedValue({ success: true, hasUpdate: false }),
       onCloudSyncStatusChanged: vi.fn(),
     };
@@ -343,6 +343,78 @@ describe('GeneralSettings.vue', () => {
       expect(mockToastError).toHaveBeenCalledWith('update.installFailed');
     }
   });
+
+  it('shows error message when installUpdate returns failure', async () => {
+    window.electronAPI.getUpdateStatus.mockResolvedValueOnce({
+      success: true,
+      status: 'downloaded',
+      info: { version: '2.0.0' },
+    })
+    window.electronAPI.installUpdate.mockResolvedValueOnce({
+      success: false,
+      error: 'Install failed',
+    })
+
+    const wrapper = mount(GeneralSettings, defaultMountOptions())
+    await flushPromises()
+
+    const installButton = wrapper
+      .findAll('button')
+      .find(button => button.text().includes('update.installNow'))
+    expect(installButton).toBeDefined()
+    await installButton.trigger('click')
+
+    expect(mockToastError).toHaveBeenCalledWith('update.installFailed')
+    expect(wrapper.vm.updateReady).toBe(true)
+    expect(wrapper.vm.isInstalling).toBe(false)
+  })
+
+  it('keeps the install button available when update status becomes error', async () => {
+    const wrapper = mount(GeneralSettings, defaultMountOptions())
+    wrapper.vm.handleStatusChanged({ status: 'downloaded', info: { version: '2.0.0' } })
+    await wrapper.vm.$nextTick()
+
+    wrapper.vm.handleStatusChanged({ status: 'error', error: 'signature invalid' })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.vm.updateReady).toBe(true)
+    expect(wrapper.findAll('button').some(button => button.text().includes('update.installNow'))).toBe(true)
+  })
+
+  it('prevents duplicate install requests while installation is pending', async () => {
+    let resolveInstall
+    const installPromise = new Promise(resolve => {
+      resolveInstall = resolve
+    })
+    window.electronAPI.installUpdate.mockReturnValueOnce(installPromise)
+
+    const wrapper = mount(GeneralSettings, defaultMountOptions())
+    wrapper.vm.handleStatusChanged({ status: 'downloaded', info: { version: '2.0.0' } })
+    await wrapper.vm.$nextTick()
+
+    const installButton = wrapper
+      .findAll('button')
+      .find(button => button.text().includes('update.installNow'))
+    expect(installButton).toBeDefined()
+
+    const firstInstall = installButton.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.isInstalling).toBe(true)
+
+    const pendingInstallButton = wrapper
+      .findAll('button')
+      .find(button => button.text().includes('update.installNow'))
+    expect(pendingInstallButton).toBeDefined()
+    expect(pendingInstallButton.isDisabled()).toBe(true)
+
+    await pendingInstallButton.trigger('click')
+    expect(window.electronAPI.installUpdate).toHaveBeenCalledOnce()
+
+    resolveInstall({ success: false, error: 'Install failed' })
+    await firstInstall
+    expect(wrapper.vm.isInstalling).toBe(false)
+    expect(wrapper.vm.updateReady).toBe(true)
+  })
 
   it('registers update status listener on mount', () => {
     const wrapper = mount(GeneralSettings, defaultMountOptions());
