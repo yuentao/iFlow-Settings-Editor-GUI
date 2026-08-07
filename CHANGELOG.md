@@ -2,6 +2,11 @@
 
 所有重要的版本更新都会记录在此文件中。
 
+## [1.21.4] - 2026-08-07
+
+### 修复
+- **修复 macOS/Linux 平台 iFlow 路径解析失败** - Electron GUI 应用在 POSIX 平台 PATH 极简，导致 `npm`/`iflow` 命令无法找到；新增 PATH 增强机制，覆盖 Homebrew、nvm、asdf、volta、fnm、pnpm 等常见安装路径；新增纯文件系统扫描兜底方案，不依赖 shell 命令
+
 ## [1.21.3] - 2026-07-08
 
 ### 新增
