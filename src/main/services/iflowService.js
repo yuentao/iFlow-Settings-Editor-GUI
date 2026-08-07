@@ -82,6 +82,69 @@ function writeModsMetadata(metadata) {
 let cachedNpmPrefix = null
 let cachedIflowVersion = null
 let preloadPromise = null
+let cachedExecEnv = null
+
+/**
+ * 收集 macOS/Linux 上常见的 node 全局 bin 目录
+ * GUI 启动的 Electron 应用 PATH 极简（/usr/bin:/bin:/usr/sbin:/sbin），
+ * 通过 Homebrew / nvm 等安装的 npm、iflow 不在其中
+ * @returns {string[]} 存在的 bin 目录列表
+ */
+function collectExtraBinDirs() {
+  if (process.platform === 'win32') return []
+
+  const home = app.getPath('home')
+  const dirs = [
+    '/usr/local/bin', // Intel Homebrew / 默认
+    '/opt/homebrew/bin', // Apple Silicon Homebrew
+    '/opt/local/bin', // MacPorts
+    path.join(home, '.volta', 'bin'),
+    path.join(home, '.fnm', 'bin'),
+    path.join(home, '.local', 'bin'),
+    path.join(home, '.npm-global', 'bin'),
+    path.join(home, 'Library', 'pnpm'), // pnpm (macOS 默认全局目录)
+    path.join(home, '.local', 'share', 'pnpm'),
+  ]
+
+  // 版本管理器：扫描已安装的 node 版本目录
+  const versionedRoots = [
+    { root: path.join(home, '.nvm', 'versions', 'node'), sub: ['bin'] },
+    { root: path.join(home, '.asdf', 'installs', 'nodejs'), sub: ['bin'] },
+    { root: path.join(home, '.local', 'share', 'fnm', 'node-versions'), sub: ['installation', 'bin'] },
+  ]
+  for (const { root, sub } of versionedRoots) {
+    try {
+      for (const entry of fs.readdirSync(root)) {
+        dirs.push(path.join(root, entry, ...sub))
+      }
+    } catch {
+      // 目录不存在时忽略
+    }
+  }
+
+  return dirs.filter(d => fs.existsSync(d))
+}
+
+/**
+ * 获取用于 exec 的环境变量（POSIX 平台增强 PATH，带缓存）
+ * @returns {Object} 环境变量对象
+ */
+function getExecEnv() {
+  if (cachedExecEnv !== null) {
+    return cachedExecEnv
+  }
+  if (process.platform === 'win32') {
+    cachedExecEnv = process.env
+    return cachedExecEnv
+  }
+  const extraDirs = collectExtraBinDirs()
+  const currentPath = process.env.PATH || ''
+  cachedExecEnv = {
+    ...process.env,
+    PATH: [...extraDirs, currentPath].filter(Boolean).join(path.delimiter),
+  }
+  return cachedExecEnv
+}
 
 /**
  * 获取 npm 全局路径（带缓存）
@@ -92,7 +155,7 @@ async function getNpmPrefix() {
     return cachedNpmPrefix
   }
   return new Promise((resolve, reject) => {
-    exec('npm config get prefix', { timeout: 5000, windowsHide: true }, (error, stdout, stderr) => {
+    exec('npm config get prefix', { timeout: 5000, windowsHide: true, env: getExecEnv() }, (error, stdout, stderr) => {
       if (error) {
         reject(new Error(`Failed to get npm prefix: ${error.message}`))
         return
@@ -116,7 +179,7 @@ async function getNpmPrefix() {
 function resolveIflowBinaryPath() {
   const cmd = process.platform === 'win32' ? 'where iflow' : 'which iflow'
   return new Promise((resolve) => {
-    exec(cmd, { timeout: 5000, windowsHide: true }, (error, stdout) => {
+    exec(cmd, { timeout: 5000, windowsHide: true, env: getExecEnv() }, (error, stdout) => {
       if (error || !stdout.trim()) {
         resolve(null)
         return
@@ -171,18 +234,74 @@ function deriveIflowJsPathFromBinary(binaryPath) {
 }
 
 /**
+ * 枚举 macOS/Linux 上常见的 iflow.js 全局安装位置
+ * 作为 shell 命令全部失败时的纯文件系统兜底方案
+ * @returns {string[]} 候选 iflow.js 路径列表
+ */
+function getWellKnownIflowJsPaths() {
+  if (process.platform === 'win32') return []
+
+  const home = app.getPath('home')
+  const pkgRel = path.join('@iflow-ai', 'iflow-cli', 'bundle', 'iflow.js')
+  const candidates = []
+
+  // 固定前缀：prefix/lib/node_modules/<pkg>
+  const staticRoots = [
+    '/usr/local/lib/node_modules', // Intel Homebrew / 默认
+    '/opt/homebrew/lib/node_modules', // Apple Silicon Homebrew
+    '/opt/local/lib/node_modules', // MacPorts
+    '/usr/lib/node_modules', // Linux 发行版包管理器
+    path.join(home, '.npm-global', 'lib', 'node_modules'),
+    path.join(home, 'Library', 'pnpm', 'global', '5', 'node_modules'),
+    path.join(home, '.local', 'share', 'pnpm', 'global', '5', 'node_modules'),
+  ]
+  for (const root of staticRoots) {
+    candidates.push(path.join(root, pkgRel))
+  }
+
+  // 版本管理器：扫描已安装的 node 版本目录
+  const versionedRoots = [
+    { root: path.join(home, '.nvm', 'versions', 'node'), sub: ['lib', 'node_modules'] },
+    { root: path.join(home, '.asdf', 'installs', 'nodejs'), sub: ['lib', 'node_modules'] },
+    { root: path.join(home, '.volta', 'tools', 'image', 'node'), sub: ['lib', 'node_modules'] },
+    {
+      root: path.join(home, '.local', 'share', 'fnm', 'node-versions'),
+      sub: ['installation', 'lib', 'node_modules'],
+    },
+  ]
+  for (const { root, sub } of versionedRoots) {
+    try {
+      for (const entry of fs.readdirSync(root)) {
+        candidates.push(path.join(root, entry, ...sub, pkgRel))
+      }
+    } catch {
+      // 目录不存在时忽略
+    }
+  }
+
+  return candidates
+}
+
+/**
  * 获取 iflow.js 文件路径（多策略回退）
- * 策略1: npm config get prefix → node_modules/@iflow-ai/iflow-cli/bundle/iflow.js
+ * 策略1: npm config get prefix → [lib/]node_modules/@iflow-ai/iflow-cli/bundle/iflow.js
  * 策略2: which iflow → 解析符号链接 → 推导 bundle/iflow.js
+ * 策略3: 扫描常见安装位置（不依赖 shell，规避 GUI 应用 PATH 受限问题）
  * @returns {Promise<string>} iflow.js 完整路径
  */
 async function getIflowPath() {
+  const pkgRel = path.join('@iflow-ai', 'iflow-cli', 'bundle', 'iflow.js')
+
   // 策略1: npm prefix
+  // POSIX 平台全局包默认位于 <prefix>/lib/node_modules，Windows 位于 <prefix>/node_modules
   try {
     const prefix = await getNpmPrefix()
-    const npmPath = path.join(prefix, 'node_modules', '@iflow-ai', 'iflow-cli', 'bundle', 'iflow.js')
-    if (fs.existsSync(npmPath)) {
-      return npmPath
+    const subDirs = process.platform === 'win32' ? [['node_modules']] : [['lib', 'node_modules'], ['node_modules']]
+    for (const sub of subDirs) {
+      const npmPath = path.join(prefix, ...sub, pkgRel)
+      if (fs.existsSync(npmPath)) {
+        return npmPath
+      }
     }
   } catch {
     // npm prefix 失败，尝试策略2
@@ -197,10 +316,18 @@ async function getIflowPath() {
     }
   }
 
+  // 策略3: 常见安装位置直接扫描
+  for (const candidate of getWellKnownIflowJsPaths()) {
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
+  }
+
   // 所有策略失败，返回 npm 路径（供上层显示路径信息）
   try {
     const prefix = await getNpmPrefix()
-    return path.join(prefix, 'node_modules', '@iflow-ai', 'iflow-cli', 'bundle', 'iflow.js')
+    const sub = process.platform === 'win32' ? ['node_modules'] : ['lib', 'node_modules']
+    return path.join(prefix, ...sub, pkgRel)
   } catch {
     throw new Error('Cannot resolve iflow.js path')
   }
@@ -235,7 +362,7 @@ async function getIflowVersion() {
     return cachedIflowVersion
   }
   return new Promise((resolve, reject) => {
-    exec('iflow -v', { timeout: 5000, windowsHide: true }, (error, stdout, stderr) => {
+    exec('iflow -v', { timeout: 5000, windowsHide: true, env: getExecEnv() }, (error, stdout, stderr) => {
       if (error) {
         reject(new Error(`Failed to get iflow version: ${error.message}`))
         return
