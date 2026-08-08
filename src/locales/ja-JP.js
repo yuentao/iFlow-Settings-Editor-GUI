@@ -767,8 +767,10 @@ export default {
     },
     manualPath: {
       action: 'コアファイルを手動指定',
-      hint: '自動検出に失敗した場合は iflow.js を手動で選択してください',
+      clear: '手動パスをクリア',
+      hint: 'iflow.js のパスを手動で指定またはクリアして、自動検出結果を上書きできます',
       saved: 'iFlow コアファイルのパスを保存しました',
+      cleared: '手動指定した iFlow コアファイルのパスをクリアしました',
       invalid: 'iflow.js コアファイルを選択してください',
     },
     mods: {

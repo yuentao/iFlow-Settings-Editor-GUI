@@ -766,8 +766,10 @@ export default {
     },
     manualPath: {
       action: 'Locate Core File',
-      hint: 'If auto-detection fails, manually select the iflow.js file',
+      clear: 'Clear Manual Path',
+      hint: 'Manually select or clear the iflow.js path to override auto-detection',
       saved: 'iFlow core file path saved',
+      cleared: 'Manual iFlow core file path cleared',
       invalid: 'Please select the iflow.js core file',
     },
     mods: {

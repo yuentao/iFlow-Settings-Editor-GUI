@@ -766,8 +766,10 @@ export default {
     },
     manualPath: {
       action: '手动定位核心文件',
-      hint: '如果自动识别失败，可手动选择 iflow.js 文件',
+      clear: '清除手动路径',
+      hint: '可手动选择或清除 iflow.js 文件路径，优先覆盖自动识别结果',
       saved: '已保存 iFlow 核心文件路径',
+      cleared: '已清除手动核心文件路径',
       invalid: '请选择名为 iflow.js 的核心文件',
     },
     mods: {

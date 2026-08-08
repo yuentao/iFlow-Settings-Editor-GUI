@@ -37,16 +37,22 @@
         </div>
       </div>
 
-      <div v-if="!isLoading && !iflowStatus.exists" class="manual-core-path-panel">
+      <div v-if="!isLoading" class="manual-core-path-panel">
         <div class="manual-core-path-panel__text">
           <div class="manual-core-path-panel__title">{{ $t('iflow.manualPath.action') }}</div>
           <div class="manual-core-path-panel__hint">{{ $t('iflow.manualPath.hint') }}</div>
           <div v-if="iflowStatus.manualPath" class="manual-core-path-panel__path">{{ iflowStatus.manualPath }}</div>
         </div>
-        <button class="btn btn-secondary" @click="selectManualCorePath" :disabled="isApplying">
-          <FolderOpen size="14" />
-          {{ $t('iflow.manualPath.action') }}
-        </button>
+        <div class="manual-core-path-panel__actions">
+          <button class="btn btn-secondary" @click="selectManualCorePath" :disabled="isApplying">
+            <FolderOpen size="14" />
+            {{ $t('iflow.manualPath.action') }}
+          </button>
+          <button v-if="iflowStatus.manualPath" class="btn btn-secondary" @click="clearManualCorePath" :disabled="isApplying">
+            <Delete size="14" />
+            {{ $t('iflow.manualPath.clear') }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -342,6 +348,26 @@ const openExternal = async url => {
   }
 }
 
+const saveManualCorePath = async manualPath => {
+  const settingsResult = await window.electronAPI.loadSettings()
+  if (!settingsResult?.success || !settingsResult.data) {
+    toast.error(settingsResult?.error || 'Failed to load settings')
+    return false
+  }
+
+  const nextSettings = structuredClone(settingsResult.data)
+  nextSettings.iflowCorePath = manualPath
+
+  const saveResult = await window.electronAPI.saveSettings(nextSettings)
+  if (!saveResult?.success) {
+    toast.error(saveResult?.error || 'Failed to save settings')
+    return false
+  }
+
+  await loadMods()
+  return true
+}
+
 const selectManualCorePath = async () => {
   try {
     const dialogResult = await window.electronAPI.iflowOpenCoreFileDialog()
@@ -356,23 +382,21 @@ const selectManualCorePath = async () => {
       return
     }
 
-    const settingsResult = await window.electronAPI.loadSettings()
-    if (!settingsResult?.success || !settingsResult.data) {
-      toast.error(settingsResult?.error || 'Failed to load settings')
-      return
+    const saved = await saveManualCorePath(selectedPath)
+    if (saved) {
+      toast.success(t('iflow.manualPath.saved'))
     }
+  } catch (error) {
+    toast.error(String(error?.message || error))
+  }
+}
 
-    const nextSettings = structuredClone(settingsResult.data)
-    nextSettings.iflowCorePath = selectedPath
-
-    const saveResult = await window.electronAPI.saveSettings(nextSettings)
-    if (!saveResult?.success) {
-      toast.error(saveResult?.error || 'Failed to save settings')
-      return
+const clearManualCorePath = async () => {
+  try {
+    const saved = await saveManualCorePath('')
+    if (saved) {
+      toast.success(t('iflow.manualPath.cleared'))
     }
-
-    await loadMods()
-    toast.success(t('iflow.manualPath.saved'))
   } catch (error) {
     toast.error(String(error?.message || error))
   }
@@ -635,6 +659,13 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.manual-core-path-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .manual-core-path-panel__title {
