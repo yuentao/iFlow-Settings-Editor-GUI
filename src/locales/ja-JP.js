@@ -765,6 +765,12 @@ export default {
       core: 'iFlow コアディレクトリ',
       config: 'iFlow 設定ディレクトリ',
     },
+    manualPath: {
+      action: 'コアファイルを手動指定',
+      hint: '自動検出に失敗した場合は iflow.js を手動で選択してください',
+      saved: 'iFlow コアファイルのパスを保存しました',
+      invalid: 'iflow.js コアファイルを選択してください',
+    },
     mods: {
       title: 'インストール済み Mod',
       import: 'Mod をインポート',

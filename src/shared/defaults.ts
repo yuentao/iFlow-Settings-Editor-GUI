@@ -19,6 +19,7 @@ export const CLI_DEFAULTS = {
   logLevel: 'info',
   apiConfigLayout: 'list',
   zoomFactor: 1.0,
+  iflowCorePath: '',
   balanceRefreshInterval: 5,
   projectSessionRefreshInterval: 10,
   balanceProviderRules: [],

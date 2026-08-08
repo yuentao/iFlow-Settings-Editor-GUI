@@ -36,6 +36,18 @@
           <FolderCodeOne size="20" class="status-card-action" />
         </div>
       </div>
+
+      <div v-if="!isLoading && !iflowStatus.exists" class="manual-core-path-panel">
+        <div class="manual-core-path-panel__text">
+          <div class="manual-core-path-panel__title">{{ $t('iflow.manualPath.action') }}</div>
+          <div class="manual-core-path-panel__hint">{{ $t('iflow.manualPath.hint') }}</div>
+          <div v-if="iflowStatus.manualPath" class="manual-core-path-panel__path">{{ iflowStatus.manualPath }}</div>
+        </div>
+        <button class="btn btn-secondary" @click="selectManualCorePath" :disabled="isApplying">
+          <FolderOpen size="14" />
+          {{ $t('iflow.manualPath.action') }}
+        </button>
+      </div>
     </div>
 
     <div class="form-group">
@@ -330,6 +342,42 @@ const openExternal = async url => {
   }
 }
 
+const selectManualCorePath = async () => {
+  try {
+    const dialogResult = await window.electronAPI.iflowOpenCoreFileDialog()
+    if (!dialogResult?.success || !dialogResult.filePath) {
+      return
+    }
+
+    const selectedPath = String(dialogResult.filePath || '')
+    const normalizedPath = selectedPath.replace(/\\/g, '/').toLowerCase()
+    if (!normalizedPath.endsWith('/iflow.js')) {
+      toast.warning(t('iflow.manualPath.invalid'))
+      return
+    }
+
+    const settingsResult = await window.electronAPI.loadSettings()
+    if (!settingsResult?.success || !settingsResult.data) {
+      toast.error(settingsResult?.error || 'Failed to load settings')
+      return
+    }
+
+    const nextSettings = structuredClone(settingsResult.data)
+    nextSettings.iflowCorePath = selectedPath
+
+    const saveResult = await window.electronAPI.saveSettings(nextSettings)
+    if (!saveResult?.success) {
+      toast.error(saveResult?.error || 'Failed to save settings')
+      return
+    }
+
+    await loadMods()
+    toast.success(t('iflow.manualPath.saved'))
+  } catch (error) {
+    toast.error(String(error?.message || error))
+  }
+}
+
 // 计算 mod 的应用顺序序号（与后端 applyModsToIflowJs 的应用顺序一致：按 enabledAt 升序）
 const enableIndexMap = computed(() => {
   const map = {}
@@ -564,10 +612,46 @@ onUnmounted(() => {
 }
 
 .status-cards {
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.manual-core-path-panel {
   margin-top: 16px;
-  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.manual-core-path-panel__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.manual-core-path-panel__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.manual-core-path-panel__hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.manual-core-path-panel__path {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  word-break: break-all;
 }
 
 .status-card {

@@ -13,11 +13,28 @@ const diff = require('diff')
 const { t } = require('../utils/translations')
 const { logger } = require('../utils/logger')
 const { isPathInside } = require('../utils/pathSafety')
+const { readSettings } = require('./configService')
 
 // 路径常量
 const IFLOW_BASE_DIR = path.join(app.getPath('home'), '.iflow')
 const MODS_DIR = path.join(IFLOW_BASE_DIR, 'mods', 'iflow')
 const MODS_JSON_PATH = path.join(MODS_DIR, 'mods.json')
+
+function getManualIflowCorePath() {
+  try {
+    const settings = readSettings() || {}
+    const manualPath = typeof settings.iflowCorePath === 'string' ? settings.iflowCorePath.trim() : ''
+    if (!manualPath) return ''
+
+    const normalized = path.normalize(manualPath)
+    if (path.basename(normalized).toLowerCase() !== 'iflow.js') {
+      return ''
+    }
+    return normalized
+  } catch {
+    return ''
+  }
+}
 
 /**
  * 确保 Mod 目录结构存在
@@ -316,6 +333,11 @@ function getWellKnownIflowJsPaths() {
  * @returns {Promise<string>} iflow.js 完整路径
  */
 async function getIflowPath() {
+  const manualPath = getManualIflowCorePath()
+  if (manualPath && fs.existsSync(manualPath)) {
+    return manualPath
+  }
+
   const pkgRel = path.join('@iflow-ai', 'iflow-cli', 'bundle', 'iflow.js')
 
   // 策略1: npm prefix
@@ -349,6 +371,11 @@ async function getIflowPath() {
     }
   }
 
+  // 所有策略失败，返回手动路径（供上层显示路径信息）
+  if (manualPath) {
+    return manualPath
+  }
+
   // 所有策略失败，返回 npm 路径（供上层显示路径信息）
   try {
     const prefix = await getNpmPrefix()
@@ -361,14 +388,20 @@ async function getIflowPath() {
 
 /**
  * 检查 iflow.js 是否存在
- * @returns {Promise<{ exists: boolean, path: string }>}
+ * @returns {Promise<{ exists: boolean, path: string, source: string, manualPath: string }>} 
  */
 async function checkIflowExists() {
+  const manualPath = getManualIflowCorePath()
   try {
     const iflowPath = await getIflowPath()
-    return { exists: fs.existsSync(iflowPath), path: iflowPath }
+    return {
+      exists: fs.existsSync(iflowPath),
+      path: iflowPath,
+      source: manualPath && path.normalize(iflowPath) === path.normalize(manualPath) ? 'manual' : 'auto',
+      manualPath,
+    }
   } catch {
-    return { exists: false, path: '' }
+    return { exists: false, path: manualPath || '', source: manualPath ? 'manual' : 'auto', manualPath }
   }
 }
 

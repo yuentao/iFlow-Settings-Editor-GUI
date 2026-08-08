@@ -764,6 +764,12 @@ export default {
       core: 'iFlow CLI 核心目录',
       config: 'iFlow CLI 配置目录',
     },
+    manualPath: {
+      action: '手动定位核心文件',
+      hint: '如果自动识别失败，可手动选择 iflow.js 文件',
+      saved: '已保存 iFlow 核心文件路径',
+      invalid: '请选择名为 iflow.js 的核心文件',
+    },
     mods: {
       title: '已安装的模组',
       import: '导入模组',

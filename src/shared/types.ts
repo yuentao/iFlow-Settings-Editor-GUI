@@ -64,6 +64,7 @@ export interface Settings {
   logLevel?: 'info' | 'debug' | 'silent'  // 日志级别，默认 info
   apiConfigLayout?: 'list' | 'grid'  // API 配置页面布局方式，默认 list
   zoomFactor?: number  // UI 缩放因子，默认 1.0，范围 0.5~1.5
+  iflowCorePath?: string  // 手动指定的 iFlow 核心文件路径（iflow.js）
   customThemes?: Record<string, CustomThemeConfig>
   cloudSync?: {
     enabled?: boolean

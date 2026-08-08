@@ -764,6 +764,12 @@ export default {
       core: 'iFlow Core Dir',
       config: 'iFlow Config Dir',
     },
+    manualPath: {
+      action: 'Locate Core File',
+      hint: 'If auto-detection fails, manually select the iflow.js file',
+      saved: 'iFlow core file path saved',
+      invalid: 'Please select the iflow.js core file',
+    },
     mods: {
       title: 'Installed Mods',
       import: 'Import Mod',

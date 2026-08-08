@@ -199,6 +199,7 @@ fetchTokenBalance: (params) => ipcRenderer.invoke('fetch-token-balance', params)
   iflowExportMod: (modId) => ipcRenderer.invoke('iflow:export-mod', modId),
   iflowImportMod: (filePath) => ipcRenderer.invoke('iflow:import-mod', filePath),
   iflowOpenImportDialog: () => ipcRenderer.invoke('iflow:open-import-dialog'),
+  iflowOpenCoreFileDialog: () => ipcRenderer.invoke('iflow:open-core-file-dialog'),
   iflowCheckIflowStatus: () => ipcRenderer.invoke('iflow:check-iflow-status'),
 
   // iFlow Mod 进度事件监听

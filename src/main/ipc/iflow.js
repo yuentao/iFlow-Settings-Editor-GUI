@@ -611,6 +611,26 @@ function registerIflowIpcHandlers() {
     return { success: true, filePath: result.filePaths[0] }
   }, 'iflow:open-import-dialog'))
 
+  ipcMain.handle('iflow:open-core-file-dialog', wrapIpcHandler(async () => {
+    const { getMainWindow } = require('../window')
+    const mainWindow = getMainWindow()
+
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: t('iflow.quickOpen.core'),
+      filters: [
+        { name: 'JavaScript', extensions: ['js'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+      properties: ['openFile'],
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, cancelled: true }
+    }
+
+    return { success: true, filePath: result.filePaths[0] }
+  }, 'iflow:open-core-file-dialog'))
+
   // ── 检查 iflow.js 文件状态 ────────────────────────────────
   ipcMain.handle('iflow:check-iflow-status', wrapIpcHandler(async () => {
     try {
@@ -629,9 +649,11 @@ function registerIflowIpcHandlers() {
         path: status.path,
         version,
         iflowDir: IFLOW_BASE_DIR,
+        source: status.source || 'auto',
+        manualPath: status.manualPath || '',
       }
     } catch (error) {
-      return { success: true, exists: false, path: '', version: null }
+      return { success: true, exists: false, path: '', version: null, iflowDir: IFLOW_BASE_DIR, source: 'auto', manualPath: '' }
     }
   }, 'iflow:check-iflow-status'))
 }
