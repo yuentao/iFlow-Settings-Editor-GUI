@@ -238,6 +238,22 @@ function deriveIflowJsPathFromBinary(binaryPath) {
  * 作为 shell 命令全部失败时的纯文件系统兜底方案
  * @returns {string[]} 候选 iflow.js 路径列表
  */
+function getExistingDirectories(parentDir) {
+  try {
+    return fs.readdirSync(parentDir, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => path.join(parentDir, entry.name))
+  } catch {
+    return []
+  }
+}
+
+function pushUniquePath(target, value) {
+  if (value && !target.includes(value)) {
+    target.push(value)
+  }
+}
+
 function getWellKnownIflowJsPaths() {
   if (process.platform === 'win32') return []
 
@@ -252,11 +268,25 @@ function getWellKnownIflowJsPaths() {
     '/opt/local/lib/node_modules', // MacPorts
     '/usr/lib/node_modules', // Linux 发行版包管理器
     path.join(home, '.npm-global', 'lib', 'node_modules'),
-    path.join(home, 'Library', 'pnpm', 'global', '5', 'node_modules'),
-    path.join(home, '.local', 'share', 'pnpm', 'global', '5', 'node_modules'),
+    path.join(home, '.npm-packages', 'lib', 'node_modules'),
+    path.join(home, 'Library', 'pnpm', 'global'),
+    path.join(home, '.local', 'share', 'pnpm', 'global'),
+    path.join(home, '.volta', 'tools', 'image', 'packages'),
   ]
   for (const root of staticRoots) {
-    candidates.push(path.join(root, pkgRel))
+    pushUniquePath(candidates, path.join(root, pkgRel))
+  }
+
+  // 用户级 npm prefix 及 pnpm 版本目录
+  const nestedRoots = [
+    { root: path.join(home, 'Library', 'pnpm', 'global'), sub: ['node_modules'] },
+    { root: path.join(home, '.local', 'share', 'pnpm', 'global'), sub: ['node_modules'] },
+    { root: path.join(home, '.volta', 'tools', 'image', 'packages'), sub: ['lib', 'node_modules'] },
+  ]
+  for (const { root, sub } of nestedRoots) {
+    for (const dir of getExistingDirectories(root)) {
+      pushUniquePath(candidates, path.join(dir, ...sub, pkgRel))
+    }
   }
 
   // 版本管理器：扫描已安装的 node 版本目录
@@ -270,12 +300,8 @@ function getWellKnownIflowJsPaths() {
     },
   ]
   for (const { root, sub } of versionedRoots) {
-    try {
-      for (const entry of fs.readdirSync(root)) {
-        candidates.push(path.join(root, entry, ...sub, pkgRel))
-      }
-    } catch {
-      // 目录不存在时忽略
+    for (const dir of getExistingDirectories(root)) {
+      pushUniquePath(candidates, path.join(dir, ...sub, pkgRel))
     }
   }
 
@@ -357,10 +383,46 @@ function stripAnsi(str) {
   return str.replace(ANSI_REGEX, '')
 }
 
+function deriveIflowPackageVersion(iflowPath) {
+  if (!iflowPath) return null
+
+  let dir = path.dirname(iflowPath)
+  for (let i = 0; i < 6; i++) {
+    const packageJsonPath = path.join(dir, 'package.json')
+    if (fs.existsSync(packageJsonPath)) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
+        if (pkg && typeof pkg.version === 'string' && pkg.version.trim()) {
+          return pkg.version.trim()
+        }
+      } catch {
+        // package.json 读取失败时继续向上查找
+      }
+    }
+    const parent = path.dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+
+  return null
+}
+
 async function getIflowVersion() {
   if (cachedIflowVersion !== null) {
     return cachedIflowVersion
   }
+
+  try {
+    const iflowPath = await getIflowPath()
+    const packageVersion = deriveIflowPackageVersion(iflowPath)
+    if (packageVersion) {
+      cachedIflowVersion = packageVersion
+      return cachedIflowVersion
+    }
+  } catch {
+    // 文件系统定位失败时回退到命令检测
+  }
+
   return new Promise((resolve, reject) => {
     exec('iflow -v', { timeout: 5000, windowsHide: true, env: getExecEnv() }, (error, stdout, stderr) => {
       if (error) {
